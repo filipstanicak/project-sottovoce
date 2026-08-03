@@ -1,0 +1,36 @@
+# Godot 4
+.godot/
+/android/
+*.translation
+
+# Exports
+/build/
+/export/
+*.exe
+*.pck
+*.x86_64
+*.zip
+
+# Godot editor state that must not be shared
+.godot/editor/
+export_presets.cfg.local
+
+# Test / tooling output
+.gutconfig.local.json
+/reports/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*~
+
+# Local overrides — see docs/20_tdd/12_build_and_ci.md
+/override.cfg
+/data/tuning/local/

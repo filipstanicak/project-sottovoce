@@ -1,0 +1,63 @@
+# Line endings -------------------------------------------------------------
+# Normalise to LF in the repository. The team is on Windows and Linux, and
+# Godot's text resources (.tscn, .tres, .gd) diff badly if endings drift.
+* text=auto eol=lf
+
+# Godot text resources — always text, never LFS.
+*.gd        text eol=lf
+*.tscn      text eol=lf
+*.tres      text eol=lf
+*.godot     text eol=lf
+*.cfg       text eol=lf
+*.import    text eol=lf
+*.md        text eol=lf
+*.csv       text eol=lf
+*.json      text eol=lf
+*.yml       text eol=lf
+*.yaml      text eol=lf
+*.sh        text eol=lf
+
+# Windows-only scripts keep CRLF.
+*.bat       text eol=crlf
+*.ps1       text eol=crlf
+
+# Git LFS ------------------------------------------------------------------
+# Binary assets. Every pattern here must correspond to a real asset category;
+# see docs/00_meta/ASSET_LICENSES.md. Do not add patterns speculatively —
+# an LFS pattern with no files still costs every clone a pointer check.
+
+# Meshes and animation
+*.glb       filter=lfs diff=lfs merge=lfs -text
+*.gltf      filter=lfs diff=lfs merge=lfs -text
+*.fbx       filter=lfs diff=lfs merge=lfs -text
+*.blend     filter=lfs diff=lfs merge=lfs -text
+
+# Textures
+*.png       filter=lfs diff=lfs merge=lfs -text
+*.jpg       filter=lfs diff=lfs merge=lfs -text
+*.jpeg      filter=lfs diff=lfs merge=lfs -text
+*.tga       filter=lfs diff=lfs merge=lfs -text
+*.exr       filter=lfs diff=lfs merge=lfs -text
+*.hdr       filter=lfs diff=lfs merge=lfs -text
+*.psd       filter=lfs diff=lfs merge=lfs -text
+
+# Audio
+*.wav       filter=lfs diff=lfs merge=lfs -text
+*.ogg       filter=lfs diff=lfs merge=lfs -text
+*.mp3       filter=lfs diff=lfs merge=lfs -text
+
+# Fonts
+*.ttf       filter=lfs diff=lfs merge=lfs -text
+*.otf       filter=lfs diff=lfs merge=lfs -text
+
+# Exceptions ---------------------------------------------------------------
+# Small UI icons stay out of LFS: they change often, they are tiny, and LFS
+# round-trips on every branch switch are a worse cost than their diff size.
+assets/ui/icons/*.png -filter -diff -merge text=auto
+
+# Merge policy -------------------------------------------------------------
+# .tscn and .tres are text and do diff, but a three-way line merge on scene
+# node ordering or sub-resource IDs produces plausible-looking corruption.
+# They are left as normal text (so review is possible) with a process rule
+# instead of a tooling one: a conflicted scene is re-authored in the editor,
+# never hand-merged. See docs/30_bible/SCENE_AND_NODE_CONVENTIONS.md §7.
