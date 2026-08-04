@@ -212,7 +212,7 @@ Operational documents, not essays. These are what make the project agent-legible
 | `20_tdd/` | **written** | Chapters 1–12 complete. |
 | `30_bible/` | **written** | All 17 documents complete. |
 | `40_backlog/` | **written** | M0–M6 roadmap, 26 epics, 89 stories. |
-| `50_tuning/` | **written** | TUNABLES (265 values, 20 invariants) and BALANCE_MODEL. |
+| `50_tuning/` | **written** | TUNABLES (269 values, 20 invariants) and BALANCE_MODEL. |
 
 No document is `locked` until it has survived one implementation milestone without
 contradiction.

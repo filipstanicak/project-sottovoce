@@ -343,6 +343,7 @@ Shared rules first, then per ability. Cooldowns are authoritative on the server 
 | `TUN-CINDERFALL-BLOCKS-KILL` | true | bool | — | No kill may be *initiated* inside the radius, by anyone, including the caster. A kill already in progress completes. Otherwise it becomes an offensive tool for forcing blind kills. |
 | `TUN-CINDERFALL-SUSPICION` | 40.0 | pts | — | Equals `TUN-SUSPICION-GAIN-LOUD-ABILITY`. |
 | `TUN-CINDERFALL-STARTLE-RADIUS` | 9.0 | m | 6–14 | NPCs within this radius **Startle**. The cloud hides you and simultaneously paints a fleeing-crowd arrow at your position for everyone in the district. This is the ability's honest cost. |
+| `TUN-CINDERFALL-TELL-AUDIO-RADIUS` | 25.0 | m | 18–35 | The crack is audible this far. Promoted from prose in 04_abilities.md § Tell; the audio tell channel must be a tunable like every other number, because design law 3 is enforced by the schema. |
 
 ### 8.2 `ABIL-WHISPERBOLT` — thrown blade
 
@@ -357,6 +358,7 @@ Shared rules first, then per ability. Cooldowns are authoritative on the server 
 | `TUN-WHISPERBOLT-EXPOSED-TAIL` | 1.5 | s | 1.0–2.5 | Exposed persists after release, hit or miss. You threw a knife in a market; people noticed. |
 | `TUN-WHISPERBOLT-SUSPICION-ON-MISS` | 30.0 | pts | — | Equals `TUN-SUSPICION-GAIN-FAILED-KILL`. A miss is a failed kill. |
 | `TUN-WHISPERBOLT-REQUIRES-LOS` | true | bool | — | Server-validated at release *and* at impact against the lag-compensated world. |
+| `TUN-WHISPERBOLT-TELL-AUDIO-RADIUS` | 30.0 | m | 25–40 | THE LOUDEST TELL IN THE GAME, and the entire balance of the ability. 2.5x Whisperbolt's own 12 m reach, so everyone who could plausibly be the target hears the draw. |
 
 ### 8.3 `ABIL-SECONDFACE` — disguise
 
@@ -371,6 +373,7 @@ Shared rules first, then per ability. Cooldowns are authoritative on the server 
 | `TUN-SECONDFACE-SUSPICION` | 10.0 | pts | 5–20 | Cheap but not free. It is a quiet ability; the cost is the cooldown, not the noise. |
 | `TUN-SECONDFACE-PERSONA-SOURCE` | nearest_clone | enum | — | You adopt the persona of the nearest visible NPC clone, not a free choice. Ties the ability to reading the crowd, which is why it exists. Falls back to a random other persona if no clone is visible. |
 | `TUN-SECONDFACE-BREAK-TELL-DURATION` | 0.6 | s | 0.4–1.0 | The un-morph is as visible as the morph. Being unmasked in a crowd is an event other players can see. |
+| `TUN-SECONDFACE-TELL-AUDIO-RADIUS` | 8.0 | m | 5–12 | A soft cloth rush — deliberately the quietest ability tell, because Second Face's cost is paid in its visual morph. Promoted from prose. |
 
 ### 8.4 `ABIL-LUNGE` — committed dash
 
@@ -385,6 +388,7 @@ Shared rules first, then per ability. Cooldowns are authoritative on the server 
 | `TUN-LUNGE-AUTO-KILL` | true | bool | — | If the dash ends within `TUN-KILL-RANGE` and cone of the contract, the kill auto-initiates. It is one button, not two, because it is the panic button. |
 | `TUN-LUNGE-WHIFF-STAGGER` | 1.2 | s | 0.8–2.0 | Missing leaves you standing in the open, Noticed, unable to act. |
 | `TUN-LUNGE-STARTLE-RADIUS` | 7.0 | m | 5–10 | NPCs scatter from the dash path. You have drawn an arrow to yourself. |
+| `TUN-LUNGE-TELL-AUDIO-RADIUS` | 20.0 | m | 14–28 | The shout and footfall carry this far. Promoted from prose. |
 
 ### 8.5 Passives
 

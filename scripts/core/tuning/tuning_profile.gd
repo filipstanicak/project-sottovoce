@@ -22,6 +22,7 @@ const _SECTIONS: Array[StringName] = [
 	&"net",
 	&"perf",
 	&"ui_audio",
+	&"ability",
 ]
 
 @export var movement: MovementTuning = MovementTuning.new()
@@ -36,6 +37,7 @@ const _SECTIONS: Array[StringName] = [
 @export var net: NetTuning = NetTuning.new()
 @export var perf: PerfTuning = PerfTuning.new()
 @export var ui_audio: UiAudioTuning = UiAudioTuning.new()
+@export var ability: AbilityTuning = AbilityTuning.new()
 @export var flags: FeatureFlags = FeatureFlags.new()
 
 ## StringName(ABIL-*) -> AbilityData.

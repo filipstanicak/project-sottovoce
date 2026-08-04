@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3]
+
+[ext_resource type="Script" path="res://scripts/core/tuning/ability_data.gd" id="1_eepw5"]
+
+[resource]
+script = ExtResource("1_eepw5")
+id = &"ABIL-CINDERFALL"
+display_key = &"ability.cinderfall.name"
+tell_sfx = &"SFX-CINDERFALL-THROW"
+cooldown = 45.0
+cast_time = 0.45
+throw_range = 8.0
+radius = 5.0
+blocks_los = true
+blocks_kill = true
+suspicion_cost = 40.0
+startle_radius = 9.0
+tell_audio_radius = 25.0
