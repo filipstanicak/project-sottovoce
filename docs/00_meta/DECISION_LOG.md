@@ -71,6 +71,7 @@ Otherwise a log line is sufficient.
 | 2026-08-03 | — | IP enforcement automated: a `banned_terms` grep runs in CI as a hard failure, with exactly two exempted files. |
 | 2026-08-03 | — | Asset licence register enforced bidirectionally in CI: a missing row and a stale row are both build failures. |
 | 2026-08-03 | — | Minimap, kill-cam and cosmetics recorded as permanent design laws rather than schedule cuts. |
+| 2026-08-03 | ASM-0030 | Contract portrait starts unknown and is filled permanently by completing a Compass lock — reconciles the brief's HUD element with the rule that a hunter is never told their contract's persona, and gives the lock a payoff worth its cost. |
 
 ---
 

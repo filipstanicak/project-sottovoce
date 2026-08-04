@@ -210,6 +210,16 @@ you disagree with one, the cost of changing it is stated in the row.
 | **Cost to reverse** | Low. |
 | **Revisit by** | M4 |
 
+### ASM-0030 — The contract portrait is unknown until a lock completes
+
+| Field | Value |
+|---|---|
+| **Status** | active |
+| **Decision** | The HUD's contract portrait shows a featureless unknown silhouette when a contract is assigned. Completing a Compass lock (`TUN-COMPASS-LOCK-FILL-TIME`) fills it with the contract's persona **permanently for the duration of that contract**. It resets to unknown on reassignment. |
+| **Why** | The brief lists a "contract portrait" as a HUD element, while [`../10_gdd/03_social_stealth.md`](../10_gdd/03_social_stealth.md) §8.5 states the hunter is deliberately never told their contract's persona — knowing the persona collapses the candidate set from 60–90 NPCs to 8–13 and is the single most valuable piece of information in the game. A portrait that is populated on assignment would hand that over for free and gut the crowd. A portrait that is *earned* satisfies both: it is unknown by default, so the search is preserved, and it becomes the durable payoff for the hardest skill in the game. It also solves a separate problem — the lock reveal lasts only `TUN-COMPASS-REVEAL-DURATION` 1.5 s, which is too brief to be worth the 1.6 s of standing still it costs; making the lock *also* permanently identify the persona is what makes locking worth doing. |
+| **Cost to reverse** | Low. One view-model field and a reveal-completion hook. |
+| **Revisit by** | M5 |
+
 ---
 
 ## 3. Technical
@@ -363,3 +373,4 @@ you disagree with one, the cost of changing it is stated in the row.
 | ASM-0027 | Per-document / per-milestone commit granularity | active | — | N/A |
 | ASM-0028 | Docs stay `draft` until implemented | active | — | N/A |
 | ASM-0029 | Greybox authored in-engine as primitives | active | M6 | Medium |
+| ASM-0030 | Contract portrait unknown until a lock completes | active | M5 | Low |
