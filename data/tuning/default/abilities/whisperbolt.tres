@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3]
+
+[ext_resource type="Script" path="res://scripts/core/tuning/ability_data.gd" id="1_vnfnf"]
+
+[resource]
+script = ExtResource("1_vnfnf")
+id = &"ABIL-WHISPERBOLT"
+display_key = &"ability.whisperbolt.name"
+tell_sfx = &"SFX-WHISPERBOLT-DRAW"
+cooldown = 40.0
+tell_audio_radius = 30.0
+windup = 1.0
+range_min = 3.0
+range_max = 12.0
+projectile_speed = 22.0
+forces_exposed = true
+exposed_tail = 1.5
+suspicion_on_miss = 30.0
+requires_los = true

@@ -65,7 +65,7 @@ exit criterion is somebody's named deliverable rather than a shared assumption.
 | Six CI jobs, all required on `main` | import · lint · test · ip-guard · asset-inventory · export |
 | The full folder tree + `test/arch/` guards | The layer rule is enforced from commit one |
 | `Ids`, all eight autoloads, the string table | |
-| `TuningProfile` + every sub-resource + `data/tuning/default/*.tres` | **All 265 values, from TUNABLES.md** |
+| `TuningProfile` + every sub-resource + `data/tuning/default/*.tres` | **All 269 values, from TUNABLES.md** |
 | `boot.tscn` with the `--server` branch; greybox `MAP-VETRAIO` loads | |
 
 ### 2.1 Why the tuning layer lands first

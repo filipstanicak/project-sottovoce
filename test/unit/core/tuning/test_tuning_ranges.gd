@@ -55,27 +55,32 @@ func test_every_value_is_inside_its_export_range() -> void:
 
 
 func test_all_cross_field_invariants_hold() -> void:
-	# Invariants 11 and 12 read per-ability values that arrive with AbilityData.
-	# Until then they report "cannot check" rather than passing silently, which
-	# is the whole point — an unverifiable invariant must never look verified.
+	# All 20 now assert for real. Invariants 11 and 12 were pending until
+	# AbilityData existed, and reported "cannot check" rather than passing over
+	# the gap — if either ever regresses to that, this fails loudly rather than
+	# quietly going green on 18 of 20.
 	var errors: Array[String] = _profile().validate()
-	var real: Array[String] = []
-	var pending: Array[String] = []
+	assert_eq(errors.size(), 0, "Cross-field invariant violated.\n" + "\n".join(errors))
 	for e: String in errors:
-		if e.contains("cannot check"):
-			pending.append(e)
-		else:
-			real.append(e)
-	assert_eq(real.size(), 0, "Cross-field invariant violated.\n" + "\n".join(real))
-	assert_eq(
-		pending.size(),
-		2,
-		(
-			"Expected exactly the two ability invariants to be pending. If AbilityData "
-			+ "now exists, delete this expectation and let 11 and 12 assert for real.\n"
-			+ "\n".join(pending)
-		)
-	)
+		assert_false(e.contains("cannot check"), "an invariant became unverifiable again: " + e)
+
+
+func test_the_ability_invariants_are_live() -> void:
+	# 11 and 12 depend on the abilities dictionary being populated. An empty
+	# dictionary would make validate() silently skip them.
+	var p := _profile()
+	assert_true(p.abilities.has(Ids.ABIL_WHISPERBOLT), "invariant 11 has nothing to check")
+	assert_true(p.abilities.has(Ids.ABIL_CINDERFALL), "invariant 12 has nothing to check")
+
+	var cinderfall: AbilityData = p.abilities[Ids.ABIL_CINDERFALL]
+	var radius := cinderfall.radius
+	cinderfall.radius = p.combat.kill_range  # deliberately under 2x
+	var hit := false
+	for e: String in p.validate():
+		if e.begins_with("12."):
+			hit = true
+	cinderfall.radius = radius
+	assert_true(hit, "breaking invariant 12 produced no error — it is inert")
 
 
 func test_the_invariant_checker_actually_fires() -> void:

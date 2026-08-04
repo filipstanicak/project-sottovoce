@@ -37,8 +37,22 @@ Every exported field in a `*Tuning` class obeys all three:
 ```
 
 **The field name is a mechanical transform of the ID:** `TUN-<DOMAIN>-<NAME>` →
-`<Domain>Tuning.<name_lowercased_underscored>`. No judgement, no exceptions — that is what makes
-the bidirectional sync check possible.
+`<Domain>Tuning.<name_lowercased_underscored>`. The leading domain segment is dropped when the
+class owns that domain and kept when it does not, so `MovementTuning` holds both `stroll` (from
+`TUN-SPEED-STROLL`) and `traverse_gap_max` (from `TUN-TRAVERSE-GAP-MAX`).
+
+**Exceptions are enumerated, never improvised.** Four names deviate, each for a stated reason;
+there are no others, and adding a fifth needs a line in this table:
+
+| ID | Field | Why not the mechanical name |
+|---|---|---|
+| `TUN-SUSPICION-MAX` | `max_value` | A member named `max` shadows GDScript's built-in `max()` inside the class. |
+| `TUN-SPEED-BLENDWALK` | `blend_walk` | Compound word; `blendwalk` is unreadable. |
+| `TUN-PASV-COLDREAD-MULT` | `cold_read_mult` | Compound word. |
+| `TUN-PASV-SECONDWIND-REDUCTION` | `second_wind_reduction` | Compound word. |
+
+`AbilityData` adds two of its own, for the same reason of matching §4.1's written names:
+`TUN-<ABIL>-SUSPICION` → `suspicion_cost`, `TUN-<ABIL>-STUNNABLE` → `stunnable_during`.
 
 ---
 
@@ -57,6 +71,7 @@ the bidirectional sync check possible.
 | `camera` | `CameraTuning` | §3.9 |
 | `net` | `NetTuning` | §3.10 |
 | `ui_audio` | `UiAudioTuning` | §3.11 |
+| `ability` | `AbilityTuning` | §3.13 — the five ability-system settings that are not per-ability |
 | `flags` | `FeatureFlags` | §3.12 |
 | `abilities` | `Dictionary` | `StringName(ABIL-*) → AbilityData` |
 | `passives` | `Dictionary` | `StringName(PASV-*) → PassiveData` |
@@ -276,6 +291,13 @@ Values, units and rationales are in TUNABLES.md at the section noted. Reproduced
 `compass_duck` −6.0 · `sting_duck` −12.0 · `occlusion_lowpass` 900 ·
 `footstep_radius_blend` 4.0 · `footstep_radius_sprint` 18.0.
 
+### 3.13 `AbilityTuning` — TUNABLES §8.1
+
+The five ability-system settings that belong to no single ability: `slots_active`,
+`slots_passive`, `lock_at_match_start`, `global_cooldown`, `input_buffer`. Added because §8's
+globals had no home in the original §2 field list, and a documented `TUN-` value that lives
+nowhere in the data breaks the "every number is a tunable" rule.
+
 ### 3.12 `FeatureFlags`
 
 ```gdscript
@@ -315,6 +337,19 @@ technical debt with a nice name, and the Definition of Done checks for it.
 > **`test_ability_has_tell.gd` asserts ≥ 2 tell channels are filled, with ≥ 1 of
 > `tell_audio_radius > 0` or `startle_radius > 0`.** The legibility law is enforced by the
 > schema, not by review.
+
+### 4.1a `PassiveData`
+
+| Field | Type | Notes |
+|---|---|---|
+| `id` | `StringName` | `PASV-*`, immutable |
+| `display_key` | `StringName` | String-table key |
+| `effect_script` | `Script` | `extends PassiveEffect` |
+
+**Deliberately holds no numbers.** A passive modifies a domain, so its magnitude lives with that
+domain: `PASV-STILLNESS` → `SuspicionTuning.stillness_mult`, `PASV-COLDREAD` →
+`CompassTuning.cold_read_mult`, `PASV-SECONDWIND` → `CombatTuning.second_wind_reduction`. A second
+copy here would mean two places to change one number.
 
 ### 4.2 `PersonaData`
 

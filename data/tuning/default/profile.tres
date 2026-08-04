@@ -1,32 +1,52 @@
 [gd_resource type="Resource" script_class="TuningProfile" format=3]
 
-[ext_resource type="Resource" path="res://data/tuning/default/camera.tres" id="1_op08w"]
-[ext_resource type="Resource" path="res://data/tuning/default/combat.tres" id="2_5ad07"]
-[ext_resource type="Resource" path="res://data/tuning/default/compass.tres" id="3_ymx1m"]
-[ext_resource type="Resource" path="res://data/tuning/default/contract.tres" id="4_lthob"]
-[ext_resource type="Resource" path="res://data/tuning/default/crowd.tres" id="5_m8yd1"]
-[ext_resource type="Resource" path="res://data/tuning/default/flags.tres" id="6_sytnn"]
-[ext_resource type="Resource" path="res://data/tuning/default/match.tres" id="7_k7n30"]
-[ext_resource type="Resource" path="res://data/tuning/default/movement.tres" id="8_l3adb"]
-[ext_resource type="Resource" path="res://data/tuning/default/net.tres" id="9_h5g6k"]
-[ext_resource type="Resource" path="res://data/tuning/default/perf.tres" id="10_opk5i"]
-[ext_resource type="Resource" path="res://data/tuning/default/scoring.tres" id="11_sqnbl"]
-[ext_resource type="Script" path="res://scripts/core/tuning/tuning_profile.gd" id="12_ovuyt"]
-[ext_resource type="Resource" path="res://data/tuning/default/suspicion.tres" id="13_4fk0w"]
-[ext_resource type="Resource" path="res://data/tuning/default/ui_audio.tres" id="14_mqniy"]
+[ext_resource type="Resource" path="res://data/tuning/default/abilities/cinderfall.tres" id="1_h5g6k"]
+[ext_resource type="Resource" path="res://data/tuning/default/abilities/lunge.tres" id="2_opk5i"]
+[ext_resource type="Resource" path="res://data/tuning/default/abilities/secondface.tres" id="3_sqnbl"]
+[ext_resource type="Resource" path="res://data/tuning/default/abilities/whisperbolt.tres" id="4_ovuyt"]
+[ext_resource type="Resource" path="res://data/tuning/default/ability.tres" id="5_4fk0w"]
+[ext_resource type="Resource" path="res://data/tuning/default/camera.tres" id="6_mqniy"]
+[ext_resource type="Resource" path="res://data/tuning/default/combat.tres" id="7_inimq"]
+[ext_resource type="Resource" path="res://data/tuning/default/compass.tres" id="8_fy1om"]
+[ext_resource type="Resource" path="res://data/tuning/default/contract.tres" id="9_06mj0"]
+[ext_resource type="Resource" path="res://data/tuning/default/crowd.tres" id="10_m7r3q"]
+[ext_resource type="Resource" path="res://data/tuning/default/flags.tres" id="11_oq350"]
+[ext_resource type="Resource" path="res://data/tuning/default/match.tres" id="12_qbod0"]
+[ext_resource type="Resource" path="res://data/tuning/default/movement.tres" id="13_romgq"]
+[ext_resource type="Resource" path="res://data/tuning/default/net.tres" id="14_2glgl"]
+[ext_resource type="Resource" path="res://data/tuning/default/passives/stillness.tres" id="15_sl2cj"]
+[ext_resource type="Resource" path="res://data/tuning/default/passives/coldread.tres" id="16_b5gpu"]
+[ext_resource type="Resource" path="res://data/tuning/default/passives/secondwind.tres" id="17_jd6h8"]
+[ext_resource type="Resource" path="res://data/tuning/default/perf.tres" id="18_lhnu2"]
+[ext_resource type="Resource" path="res://data/tuning/default/scoring.tres" id="19_0mmou"]
+[ext_resource type="Script" path="res://scripts/core/tuning/tuning_profile.gd" id="20_kvlfo"]
+[ext_resource type="Resource" path="res://data/tuning/default/suspicion.tres" id="21_7bl14"]
+[ext_resource type="Resource" path="res://data/tuning/default/ui_audio.tres" id="22_kwqn6"]
 
 [resource]
-script = ExtResource("12_ovuyt")
-movement = ExtResource("8_l3adb")
-suspicion = ExtResource("13_4fk0w")
-compass = ExtResource("3_ymx1m")
-combat = ExtResource("2_5ad07")
-contract = ExtResource("4_lthob")
-crowd = ExtResource("5_m8yd1")
-match_rules = ExtResource("7_k7n30")
-scoring = ExtResource("11_sqnbl")
-camera = ExtResource("1_op08w")
-net = ExtResource("9_h5g6k")
-perf = ExtResource("10_opk5i")
-ui_audio = ExtResource("14_mqniy")
-flags = ExtResource("6_sytnn")
+script = ExtResource("20_kvlfo")
+movement = ExtResource("13_romgq")
+suspicion = ExtResource("21_7bl14")
+compass = ExtResource("8_fy1om")
+combat = ExtResource("7_inimq")
+contract = ExtResource("9_06mj0")
+crowd = ExtResource("10_m7r3q")
+match_rules = ExtResource("12_qbod0")
+scoring = ExtResource("19_0mmou")
+camera = ExtResource("6_mqniy")
+net = ExtResource("14_2glgl")
+perf = ExtResource("18_lhnu2")
+ui_audio = ExtResource("22_kwqn6")
+ability = ExtResource("5_4fk0w")
+flags = ExtResource("11_oq350")
+abilities = {
+&"ABIL-CINDERFALL": ExtResource("1_h5g6k"),
+&"ABIL-LUNGE": ExtResource("2_opk5i"),
+&"ABIL-SECONDFACE": ExtResource("3_sqnbl"),
+&"ABIL-WHISPERBOLT": ExtResource("4_ovuyt")
+}
+passives = {
+&"PASV-COLDREAD": ExtResource("16_b5gpu"),
+&"PASV-SECONDWIND": ExtResource("17_jd6h8"),
+&"PASV-STILLNESS": ExtResource("15_sl2cj")
+}
