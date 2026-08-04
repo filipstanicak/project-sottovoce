@@ -10,10 +10,13 @@ extends GutTest
 const PROFILE := "res://data/tuning/default/profile.tres"
 
 
+## ALWAYS A DEEP COPY. `load()` returns the cached instance, which is the same
+## object the Tuning autoload is holding — a test that mutates it to prove a
+## guard fires would silently corrupt every later test and the live profile.
 func _profile() -> TuningProfile:
 	var p: TuningProfile = load(PROFILE)
 	assert_not_null(p, "could not load " + PROFILE)
-	return p
+	return p.clone()
 
 
 func test_every_value_is_inside_its_export_range() -> void:

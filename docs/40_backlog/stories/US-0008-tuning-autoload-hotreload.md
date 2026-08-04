@@ -2,9 +2,9 @@
 id: US-0008
 title: Tuning autoload and hot reload
 version: 0.1.0
-status: draft
+status: done
 owner: Technical Director
-last_updated: 2026-08-03
+last_updated: 2026-08-04
 depends_on: [ADR-0005, TDD-05-DATA]
 ---
 
@@ -28,13 +28,13 @@ keypress re-tunes the running game, turning a next-session task into a next-roun
 
 ## Acceptance criteria
 
-- [ ] Tuning exposes one property per sub-resource.
-- [ ] `Tuning.ticks(id)` returns precomputed integer ticks for every TUN- duration.
-- [ ] `reload()` re-reads, re-validates, recomputes ticks and emits EVT-TUNING-RELOADED.
-- [ ] A reload failing `validate()` is rejected and the previous profile retained.
-- [ ] `adopt(profile)` applies a server-sent profile.
-- [ ] Hot reload is stripped from release builds.
-- [ ] `data/tuning/local/` is gitignored.
+- [x] Tuning exposes one property per sub-resource.
+- [x] `Tuning.ticks(id)` returns precomputed integer ticks for every TUN- duration.
+- [x] `reload()` re-reads, re-validates, recomputes ticks and emits EVT-TUNING-RELOADED.
+- [x] A reload failing `validate()` is rejected and the previous profile retained.
+- [x] `adopt(profile)` applies a server-sent profile.
+- [x] Hot reload is stripped from release builds.
+- [x] `data/tuning/local/` is gitignored.
 
 ## Test notes
 
@@ -45,3 +45,14 @@ keypress re-tunes the running game, turning a next-session task into a next-roun
 
 Anything holding a derived tuning value must handle EVT-TUNING-RELOADED. Forgetting is the
 classic hot-reload bug and a DoD checklist item.
+
+> **Done 2026-08-04.** 86 duration tunables convert to integer server ticks at load,
+> including per-ability durations, which resolve through `profile.abilities` rather
+> than a section and would have been easy to omit silently.
+>
+> `TuningIndex` was added to make `ticks(id)` possible at all: GDScript docstrings
+> are not readable at runtime, so the `TUN-` ID a field carries in its comment
+> cannot be recovered from the loaded resource. The index is the runtime half of
+> that link, generated from the same parse of TUNABLES.md as the classes.
+>
+> Building it surfaced two defects in already-merged work — see the commit.

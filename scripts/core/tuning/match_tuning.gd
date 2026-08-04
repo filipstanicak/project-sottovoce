@@ -6,11 +6,6 @@
 class_name MatchTuning
 extends Resource
 
-## Long enough to break a lock (TUN-COMPASS-LOCK-FILL-TIME is 1.6 s) and leave; short enough that
-## it cannot be used to camp a corner.
-## TUN-CINDERFALL-DURATION
-@export_range(3.0, 6.0, 0.1) var duration: float = 4.0
-
 ## Below 4 the contract cycle degenerates (see TUN-CONTRACT-MIN-CYCLE-LENGTH).
 ## TUN-LOBBY-MIN-PLAYERS
 @export var min_players: int = 4
@@ -27,7 +22,7 @@ extends Resource
 ## Eight minutes. Long enough for ~5 hunt cycles per player and for a comeback; short enough that
 ## a bad match is cheap and a queue is worth rejoining.
 ## TUN-MATCH-DURATION
-@export_range(420.0, 600.0, 0.1) var match_duration: float = 480.0
+@export_range(420.0, 600.0, 0.1) var duration: float = 480.0
 
 ## The Final Contract phase. Short and loud.
 ## TUN-MATCH-FINALPHASE-DURATION

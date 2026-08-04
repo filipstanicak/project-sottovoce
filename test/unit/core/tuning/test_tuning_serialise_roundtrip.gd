@@ -10,7 +10,7 @@ const PROFILE := "res://data/tuning/default/profile.tres"
 
 
 func test_round_trip_preserves_every_field() -> void:
-	var original: TuningProfile = load(PROFILE).duplicate(true)
+	var original: TuningProfile = (load(PROFILE) as TuningProfile).clone()
 	var restored := TuningProfile.deserialise(original.serialise())
 	assert_not_null(restored, "deserialise returned null")
 
@@ -47,7 +47,7 @@ func test_round_trip_preserves_every_field() -> void:
 
 
 func test_round_trip_preserves_the_hash() -> void:
-	var original: TuningProfile = load(PROFILE).duplicate(true)
+	var original: TuningProfile = (load(PROFILE) as TuningProfile).clone()
 	var restored := TuningProfile.deserialise(original.serialise())
 	assert_eq(
 		original.compute_hash(),
@@ -69,7 +69,7 @@ func test_deserialise_rejects_undersized_input() -> void:
 func test_the_comparison_actually_detects_a_difference() -> void:
 	# Guards the guard: if the field walk compared nothing, the test above would
 	# pass on a round-trip that dropped every value.
-	var a: TuningProfile = load(PROFILE).duplicate(true)
+	var a: TuningProfile = (load(PROFILE) as TuningProfile).clone()
 	var b := TuningProfile.deserialise(a.serialise())
 	b.movement.sprint += 1.0
 	assert_ne(a.movement.sprint, b.movement.sprint, "the sections are aliased, not copied")
