@@ -81,3 +81,4 @@ Then tell me, briefly:
 - Exactly where to pick up, and what the next story is
 - Anything still broken, blocked or uncertain — including mistakes made this
   session that have not been fixed
+- Tell me the exact promt which you need to continue from a new session
