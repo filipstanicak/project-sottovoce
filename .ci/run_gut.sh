@@ -32,7 +32,11 @@ fi
 
 echo "run_gut: $LABEL — expecting $expected script(s)"
 
-out=$(godot --headless -s addons/gut/gut_cmdln.gd "-gdir=res://$DIR" -gexit 2>&1) || {
+# -ginclude_subdirs is NOT optional. Without it GUT scans only the top level, so
+# test/unit/core/tuning/*.gd would simply not run — and GUT reports "nothing was
+# run" rather than failing, which is the same silent-skip shape this script
+# exists to catch.
+out=$(godot --headless -s addons/gut/gut_cmdln.gd "-gdir=res://$DIR" -ginclude_subdirs -gexit 2>&1) || {
 	echo "$out"
 	echo "run_gut: FAILED — GUT exited non-zero"
 	exit 1

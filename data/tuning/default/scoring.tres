@@ -1,0 +1,6 @@
+[gd_resource type="Resource" script_class="ScoringTuning" format=3]
+
+[ext_resource type="Script" path="res://scripts/core/tuning/scoring_tuning.gd" id="1_rptsl"]
+
+[resource]
+script = ExtResource("1_rptsl")
