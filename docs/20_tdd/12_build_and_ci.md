@@ -286,6 +286,7 @@ func flush_to(path: String) -> void        ## --record
 | Path | Purpose |
 |---|---|
 | `.github/workflows/ci.yml` | The six jobs |
+| `.github/actions/setup-godot/action.yml` | Installs the pinned engine; used by `import`, `test`, `export` |
 | `.ci/banned_terms.txt` · `ip_guard_exclude.txt` · `ip_guard.sh` | IP enforcement |
 | `.ci/check_asset_inventory.sh` | Bidirectional asset check |
 | `.gdlintrc` · `.gdformatrc` | Lint config |

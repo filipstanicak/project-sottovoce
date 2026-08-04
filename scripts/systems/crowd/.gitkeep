@@ -1,0 +1,6 @@
+Git does not track empty directories, so without this file the folder exists
+only on the machine that made it. test/arch/test_folder_structure.gd requires
+it to exist in the REPOSITORY — the layer rule is enforced by folder
+membership, and a missing folder invites a file into the wrong layer.
+
+Delete this file when real content lands here. Not before.

@@ -31,7 +31,7 @@ jobs:
       godot: ${{ steps.pin.outputs.godot }}
       tag: ${{ steps.pin.outputs.tag }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - id: pin
         run: |
           FULL=$(tr -d '[:space:]' < .godot-version)
@@ -47,32 +47,18 @@ jobs:
     needs: version
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with: { lfs: true }
 
-      - name: Cache engine
-        uses: actions/cache@v4
-        with:
-          path: ~/godot
-          key: godot-${{ needs.version.outputs.tag }}
+      - uses: ./.github/actions/setup-godot
+        with: { tag: '${{ needs.version.outputs.tag }}' }
 
-      - name: Install Godot
-        run: |
-          set -euo pipefail
-          if [ ! -x "$HOME/godot/godot" ]; then
-            mkdir -p "$HOME/godot"
-            TAG="${{ needs.version.outputs.tag }}"
-            VER="${{ needs.version.outputs.godot }}"
-            URL="https://github.com/godotengine/godot/releases/download/${TAG}/Godot_v${TAG}_linux.x86_64.zip"
-            curl -fsSL "$URL" -o /tmp/godot.zip
-            unzip -q /tmp/godot.zip -d "$HOME/godot"
-            mv "$HOME"/godot/Godot_v*_linux.x86_64 "$HOME/godot/godot"
-            chmod +x "$HOME/godot/godot"
-          fi
-          echo "$HOME/godot" >> "$GITHUB_PATH"
-
+      # Saved here, restored read-only by `test`. Passing it as an artifact
+      # instead does not work: `.godot` is a hidden path and upload-artifact
+      # silently skips hidden files, so the upload produced nothing and the
+      # download in `test` then hard-failed. A cache miss is merely slower.
       - name: Cache import artefacts
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: .godot
           key: import-${{ needs.version.outputs.tag }}-${{ hashFiles('project.godot', '**/*.import') }}
@@ -82,20 +68,13 @@ jobs:
         timeout-minutes: 5
         run: godot --headless --editor --quit-after 200
 
-      - name: Upload import cache
-        uses: actions/upload-artifact@v4
-        with:
-          name: godot-import-cache
-          path: .godot
-          retention-days: 1
-
   # ------------------------------------------------------------------- lint --
   lint:
     name: lint
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with: { python-version: '3.12' }
 
       - name: Install gdtoolkit
@@ -128,7 +107,7 @@ jobs:
     name: ip-guard
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: bash .ci/ip_guard.sh
 
   # -------------------------------------------------------- asset-inventory --
@@ -137,7 +116,7 @@ jobs:
     name: asset-inventory
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: bash .ci/check_asset_inventory.sh
 
   # ------------------------------------------------------------------- test --
@@ -146,21 +125,19 @@ jobs:
     needs: [version, import]
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with: { lfs: true }
 
-      - name: Cache engine
-        uses: actions/cache@v4
-        with:
-          path: ~/godot
-          key: godot-${{ needs.version.outputs.tag }}
+      - uses: ./.github/actions/setup-godot
+        with: { tag: '${{ needs.version.outputs.tag }}' }
 
-      - run: echo "$HOME/godot" >> "$GITHUB_PATH"
-
-      - uses: actions/download-artifact@v4
+      # Restore-only: `import` owns writing this key. A miss is not an error —
+      # Godot simply re-imports, costing time rather than correctness.
+      - name: Restore import artefacts
+        uses: actions/cache/restore@v6
         with:
-          name: godot-import-cache
           path: .godot
+          key: import-${{ needs.version.outputs.tag }}-${{ hashFiles('project.godot', '**/*.import') }}
 
       # test/arch/ protects the architecture rather than behaviour. If one of
       # these fails, the change is wrong or an ADR is needed — never the test.
@@ -188,16 +165,11 @@ jobs:
     needs: [version, import]
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with: { lfs: true }
 
-      - name: Cache engine
-        uses: actions/cache@v4
-        with:
-          path: ~/godot
-          key: godot-${{ needs.version.outputs.tag }}
-
-      - run: echo "$HOME/godot" >> "$GITHUB_PATH"
+      - uses: ./.github/actions/setup-godot
+        with: { tag: '${{ needs.version.outputs.tag }}' }
 
       # The server preset's exclusion list is the architecture's proof: if the
       # server build cannot run with all presentation code excluded, a
