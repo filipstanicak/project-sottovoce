@@ -1,0 +1,42 @@
+# Installs the engine build pinned by .godot-version and puts it on PATH.
+#
+# Factored out because three jobs need it. The previous shape cached the engine
+# in `test` and `export` but only *installed* it in `import`, so those two jobs
+# worked purely because the cache happened to be warm. A cache eviction — 7-day
+# idle, or the 10 GB repo ceiling — would have failed them with
+# `godot: command not found`, which reads like a broken runner rather than a
+# missing dependency. Cache is an optimisation; it must never be the only path.
+
+name: setup-godot
+description: Install the pinned Godot build, cached, and add it to PATH.
+
+inputs:
+  tag:
+    description: Release tag from the version job, e.g. 4.7.1-stable
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Cache engine
+      uses: actions/cache@v6
+      with:
+        path: ~/godot
+        key: godot-${{ inputs.tag }}
+
+    - name: Install engine
+      shell: bash
+      run: |
+        set -euo pipefail
+        TAG="${{ inputs.tag }}"
+        if [ ! -x "$HOME/godot/godot" ]; then
+          echo "engine cache miss — downloading $TAG"
+          mkdir -p "$HOME/godot"
+          URL="https://github.com/godotengine/godot/releases/download/${TAG}/Godot_v${TAG}_linux.x86_64.zip"
+          curl -fsSL "$URL" -o /tmp/godot.zip
+          unzip -q /tmp/godot.zip -d "$HOME/godot"
+          mv "$HOME"/godot/Godot_v*_linux.x86_64 "$HOME/godot/godot"
+          chmod +x "$HOME/godot/godot"
+        fi
+        echo "$HOME/godot" >> "$GITHUB_PATH"
+        "$HOME/godot/godot" --version
