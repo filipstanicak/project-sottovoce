@@ -110,7 +110,7 @@ shipped build is both a size cost and an attack surface.
 ## 4. The `--server` entry point
 
 ```gdscript
-## boot.tscn's script. The ONLY branch between client and server topology.
+## scripts/server/boot.gd — the ONLY branch between client and server topology.
 func _ready() -> void:
     var args := OS.get_cmdline_user_args()
     if "--server" in args:
@@ -291,7 +291,7 @@ func flush_to(path: String) -> void        ## --record
 | `.gdlintrc` · `.gdformatrc` | Lint config |
 | `.godot-version` | Pinned engine version |
 | `export_presets.cfg` | Three presets |
-| `scenes/boot.tscn` + `scripts/boot.gd` | `--server` branch |
+| `scenes/boot.tscn` + `scripts/server/boot.gd` | `--server` branch. In `server/`, not the `scripts/` root: a script at the root belongs to no layer, and the layer rule is enforced by folder membership |
 | `scripts/server/server_main.gd` | Headless entry |
 | `scripts/debug/debug_console.gd` + `commands/*.gd` | The console |
 | `tools/local_playtest.gd` | One-click 3-client |

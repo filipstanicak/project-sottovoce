@@ -66,9 +66,9 @@ procedurally in-engine, per [`../30_bible/AUDIO_BIBLE.md`](../30_bible/AUDIO_BIB
 
 | ID | Name | Version | Used for | Licence | In shipped build? | Added in |
 |---|---|---|---|---|---|---|
-| `DEP-GODOT` | Godot Engine | 4.7.1 stable | Engine | MIT | Yes (runtime) | M0 |
-| `DEP-GUT` | GUT (Godot Unit Test) | pinned at M0 | Unit + integration tests | MIT | **No** — dev-only, excluded from export | M0 |
-| `DEP-GDLINT` | gdtoolkit (`gdlint`, `gdformat`) | pinned at M0 | Lint and format in CI | MIT | **No** — CI-only | M0 |
+| `DEP-GODOT` | Godot Engine | 4.7.1 stable (ADR-0011) | Engine | MIT | Yes (runtime) | M0 |
+| `DEP-GUT` | GUT (Godot Unit Test) | **9.7.1** | Unit + integration tests | MIT | **No** — dev-only, excluded from export | M0 |
+| `DEP-GDLINT` | gdtoolkit (`gdlint`, `gdformat`) | **4.5.0** | Lint and format in CI | MIT | **No** — CI-only | M0 |
 | `DEP-FONT-UI` | Godot's bundled default font | bundled | All UI text at MVP | MIT (bundled with engine) | Yes | M0 |
 
 **Note on `DEP-GUT` and `DEP-GDLINT`:** both must be excluded from export presets. A test

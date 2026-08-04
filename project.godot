@@ -18,12 +18,12 @@ config/quit_on_go_back=false
 
 ; Order matters: Tuning loads values everything else reads.
 ; EventBus is signals-only (ADR-0006) and must exist before any subscriber.
-Tuning="*res://scripts/core/tuning/tuning.gd"
+Tuning="*res://scripts/autoload/tuning.gd"
 EventBus="*res://scripts/presentation/event_bus.gd"
 Net="*res://scripts/net/net.gd"
-GameState="*res://scripts/core/game_state.gd"
-Log="*res://scripts/core/log.gd"
-Strings="*res://scripts/core/strings.gd"
+GameState="*res://scripts/autoload/game_state.gd"
+Log="*res://scripts/autoload/log.gd"
+Strings="*res://scripts/autoload/strings.gd"
 Audio="*res://scripts/presentation/audio/audio.gd"
 DebugConsole="*res://scripts/debug/debug_console.gd"
 

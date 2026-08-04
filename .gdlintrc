@@ -1,23 +1,71 @@
-# Project Sottovoce — gdlint configuration (CODING_STANDARDS §6)
+# Project Sottovoce - gdlint configuration
 #
-# These are design signals, not style preferences. A function reaching 40 lines
-# is usually doing two things; a file reaching 400 usually wants splitting.
-# If a limit is genuinely wrong for a case, that is an ADR, not an ignore.
+# Derived from gdlint's default config (--dump-default-config) with only the
+# project's own limits overridden. Written this way deliberately: a hand-rolled
+# config silently drops every key it omits, so the safe form is "defaults plus
+# our deltas" rather than "our list". The first version of this file was
+# hand-rolled and produced 32 spurious errors on its own test suite.
+#
+# The overridden limits are design signals, not style preferences
+# (CODING_STANDARDS section 6). If a limit is genuinely wrong for a case, that
+# is an ADR, not a gdlint:ignore.
+#
+# gdlint has no function-length rule, which is why
+# test/arch/test_function_lengths.gd exists.
+
 class-definitions-order:
-  - tools
-  - classnames
-  - signals
-  - enums
-  - consts
-  - exports
-  - pub-vars
-  - prv-vars
-  - onreadys
-class-name: '([A-Z][a-z0-9]*)+'
-function-name: '(_on_)?([a-z][a-z0-9]*)(_[a-z0-9]+)*'
+- tools
+- classnames
+- extends
+- docstrings
+- signals
+- enums
+- consts
+- staticvars
+- exports
+- pubvars
+- prvvars
+- onreadypubvars
+- onreadyprvvars
+- others
+
+class-load-variable-name: (([A-Z][a-z0-9]*)+|_?[a-z][a-z0-9]*(_[a-z0-9]+)*)
+class-name: ([A-Z][a-z0-9]*)+
+class-variable-name: _?[a-z][a-z0-9]*(_[a-z0-9]+)*
+comparison-with-itself: null
+constant-name: _?[A-Z][A-Z0-9]*(_[A-Z0-9]+)*
+disable: []
+duplicated-load: null
+enum-element-name: '[A-Z][A-Z0-9]*(_[A-Z0-9]+)*'
+enum-name: ([A-Z][a-z0-9]*)+
+excluded_directories: !!set
+  .git: null
+  addons: null
+expression-not-assigned: null
+function-argument-name: _?[a-z][a-z0-9]*(_[a-z0-9]+)*
+
+# PROJECT OVERRIDE - default 10. Six is already a signal that the parameters
+# want to be a struct.
 function-arguments-number: 6
+
+function-name: (_on_([A-Z][a-z0-9]*)+(_[a-z0-9]+)*|_?[a-z][a-z0-9]*(_[a-z0-9]+)*)
+function-preload-variable-name: ([A-Z][a-z0-9]*)+
+function-variable-name: '[a-z][a-z0-9]*(_[a-z0-9]+)*'
+load-constant-name: (([A-Z][a-z0-9]*)+|_?[A-Z][A-Z0-9]*(_[A-Z0-9]+)*)
+loop-variable-name: _?[a-z][a-z0-9]*(_[a-z0-9]+)*
+
+# PROJECT OVERRIDE - default 1000. See CODING_STANDARDS section 6.
 max-file-lines: 400
+
 max-line-length: 100
 max-public-methods: 20
-private-method-name: '_[a-z][a-z0-9]*(_[a-z0-9]+)*'
-sub-class-name: '_?([A-Z][a-z0-9]*)+'
+max-returns: 6
+mixed-tabs-and-spaces: null
+no-elif-return: null
+no-else-return: null
+signal-name: '[a-z][a-z0-9]*(_[a-z0-9]+)*'
+sub-class-name: _?([A-Z][a-z0-9]*)+
+tab-characters: 1
+trailing-whitespace: null
+unnecessary-pass: null
+unused-argument: null

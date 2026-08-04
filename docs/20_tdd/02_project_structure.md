@@ -84,12 +84,13 @@ depends_on: [TDD-01-ARCHITECTURE, ADR-0005, ADR-0009]
 │   ├── core/                      LAYER 1. Pure. No Node, no get_node, no autoloads.
 │   │   ├── ids.gd                 StringName constants for every ID namespace.
 │   │   ├── game_system.gd match_context.gd match_phase.gd
-│   │   ├── game_state.gd log.gd strings.gd          (autoloads; thin, still Node-free where possible)
 │   │   ├── math/                  suspicion_math.gd compass_math.gd geometry_ext.gd
 │   │   ├── contract/              contract_cycle.gd — the Hamiltonian cycle + its invariant
 │   │   ├── score/                 score_event.gd score_log.gd (append + fold)
-│   │   └── tuning/                tuning.gd (autoload) + one *_tuning.gd Resource per section
+│   │   └── tuning/                one *_tuning.gd Resource per TUNABLES section (pure data)
 │   │
+│   ├── autoload/                  The eight Node singletons. NOT Core: an autoload must
+│   │                              extend Node, and Core never does. See TDD-01 §2.0.
 │   ├── systems/                   LAYER 2. SERVER ONLY. Each extends GameSystem.
 │   │   ├── contract_system.gd spawn_system.gd suspicion_system.gd detection_system.gd
 │   │   ├── ability_system.gd kill_system.gd stun_system.gd score_system.gd

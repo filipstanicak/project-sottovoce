@@ -117,16 +117,29 @@ project, so each needs a justification and each is a cost.
 
 | # | Autoload | Script | Justification | State? |
 |---|---|---|---|---|
-| 1 | `Tuning` | `scripts/core/tuning/tuning.gd` | Every system reads gameplay constants (ADR-0005: no literals anywhere). A singleton is the only alternative to threading a `TuningProfile` reference through every constructor. Also owns hot reload and the server→client profile sync. | Yes — the loaded profile |
+| 1 | `Tuning` | `scripts/autoload/tuning.gd` | Every system reads gameplay constants (ADR-0005: no literals anywhere). A singleton is the only alternative to threading a `TuningProfile` reference through every constructor. Also owns hot reload and the server→client profile sync. | Yes — the loaded profile |
 | 2 | `EventBus` | `scripts/presentation/event_bus.gd` | The one-way Systems→Presentation channel (ADR-0006). **Signal declarations and documentation comments only — no `var`, no `func`.** A stateful event bus is a global variable in disguise. | **No — enforced by test** |
 | 3 | `Net` | `scripts/net/net.gd` | Owns the `ENetMultiplayerPeer`, peer lifecycle, role (`server`/`client`), and RTT statistics. Needed by systems (authority checks) and presentation (connection UI). | Yes — peer table, RTT |
-| 4 | `GameState` | `scripts/core/game_state.gd` | The client's read-only mirror of match phase, local peer id, and lobby roster. Presentation needs this constantly; making it an autoload avoids every widget doing a scene-tree lookup. **Client-side it is written only by `Net`.** | Yes — read-only mirror |
-| 5 | `Log` | `scripts/core/log.gd` | Structured logging plus the `TEL-` telemetry sink ([`../10_gdd/07_balance.md`](../10_gdd/07_balance.md) §8). Called from everywhere; must not require a reference. | Yes — sink buffer |
+| 4 | `GameState` | `scripts/autoload/game_state.gd` | The client's read-only mirror of match phase, local peer id, and lobby roster. Presentation needs this constantly; making it an autoload avoids every widget doing a scene-tree lookup. **Client-side it is written only by `Net`.** | Yes — read-only mirror |
+| 5 | `Log` | `scripts/autoload/log.gd` | Structured logging plus the `TEL-` telemetry sink ([`../10_gdd/07_balance.md`](../10_gdd/07_balance.md) §8). Called from everywhere; must not require a reference. | Yes — sink buffer |
 | 6 | `Audio` | `scripts/presentation/audio/audio.gd` | Maps `SFX-` IDs to buses, positions and ducking rules ([`../10_gdd/06_ui_audio.md`](../10_gdd/06_ui_audio.md) §6). Subscribes to `EventBus`; called directly only by presentation. | Yes — bus state, duck stack |
-| 7 | `Strings` | `scripts/core/strings.gd` | String-table lookup (ASM-0023: no literal user-facing text anywhere). | Yes — loaded table |
+| 7 | `Strings` | `scripts/autoload/strings.gd` | String-table lookup (ASM-0023: no literal user-facing text anywhere). | Yes — loaded table |
 | 8 | `DebugConsole` | `scripts/debug/debug_console.gd` | Tunable overrides, state dumps, the lag-comp visualiser ([`12_build_and_ci.md`](12_build_and_ci.md) §5). **Stripped from release exports** by an export filter. | Yes — command registry |
 
 **Eight autoloads.** Every addition requires an ADR.
+
+### 2.0 Why autoloads live in `scripts/autoload/`, not `scripts/core/`
+
+An autoload **must** extend `Node`. Core's contract (§1.3) is that it never does — that is
+what makes Core unit-testable with no engine. The two cannot both hold in one folder.
+
+So the split is: **`TuningProfile` resources stay in `scripts/core/tuning/`** (pure data,
+unit-testable), while **the `Tuning` autoload that loads them lives in `scripts/autoload/`**.
+Same for `GameState`, `Log` and `Strings`.
+
+This contradiction survived the whole documentation phase and was caught in M0 by
+`test_core_is_pure.gd` on its first run — which is the architecture guards doing exactly the
+job they exist for.
 
 ### 2.1 What was deliberately rejected as an autoload
 
