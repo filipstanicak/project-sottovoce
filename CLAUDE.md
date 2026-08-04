@@ -212,24 +212,36 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 *Updated 2026-08-04. Keep this section current — it is the first thing a fresh
 session reads, and a stale one is worse than none.*
 
-**M0 is 11 of 12 stories done.** US-0001 … US-0011 are `status: done` in
-`docs/40_backlog/stories/` with their acceptance criteria ticked. **US-0012**
-(boot scene, `--server` flag, export presets, greybox map) is the only one left,
-and it closes the milestone.
+**M0 is 11 of 12 done, and US-0012 is half done.** US-0001 … US-0011 are
+`status: done`. **US-0012 is `in-progress`**: its boot half landed, its map half
+has not been started. It closes the milestone.
+
+**The project launches.** Both topologies boot:
+
+```bash
+godot --headless -- --server --port 27015 --max-players 6
+godot -- --connect 127.0.0.1:27015
+```
+
+There is no map yet, so there is nothing to *see* — the scenes are empty roots.
 
 What exists and works:
 
 | | |
 |---|---|
 | CI | 7 jobs, green on `main`. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | 44 architecture guards + 32 unit tests, both counted in CI |
+| Tests | 49 architecture guards + 43 unit tests, both counted in CI |
 | Tuning | 269 tunables across 14 resource classes; all 20 cross-field invariants assert |
 | Autoloads | All eight, fleshed. `Tuning` precomputes 86 durations to integer server ticks |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |
+| Boot | `boot.tscn` branches on `--server`; 7 CLI flags parsed in pure Core; 4 export presets |
 
-**Nothing is playable yet.** There is no scene to run — that is US-0012.
+**What is left in US-0012:** greybox `MAP-VETRAIO` to GDD-05 §2 with the §7.4
+material set, `MapData` (6 spawns, 4 circuits, idle anchors, zone volumes, 5 blend
+props, 2 theatre spaces), the navmesh bake excluding roofs/balconies/canal, and
+`test_map_metrics`, `test_map_dead_ends`, `test_map_widths`, `test_navmesh_coverage`.
 
-### Four things that will cost you an hour if you do not know them
+### Five things that will cost you an hour if you do not know them
 
 1. **The tuning classes are GENERATED.** Never hand-edit `scripts/core/ids.gd`,
    `scripts/core/tuning/*.gd` or `tuning_index.gd` — the next generator run
@@ -239,7 +251,10 @@ What exists and works:
    Use `TuningProfile.clone()`. Getting this wrong writes to the live profile.
 3. **Verify against `git archive HEAD`, not the working tree.** Git does not
    track empty directories, and a local pass proved nothing once already.
-4. **`main` has no server-side protection** — see §1.3 of
+4. **No test boots a scene.** The whole boot path was broken — `change_scene_to_file`
+   from `_ready()` fails while the tree is still building — with 92 tests green.
+   Run the game after touching anything scene-related.
+5. **`main` has no server-side protection** — see §1.3 of
    `docs/20_tdd/12_build_and_ci.md`. Run `git config core.hooksPath .githooks` in
    every fresh clone, and wait for a run to report `completed success` before
    merging. `gh run watch` can return while a run is still queued.

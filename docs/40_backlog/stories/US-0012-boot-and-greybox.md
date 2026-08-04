@@ -29,7 +29,7 @@ This story closes M0. Its exit criterion is the milestone exit criterion.
 
 - [x] `boot.tscn` branches on --server to server_root.tscn, else client_root.tscn.
 - [x] CLI flags parse: --server, --port, --max-players, --connect, --seed.
-- [ ] server_root.tscn contains no presentation nodes.
+- [x] server_root.tscn contains no presentation nodes.
 - [ ] Greybox MAP-VETRAIO built to the GDD-05 section 2 layout using the section 7.4 material set.
 - [ ] MapData populated: 6 spawns, 4 circuits, idle anchors, zone volumes, 5 blend props, 2 theatre spaces.
 - [ ] Navmesh baked; roofs, balconies and the canal excluded.

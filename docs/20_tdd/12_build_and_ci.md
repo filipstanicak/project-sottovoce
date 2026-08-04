@@ -163,7 +163,19 @@ plus a hash of `project.godot` and all `.import` files.
 > **The server preset's exclusion list is the architecture's proof.** If the server build cannot
 > run a full match with all presentation code excluded, a dependency has leaked upward and
 > [`01_architecture.md`](01_architecture.md) §1.2 has been violated.
-> `test_headless_server_runs_without_presentation.gd` is the assertion.
+
+**Status 2026-08-04.** `export_presets.cfg` exists with five presets: server, two release
+clients (Windows + Linux) and two debug clients. All five exclude `addons/gut/`; the three
+release presets exclude `scripts/debug/`, which is the only thing keeping the `DebugConsole`
+autoload out of players' hands. Every release preset also excludes `data/tuning/local/`, which
+this table did not originally require — a playtester's local override must never ship.
+
+Two things here are **not** yet true:
+
+| Owed | Why not yet |
+|---|---|
+| The server preset excluding `assets/` except map collision and navmesh | There are no assets. The exclusion cannot be written meaningfully until the greybox map exists (US-0012 part 2). |
+| `test_headless_server_runs_without_presentation.gd` | `test_server_root_has_no_presentation.gd` asserts the *static* half — no visual node in the scene, and the presets excluding the layers. Proving the server **runs** without presentation needs an actual export, which needs a map to run. |
 
 `test_export_excludes.gd` parses `export_presets.cfg` and asserts every path above is listed —
 in particular that `addons/gut/` is excluded from all three, because a test framework inside a
