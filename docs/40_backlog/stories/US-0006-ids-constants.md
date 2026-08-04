@@ -2,9 +2,9 @@
 id: US-0006
 title: ID constants and glossary sync
 version: 0.1.0
-status: draft
+status: done
 owner: Technical Director
-last_updated: 2026-08-03
+last_updated: 2026-08-04
 depends_on: [BIBLE-NAMING-IDS, DOC-GLOSSARY]
 ---
 
@@ -29,11 +29,11 @@ allocation-free.
 
 ## Acceptance criteria
 
-- [ ] `Ids` declares constants for every SCORE-, ABIL-, PASV-, PERSONA-, ARCH-, MAP-, EVT-, NET-, SFX-, MUS- and ANIM- ID in the corpus.
-- [ ] All are StringName literals.
-- [ ] `test_ids_match_glossary.gd` passes bidirectionally.
-- [ ] `test_id_grammar.gd` validates every ID against its namespace regex.
-- [ ] `test_ids_are_stringname.gd` finds no String ID constant.
+- [x] `Ids` declares constants for every SCORE-, ABIL-, PASV-, PERSONA-, ARCH-, MAP-, EVT-, NET-, SFX-, MUS- and ANIM- ID in the corpus.
+- [x] All are StringName literals.
+- [x] `test_ids_match_glossary.gd` passes bidirectionally.
+- [x] `test_id_grammar.gd` validates every ID against its namespace regex.
+- [x] `test_ids_are_stringname.gd` finds no String ID constant.
 
 ## Test notes
 

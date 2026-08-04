@@ -2,9 +2,9 @@
 id: US-0004
 title: CI — asset licence inventory
 version: 0.1.0
-status: draft
+status: done
 owner: Technical Director
-last_updated: 2026-08-03
+last_updated: 2026-08-04
 depends_on: [DOC-ASSET-LICENSES, TDD-12-BUILD]
 ---
 
@@ -28,11 +28,11 @@ someone deleted an asset and left a claim about it, which makes the register unt
 
 ## Acceptance criteria
 
-- [ ] `.ci/check_asset_inventory.sh` enumerates assets and parses the register.
-- [ ] Fails on an asset with no row.
-- [ ] Fails on a row with no asset.
-- [ ] `assets/greybox/**` and `assets/procedural/**` are exempt.
-- [ ] Extending the exemption list requires an ADR, noted in the script header.
+- [x] `.ci/check_asset_inventory.sh` enumerates assets and parses the register.
+- [x] Fails on an asset with no row.
+- [x] Fails on a row with no asset.
+- [x] `assets/greybox/**` and `assets/procedural/**` are exempt.
+- [x] Extending the exemption list requires an ADR, noted in the script header.
 - [ ] Required check on `main`.
 
 ## Test notes
@@ -43,3 +43,10 @@ Verify both failure directions deliberately — add an unregistered file, then a
 
 Licence provenance is trivially cheap at import time and extremely expensive to reconstruct
 later.
+
+> **Outstanding.** The unticked criterion above is blocked by the GitHub
+> plan, not by the work: branch protection needs GitHub Pro on a private repo. Server-side branch protection and rulesets
+> both return 403 on a free private repository, so `main` has no *required*
+> checks — only agreed ones plus a local pre-push hook. Full account and the
+> promotion path: [`../../20_tdd/12_build_and_ci.md`](../../20_tdd/12_build_and_ci.md) §1.3.
+> Tick it the moment the plan allows.
