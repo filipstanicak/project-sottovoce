@@ -69,6 +69,7 @@ id: GDD-03-SOCIAL-STEALTH      # unique, immutable once merged
 title: The Social Stealth Core
 version: 0.1.0                  # semver; minor bump = new content, patch = correction
 status: draft                   # draft | review | locked
+                                # backlog stories: draft | in-progress | done
 owner: Documentation Architect
 last_updated: 2026-08-03        # ISO-8601
 depends_on: [DOC-GLOSSARY, TUN-INDEX, GDD-01-VISION]

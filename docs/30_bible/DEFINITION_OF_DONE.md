@@ -118,6 +118,10 @@ Copy into the PR description and tick as you go.
 - [ ] Rebased on `main`, squash-merged.
 - [ ] Any feature flag added names the story that removes it.
 - [ ] CI green on all six jobs.
+- [ ] **The story file is marked.** `status: done`, `last_updated` bumped, and every
+      acceptance criterion ticked. An unmet criterion stays **unticked** with a
+      one-line note saying what blocks it — a story marked done over a criterion
+      that is not true makes the whole backlog unreadable as a status view.
 
 ---
 

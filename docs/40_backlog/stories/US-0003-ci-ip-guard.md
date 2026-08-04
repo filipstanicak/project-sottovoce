@@ -2,9 +2,9 @@
 id: US-0003
 title: CI — IP guard
 version: 0.1.0
-status: draft
+status: done
 owner: Technical Director
-last_updated: 2026-08-03
+last_updated: 2026-08-04
 depends_on: [DOC-IP-GUARDRAILS, TDD-12-BUILD]
 ---
 
@@ -28,11 +28,11 @@ artefacts and playtester vocabulary, and the cost grows superlinearly.
 
 ## Acceptance criteria
 
-- [ ] `.ci/banned_terms.txt` contains every term from IP_GUARDRAILS §2.1–2.3.
-- [ ] `.ci/ip_guard_exclude.txt` lists exactly two files.
-- [ ] The job scans code, comments, docs, filenames and paths, case-insensitively.
+- [x] `.ci/banned_terms.txt` contains every term from IP_GUARDRAILS §2.1–2.3.
+- [x] `.ci/ip_guard_exclude.txt` lists exactly two files.
+- [x] The job scans code, comments, docs, filenames and paths, case-insensitively.
 - [ ] It is a hard failure and a required check on `main`.
-- [ ] A commit with a banned term in a comment fails the build (verified deliberately).
+- [x] A commit with a banned term in a comment fails the build (verified deliberately).
 
 ## Test notes
 
@@ -43,3 +43,10 @@ artefacts and playtester vocabulary, and the cost grows superlinearly.
 
 Terms are ≥ 4 characters and reviewed for collisions. If a false positive appears, fix the term
 rather than weakening the check.
+
+> **Outstanding.** The unticked criterion above is blocked by the GitHub
+> plan, not by the work: hard failure yes; *required check* needs GitHub Pro. Server-side branch protection and rulesets
+> both return 403 on a free private repository, so `main` has no *required*
+> checks — only agreed ones plus a local pre-push hook. Full account and the
+> promotion path: [`../../20_tdd/12_build_and_ci.md`](../../20_tdd/12_build_and_ci.md) §1.3.
+> Tick it the moment the plan allows.
