@@ -47,6 +47,28 @@ const _SECTIONS: Array[StringName] = [
 @export var passives: Dictionary = {}
 
 
+## A genuinely independent copy.
+##
+## `duplicate(true)` IS NOT ENOUGH. The sections are EXTERNAL resources — separate
+## .tres files referenced by profile.tres — and Godot's deep duplicate only
+## copies *embedded* sub-resources. So `duplicate(true)` hands back a new
+## TuningProfile whose sections are the same shared objects, and writing to
+## `copy.movement.sprint` silently rewrites the live profile everyone else holds.
+##
+## Anything that intends to modify a profile must clone it first.
+func clone() -> TuningProfile:
+	var out := TuningProfile.new()
+	for section: StringName in _SECTIONS:
+		var res: Resource = get(section)
+		out.set(section, null if res == null else res.duplicate(true))
+	out.flags = null if flags == null else flags.duplicate(true)
+	for key: Variant in abilities:
+		out.abilities[key] = (abilities[key] as Resource).duplicate(true)
+	for key: Variant in passives:
+		out.passives[key] = (passives[key] as Resource).duplicate(true)
+	return out
+
+
 ## Stable over VALUES only. Excludes resource paths and metadata, so two files
 ## with identical numbers hash identically no matter where they came from —
 ## which is what lets TEL-MATCH-START record *which tuning* a match was played
