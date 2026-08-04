@@ -57,11 +57,18 @@ jobs:
       # instead does not work: `.godot` is a hidden path and upload-artifact
       # silently skips hidden files, so the upload produced nothing and the
       # download in `test` then hard-failed. A cache miss is merely slower.
+      #
+      # THE KEY MUST COVER EVERY INPUT GODOT IMPORTS. It once hashed only
+      # project.godot and **/*.import, so a commit that added .gd files produced
+      # an identical key: `import` hit the cache and never saved its fresh
+      # result, and `test` restored a .godot whose script registry predated the
+      # new files. GUT then scanned the directory, could not see them, and
+      # reported success on six scripts out of nine.
       - name: Cache import artefacts
         uses: actions/cache@v6
         with:
           path: .godot
-          key: import-${{ needs.version.outputs.tag }}-${{ hashFiles('project.godot', '**/*.import') }}
+          key: import-${{ needs.version.outputs.tag }}-${{ hashFiles('project.godot', '**/*.import', '**/*.gd', '**/*.tscn', '**/*.tres') }}
 
       # TDD-12 §12: ≤ 90 s. Above ~2 min it stops being a fast gate.
       - name: Headless import
@@ -137,27 +144,24 @@ jobs:
         uses: actions/cache/restore@v6
         with:
           path: .godot
-          key: import-${{ needs.version.outputs.tag }}-${{ hashFiles('project.godot', '**/*.import') }}
+          key: import-${{ needs.version.outputs.tag }}-${{ hashFiles('project.godot', '**/*.import', '**/*.gd', '**/*.tscn', '**/*.tres') }}
+
+      # Reconcile whatever the cache handed us against the checked-out tree.
+      # Cheap on a warm cache, and it means a stale entry can never decide which
+      # files the suites below can see.
+      - name: Reconcile imports
+        run: godot --headless --editor --quit-after 200
 
       # test/arch/ protects the architecture rather than behaviour. If one of
       # these fails, the change is wrong or an ADR is needed — never the test.
+      #
+      # run_gut.sh fails if the suite runs fewer scripts than exist on disk.
+      # See its header: the green was the defect, not the red.
       - name: Architecture guards
-        run: |
-          set -euo pipefail
-          if [ -d addons/gut ]; then
-            godot --headless -s addons/gut/gut_cmdln.gd -gdir=res://test/arch -gexit
-          else
-            echo "GUT not installed yet (arrives with US-0005) — skipping"
-          fi
+        run: bash .ci/run_gut.sh test/arch "architecture guards"
 
       - name: Unit tests
-        run: |
-          set -euo pipefail
-          if [ -d addons/gut ]; then
-            godot --headless -s addons/gut/gut_cmdln.gd -gdir=res://test/unit -gexit
-          else
-            echo "GUT not installed yet — skipping"
-          fi
+        run: bash .ci/run_gut.sh test/unit "unit tests"
 
   # ----------------------------------------------------------------- export --
   export:

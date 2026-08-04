@@ -112,6 +112,32 @@ making the repository public — but public is gated on the originality review i
 `docs/00_meta/IP_GUARDRAILS.md`, so it is not a shortcut. The ruleset JSON is
 ready to apply unchanged.
 
+### 1.4 Why the test job counts its own scripts
+
+On 2026-08-04 CI reported **All tests passed** for a commit whose three new
+architecture guards never executed.
+
+The import cache key hashed only `project.godot` and `**/*.import`. Adding `.gd`
+files changed neither, so the key was byte-identical to the previous run: the
+`import` job got a cache hit and therefore never saved its fresh result, and
+`test` restored a `.godot` whose script registry predated the new files. Godot
+lists only what it has imported, so GUT scanned `test/arch/`, found six scripts
+instead of nine, ran them, and exited `0`.
+
+Two fixes, because there were two faults:
+
+1. **The key now covers every input Godot imports** — `.gd`, `.tscn` and `.tres`
+   as well. This costs a cold import on most commits and is worth it.
+2. **`.ci/run_gut.sh` compares the script count GUT reports against the number of
+   `test_*.gd` files on disk** and fails on a mismatch. The `test` job also
+   re-runs the import before the suites, so a stale cache can never decide which
+   files a suite can see.
+
+The second matters more than the first. The cache bug was one bug; *a suite that
+silently runs the wrong tests and reports success* is a category, and nothing in
+GUT's exit code distinguishes it from a real pass. **Do not relax that check** —
+the green was the defect, not the red.
+
 ---
 
 ## 2. Headless import
@@ -326,6 +352,7 @@ func flush_to(path: String) -> void        ## --record
 | `.github/workflows/ci.yml` | The six jobs |
 | `.github/actions/setup-godot/action.yml` | Installs the pinned engine; used by `import`, `test`, `export` |
 | `.githooks/pre-push` | Refuses a direct push to `main` (§1.3) |
+| `.ci/run_gut.sh` | Runs a GUT suite and fails if it ran fewer scripts than exist (§1.4) |
 | `.ci/banned_terms.txt` · `ip_guard_exclude.txt` · `ip_guard.sh` | IP enforcement |
 | `.ci/check_asset_inventory.sh` | Bidirectional asset check |
 | `.gdlintrc` · `.gdformatrc` | Lint config |
