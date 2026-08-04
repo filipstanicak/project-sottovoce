@@ -1,0 +1,12 @@
+[gd_scene format=3 uid="uid://bs0ttovclientroot"]
+
+; Client topology: mirrors of replicated state, the local pawn, and the HUD.
+; Carries no GameSystem — systems exist only server-side (TDD-01 §1.2).
+
+[node name="ClientRoot" type="Node"]
+
+[node name="World" type="Node3D" parent="."]
+
+[node name="Mirrors" type="Node" parent="."]
+
+[node name="Hud" type="CanvasLayer" parent="."]
