@@ -18,7 +18,9 @@ depends_on: [TDD-01-ARCHITECTURE, TDD-02-STRUCTURE, TUN-INDEX, ADR-0005]
 > hypothesis about `TUN-SUSPICION-GAIN-SPRINT`" and "six people are playing with the new value"
 > is a direct cost to design quality.
 >
-> **Implements:** `SYS-TUNING`. **Constrains:** every system, via ADR-0005.
+> **Implements:** `SYS-TUNING`, `SYS-MAP` (the `MapData` authoring schema, §3.5),
+> `SYS-PROFILE` (the stubbed persistence seam, §4.4).
+> **Constrains:** every system, via ADR-0005.
 
 ---
 
@@ -307,7 +309,39 @@ if speed > 2.2:
 var _decay := Tuning.suspicion.decay_base   # in _ready(), never refreshed
 ```
 
-### 4.3 The one permitted caching exception
+### 4.3 `SYS-PROFILE` — the stubbed persistence seam
+
+There is no persistence in MVP (`SCOPE_FENCE` OUT #2), but the interface exists so that adding a
+real store later is a single class rather than a hunt through call sites.
+
+```gdscript
+## The full surface a real store would need. MVP ships MemoryProfileStore,
+## which returns defaults and discards writes (ASM-0026).
+##
+## A no-op implementing the FULL surface is more useful than a minimal stub,
+## because it forces call sites to be written correctly now.
+class_name IProfileStore
+extends RefCounted
+
+func get_input_bindings() -> Dictionary:          return {}
+func set_input_bindings(_b: Dictionary) -> void:  pass
+func get_audio_levels() -> Dictionary:            return {}
+func set_audio_levels(_l: Dictionary) -> void:    pass
+func get_accessibility() -> Dictionary:           return {}
+func set_accessibility(_a: Dictionary) -> void:   pass
+func get_last_loadout() -> Dictionary:            return {}
+func set_last_loadout(_l: Dictionary) -> void:    pass
+```
+
+**No file I/O and no network** — a stub that touches disk is not a stub. Nothing in
+`scripts/systems/` may depend on it: it is a presentation and settings concern, and a gameplay
+system reading a profile would be a client-authoritative input by another route.
+
+**Known accepted limitation:** rebinds and options do not persist across sessions in MVP. Stated
+in [`../10_gdd/02_player_controller.md`](../10_gdd/02_player_controller.md) §1.4 so playtesters
+are not surprised.
+
+### 4.4 The one permitted caching exception
 
 ADR-0005 acknowledges that autoload property access costs measurably in the crowd's inner loop.
 **The crowd steering layer, and only it, may cache tuning values**, refreshed on LOD transition

@@ -18,7 +18,9 @@ depends_on: [TDD-01-ARCHITECTURE, TDD-03-TICK, TDD-04-NET, GDD-03-SOCIAL-STEALTH
 > prey. Blend actions crush suspicion to 0 over 1.2 s. Standing still among ≥ 4 NPCs must be
 > the strongest defensive play in the game.
 >
-> **Implements:** `SYS-SUSPICION`, `SYS-BLEND`, `SYS-DETECTION`.
+> **Implements:** `SYS-SUSPICION`, `SYS-BLEND`, `SYS-DETECTION`, and the server half of
+> `SYS-COMPASS` (lock progression and reveal, §4.5 — the client half is
+> [`11_ui_architecture.md`](11_ui_architecture.md) §2.2).
 
 ---
 

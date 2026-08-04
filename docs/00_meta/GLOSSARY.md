@@ -442,7 +442,7 @@ Full grammar, regexes and immutability rules are in
 
 | Prefix | Namespace | Example |
 |---|---|---|
-| `SYS-` | Gameplay system | `SYS-COMPASS` |
+| `SYS-` | Gameplay system | `SYS-COMPASS`, `SYS-PROFILE` |
 | `TUN-` | Tunable constant | `TUN-SUSPICION-DECAY-BASE` |
 | `SCORE-` | Score event type | `SCORE-BLENDED` |
 | `ABIL-` | Ability | `ABIL-CINDERFALL` |

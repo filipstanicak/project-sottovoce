@@ -18,6 +18,9 @@ depends_on: [TDD-01-ARCHITECTURE, TDD-02-STRUCTURE, TDD-05-DATA, ADR-0001, ADR-0
 > **The tooling thesis:** the balance loop is the project's main risk-reduction activity, so the
 > highest-value tools are the ones that shorten *edit → six people playing*. That is what §5
 > and §6 are for.
+>
+> **Implements:** `SYS-DEBUG` (§5), `SYS-TELEMETRY` (§9, the `TelemetrySink` interface —
+> the event catalogue is [`../10_gdd/07_balance.md`](../10_gdd/07_balance.md) §8).
 
 ---
 

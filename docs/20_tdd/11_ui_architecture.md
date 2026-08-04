@@ -19,7 +19,10 @@ depends_on: [TDD-01-ARCHITECTURE, TDD-04-NET, TDD-10-SCORING, GDD-06-UI-AUDIO, A
 > **The consequence:** a UI bug here is a gameplay bug. A Compass showing a stale bearing is not
 > a cosmetic defect; it is the game lying to the player about the only thing it tells them.
 >
-> **Implements:** `SYS-HUD`, `SYS-SCOREFEED`.
+> **Implements:** `SYS-HUD`, `SYS-SCOREFEED`, the client half of `SYS-COMPASS` (§2.2),
+> `SYS-LOBBY` and `SYS-RESULTS` (§5, screen flow), and the dispatch side of `SYS-AUDIO` and
+> `SYS-MUSIC` (§4, bus subscription — the sound design itself is
+> [`../30_bible/AUDIO_BIBLE.md`](../30_bible/AUDIO_BIBLE.md)).
 
 ---
 
