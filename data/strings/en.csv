@@ -1,0 +1,57 @@
+keys,en
+ui.compass.label,Compass
+ui.contract.unknown,Unknown
+ui.score.label,Score
+ui.tier.anonymous,Anonymous
+ui.tier.noticed,Noticed
+ui.tier.exposed,Exposed
+ui.prompt.kill,Kill
+ui.prompt.stun,Stun
+ui.slot.empty,Empty
+ui.slot.cooling,Cooling
+menu.host,Host
+menu.join,Join
+menu.quit,Quit
+menu.address,Address
+menu.back,Back
+menu.results.title,Results
+bonus.contract,Contract
+bonus.blended,Blended
+bonus.patient,Patient
+bonus.silent,Silent
+bonus.masked,Masked
+bonus.fromabove,From Above
+bonus.focus,Focus
+bonus.longhunt,Long Hunt
+bonus.vendetta,Vendetta
+bonus.variety,Variety
+bonus.stun,Stun
+bonus.poisoned,Poisoned
+bonus.reckless,Reckless
+bonus.death,Death
+ability.cinderfall.name,Cinderfall
+ability.cinderfall.desc,A burst of ember and ash. Blocks sight and scatters the crowd.
+ability.lunge.name,Lunge
+ability.lunge.desc,Close the last few metres at a speed no civilian has.
+ability.secondface.name,Second Face
+ability.secondface.desc,Wear another persona for a while. Broken by sprinting or by being hit.
+ability.whisperbolt.name,Whisperbolt
+ability.whisperbolt.desc,A thrown blade. The draw is the loudest tell in the district.
+ability.nightshade.name,Nightshade
+ability.nightshade.desc,Reserved.
+passive.stillness.name,Stillness
+passive.stillness.desc,Suspicion falls faster when you do not move.
+passive.coldread.name,Cold Read
+passive.coldread.desc,The Compass reads a little further.
+passive.secondwind.name,Second Wind
+passive.secondwind.desc,Recover sooner after a stun.
+persona.vetraio.name,Vetraio
+persona.lucerna.name,Lucerna
+persona.pesatore.name,Pesatore
+persona.cantatrice.name,Cantatrice
+caption.prey.warning,Someone is close
+caption.compass.pulse,A pulse
+caption.kill.nearby,A struggle nearby
+caption.crowd.startle,The crowd scatters
+caption.crowd.gawk,A murmur gathers
+credits.engine,Made with Godot Engine

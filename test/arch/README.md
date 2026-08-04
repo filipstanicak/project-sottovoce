@@ -23,6 +23,7 @@ That is a stop-and-ask condition in
 | `test_eventbus_signals_documented` | A signal in code but not the catalogue, **or the reverse** | Both read fine alone |
 | `test_signal_naming` | `on_x` / `do_x` / `x_signal` | An imperative name invites a listener to do the emitter's work |
 | `test_prey_warning_signal_arity` | A parameter on the prey warning | One token, compiles, and deletes the best moment in the game |
+| `test_no_literal_strings` | A user-facing literal in code **or a scene** | It is correct, readable, and invisible to the string table |
 | `test_no_gameplay_literals` | A hardcoded constant two paths disagree about | Both values look reasonable in isolation |
 | `test_pawn_determinism_grep` | Nondeterminism in predicted code | Surfaces only under load, intermittently |
 | `test_no_client_authority` | An RPC letting a client assert an outcome | The handler reads like ordinary code |
