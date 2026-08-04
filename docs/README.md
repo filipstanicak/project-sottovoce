@@ -206,12 +206,12 @@ Operational documents, not essays. These are what make the project agent-legible
 
 | Section | Status | Notes |
 |---|---|---|
-| `00_meta/` | draft | Governance layer written first. |
-| `10_gdd/` | draft | Parts 1–8. |
-| `20_tdd/` | draft | Chapters 1–12. |
-| `30_bible/` | draft | 17 documents. |
-| `40_backlog/` | draft | M0–M6, stories US-0001+. |
-| `50_tuning/` | draft | TUNABLES is the authority; all other docs cite it. |
+| `00_meta/` | **written** | Glossary, scope fence, IP guardrails, ASM-0001..0030, asset register, decision log, ADR-0001..0010. `COVERAGE_MATRIX.md` pending. |
+| `10_gdd/` | **written** | Parts 1–8 complete. |
+| `20_tdd/` | not started | Chapters 1–12. |
+| `30_bible/` | not started | 17 documents. |
+| `40_backlog/` | not started | M0–M6, stories US-0001+. |
+| `50_tuning/` | **written** | TUNABLES (~180 values, 20 invariants) and BALANCE_MODEL. |
 
 No document is `locked` until it has survived one implementation milestone without
 contradiction.

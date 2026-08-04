@@ -566,6 +566,7 @@ append-only discipline.
 | `TEL-MATCH-START` | match_id, seed, player_count, map, tuning_profile_hash | Which values were in force — essential for re-folding old matches against new tuning (ADR-0004). |
 | `TEL-MATCH-END` | duration, end_reason, final_scores[] | |
 | `TEL-DEGENERATE-CYCLE` | tick, cycle_length | §7.2 — how often the cycle degrades. |
+| `TEL-LOBBY-FILL-TIME` | first_join_tick, start_tick, final_player_count, abandoned | **The single most important post-MVP metric.** Median time-to-fill decides whether the population problem is real for us, and therefore the entire post-MVP ordering — see [`08_liveops_and_future.md`](08_liveops_and_future.md) §4.7. |
 
 ### 8.2 Per-player, per-life
 
