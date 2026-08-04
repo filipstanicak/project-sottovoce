@@ -20,10 +20,10 @@ depends_on: [ADR-0005, TDD-05-DATA, BIBLE-DATA-SCHEMA, TUN-INDEX]
 
 ## Description
 
-Every Tuning resource class and every .tres in `data/tuning/default/` — all ~180 values from
+Every Tuning resource class and every .tres in `data/tuning/default/` — all 265 values from
 TUNABLES.md, with ranges, docstrings and rationales.
 
-Large and unglamorous, and it lands at M0 because retrofitting ~180 constants across 40 files is
+Large and unglamorous, and it lands at M0 because retrofitting 265 constants across 40 files is
 a multi-day refactor with a long tail of misses.
 
 ## Acceptance criteria
