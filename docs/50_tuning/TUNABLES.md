@@ -405,6 +405,7 @@ Shared rules first, then per ability. Cooldowns are authoritative on the server 
 | `TUN-CROWD-COUNT-MAX` | 90 | count | 90–90 | Absolute ceiling, set by `TUN-PERF-CROWD-BUDGET`. |
 | `TUN-CROWD-COUNT-DEFAULT-6P` | 78 | count | 66–90 | The 6-player default. Chosen as 48 clones (4 personas × 12) + 30 filler. |
 | `TUN-CROWD-COUNT-DEFAULT-4P` | 66 | count | 60–78 | The 4-player default: 40 clones (4 × 10) + 26 filler. Fewer players need fewer clones for the same per-player anonymity, and the saved budget goes to frame time. See [`../10_gdd/07_balance.md`](../10_gdd/07_balance.md) §7. |
+| `TUN-CROWD-COUNT-DEFAULT-5P` | 72 | count | 63–84 | The 5-player default: 44 clones (4 × 11) + 28 filler. Interpolates the 4P and 6P rows; defined explicitly rather than derived so the 5-player crowd is reviewable in this table like every other number. |
 | `TUN-CROWD-CLONES-PER-PERSONA-MIN` | 8 | count | 8–8 | Below 8, a persona's clone population can be locally depleted (all on the far side of the map) and the player wearing it becomes unique. |
 | `TUN-CROWD-CLONES-PER-PERSONA-MAX` | 12 | count | 12–12 | Above 12 the crowd starts reading as a police lineup of repeats rather than a city. |
 | `TUN-CROWD-CLONE-LOCAL-MIN` | 2 | count | 1–4 | The crowd director maintains at least this many clones of each *in-use* persona within 25 m of each player. Without this rule the statistical guarantee above fails locally, which is where it matters. |
@@ -460,7 +461,7 @@ events timestamped within the final phase. Derivations are in
 | `TUN-SCORE-MASKED` | `SCORE-MASKED` | +150 | pts | 100–200 | `ABIL-SECONDFACE` active at initiation. Equal to Patient: disguise is a *different* route to the same virtue. |
 | `TUN-SCORE-FOCUS` | `SCORE-FOCUS` | +100 | pts | 75–150 | Unbroken line of sight on the contract for the last 6 s. Pays for the hardest thing in the game: standing still and watching one person in a moving crowd. |
 | `TUN-SCORE-FOCUS-WINDOW` | — | 6.0 | s | 4–10 | The required unbroken-LOS duration. |
-| `TUN-SCORE-FOCUS-BREAK-GRACE` | 0.4 | s | 0.2–0.8 | LOS may lapse this long (an NPC passing between you) without resetting the window. Without it the bonus is unearnable in a crowd — which is exactly where it should be earned. |
+| `TUN-SCORE-FOCUS-BREAK-GRACE` | — | 0.4 | s | 0.2–0.8 | LOS may lapse this long (an NPC passing between you) without resetting the window. Without it the bonus is unearnable in a crowd — which is exactly where it should be earned. |
 | `TUN-SCORE-FROMABOVE` | `SCORE-FROMABOVE` | +100 | pts | 75–150 | Initiated from ≥ `TUN-SCORE-FROMABOVE-HEIGHT` above the target. Pays for the roof route, which otherwise only costs. |
 | `TUN-SCORE-FROMABOVE-HEIGHT` | — | 3.0 | m | 2.5–4.5 | Roughly one storey. Above balcony rail height, below full roof height, so both strata qualify. |
 | `TUN-SCORE-BLENDED` | `SCORE-BLENDED` | +200 | pts | 150–250 | Inside a blend action within `TUN-BLEND-SCORE-GRACE` of initiation. **The largest bonus in the game**, because it is the purest expression of the thesis: you waited, hidden, in plain sight, and let them come to you. |
@@ -592,7 +593,7 @@ Values that change with lobby size. Everything not listed here is constant.
 
 | Tunable | 4 players | 5 players | 6 players (centre) | Rationale |
 |---|---|---|---|---|
-| `TUN-CROWD-COUNT` | 66 | 72 | 78 | Fewer players need fewer clones for equal per-player anonymity. |
+| `TUN-CROWD-COUNT-DEFAULT-4P` / `-5P` / `-6P` | 66 | 72 | 78 | Fewer players need fewer clones for equal per-player anonymity. *Corrected 2026-08-04: this row previously cited `TUN-CROWD-COUNT`, which has no definition row anywhere — see §9.* |
 | Clones per persona | 10 | 11 | 12 | Derived: `(count − filler) / 4`. |
 | Filler count | 26 | 28 | 30 | Roughly constant — the city's texture does not depend on lobby size. |
 | Playable area | Inner 90 × 90 m | Full | Full | At 4 players the outer ring is soft-bounded (see [`../10_gdd/05_level_design.md`](../10_gdd/05_level_design.md) §6), so encounters stay frequent. |
