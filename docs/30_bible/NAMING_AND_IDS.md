@@ -37,7 +37,7 @@ depends_on: [DOC-GLOSSARY, DOC-IP-GUARDRAILS]
 | `SFX-` | Sound effect | `^SFX-[A-Z]+(-[A-Z]+)*$` | `SFX-STUN-SUCCESS` |
 | `MUS-` | Music stem | `^MUS-[A-Z]+(-[A-Z]+)*$` | `MUS-STEM-EXPOSED` |
 | `ANIM-` | Animation clip | `^ANIM-[A-Z]+(-[A-Z]+)*$` | `ANIM-BLENDWALK-LOOP` |
-| `MAT-` | Material / surface | `^MAT-[A-Z]+$` | `MAT-STONE` |
+| `MAT-` | Material / surface | `^MAT-[A-Z]+(-[A-Z]+)*$` | `MAT-STONE`, `MAT-GREY-WALL` |
 | `PROP-` | World prop | `^PROP-[A-Z]+$` | `PROP-HAYCART` |
 | `TEL-` | Telemetry event | `^TEL-[A-Z]+(-[A-Z]+)*$` | `TEL-HUNT-DURATION` |
 | `US-` | User story | `^US-\d{4}$` | `US-0042` |
