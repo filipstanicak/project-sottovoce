@@ -98,8 +98,8 @@ Copy into the PR description and tick as you go.
 
 - [ ] `ip-guard` passes — no banned term in code, comments, commits, branch names, filenames or docs.
 - [ ] Any new user-visible name is **functional-original** and registered in `GLOSSARY.md`.
-- [ ] The review question answered: **"Would a reasonable person mistake this asset for
-      Ubisoft's?"** If yes, maybe, or *I'd have to think about it* — rework it.
+- [ ] The review question in [`../00_meta/IP_GUARDRAILS.md`](../00_meta/IP_GUARDRAILS.md) §5
+      answered. If the answer is yes, maybe, or *I'd have to think about it* — rework it.
 
 ### Documentation
 

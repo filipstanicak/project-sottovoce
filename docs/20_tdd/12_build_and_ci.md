@@ -10,7 +10,7 @@ depends_on: [TDD-01-ARCHITECTURE, TDD-02-STRUCTURE, TDD-05-DATA, ADR-0001, ADR-0
 
 # TDD Chapter 12 — Build, CI and Tooling
 
-> **Context restated.** Project Sottovoce is a Godot 4.5 / GDScript game with a dedicated
+> **Context restated.** Project Sottovoce is a Godot 4.7.1 / GDScript game with a dedicated
 > headless server, targeting Windows and Linux desktop at 1080p/60. Development is trunk-based
 > on `main`, which must always be green and always playtestable, because the game can only be
 > validated with 4–6 humans and a spontaneous "can we try this tonight?" must always be yes.

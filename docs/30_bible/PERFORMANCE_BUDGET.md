@@ -279,4 +279,4 @@ Not runtime, but they decide whether the loop is used.
 | 2 | Crowd worst-case and reconciliation worst-case leave 0.20 ms combined. Both spike under different conditions — do they ever spike together? | Packet loss drives reconciliation; crowd cost is loss-independent. They *can* coincide. Test explicitly at the Poor latency profile with peak density | M3 |
 | 3 | Render is 9.0 ms — 54 % of the frame — and is the least-specified row. | Art has not started. Revisit when the first art pass exists; the number is a placeholder informed by nothing | M6 |
 | 4 | Is one reference machine enough, given Windows and Linux both ship? | Profile on both from M2. If they diverge more than ~10 %, two budgets are needed | M2 |
-| 5 | Godot 4.5's GDScript performance on 90 agents is the project's largest unvalidated assumption. | ADR-0001 accepted this risk explicitly with a fallback ladder. **First real measurement is M3** | M3 |
+| 5 | Godot 4.7.1's GDScript performance on 90 agents is the project's largest unvalidated assumption. | ADR-0001 accepted this risk explicitly with a fallback ladder. **First real measurement is M3** | M3 |

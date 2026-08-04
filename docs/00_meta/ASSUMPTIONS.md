@@ -224,11 +224,11 @@ you disagree with one, the cost of changing it is stated in the row.
 
 ## 3. Technical
 
-### ASM-0019 — Godot 4.5 stable, Forward+, GDScript-first
+### ASM-0019 — Godot 4.7.1 stable, Forward+, GDScript-first
 
 | Field | Value |
 |---|---|
-| **Status** | ratified (specified in the brief) |
+| **Status** | revised by ADR-0011 — version now 4.7.1; language and renderer unchanged |
 | **Decision** | Engine and language per the brief. C# only where profiling proves a hotspot, recorded as an ADR. |
 | **Why** | Stakeholder decision. Logged here for completeness because downstream documents depend on it. |
 | **Cost to reverse** | Very high. |
@@ -362,7 +362,7 @@ you disagree with one, the cost of changing it is stated in the row.
 | ASM-0016 | `SCORE-POISONED` reserved, dormant | active | Post-M6 | Trivial |
 | ASM-0017 | `SCORE-VARIETY` counts per-life firsts | active | M5 | Low |
 | ASM-0018 | Suspicion additive with clamp | active | M4 | Low |
-| ASM-0019 | Godot 4.5 / Forward+ / GDScript | ratified | — | Very high |
+| ASM-0019 | Godot 4.7.1 / Forward+ / GDScript | ratified | — | Very high |
 | ASM-0020 | 30 Hz tick is the authority clock for all gameplay | active | M2 | High |
 | ASM-0021 | Fixed 100 ms interpolation buffer | active | Post-M6 | Low |
 | ASM-0022 | Lag-comp rewind clamped to 200 ms | active | M4 | Low |

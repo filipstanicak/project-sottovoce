@@ -1,0 +1,23 @@
+# Project Sottovoce — gdlint configuration (CODING_STANDARDS §6)
+#
+# These are design signals, not style preferences. A function reaching 40 lines
+# is usually doing two things; a file reaching 400 usually wants splitting.
+# If a limit is genuinely wrong for a case, that is an ADR, not an ignore.
+class-definitions-order:
+  - tools
+  - classnames
+  - signals
+  - enums
+  - consts
+  - exports
+  - pub-vars
+  - prv-vars
+  - onreadys
+class-name: '([A-Z][a-z0-9]*)+'
+function-name: '(_on_)?([a-z][a-z0-9]*)(_[a-z0-9]+)*'
+function-arguments-number: 6
+max-file-lines: 400
+max-line-length: 100
+max-public-methods: 20
+private-method-name: '_[a-z][a-z0-9]*(_[a-z0-9]+)*'
+sub-class-name: '_?([A-Z][a-z0-9]*)+'

@@ -2,14 +2,21 @@
 id: ADR-0001
 title: Engine and language selection
 version: 1.0.0
-status: accepted
+status: superseded
 owner: Technical Director
 last_updated: 2026-08-03
 depends_on: [DOC-SCOPE-FENCE]
 supersedes: none
+superseded_by: ADR-0011
 ---
 
 # ADR-0001 — Engine and language selection
+
+> **SUPERSEDED by [ADR-0011](ADR-0011-engine-version-pin-4-7-1.md)** (2026-08-04), which pins
+> **Godot 4.7.1 stable** instead of 4.5. Everything else in this document — the language
+> choice, the renderer, and the rejection of Unity, Unreal and a custom engine — stands
+> unchanged and is restated there. Retained because a superseded ADR keeps the reasoning that
+> was current when the decision was made.
 
 ## Context
 

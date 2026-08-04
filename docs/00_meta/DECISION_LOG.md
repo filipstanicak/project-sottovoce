@@ -53,7 +53,7 @@ Otherwise a log line is sufficient.
 | 2026-08-03 | ASM-0016 | `SCORE-POISONED` specified and implemented but dormant in MVP; reserved for post-MVP `ABIL-NIGHTSHADE`. |
 | 2026-08-03 | ASM-0017 | `SCORE-VARIETY` counts bonus types earned for the first time in the current life; resets on death. |
 | 2026-08-03 | ASM-0018 | Suspicion sources are additive with clamp; instant sources are impulses. |
-| 2026-08-03 | ADR-0001 | Engine Godot 4.5 stable, Forward+; GDScript for gameplay; C# only on profiled evidence. |
+| 2026-08-03 | ADR-0001 | Engine Godot 4.7.1 stable, Forward+; GDScript for gameplay; C# only on profiled evidence. |
 | 2026-08-03 | ADR-0002 | Server-authoritative netcode: 30 Hz tick, client prediction for the local pawn only, snapshot interpolation for remotes. |
 | 2026-08-03 | ADR-0003 | Crowd NPCs use hierarchical finite state machines, not behaviour trees. |
 | 2026-08-03 | ADR-0004 | Scoring implemented as event sourcing: an immutable `ScoreEvent` log, folded to produce the scoreboard. |
@@ -71,6 +71,7 @@ Otherwise a log line is sufficient.
 | 2026-08-03 | — | IP enforcement automated: a `banned_terms` grep runs in CI as a hard failure, with exactly two exempted files. |
 | 2026-08-03 | — | Asset licence register enforced bidirectionally in CI: a missing row and a stale row are both build failures. |
 | 2026-08-03 | — | Minimap, kill-cam and cosmetics recorded as permanent design laws rather than schedule cuts. |
+| 2026-08-04 | ADR-0011 | Engine version pinned to **Godot 4.7.1 stable** (was 4.5). Recorded as a superseding ADR rather than an edit, because ADR-0001's own rule forbids absorbing a version change silently. |
 | 2026-08-03 | ASM-0030 | Contract portrait starts unknown and is filled permanently by completing a Compass lock — reconciles the brief's HUD element with the rule that a hunter is never told their contract's persona, and gives the lock a payoff worth its cost. |
 
 ---
@@ -79,7 +80,7 @@ Otherwise a log line is sufficient.
 
 | ID | Title | Status | Supersedes | Date |
 |---|---|---|---|---|
-| [ADR-0001](adr/ADR-0001-engine-and-language.md) | Engine and language selection | Accepted | — | 2026-08-03 |
+| [ADR-0001](adr/ADR-0001-engine-and-language.md) | Engine and language selection | **Superseded** by ADR-0011 | — | 2026-08-03 |
 | [ADR-0002](adr/ADR-0002-netcode-model.md) | Server-authoritative netcode model | Accepted | — | 2026-08-03 |
 | [ADR-0003](adr/ADR-0003-crowd-ai-architecture.md) | Crowd AI: HFSM over behaviour trees | Accepted | — | 2026-08-03 |
 | [ADR-0004](adr/ADR-0004-scoring-event-sourcing.md) | Scoring as event sourcing | Accepted | — | 2026-08-03 |
@@ -89,6 +90,7 @@ Otherwise a log line is sufficient.
 | [ADR-0008](adr/ADR-0008-state-objects.md) | State objects over enum state machines | Accepted | — | 2026-08-03 |
 | [ADR-0009](adr/ADR-0009-branching-strategy.md) | Trunk-based development | Accepted | — | 2026-08-03 |
 | [ADR-0010](adr/ADR-0010-lag-compensation.md) | Lag compensation scope and clamping | Accepted | — | 2026-08-03 |
+| [ADR-0011](adr/ADR-0011-engine-version-pin-4-7-1.md) | Engine version pin — Godot 4.7.1 stable | Accepted | ADR-0001 | 2026-08-04 |
 
 ### 2.1 ADR statuses
 

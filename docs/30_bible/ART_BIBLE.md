@@ -284,7 +284,8 @@ Restated because they bind art harder than any other discipline.
 
 **The review question, before any commit that adds a visible asset:**
 
-> ### "Would a reasonable person mistake this asset for Ubisoft's?"
+> ### Ask the review question in
+> ### [`../00_meta/IP_GUARDRAILS.md`](../00_meta/IP_GUARDRAILS.md) §5.
 
 If the answer is *yes*, *maybe*, or *I'd have to think about it* — rework it and ask again.
 

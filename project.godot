@@ -1,0 +1,80 @@
+; Project Sottovoce — engine configuration
+;
+; Engine version is pinned in .godot-version and governed by ADR-0011.
+; Autoload inventory is fixed at EIGHT (TDD-01 §2). A ninth requires an ADR;
+; test_autoload_inventory.gd fails otherwise.
+
+config_version=5
+
+[application]
+
+config/name="Project Sottovoce"
+config/description="Online multiplayer social-stealth game for 4-6 players."
+run/main_scene="res://scenes/boot.tscn"
+config/features=PackedStringArray("4.7", "Forward Plus")
+config/quit_on_go_back=false
+
+[autoload]
+
+; Order matters: Tuning loads values everything else reads.
+; EventBus is signals-only (ADR-0006) and must exist before any subscriber.
+Tuning="*res://scripts/core/tuning/tuning.gd"
+EventBus="*res://scripts/presentation/event_bus.gd"
+Net="*res://scripts/net/net.gd"
+GameState="*res://scripts/core/game_state.gd"
+Log="*res://scripts/core/log.gd"
+Strings="*res://scripts/core/strings.gd"
+Audio="*res://scripts/presentation/audio/audio.gd"
+DebugConsole="*res://scripts/debug/debug_console.gd"
+
+[debug]
+
+gdscript/warnings/untyped_declaration=2
+gdscript/warnings/unsafe_property_access=1
+gdscript/warnings/unsafe_method_access=1
+gdscript/warnings/unsafe_cast=1
+gdscript/warnings/unsafe_call_argument=1
+gdscript/warnings/return_value_discarded=0
+
+[display]
+
+window/size/viewport_width=1920
+window/size/viewport_height=1080
+window/stretch/mode="canvas_items"
+window/stretch/aspect="keep_height"
+
+[input]
+
+; Bound in US-0016. Declared here so the map exists from the first commit.
+
+[layer_names]
+
+; TDD-06 §1.2 / SCENE_AND_NODE_CONVENTIONS §6.
+; Traversal probes mask WORLD only — a determinism requirement, not an
+; optimisation: a probe that could hit an interpolated body would resolve
+; differently on client and server.
+3d_physics/layer_1="WORLD"
+3d_physics/layer_2="PAWN"
+3d_physics/layer_3="NPC"
+3d_physics/layer_4="TRIGGER"
+
+[navigation]
+
+3d/default_cell_size=0.25
+3d/default_edge_connection_margin=0.25
+
+[physics]
+
+; TDD-03 §1: the 30 Hz net tick is every SECOND physics frame.
+; Pawn integration substeps at 60 Hz, once per received InputCommand,
+; because a server integrating at dt=1/30 diverges from a client
+; predicting twice at dt=1/60 on every acceleration curve.
+common/physics_ticks_per_second=60
+common/max_physics_steps_per_frame=8
+3d/default_gravity=9.8
+
+[rendering]
+
+renderer/rendering_method="forward_plus"
+renderer/rendering_method.mobile="forward_plus"
+anti_aliasing/quality/msaa_3d=2

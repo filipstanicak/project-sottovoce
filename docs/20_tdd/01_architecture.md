@@ -11,7 +11,7 @@ depends_on: [DOC-GLOSSARY, TUN-INDEX, ADR-0001, ADR-0002, ADR-0005, ADR-0006]
 # TDD Chapter 1 — Architecture
 
 > **Context restated for a reader who has read nothing else.** Project Sottovoce is a 4–6
-> player social-stealth game in Godot 4.5 (Forward+, GDScript). A dedicated headless server is
+> player social-stealth game in Godot 4.7.1 (Forward+, GDScript). A dedicated headless server is
 > authoritative over everything that decides an outcome: suspicion, detection, contracts,
 > kills, stuns and score. Clients predict only their own pawn and interpolate everything else.
 > The map holds 60–90 server-simulated NPCs, including 8–12 identical **clones** of each of

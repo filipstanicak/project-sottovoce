@@ -1,0 +1,216 @@
+# Project Sottovoce — CI
+#
+# Six required checks on `main` (TDD-12 §1). All six must be green to merge;
+# ADR-0009 forbids direct pushes to main.
+#
+# `import` runs first because everything else depends on a clean import, and
+# import errors are the most common cause of works-on-my-machine.
+#
+# Engine version is pinned by .godot-version (ADR-0011). CI installs exactly
+# that build — a CI that installs "latest" is background drift with extra steps.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ---------------------------------------------------------------- version --
+  # Single source of truth for the engine version, read once and reused.
+  version:
+    name: resolve engine version
+    runs-on: ubuntu-22.04
+    outputs:
+      godot: ${{ steps.pin.outputs.godot }}
+      tag: ${{ steps.pin.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: pin
+        run: |
+          FULL=$(tr -d '[:space:]' < .godot-version)
+          # 4.7.1.stable.official.<hash>  ->  4.7.1  /  4.7.1-stable
+          SEMVER=$(echo "$FULL" | cut -d. -f1-3)
+          echo "godot=$SEMVER" >> "$GITHUB_OUTPUT"
+          echo "tag=$SEMVER-stable" >> "$GITHUB_OUTPUT"
+          echo "Pinned engine: $FULL (download tag $SEMVER-stable)"
+
+  # ----------------------------------------------------------------- import --
+  import:
+    name: import
+    needs: version
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with: { lfs: true }
+
+      - name: Cache engine
+        uses: actions/cache@v4
+        with:
+          path: ~/godot
+          key: godot-${{ needs.version.outputs.tag }}
+
+      - name: Install Godot
+        run: |
+          set -euo pipefail
+          if [ ! -x "$HOME/godot/godot" ]; then
+            mkdir -p "$HOME/godot"
+            TAG="${{ needs.version.outputs.tag }}"
+            VER="${{ needs.version.outputs.godot }}"
+            URL="https://github.com/godotengine/godot/releases/download/${TAG}/Godot_v${TAG}_linux.x86_64.zip"
+            curl -fsSL "$URL" -o /tmp/godot.zip
+            unzip -q /tmp/godot.zip -d "$HOME/godot"
+            mv "$HOME"/godot/Godot_v*_linux.x86_64 "$HOME/godot/godot"
+            chmod +x "$HOME/godot/godot"
+          fi
+          echo "$HOME/godot" >> "$GITHUB_PATH"
+
+      - name: Cache import artefacts
+        uses: actions/cache@v4
+        with:
+          path: .godot
+          key: import-${{ needs.version.outputs.tag }}-${{ hashFiles('project.godot', '**/*.import') }}
+
+      # TDD-12 §12: ≤ 90 s. Above ~2 min it stops being a fast gate.
+      - name: Headless import
+        timeout-minutes: 5
+        run: godot --headless --editor --quit-after 200
+
+      - name: Upload import cache
+        uses: actions/upload-artifact@v4
+        with:
+          name: godot-import-cache
+          path: .godot
+          retention-days: 1
+
+  # ------------------------------------------------------------------- lint --
+  lint:
+    name: lint
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+
+      - name: Install gdtoolkit
+        run: pip install --quiet "gdtoolkit==4.*"
+
+      # No .gd files exist yet at M0. Skip cleanly rather than failing on an
+      # empty glob — a job that fails when there is nothing to check teaches
+      # people to ignore it.
+      - name: gdlint
+        run: |
+          set -euo pipefail
+          if compgen -G "scripts/**/*.gd" > /dev/null || compgen -G "test/**/*.gd" > /dev/null; then
+            gdlint scripts/ test/ tools/
+          else
+            echo "no .gd files yet — skipping"
+          fi
+
+      - name: gdformat --check
+        run: |
+          set -euo pipefail
+          if compgen -G "scripts/**/*.gd" > /dev/null || compgen -G "test/**/*.gd" > /dev/null; then
+            gdformat --check scripts/ test/ tools/
+          else
+            echo "no .gd files yet — skipping"
+          fi
+
+  # --------------------------------------------------------------- ip-guard --
+  # HARD failure. See docs/00_meta/IP_GUARDRAILS.md §6.1.
+  ip-guard:
+    name: ip-guard
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash .ci/ip_guard.sh
+
+  # -------------------------------------------------------- asset-inventory --
+  # Bidirectional: a stale row is as much a defect as a missing one.
+  asset-inventory:
+    name: asset-inventory
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash .ci/check_asset_inventory.sh
+
+  # ------------------------------------------------------------------- test --
+  test:
+    name: test
+    needs: [version, import]
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with: { lfs: true }
+
+      - name: Cache engine
+        uses: actions/cache@v4
+        with:
+          path: ~/godot
+          key: godot-${{ needs.version.outputs.tag }}
+
+      - run: echo "$HOME/godot" >> "$GITHUB_PATH"
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: godot-import-cache
+          path: .godot
+
+      # test/arch/ protects the architecture rather than behaviour. If one of
+      # these fails, the change is wrong or an ADR is needed — never the test.
+      - name: Architecture guards
+        run: |
+          set -euo pipefail
+          if [ -d addons/gut ]; then
+            godot --headless -s addons/gut/gut_cmdln.gd -gdir=res://test/arch -gexit
+          else
+            echo "GUT not installed yet (arrives with US-0005) — skipping"
+          fi
+
+      - name: Unit tests
+        run: |
+          set -euo pipefail
+          if [ -d addons/gut ]; then
+            godot --headless -s addons/gut/gut_cmdln.gd -gdir=res://test/unit -gexit
+          else
+            echo "GUT not installed yet — skipping"
+          fi
+
+  # ----------------------------------------------------------------- export --
+  export:
+    name: export
+    needs: [version, import]
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with: { lfs: true }
+
+      - name: Cache engine
+        uses: actions/cache@v4
+        with:
+          path: ~/godot
+          key: godot-${{ needs.version.outputs.tag }}
+
+      - run: echo "$HOME/godot" >> "$GITHUB_PATH"
+
+      # The server preset's exclusion list is the architecture's proof: if the
+      # server build cannot run with all presentation code excluded, a
+      # dependency has leaked upward (TDD-01 §1.2).
+      - name: Verify export presets
+        run: |
+          set -euo pipefail
+          if [ -f export_presets.cfg ]; then
+            grep -q 'scripts/presentation' export_presets.cfg \
+              || { echo "server preset must exclude scripts/presentation/"; exit 1; }
+            grep -q 'addons/gut' export_presets.cfg \
+              || { echo "every preset must exclude addons/gut/"; exit 1; }
+            echo "export presets present and excluding correctly"
+          else
+            echo "export_presets.cfg not created yet (arrives with US-0012) — skipping"
+          fi

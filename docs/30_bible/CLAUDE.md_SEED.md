@@ -56,7 +56,7 @@ Violating one of these is a blocker, not a discussion.
 
 | | |
 |---|---|
-| Engine | **Godot 4.5 stable**, Forward+ renderer. Version pinned in `.godot-version` |
+| Engine | **Godot 4.7.1 stable**, Forward+ renderer. Version pinned in `.godot-version` |
 | Language | **GDScript**. C# only for a *profiled* hotspot, with an ADR |
 | Networking | Godot high-level multiplayer, `ENetMultiplayerPeer`, dedicated headless server, **server-authoritative** |
 | Netcode | Server tick **30 Hz**; client input **60 Hz**; prediction for the **local pawn only**; snapshot interpolation **100 ms** for remotes; lag compensation **100–200 ms** for kill/stun only |
@@ -185,7 +185,8 @@ Target branch lifetime ≤ 2 days, hard ceiling 5. Squash merge. **Never push di
    than no HUD.
 4. **Never add an ability without a tell.** Two tell channels minimum, at least one environmental
    or audio, so it survives the victim not looking at the caster.
-5. **Never use Ubisoft or other franchise terminology.** Not in code, comments, commits, branch
+5. **Never use franchise terminology from the banned list** in `docs/00_meta/IP_GUARDRAILS.md`
+   §2. Not in code, comments, commits, branch
    names, filenames or docs. CI fails hard.
 6. **Never write a file over 400 lines or a function over 40.**
 7. **Never call `get_node` from a widget** outside its own subtree. Widgets read view models;

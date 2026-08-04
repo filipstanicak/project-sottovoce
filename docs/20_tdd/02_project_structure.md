@@ -10,7 +10,7 @@ depends_on: [TDD-01-ARCHITECTURE, ADR-0005, ADR-0009]
 
 # TDD Chapter 2 — Project Structure
 
-> **Context restated.** Project Sottovoce is a Godot 4.5 / GDScript social-stealth game with a
+> **Context restated.** Project Sottovoce is a Godot 4.7.1 / GDScript social-stealth game with a
 > dedicated headless server that is authoritative over all gameplay outcomes. The code is
 > organised in four layers — Core (pure, no engine), Systems (server-only simulation), Net
 > (replication and prediction), Presentation (client-only) — with dependencies pointing
