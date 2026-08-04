@@ -2,9 +2,9 @@
 id: US-0011
 title: String table and Strings autoload
 version: 0.1.0
-status: draft
+status: done
 owner: Technical Director
-last_updated: 2026-08-03
+last_updated: 2026-08-04
 depends_on: [TDD-02-STRUCTURE]
 ---
 
@@ -29,10 +29,10 @@ a data task.
 
 ## Acceptance criteria
 
-- [ ] `data/strings/en.csv` exists in Godot translation CSV format.
-- [ ] `Strings.get(key)` resolves; a missing key logs push_error and returns the key.
-- [ ] Namespaces reserved: ui, bonus, ability, persona, caption, credits, menu.
-- [ ] `test_no_literal_strings.gd` finds no user-facing literal outside `data/strings/`.
+- [x] `data/strings/en.csv` exists in Godot translation CSV format.
+- [x] `Strings.get_text(key)` resolves; a missing key logs push_error and returns the key. *(Not `get`: `Object.get(property)` already exists and shadowing it on an autoload breaks every engine call that reaches for a property by name.)*
+- [x] Namespaces reserved: ui, bonus, **passive**, ability, persona, caption, credits, menu. *(`passive` added: `PassiveData` needs display keys and the original list omitted it.)*
+- [x] `test_no_literal_strings.gd` finds no user-facing literal outside `data/strings/`.
 
 ## Test notes
 
@@ -42,3 +42,13 @@ The test scans for quoted strings assigned to Label.text, Button.text and simila
 
 Every bonus name and every audio caption lives here, which also gives the IP guardrails one place
 to review user-visible vocabulary.
+
+> **Done 2026-08-04.** 56 keys covering every ability, passive, persona and score
+> bonus that already exists in data, plus a minimal ui/menu/caption set. The unit
+> test asserts every `display_key` on the generated `.tres` resources resolves —
+> a resource pointing at a missing key would render the raw key in the ability bar
+> and nothing else would complain.
+>
+> `test_no_literal_strings` scans **scenes as well as scripts**. A Label with its
+> text typed into the editor never appears in any script, so a script-only scan
+> would have reported success on the exact case most likely to happen.
