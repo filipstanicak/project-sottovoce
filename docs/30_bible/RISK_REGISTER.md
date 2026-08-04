@@ -1,0 +1,385 @@
+---
+id: BIBLE-RISK-REGISTER
+title: Risk Register
+version: 0.1.0
+status: draft
+owner: Technical Director
+last_updated: 2026-08-03
+depends_on: [ADR-0001, ADR-0002, ADR-0007, BIBLE-PERF-BUDGET, BIBLE-DOD, GDD-08-FUTURE]
+---
+
+# Risk Register
+
+> **Scoring.** Probability and impact are Low / Medium / High. **Exposure** = the product, and it
+> orders the register. Every risk has a named **trigger** (the observable that says it is
+> happening), a **mitigation** (what is already in place), and a **response** (what to do when it
+> fires). A risk with no trigger is a worry, not a risk.
+
+---
+
+## 1. Summary
+
+| ID | Risk | Prob | Impact | Exposure | First measurable |
+|---|---|---|---|---|---|
+| `RISK-POPULATION` | Nobody can assemble a lobby | **High** | **High** | **Critical** | M6 |
+| `RISK-CROWD-PERF` | 90 NPCs do not fit 2.0 ms | **Medium** | **High** | **High** | M3 |
+| `RISK-NETCODE` | Prediction/reconciliation instability | **High** | Medium | **High** | M2 |
+| `RISK-AGENT-DRIFT` | Docs and code diverge | **High** | Medium | **High** | Continuous |
+| `RISK-NOT-FUN-SOLO` | The loop needs 6 humans to be fun | Medium | **High** | **High** | M4 |
+| `RISK-ANIM-SCOPE` | Clone parity doubles animation cost | Medium | Medium | Medium | M3 |
+| `RISK-BALANCE-UNFALSIFIABLE` | Too few playtests to settle the model | **High** | Low | Medium | M6 |
+| `RISK-ART-SCOPE` | Art exceeds a small team's capacity | Medium | Medium | Medium | M6 |
+| `RISK-ANONYMITY-LEAK` | A silent discriminator ships | Low | **High** | Medium | M3 |
+| `RISK-BANDWIDTH` | Upstream/downstream budgets missed | Medium | Low | Low | M2 |
+| `RISK-IP` | A franchise term or asset reaches a public build | Low | **High** | Medium | Continuous |
+| `RISK-SCOPE-CREEP` | The fence erodes | Medium | Medium | Medium | Continuous |
+
+---
+
+## 2. `RISK-POPULATION` — nobody can assemble a lobby
+
+| | |
+|---|---|
+| **Probability** | High |
+| **Impact** | High — the game is unplayable, regardless of quality |
+| **Exposure** | **Critical. The project's defining risk.** |
+
+**Why.** Social stealth needs 4–6 simultaneous humans; there is no single-player mode and no
+asynchronous version. Historically the genre has succeeded **only** when attached to a large
+product that supplied population for free, and died every time that product's population moved
+on. We have no such product. Cold-start failure is self-accelerating: a player who queues and
+finds nobody does not queue again.
+
+**Trigger.** `TEL-LOBBY-FILL-TIME` median > 10 minutes, or lobbies routinely abandoned.
+
+**Mitigations already in the design** — these are in the MVP *because* of this risk, not
+incidentally:
+
+| Mitigation | |
+|---|---|
+| 4 players is a **supported configuration**, not a degraded one | Crowd, compass range and map area all scale. Four humans is a far easier ask than six |
+| Direct IP before matchmaking | Matchmaking is a multiplier on an existing population; applied to zero it yields zero, and it fails *silently* |
+| 8-minute matches | A filled lobby is worth assembling; a bad match is cheap |
+| No accounts, no progression | Zero re-entry friction after six months away |
+
+**Response, in cost order:** private lobby codes (cheapest, highest ratio) → make 4-player
+genuinely good → a practice district so an unfillable lobby is not a closed game → scheduled
+community sessions → bots → matchmaking last.
+
+**The honest position:** this may be fatal for a standalone game in this genre, and
+[`../10_gdd/08_liveops_and_future.md`](../10_gdd/08_liveops_and_future.md) §4.7 treats the metric
+as a genuine decision point rather than a formality.
+
+---
+
+## 3. `RISK-CROWD-PERF` — 90 NPCs do not fit 2.0 ms
+
+| | |
+|---|---|
+| **Probability** | Medium |
+| **Impact** | High — crowd density is the game's substrate |
+| **Exposure** | High |
+
+**Why.** 90 animated agents in GDScript inside `TUN-PERF-CROWD-BUDGET` 2.0 ms/frame is the
+hardest technical requirement in the project. Current allocation leaves **0.10 ms of margin** —
+the tightest in the corpus.
+
+**Trigger.** `test_crowd_perf.gd` fails, or p99 frame time exceeds 16.6 ms in the standard
+scenario.
+
+**Mitigations.** Update-rate LOD (~34 effective brain updates per tick instead of 90 — a 2.6×
+reduction); flat HFSM rather than behaviour trees; zero allocation in `step()`; a shared spatial
+hash serving four consumers; server-side simulation only, so clients pay animation cost alone.
+
+**Response — the pre-decided ladder** ([`PERFORMANCE_BUDGET.md`](PERFORMANCE_BUDGET.md) §6):
+coarsen LOD bands → reduce Mid-band fidelity → Far-band impostors → `Steering` to C#/GDExtension
+→ **reduce crowd count last, never below 60**.
+
+> Reducing crowd count is first in most people's instincts and last on the ladder on purpose. It
+> trades the design's identity for frame time. If the ladder is exhausted and 60 will not fit,
+> that is an **ADR-0001 revisit** — engine and language — not a design compromise.
+
+---
+
+## 4. `RISK-NETCODE` — prediction and reconciliation instability
+
+| | |
+|---|---|
+| **Probability** | High — this is simply hard |
+| **Impact** | Medium — recoverable, but expensive |
+| **Exposure** | High |
+
+**Why.** Client prediction with server reconciliation is the highest-bug-density code in the
+project. The game is decided at 2.5 m inside 0.4 s windows, so small positional errors change
+outcomes.
+
+**Trigger.** `test_prediction_reconciliation.gd` failing at any latency profile; players
+reporting rubber-banding; disputed kills above ~2 % (`TEL-CONTEST-RESOLVED`).
+
+**Mitigations.** Prediction confined to **one system** (the pawn's movement) so the hard part
+lives in one file; `PawnState.step()` is a pure function enforced by grep; the simulation snaps
+while the visual blends, so error converges rather than compounding; a four-profile latency
+matrix in CI; a `noprediction` debug command — **the only way to tell a feel bug from a
+prediction bug**.
+
+**Response.** If traversal states prove unstable, make Vault/Mantle/Drop **server-confirmed
+rather than predicted**, accepting latency on those manoeuvres only. That is a scoped retreat,
+already identified, not a redesign.
+
+---
+
+## 5. `RISK-AGENT-DRIFT` — documentation and code diverge
+
+| | |
+|---|---|
+| **Probability** | High |
+| **Impact** | Medium, compounding |
+| **Exposure** | High |
+
+**Why.** This project is built on the premise that an agent with no memory can read the corpus
+and trust it. **Drifted documentation is worse than absent documentation, because it is
+confidently wrong** — and it misleads precisely the reader most dependent on it.
+
+**Trigger.** `test_tuning_docs_sync.gd` or `test_protocol_docs_sync.gd` failing; a document
+describing behaviour the code does not have; an agent implementing from a stale doc.
+
+**Mitigations.**
+
+| Mechanism | Catches |
+|---|---|
+| `test_tuning_docs_sync.gd` | Bidirectional `TUN-` ID drift — **the primary defence** |
+| `test_protocol_docs_sync.gd` | The two message catalogues diverging |
+| `test_ids_match_glossary.gd` | ID drift |
+| `test_claude_md_synced.gd` | The root brief drifting from its seed |
+| **The DoD docs-sync item** | Everything else: *if your change made a document wrong, fix it in the same commit* |
+| ASM-0028 | No document passes `draft` until a milestone has exercised it — a `draft` doc invites correction, a `locked` one invites silent divergence |
+
+**Response.** If drift is found, fix the document **first**, then decide whether the code was
+wrong. Never fix code to match a stale doc without checking which one is right.
+
+---
+
+## 6. `RISK-NOT-FUN-SOLO` — the loop needs six humans to be fun
+
+| | |
+|---|---|
+| **Probability** | Medium |
+| **Impact** | High |
+| **Exposure** | High |
+
+**Why.** Compounds `RISK-POPULATION`. If the game is only good at exactly six, every population
+problem doubles. It also means M4's playable loop cannot be evaluated until six people are
+assembled — slowing every design decision downstream.
+
+**Trigger.** Playtest question 12 ("would you play again tonight?") below 70 % at 4 players while
+passing at 6.
+
+**Mitigations.** 4-player scaling is designed rather than degraded; the contract cycle's
+information properties are analysed at every count
+([`../10_gdd/07_balance.md`](../10_gdd/07_balance.md) §7.2); `TUN-LOBBY-MIN-PLAYERS` is 4.
+
+**Response.** If 4-player is materially worse, the honest options are to make 4 the design centre
+(the single biggest population lever available — [`../10_gdd/08_liveops_and_future.md`](../10_gdd/08_liveops_and_future.md)
+§9.2) or to accept a 6-player-only game and treat population as existential.
+
+---
+
+## 7. `RISK-ANIM-SCOPE` — clone parity doubles animation cost
+
+| | |
+|---|---|
+| **Probability** | Medium |
+| **Impact** | Medium |
+| **Exposure** | Medium |
+
+**Why.** The 14-clip parity set must exist **twice** — player rig and clone rig — and match
+exactly. 56 clips of the ~195 total carry a 2× multiplier. A fifth persona costs **+14 clips × 2
+rigs, minimum**.
+
+**Trigger.** Animation work slipping M3; pressure to share a "close enough" clip between rigs.
+
+**Mitigations.** The parity boundary is precise and *bounded* — parity is required only for
+animations reachable while Anonymous, which is exactly the suspicion cliff at stroll speed.
+Everything above it (jog, sprint, climb, combat) needs no clone equivalent. Four personas, not
+six. Greybox primitives are sufficient to playtest the entire anonymity system.
+
+**Response.** Reduce idle variations from four to two (halves the most expensive part of the
+parity set) before reducing personas. **Never** ship a player-only animation reachable while
+Anonymous — that is `RISK-ANONYMITY-LEAK`.
+
+---
+
+## 8. `RISK-BALANCE-UNFALSIFIABLE` — too few playtests to settle the model
+
+| | |
+|---|---|
+| **Probability** | High |
+| **Impact** | Low — the game still ships |
+| **Exposure** | Medium |
+
+**Why.** The balance model predicts patience beats aggression ~2.5×, above the ~60 % design
+target. Three external playtests (the M6 exit criterion) is ~18 player-matches — enough for hunt
+duration and life length, **almost certainly not enough** for the 1.5–3.5× band on the key
+prediction.
+
+**Trigger.** M6 reached with prediction 4 still unresolved.
+
+**Mitigations.** Eight predictions with explicit bands; archetypes classified by *measured*
+`TEL-MEAN-SPEED` rather than self-report; the re-fold procedure lets archived matches be re-scored
+under candidate values as a pure function; the lever list is pre-ordered so a response does not
+need re-deriving.
+
+**Response.** Raise the playtest count, or accept prediction 4 stays open past M6 and ship the
+brief's values. **Do not** tune against a model whose inputs are still guesses — that replaces a
+defensible starting point with an undefensible one.
+
+---
+
+## 9. `RISK-ART-SCOPE` — art exceeds a small team's capacity
+
+| | |
+|---|---|
+| **Probability** | Medium |
+| **Impact** | Medium |
+| **Exposure** | Medium |
+
+**Why.** Four personas × 2 rigs, five filler archetypes, a 120 × 120 m district, ~195 animations,
+and a colour-language law constraining every environment texture.
+
+**Trigger.** M6 approaching with the map still greybox and no art pipeline validated.
+
+**Mitigations.** The art gate — **no art begins until the greybox map has been playtested and the
+loop is fun on it**. Greybox primitives pass the silhouette test, so art is polish rather than
+rescue. Shared atlases and a shared material per persona. `SCOPE_FENCE` §5 explicitly permits
+shipping at "legible placeholder" fidelity.
+
+**Response.** Ship greybox. The MVP's question is *is the loop fun with six humans*, and greybox
+answers it. An unpolished game that answers the question beats a polished one that never gets
+asked.
+
+---
+
+## 10. `RISK-ANONYMITY-LEAK` — a silent discriminator ships
+
+| | |
+|---|---|
+| **Probability** | Low |
+| **Impact** | **High** — it breaks the core promise |
+| **Exposure** | Medium |
+
+**Why.** This is the failure mode that **fails silently**. An animator adds a charming idle
+variation on the player rig; nothing breaks, no test fails, crowd count is unchanged. Three weeks
+later skilled testers pick humans out reliably and cannot say why. The design looks broken; the
+balance model looks wrong; the cause is one 40-frame clip.
+
+**Trigger.** `test_clone_animation_parity.gd` or `test_footstep_parity.gd` failing; playtesters
+identifying players "somehow"; `TEL-FIRST-CONTACT-OUTCOME` above 40 % correct identification.
+
+**Mitigations — four independent layers**, because a single check gets deleted eventually:
+
+| # | Layer | Catches |
+|---|---|---|
+| 1 | `PersonaData.anonymous_clip_names` declares the parity set | Authoring drift |
+| 2 | `test_clone_animation_parity.gd` | A player animation with no clone equivalent |
+| 3 | Debug runtime assert on entering an Anonymous-reachable state | A state playing an off-list clip |
+| 4 | `TUN-CROWD-CLONE-LOCAL-MIN` | **Local depletion** — global sufficiency with a local hole |
+
+Plus `test_footstep_parity.gd` for the audio equivalent, and the no-per-instance-variation rule.
+
+> **Layer 4 is the one that matters.** Layers 1–3 catch authoring mistakes, which are visible in
+> review. Layer 4 catches all twelve Lucerna clones drifting north while the Lucerna player in
+> the south market becomes unique — with every rule still working and nothing broken.
+
+---
+
+## 11. `RISK-BANDWIDTH` — budgets missed
+
+| | |
+|---|---|
+| **Probability** | Medium |
+| **Impact** | Low |
+| **Exposure** | Low |
+
+**Status: partially realised.** Upstream measures ~18 kbit/s against a 16 kbit/s budget —
+**packet overhead, not payload**. Downstream fits at 87 % with 13 % headroom, which is thin.
+
+**Trigger.** `test_upstream_bandwidth.gd` (currently **failing by design**);
+`test_crowd_bandwidth.gd`; real playtest 95th percentile above 90 kbit/s down.
+
+**Mitigations.** Four downstream mechanisms — culling, quantisation to 7 B/NPC, delta encoding,
+rate LOD. The ADR-0007 fallback (replicate near, seed-derive far) is designed but unbuilt.
+
+**Response.** Upstream: coalesce two input commands per packet, measuring the ≤ 16 ms latency
+cost against the 80 ms feel budget first. Downstream: the ADR-0007 fallback.
+
+---
+
+## 12. `RISK-IP` — a franchise term or asset reaches a public build
+
+| | |
+|---|---|
+| **Probability** | Low |
+| **Impact** | **High** — legal, and a full rename is superlinear in cost |
+| **Exposure** | Medium |
+
+**Why.** Names leak into commit history, filenames, screenshots, build artefacts and playtester
+vocabulary. Renaming later does not work.
+
+**Trigger.** `ip-guard` failing; a playtester using franchise vocabulary to describe a mechanic
+(**a vocabulary bug — file it**).
+
+**Mitigations.** A hard-failing CI grep over the entire repo with exactly two exempt files;
+functional-original naming; the original-name-first rule; every name registered in the glossary
+before it may be committed; the pre-commit review question.
+
+**Response.** Fix forward, log it, and run a single planned history scrub with an ADR before any
+public release. **Do not** rewrite published history reflexively.
+
+**Currently open:** `Sottovoce` is an ordinary Italian/musical term and therefore weakly
+distinctive as a trademark — a search is required before any public announcement
+([`../00_meta/IP_GUARDRAILS.md`](../00_meta/IP_GUARDRAILS.md) §9.1).
+
+---
+
+## 13. `RISK-SCOPE-CREEP` — the fence erodes
+
+| | |
+|---|---|
+| **Probability** | Medium |
+| **Impact** | Medium |
+| **Exposure** | Medium |
+
+**Trigger — the tripwires** from [`../00_meta/SCOPE_FENCE.md`](../00_meta/SCOPE_FENCE.md) §4: a
+story with no `SYS-` ID; a second map folder before M6; any `data/cosmetics/`; an ability without
+a GDD entry; an HTTP client or database driver in the dependency list; **M5/M6 work in progress
+while M4 is unreached**; the word "just" in a scope discussion.
+
+**Mitigations.** An explicit IN list; every OUT item carries a specific reason so it need not be
+relitigated; design-blocked items separated from schedule cuts so nobody spends art time on a
+problem that needs a design answer; ADR required to add anything.
+
+**Response.** The ADR must name **what is being cut to pay for it**. Scope is not added, it is
+exchanged.
+
+---
+
+## 14. Review cadence
+
+| When | What |
+|---|---|
+| Every milestone exit | Re-score every risk; check every trigger |
+| When a trigger fires | Execute the response; log to `DECISION_LOG.md` |
+| M3 | `RISK-CROWD-PERF`, `RISK-ANONYMITY-LEAK`, `RISK-ANIM-SCOPE` first measurable |
+| M4 | `RISK-NOT-FUN-SOLO` first measurable |
+| M6 | `RISK-POPULATION`, `RISK-BALANCE-UNFALSIFIABLE` first measurable |
+
+---
+
+## 15. Acceptance criteria
+
+- [ ] Every risk has a trigger that is **observable**, not a judgement.
+- [ ] Every trigger maps to a named test, telemetry event, or playtest question.
+- [ ] Every response is specific enough to execute without re-deriving it under pressure.
+- [ ] Re-scored at every milestone exit.
+- [ ] `RISK-AGENT-DRIFT`'s mitigation appears in the Definition of Done.
+- [ ] No risk in this register lacks a mitigation already in the design.

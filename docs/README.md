@@ -209,7 +209,7 @@ Operational documents, not essays. These are what make the project agent-legible
 | `00_meta/` | **written** | Glossary, scope fence, IP guardrails, ASM-0001..0030, asset register, decision log, ADR-0001..0010. `COVERAGE_MATRIX.md` pending. |
 | `10_gdd/` | **written** | Parts 1–8 complete. |
 | `20_tdd/` | **written** | Chapters 1–12 complete. |
-| `30_bible/` | not started | 17 documents. |
+| `30_bible/` | **written** | All 17 documents complete. |
 | `40_backlog/` | not started | M0–M6, stories US-0001+. |
 | `50_tuning/` | **written** | TUNABLES (~180 values, 20 invariants) and BALANCE_MODEL. |
 
