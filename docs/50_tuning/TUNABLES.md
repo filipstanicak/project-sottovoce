@@ -489,9 +489,16 @@ events timestamped within the final phase. Derivations are in
 | …in the Final Contract phase (2×) | | **1800** |
 
 Ratio of the best patient kill to the sprint tackle: **13:1** (650 : 50), or 18:1 including
-Variety. The brief requires 3–5×; the actual spread is far wider, which is deliberate — see
-[`BALANCE_MODEL.md`](BALANCE_MODEL.md) §4 for why the *achievable expected* ratio lands
-near 4× once cooldowns, failure rates and time cost are modelled.
+Variety. The brief requires 3–5×; the *best-case* spread is deliberately far wider.
+
+The ratio that actually governs play is the **expected** one, once bonus-fire probabilities,
+failure rates and time costs are modelled. That works out at **2.68 : 1** per kill and
+**2.5 : 1** over a full match — derived in [`BALANCE_MODEL.md`](BALANCE_MODEL.md) §3 and
+summarised in [`../10_gdd/07_balance.md`](../10_gdd/07_balance.md) §4. Note this is *stronger*
+than it sounds: carried through to win probability it puts a patient player ahead of an
+equally-skilled aggressive one in ~90 % of matches, against a ~60 % design target. That
+discrepancy is deliberately **not** pre-tuned away before telemetry exists; the reasoning and
+the ordered lever list are in [`../10_gdd/07_balance.md`](../10_gdd/07_balance.md) §4.6–§4.8.
 
 ---
 
