@@ -2,9 +2,9 @@
 id: US-0009
 title: EventBus autoload
 version: 0.1.0
-status: draft
+status: done
 owner: Technical Director
-last_updated: 2026-08-03
+last_updated: 2026-08-04
 depends_on: [ADR-0006, BIBLE-EVENT-BUS]
 ---
 
@@ -24,12 +24,12 @@ The one-way systems-to-presentation channel. Signal declarations and documentati
 
 ## Acceptance criteria
 
-- [ ] `event_bus.gd` contains only signal declarations, comments and blank lines — no var, no func.
-- [ ] Every signal from SIGNAL_AND_EVENT_BUS.md section 3 declared with matching arity.
-- [ ] Every signal has a docstring.
-- [ ] Names are past-tense facts — no on_ prefix, no _signal suffix.
-- [ ] `prey_warning_triggered` takes ZERO parameters.
-- [ ] Registered as an autoload.
+- [x] `event_bus.gd` contains only signal declarations, comments and blank lines — no var, no func.
+- [x] Every signal from SIGNAL_AND_EVENT_BUS.md section 3 declared with matching arity.
+- [x] Every signal has a docstring.
+- [x] Names are past-tense facts — no on_ prefix, no _signal suffix.
+- [x] `prey_warning_triggered` takes ZERO parameters.
+- [x] Registered as an autoload.
 
 ## Test notes
 
@@ -42,3 +42,12 @@ A stateful event bus is a global variable in disguise.
 
 The zero-arity prey warning is the third of three layers enforcing directionlessness — no
 protocol field, no signal parameter, nothing for a widget to render.
+
+> **Done 2026-08-04.** 19 signals, each with a docstring ending in its `EVT-` ID,
+> checked against SIGNAL_AND_EVENT_BUS.md §3 in both directions. The stub was
+> missing `suspicion_value_changed` — the catalogue promised a channel that did
+> not exist.
+>
+> Four guards, each run against a planted violation before being trusted: state on
+> the bus, a function on the bus, an undocumented signal, a handler-style name,
+> and a parameter added to the prey warning. All five caught.
