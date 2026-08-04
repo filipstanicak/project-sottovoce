@@ -1,0 +1,6 @@
+[gd_resource type="Resource" script_class="UiAudioTuning" format=3]
+
+[ext_resource type="Script" path="res://scripts/core/tuning/ui_audio_tuning.gd" id="1_ottcu"]
+
+[resource]
+script = ExtResource("1_ottcu")

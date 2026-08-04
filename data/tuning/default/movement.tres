@@ -1,0 +1,6 @@
+[gd_resource type="Resource" script_class="MovementTuning" format=3]
+
+[ext_resource type="Script" path="res://scripts/core/tuning/movement_tuning.gd" id="1_x62f0"]
+
+[resource]
+script = ExtResource("1_x62f0")

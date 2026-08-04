@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="TuningProfile" format=3]
+
+[ext_resource type="Resource" path="res://data/tuning/default/camera.tres" id="1_op08w"]
+[ext_resource type="Resource" path="res://data/tuning/default/combat.tres" id="2_5ad07"]
+[ext_resource type="Resource" path="res://data/tuning/default/compass.tres" id="3_ymx1m"]
+[ext_resource type="Resource" path="res://data/tuning/default/contract.tres" id="4_lthob"]
+[ext_resource type="Resource" path="res://data/tuning/default/crowd.tres" id="5_m8yd1"]
+[ext_resource type="Resource" path="res://data/tuning/default/flags.tres" id="6_sytnn"]
+[ext_resource type="Resource" path="res://data/tuning/default/match.tres" id="7_k7n30"]
+[ext_resource type="Resource" path="res://data/tuning/default/movement.tres" id="8_l3adb"]
+[ext_resource type="Resource" path="res://data/tuning/default/net.tres" id="9_h5g6k"]
+[ext_resource type="Resource" path="res://data/tuning/default/perf.tres" id="10_opk5i"]
+[ext_resource type="Resource" path="res://data/tuning/default/scoring.tres" id="11_sqnbl"]
+[ext_resource type="Script" path="res://scripts/core/tuning/tuning_profile.gd" id="12_ovuyt"]
+[ext_resource type="Resource" path="res://data/tuning/default/suspicion.tres" id="13_4fk0w"]
+[ext_resource type="Resource" path="res://data/tuning/default/ui_audio.tres" id="14_mqniy"]
+
+[resource]
+script = ExtResource("12_ovuyt")
+movement = ExtResource("8_l3adb")
+suspicion = ExtResource("13_4fk0w")
+compass = ExtResource("3_ymx1m")
+combat = ExtResource("2_5ad07")
+contract = ExtResource("4_lthob")
+crowd = ExtResource("5_m8yd1")
+match_rules = ExtResource("7_k7n30")
+scoring = ExtResource("11_sqnbl")
+camera = ExtResource("1_op08w")
+net = ExtResource("9_h5g6k")
+perf = ExtResource("10_opk5i")
+ui_audio = ExtResource("14_mqniy")
+flags = ExtResource("6_sytnn")
