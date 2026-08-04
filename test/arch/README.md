@@ -25,6 +25,9 @@ That is a stop-and-ask condition in
 | `test_no_client_authority` | An RPC letting a client assert an outcome | The handler reads like ordinary code |
 | `test_tuning_docs_sync` | Documentation drifting from code | Both files are individually plausible |
 | `test_autoload_inventory` | A ninth autoload | Each addition is individually defensible |
+| `test_ids_match_glossary` | An ID in code but not the docs, **or the reverse** | Each file reads fine alone; only the comparison shows the gap |
+| `test_id_grammar` | A malformed ID | `MAT-GREY-FLOOR` and `MAT-STONE` both look like material IDs |
+| `test_ids_are_stringname` | `"ID"` where `&"ID"` was meant | One character; behaviour is identical, allocation is not |
 
 The last one is the pattern: these failures are all *individually defensible*
 and *collectively fatal*.
