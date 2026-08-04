@@ -1,0 +1,12 @@
+[gd_scene format=3 uid="uid://bs0ttovserverroot"]
+
+; Server topology. NO PRESENTATION NODES — the release server export excludes
+; scripts/presentation/, scripts/mirrors/ and scenes/ui/ entirely, so anything
+; visual here would break the headless build rather than merely waste memory.
+; test_server_root_has_no_presentation.gd asserts it.
+
+[node name="ServerRoot" type="Node"]
+
+[node name="Systems" type="Node" parent="."]
+
+[node name="World" type="Node3D" parent="."]

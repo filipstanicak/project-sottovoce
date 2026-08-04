@@ -1,16 +1,51 @@
 ## Entry point. THE ONLY branch between client and server topology.
 ##
-## Lives in scripts/server/ rather than the scripts/ root because a script at
-## the root belongs to no layer, and the layer rule is enforced by folder
-## membership (test_folder_structure.gd).
+## Lives in scripts/server/ rather than the scripts/ root because a script at the
+## root belongs to no layer, and the layer rule is enforced by folder membership
+## (test_folder_structure.gd).
 ##
-## STUB — flag parsing and the real branch arrive in US-0012.
+## Deliberately thin. It reads the command line, hands it to a pure parser, and
+## swaps the scene. Everything that could hold a decision lives in LaunchConfig,
+## where it is testable without an engine.
 extends Node
+
+const SERVER_ROOT := "res://scenes/server_root.tscn"
+const CLIENT_ROOT := "res://scenes/client_root.tscn"
 
 
 func _ready() -> void:
-	var args := OS.get_cmdline_user_args()
-	if args.has("--server"):
-		Log.info("boot: server mode (US-0012 wires server_root.tscn)")
+	var config := LaunchConfig.parse(OS.get_cmdline_user_args(), Tuning.match_rules.max_players)
+
+	var problems := config.problems(Tuning.match_rules.min_players, Tuning.match_rules.max_players)
+	if not problems.is_empty():
+		for p: String in problems:
+			Log.error(p, &"boot")
+		Log.error("refusing to start on a bad command line", &"boot")
+		get_tree().quit(1)
+		return
+
+	if config.seed_value >= 0:
+		Log.info("seed %d (deterministic)" % config.seed_value, &"boot")
+
+	if config.is_server:
+		_start_server(config)
 	else:
-		Log.info("boot: client mode (US-0012 wires client_root.tscn)")
+		_start_client(config)
+
+
+func _start_server(config: LaunchConfig) -> void:
+	Net.is_server = true
+	Log.info("server on port %d, up to %d players" % [config.port, config.max_players], &"boot")
+	# Deferred: _ready() runs while the tree is still adding children, and a
+	# direct swap there fails with "parent node is busy". Nothing in the test
+	# suite boots a scene, so this only ever shows up by launching the game.
+	get_tree().change_scene_to_file.call_deferred(SERVER_ROOT)
+
+
+func _start_client(config: LaunchConfig) -> void:
+	Net.is_server = false
+	if config.should_autoconnect():
+		Log.info("client joining %s directly" % config.connect_address, &"boot")
+	else:
+		Log.info("client, menu", &"boot")
+	get_tree().change_scene_to_file.call_deferred(CLIENT_ROOT)

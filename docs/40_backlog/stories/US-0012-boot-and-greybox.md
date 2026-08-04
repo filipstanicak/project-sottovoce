@@ -2,9 +2,9 @@
 id: US-0012
 title: Boot scene, server flag, greybox map loads
 version: 0.1.0
-status: draft
+status: in-progress
 owner: Technical Director
-last_updated: 2026-08-03
+last_updated: 2026-08-04
 depends_on: [TDD-12-BUILD, GDD-05-LEVEL]
 ---
 
@@ -27,8 +27,8 @@ This story closes M0. Its exit criterion is the milestone exit criterion.
 
 ## Acceptance criteria
 
-- [ ] `boot.tscn` branches on --server to server_root.tscn, else client_root.tscn.
-- [ ] CLI flags parse: --server, --port, --max-players, --connect, --seed.
+- [x] `boot.tscn` branches on --server to server_root.tscn, else client_root.tscn.
+- [x] CLI flags parse: --server, --port, --max-players, --connect, --seed.
 - [ ] server_root.tscn contains no presentation nodes.
 - [ ] Greybox MAP-VETRAIO built to the GDD-05 section 2 layout using the section 7.4 material set.
 - [ ] MapData populated: 6 spawns, 4 circuits, idle anchors, zone volumes, 5 blend props, 2 theatre spaces.
@@ -45,3 +45,28 @@ This story closes M0. Its exit criterion is the milestone exit criterion.
 
 Geometry must avoid the metrics boundary bands — a surface at 1.10 m resolves as vault or mantle
 by sub-centimetre position, which reads to a player as the game being broken.
+
+> **In progress 2026-08-04 — the boot half is done, the map half is not.**
+>
+> Landed: `boot.tscn` branching on `--server`, both root scenes, all seven CLI
+> flags parsed in pure Core (`LaunchConfig`, unit-testable without an engine),
+> and `export_presets.cfg` with four presets — which takes the `export` CI job
+> off its skip path for the first time.
+>
+> The game now launches in both topologies. **A bad command line refuses to start
+> rather than being clamped**: a silently corrected port is a server nobody can
+> find, and a silently clamped lobby is a match that differs from the one written
+> on the playtest sheet.
+>
+> Still outstanding, and why the remaining boxes are unticked:
+>
+> - Greybox `MAP-VETRAIO` geometry to GDD-05 §2, with the §7.4 material set
+> - `MapData`: 6 spawns, 4 circuits, idle anchors, zone volumes, 5 blend props,
+>   2 theatre spaces
+> - Navmesh bake excluding roofs, balconies and the canal
+> - `test_map_metrics.gd`, `test_map_dead_ends.gd`, `test_map_widths.gd`,
+>   `test_navmesh_coverage.gd`
+>
+> Geometry must avoid the metrics boundary bands — a surface at 1.10 m resolves
+> as vault or mantle by sub-centimetre position, which reads to a player as the
+> game being broken.
