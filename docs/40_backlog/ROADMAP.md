@@ -59,16 +59,19 @@ exit criterion is somebody's named deliverable rather than a shared assumption.
 
 **Exit:** project scaffolded, CI green, event bus and tuning resources in place, greybox map loads.
 
-> **Status 2026-08-04 — 11 of 12 done.** US-0001 … US-0011 complete and marked.
-> Only **US-0012** remains: boot scene, `--server` branch, export presets, greybox
-> `MAP-VETRAIO`. CI is green on `main` with 7 jobs; 44 architecture guards and 32
-> unit tests run and are counted. **Nothing is playable until US-0012** — there is
-> no scene to launch.
+> **Status 2026-08-04 — 11 of 12 done, US-0012 half done.** US-0001 … US-0011
+> complete and marked. **US-0012 is `in-progress`**: `boot.tscn`, the `--server`
+> branch, both root scenes, the seven CLI flags and all four export presets have
+> landed; the greybox `MAP-VETRAIO`, `MapData`, the navmesh bake and the four map
+> tests have not been started.
 >
-> Two deliverables below are only half-true until then: the export presets do not
-> exist yet, and the six CI jobs are *required by agreement, not by the server* —
-> branch protection needs GitHub Pro on a private repo. See
-> [`../20_tdd/12_build_and_ci.md`](../20_tdd/12_build_and_ci.md) §1.3.
+> **The project launches** in both topologies, but there is no map, so the root
+> scenes are empty. CI is green on `main` with 7 jobs; 49 architecture guards and
+> 43 unit tests run and are counted.
+>
+> One deliverable below remains only half-true: the six CI jobs are *required by
+> agreement, not by the server* — branch protection needs GitHub Pro on a private
+> repo. See [`../20_tdd/12_build_and_ci.md`](../20_tdd/12_build_and_ci.md) §1.3.
 
 | Delivers | |
 |---|---|
