@@ -40,7 +40,8 @@ flowchart LR
     EXPORT --> GREEN([green])
 ```
 
-All six jobs are **required checks** on `main` (ADR-0009).
+All six jobs are **required checks** on `main` (ADR-0009) — see §1.3 for how far
+that is currently *enforced* as opposed to merely agreed.
 
 | Job | Fails on | Typical |
 |---|---|---|
@@ -73,6 +74,43 @@ playtester vocabulary.
 
 Checked **in both directions**. A stale row is as much a defect as a missing one: it means
 someone deleted an asset and left a claim about it, which makes the whole register untrustworthy.
+
+### 1.3 Enforcement status — read this before trusting the word "required"
+
+GitHub's **branch protection and rulesets both require GitHub Pro on a private
+repository.** On the current plan the API returns:
+
+```
+403  Upgrade to GitHub Pro or make this repository public to enable this feature.
+```
+
+So the six checks are **required by agreement, not by the server**. What is
+actually enforced today:
+
+| Control | Enforced by | Real? |
+|---|---|---|
+| Squash-only merges, no merge commits, no rebase | GitHub repo settings | **Yes** — server-side, free |
+| Branch auto-deleted on merge | GitHub repo settings | **Yes** — server-side, free |
+| CI runs on every push and PR | `ci.yml` triggers | **Yes** |
+| CI failure *blocks the merge* | — | **No.** Red can be merged |
+| Direct push to `main` refused | `.githooks/pre-push` | **Client-side only** |
+
+`.githooks/pre-push` is a guard rail, not a gate. It is bypassable with
+`--no-verify`, it lives on the client, and **a fresh clone does not run it until
+`core.hooksPath` is set**:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+That single command is a required step in any new clone. It stops the accidental
+push and the automated one — the actual risk on a solo repo — and it stops
+nothing done deliberately.
+
+**Promote this to real enforcement when the plan allows.** Either GitHub Pro, or
+making the repository public — but public is gated on the originality review in
+`docs/00_meta/IP_GUARDRAILS.md`, so it is not a shortcut. The ruleset JSON is
+ready to apply unchanged.
 
 ---
 
@@ -287,6 +325,7 @@ func flush_to(path: String) -> void        ## --record
 |---|---|
 | `.github/workflows/ci.yml` | The six jobs |
 | `.github/actions/setup-godot/action.yml` | Installs the pinned engine; used by `import`, `test`, `export` |
+| `.githooks/pre-push` | Refuses a direct push to `main` (§1.3) |
 | `.ci/banned_terms.txt` · `ip_guard_exclude.txt` · `ip_guard.sh` | IP enforcement |
 | `.ci/check_asset_inventory.sh` | Bidirectional asset check |
 | `.gdlintrc` · `.gdformatrc` | Lint config |
