@@ -37,3 +37,6 @@ desktop.ini
 
 # Agent working files
 implementation_plan.md
+
+# Tuning codegen intermediates — derived from TUNABLES.md, regenerated every run.
+/tools/tuning_codegen/*.json
