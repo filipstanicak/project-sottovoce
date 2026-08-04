@@ -1,0 +1,594 @@
+---
+id: TDD-04-NET
+title: "TDD Chapter 4 — Networking"
+version: 0.1.0
+status: draft
+owner: Technical Director
+last_updated: 2026-08-03
+depends_on: [TDD-01-ARCHITECTURE, TDD-03-TICK, TUN-INDEX, ADR-0002, ADR-0007, ADR-0010]
+---
+
+# TDD Chapter 4 — Networking
+
+> **Context restated.** Project Sottovoce is a 4–6 player social-stealth game. The map holds
+> 60–90 server-simulated NPCs including 8–12 identical **clones** of each playable **persona** —
+> the crowd is gameplay state, not decoration, because NPC positions determine blend-pocket
+> validity, open-ground suspicion, and line of sight. The game is decided at 2.5 m
+> (`TUN-KILL-RANGE`) and 3.0 m (`TUN-STUN-RANGE`) inside a 0.4 s contest window, so small
+> positional errors change outcomes. A dedicated headless server is authoritative over
+> everything that decides an outcome; clients predict only their own pawn.
+>
+> **Implements:** `SYS-NET-REPLICATION`, `SYS-NET-PREDICTION`, `SYS-NET-LAGCOMP`.
+
+---
+
+## 1. The model in one diagram
+
+```mermaid
+flowchart TB
+    subgraph C["CLIENT"]
+        CI["InputSender<br/>60 Hz"] --> CB["input_buffer<br/>32 unacked commands"]
+        CB --> CP["Predictor<br/>PawnStateMachine.step()<br/>SAME CODE AS SERVER"]
+        CP --> CV["LocalPawn visual"]
+        CR["Reconciler"] --> CP
+        CS["SnapshotInterpolator<br/>100 ms buffer"] --> CVR["RemotePawns + NpcViews"]
+        CM["Mirrors<br/>suspicion / contract / score / match<br/>READ-ONLY"]
+    end
+
+    subgraph S["SERVER"]
+        SR["RpcRouter<br/>authority check on EVERY message"] --> SQ["per-pawn command queue"]
+        SQ --> SP["PawnStateMachine.step()<br/>2 substeps per net tick"]
+        SP --> SY["Systems<br/>suspicion, detection, ability,<br/>kill, stun, contract, score"]
+        SY --> SL["LagCompHistory<br/>500 ms ring"]
+        SY --> SB["SnapshotBuilder<br/>per-client cull + delta + quantise"]
+        SL -.->|"rewind for kill/stun only"| SY
+    end
+
+    CI -->|"NET-C2S-INPUT  60 Hz  unreliable"| SR
+    SB -->|"NET-S2C-SNAPSHOT  30 Hz  unreliable"| CS
+    SB -->|"snapshot.local_pawn + last_acked_seq"| CR
+    SB -->|"snapshot.own_state"| CM
+    SY -->|"NET-S2C-*  event-driven  RELIABLE"| CM
+```
+
+---
+
+## 2. The authority matrix
+
+**Who owns each piece of state, who may write it, and how it reaches the client.** This table is
+the chapter's core contract; every RPC in §6 must be consistent with it.
+
+| State | Owner | Client may write? | Client-predicted? | Replication |
+|---|---|---|---|---|
+| Local pawn position / velocity | **Server** | No — sends *intent* only | **Yes** | Snapshot, per-tick, full |
+| Local pawn state-machine state | **Server** | No | **Yes** | Snapshot, per-tick |
+| Remote pawn transform | **Server** | No | No — interpolated 100 ms back | Snapshot, per-tick, quantised |
+| NPC transform + anim state | **Server** | No | No — interpolated | Snapshot, delta + culled + quantised (ADR-0007) |
+| NPC persona (which clone is which) | **Server** | No | Derived locally from `match_seed` (ASM-0025) | Seed once at match start |
+| **Suspicion value** | **Server** | No | **No — never predicted** | Snapshot, own value only |
+| **Suspicion tier (own)** | **Server** | No | No | Snapshot |
+| **Render state of other players** (plain / tinted / hard) | **Server** | No | No | Snapshot, computed **per observer** |
+| **Contract assignment** | **Server** | No | No | `NET-S2C-CONTRACT-ASSIGNED`, reliable |
+| **Compass bearing / distance / lock** | **Server** | No | No | Snapshot |
+| Contract portrait revealed flag | **Server** | No | No | Snapshot (ASM-0030) |
+| **Kill resolution** | **Server** | No | No — client plays the *animation* on request, the *death* on confirmation | `NET-S2C-KILL-RESULT`, reliable |
+| **Stun resolution** | **Server** | No | No | `NET-S2C-STUN-RESULT`, reliable |
+| **Ability activation** | **Server** validates | Requests only | **Tell only** (§4.4) | `NET-S2C-ABILITY-STARTED`, reliable |
+| Ability cooldowns | **Server** | No | Displayed optimistically, corrected | Snapshot, own only |
+| **Score / ScoreEvents** | **Server** | No | No | `NET-S2C-SCORE-EVENT`, reliable |
+| Match phase / clock | **Server** | No | Clock interpolated locally between ticks | Snapshot + `NET-S2C-PHASE-CHANGED` |
+| Loadout / persona | Client **chooses in lobby**, server **owns after start** | Lobby only | N/A | `NET-C2S-LOADOUT` → `NET-S2C-LOBBY-STATE` |
+| Ready flag | Client | Lobby only | N/A | Reliable |
+| Tuning profile | **Server** | No | N/A | Hash in `NET-S2C-WELCOME`; full profile on mismatch |
+| Camera orientation | **Client** | Yes | N/A | Sent in `InputCommand` as intent; server uses it for facing-cone checks |
+
+### 2.1 The three rules the matrix encodes
+
+1. **A client sends intent, never outcome.** There is no message anywhere in §6 by which a
+   client asserts that something happened. `NET-C2S-INPUT` says "I am holding the kill button",
+   never "I killed player 3".
+2. **Nothing gameplay-relevant is predicted except pawn movement.** Suspicion, detection, tier,
+   contracts, cooldown authority and score all arrive from the server. A client-side suspicion
+   estimate "just for the HUD" would drift, and a HUD that disagrees with the server about your
+   own tier is worse than no HUD (ADR-0002 point 5).
+3. **Render state is computed per observer.** The same player at the same suspicion is `PLAIN`
+   to four observers and `HARD` to one. This is a per-client field in the snapshot, not a
+   broadcast property ([`../10_gdd/03_social_stealth.md`](../10_gdd/03_social_stealth.md) §2.1).
+
+---
+
+## 3. Transport
+
+| Property | Value |
+|---|---|
+| Peer | `ENetMultiplayerPeer`, dedicated server (`create_server`), clients `create_client` |
+| Topology | Star. No peer-to-peer traffic ever |
+| Port | 27015 default, `--port` override |
+| Max peers | `TUN-LOBBY-MAX-PLAYERS` 6 |
+| Timeout | `TUN-NET-TIMEOUT` 10.0 s → treated as a disconnect, contract cycle repaired |
+
+### 3.1 Channels
+
+Separate ENet channels so that a burst of reliable traffic cannot head-of-line block the
+snapshot stream:
+
+| Channel | Mode | Carries | Why separate |
+|---|---|---|---|
+| **0 — `STATE`** | Unreliable, unordered | `NET-S2C-SNAPSHOT`, `NET-C2S-INPUT` | Highest volume. Old data is worthless; retransmission would deliver a stale snapshot after a fresh one |
+| **1 — `EVENT`** | Reliable, ordered | Kills, stuns, score, contracts, ability starts, phase changes | Must arrive, must arrive in order. A `SCORE-EVENT` lost is a score that never existed |
+| **2 — `SESSION`** | Reliable, ordered | Handshake, lobby, tuning sync, join/leave | Low volume, correctness-critical |
+
+**The channel split matters most under packet loss.** Without it, a retransmitted score event
+would delay every subsequent snapshot, and the visible symptom would be remote players
+stuttering whenever anyone scored — a networking bug that looks like a gameplay bug.
+
+---
+
+## 4. Client prediction and reconciliation
+
+### 4.1 What is predicted
+
+**Only the local pawn's movement and state machine.** Nothing else, ever.
+
+### 4.2 The loop
+
+```
+CLIENT, every physics frame (60 Hz):
+    cmd = sample_input()
+    cmd.seq = next_seq()
+    send(CHANNEL_STATE, NET-C2S-INPUT, cmd)                 # unreliable
+    PawnStateMachine.step(local_ctx, cmd, 1.0/60.0)         # predict
+    input_buffer.push(cmd, snapshot_of(local_ctx))          # cap TUN-NET-INPUT-BUFFER-SIZE 32
+
+CLIENT, on snapshot (30 Hz):
+    input_buffer.discard_up_to(snap.last_acked_seq)
+    predicted = input_buffer.state_at(snap.last_acked_seq)
+    error = snap.local_pawn.position.distance_to(predicted.position)
+
+    if error > TUN-NET-RECONCILE-THRESHOLD (0.10 m):
+        local_ctx.apply(snap.local_pawn)                    # SIMULATION snaps
+        for cmd in input_buffer:                            # replay all unacked
+            PawnStateMachine.step(local_ctx, cmd, 1.0/60.0)
+        visual_offset = previous_visual_pos - local_ctx.position
+        # VISUAL blends over TUN-NET-RECONCILE-SMOOTH-TIME (0.12 s)
+    else:
+        visual_offset += error * smoothing_factor           # silent correction
+```
+
+**The simulation snaps; the visual blends.** If the simulation blended, later predictions would
+run from a position the server never had and the error would compound instead of converging.
+This is the single most important sentence in the chapter.
+
+### 4.3 Input buffer overflow
+
+At 60 Hz, `TUN-NET-INPUT-BUFFER-SIZE` 32 covers ~530 ms of unacked input. Above that RTT the
+buffer overflows.
+
+**Behaviour on overflow:** the client force-accepts the server state with a visible correction
+and clears the buffer. This is deliberate — degrading loudly at 500 ms+ RTT is better than
+silently accumulating error, and a player at that latency has a broken experience regardless.
+
+### 4.4 Abilities are half-predicted, deliberately
+
+Abilities are **not** predicted, with one carefully-scoped exception:
+
+| Part | Predicted? | Why |
+|---|---|---|
+| The **tell** (animation start, wind-up audio, morph begin) | **Yes**, immediately on input | The tell is the legibility law's requirement ([`../10_gdd/04_abilities.md`](../10_gdd/04_abilities.md) §1). Delaying it by RTT would make `ABIL-LUNGE` unreactable for its intended counter — and `TUN-LUNGE-STUNNABLE` depends on defenders seeing the wind-up |
+| The **effect** (cloud spawn, projectile, morph completion, dash) | **No** — awaits `NET-S2C-ABILITY-STARTED` | Server validates cooldown, suspicion, range and legality |
+| **Denial** | — | `NET-S2C-ABILITY-DENIED` cancels the local tell with a distinct `SFX-ABILITY-DENIED` |
+
+**The risk this creates, stated honestly:** a client can make its own character *appear* to
+begin an ability that the server refuses. The tell plays locally and is cancelled ~RTT later.
+This is visible only to the acting client, never to others, so it cannot mislead an opponent —
+it can only briefly mislead the person who pressed the button. That trade is correct.
+
+**The corresponding requirement:** `NET-S2C-ABILITY-STARTED` must be sent to **all** clients in
+range immediately on validation, on the reliable channel, because the tell is what other players
+must react to. Failure mode 7 in [`../10_gdd/04_abilities.md`](../10_gdd/04_abilities.md) §11 —
+"Lunge is unstunnable in practice" — is a latency bug in this message, not a balance issue, and
+the diagnosis instruction there points at this paragraph.
+
+---
+
+## 5. Snapshot interpolation
+
+### 5.1 Model
+
+Every remote entity — pawns and NPCs — is rendered `TUN-NET-INTERP-BUFFER` **100 ms** in the
+past, interpolated between the two snapshots that bracket `now − 100 ms`.
+
+| Property | Value | Note |
+|---|---|---|
+| Buffer | 100 ms, **fixed, not adaptive** | ASM-0021. Adaptive changes remote timing between sessions, which would confound balance testing |
+| Extrapolation | **None** | An extrapolated player who was about to stop is a player who appears to walk through a wall. In a game where 30 cm changes outcomes, guessing is worse than lagging |
+| Interpolation basis | **Received timestamps**, never an assumed fixed interval | Required because far NPCs arrive at 10 Hz and near ones at 30 Hz (§7.3). Assuming a fixed interval would make the two rates fight |
+| Buffer underrun | Hold last known transform, freeze animation phase | Visible as a brief stall — correct and honest |
+
+### 5.2 Why 100 ms is nearly free here
+
+A remote player at `TUN-SPEED-BLENDWALK` 1.4 m/s has moved **14 cm** in 100 ms. Most players
+spend most of a match at or below stroll, because that is what the game rewards. At
+`TUN-SPEED-SPRINT` 6.2 m/s it is 62 cm — but a sprinting player is Exposed within 1.2 s and is
+not someone you are trying to precisely time a kill against.
+
+**The design and the netcode reinforce each other:** the game is about slowness, and slowness is
+exactly what makes interpolation cheap.
+
+---
+
+## 6. The message catalogue
+
+Duplicated as a standalone lookup reference in
+[`../30_bible/NETWORK_PROTOCOL.md`](../30_bible/NETWORK_PROTOCOL.md) — deliberately, because it
+is consulted constantly.
+
+**Legend** — *Ch*: channel (S=STATE, E=EVENT, X=SESSION). *Rel*: reliability.
+**Every C2S row must have a non-empty authority check** (ADR-0002 compliance).
+
+### 6.1 Client → Server
+
+| ID | Ch | Rel | Rate | Payload | Authority check |
+|---|---|---|---|---|---|
+| `NET-C2S-HELLO` | X | Reliable | Once | `protocol_version:u16`, `build_hash:u64` | Version and build must match server; else reject with reason |
+| `NET-C2S-LOADOUT` | X | Reliable | Lobby only | `persona:u8`, `ability_a:u8`, `ability_b:u8`, `passive:u8` | **Rejected unless phase == LOBBY.** IDs must be within the MVP set; abilities must differ |
+| `NET-C2S-READY` | X | Reliable | Lobby only | `ready:bool` | Rejected unless phase == LOBBY |
+| `NET-C2S-INPUT` | S | Unreliable | **60 Hz** | `seq:u16`, `move:2×i8`, `yaw:u8`, `pitch:i8`, `buttons:u16`, `client_tick:u16` | Sender must own a living pawn. `seq` must be newer than last processed (stale/replayed commands dropped). Applies to the **sender's** pawn only — the pawn is looked up from the peer id, never from the payload |
+| `NET-C2S-ABILITY-REQUEST` | E | Reliable | On demand | `slot:u8`, `aim_origin:3×f32`, `aim_dir:3×f32` | Slot must be equipped; cooldown must be expired **on the server**; `TUN-ABILITY-GLOBAL-COOLDOWN` respected; aim clamped to the ability's range server-side |
+| `NET-C2S-BLEND-REQUEST` | E | Reliable | On demand | `target_id:u16` (blend prop or group slot) | Target must exist, be within `TUN-BLEND-GROUP-JOIN-RADIUS`, and have capacity (`TUN-BLEND-PROP-CAPACITY` 1) |
+| `NET-C2S-SKIP-RESULTS` | X | Reliable | Once | — | Phase must be RESULTS. Skip requires **unanimous** consent |
+| `NET-C2S-PING` | S | Unreliable | 1 Hz | `client_time:u32` | None needed — echo only |
+
+**Note what is absent:** there is no `NET-C2S-KILL`, no `NET-C2S-STUN`, no
+`NET-C2S-POSITION`, no `NET-C2S-SUSPICION`. Kill and stun are **buttons in the input bitfield**,
+evaluated by the server against the lag-compensated world. A client cannot express the concept
+"I killed someone" in this protocol.
+
+### 6.2 Server → Client
+
+| ID | Ch | Rel | Rate | Payload |
+|---|---|---|---|---|
+| `NET-S2C-WELCOME` | X | Reliable | Once | `peer_id:u8`, `tuning_hash:u64`, `map_id:u8`, `phase:u8` |
+| `NET-S2C-TUNING-SYNC` | X | Reliable | On mismatch | Full serialised `TuningProfile`. Client adopts it — **corrected, never kicked** (ADR-0005 rule 4) |
+| `NET-S2C-LOBBY-STATE` | X | Reliable | On change | `players[]{peer_id, persona, ready}`. **Loadouts deliberately excluded** ([`../10_gdd/06_ui_audio.md`](../10_gdd/06_ui_audio.md) §4.1) |
+| `NET-S2C-MATCH-START` | X | Reliable | Once | `match_seed:u64`, `start_tick:u32`, `crowd_count:u8` |
+| `NET-S2C-SNAPSHOT` | S | Unreliable | **30 Hz** | §6.3 |
+| `NET-S2C-CONTRACT-ASSIGNED` | E | Reliable | On change | `contract_peer:u8`, `reason:u8`. **Contains no persona, position or identity hint** — see §6.4 |
+| `NET-S2C-KILL-RESULT` | E | Reliable | On event | `killer:u8`, `victim:u8`, `tick:u32`, `bonus_group:u16` |
+| `NET-S2C-STUN-RESULT` | E | Reliable | On event | `stunner:u8`, `target:u8`, `tick:u32`, `valid:bool`, `lockout_ticks:u16` |
+| `NET-S2C-ABILITY-STARTED` | E | Reliable | On event | `peer:u8`, `ability:u8`, `origin:3×f32`, `dir:3×f32`, `tick:u32`. **Broadcast to all clients within tell radius** — this is the legibility law on the wire |
+| `NET-S2C-ABILITY-DENIED` | E | Reliable | On event | `slot:u8`, `reason:u8`. To the requester only |
+| `NET-S2C-PREY-WARNING` | E | Reliable | On event | **`tick:u32` only.** §6.4 |
+| `NET-S2C-SCORE-EVENT` | E | Reliable | On event | `event_id:u32`, `tick:u32`, `kind:u8`, `actor:u8`, `subject:u8`, `base:i16`, `mult:u8`, `group:u16` |
+| `NET-S2C-PHASE-CHANGED` | E | Reliable | On change | `phase:u8`, `tick:u32`, `multiplier:u8` |
+| `NET-S2C-MATCH-END` | E | Reliable | Once | Full `ScoreEvent` log for the results fold |
+| `NET-S2C-PLAYER-JOINED` / `-LEFT` | X | Reliable | On change | `peer_id:u8`, `persona:u8` |
+| `NET-S2C-PONG` | S | Unreliable | 1 Hz | `client_time:u32`, `server_tick:u32` |
+
+### 6.3 Snapshot payload
+
+```
+NET-S2C-SNAPSHOT (per client, per tick)
+├── header
+│   ├── server_tick        u32
+│   ├── last_acked_seq     u16      # this client's last processed InputCommand
+│   └── flags              u8
+├── own_pawn                        # FULL state — the prediction authority
+│   ├── position           3×f32
+│   ├── velocity           3×f32
+│   ├── state_id           u8
+│   ├── state_timer_ticks  u16
+│   └── grounded           bool
+├── own_gameplay                     # NEVER predicted (§2 rule 2)
+│   ├── suspicion          u8       # 0..100, quantised to 1 point
+│   ├── tier               u2
+│   ├── active_sources     u8       # bitfield: SPRINT ROOF CLIMB OPEN JOG RUN — drives the HUD source list
+│   ├── cooldown_a_tick    u16
+│   ├── cooldown_b_tick    u16
+│   └── blend_state        u4
+├── compass                          # §6.4 governs what is NOT here
+│   ├── bearing            u8       # quantised to TUN-NET-QUANT-YAW (1 deg), wobble ALREADY APPLIED server-side
+│   ├── distance_bucket    u8       # 0.5 m buckets to 60 m — never an exact distance
+│   ├── lock_fraction      u8       # 0..255
+│   └── portrait_revealed  bool     # ASM-0030
+├── match
+│   ├── phase              u8
+│   ├── ticks_remaining    u16
+│   └── multiplier         u8
+├── remote_pawns[]                   # visible players only
+│   ├── peer_id            u8
+│   ├── position           3×i16    # TUN-NET-QUANT-POS 1 cm, map-local
+│   ├── yaw                u8
+│   ├── state_id           u8
+│   ├── anim_phase         u6
+│   └── render_state       u2       # PLAIN | TINTED | HARD — COMPUTED PER OBSERVER
+└── npcs[]                           # delta + culled + LOD (§7)
+    ├── index              u8
+    ├── position           3×i16
+    ├── yaw                u8
+    └── anim_state         u4 + phase u6
+```
+
+### 6.4 What the protocol deliberately does not carry
+
+The design's information rules are enforced **at the payload level**, not in the UI. A rule that
+lives only in a widget can be broken by a different widget; a rule that lives in the wire format
+cannot be broken at all.
+
+| Not sent | Would break | Enforced by |
+|---|---|---|
+| Contract's **persona** | The crowd's entire value — it would collapse 78 candidates to ~12 ([`../10_gdd/03_social_stealth.md`](../10_gdd/03_social_stealth.md) §8.5) | `NET-S2C-CONTRACT-ASSIGNED` carries `peer_id` only; the client cannot map peer→persona for a player it has not seen |
+| Contract's **exact position** | Deletes the search | `compass.bearing` + `distance_bucket` only |
+| Contract's **elevation** | The Compass is 2D by design | No z component anywhere in `compass` |
+| Contract's **suspicion or tier** | You see the consequence, never the value | Not in the payload |
+| **Direction of the prey warning** | `TUN-COMPASS-WARN-GIVES-DIRECTION` is `false`. The panicked scan of a crowd is the game's best moment | `NET-S2C-PREY-WARNING` carries **only a tick**. There is no field to leak |
+| Other players' **suspicion values** | Anonymity | `render_state` is 2 bits and per-observer |
+| Other players' **cooldowns or loadouts** | Kit-reading is a skill ([`../10_gdd/04_abilities.md`](../10_gdd/04_abilities.md) §5.1) | Not in the payload |
+| A **global kill feed** | Would reveal how the contract cycle shifted, for free | `NET-S2C-KILL-RESULT` is sent only to the killer and the victim |
+| NPCs beyond `TUN-NET-NPC-CULL-RADIUS` | — | Culled server-side (§7.2) |
+
+> **The design rule this section expresses:** if the client never receives it, no future UI
+> change, mod, or bug can reveal it. The prey warning carrying nothing but a tick is the purest
+> example — there is no field to accidentally render.
+
+---
+
+## 7. Bandwidth budget
+
+Against `TUN-NET-BANDWIDTH-BUDGET-DOWN` **96 kbit/s** and `-UP` **16 kbit/s** per client.
+
+### 7.1 Downstream, worst case (6 players, 90 NPCs, all moving)
+
+| Component | Calculation | Bytes/s |
+|---|---|---|
+| Near NPCs (≤ 45 m; ~45 visible, 30 Hz, 55 % changed) | 45 × 0.55 × 7 B × 30 | 5 197 |
+| Far NPCs (45–70 m; ~30 visible, 10 Hz, 70 % changed) | 30 × 0.70 × 7 B × 10 | 1 470 |
+| Remote pawns (5 × 14 B × 30 Hz) | | 2 100 |
+| Own pawn authoritative + gameplay + compass + match (18 B × 30 Hz) | | 540 |
+| Snapshot headers (7 B × 30 Hz) | | 210 |
+| Reliable events (score, kill, stun, ability — est. 2/s × 40 B) | | 80 |
+| ENet + UDP/IP overhead (~28 B × 30 packets/s) | | 840 |
+| **Total** | | **10 437 B/s ≈ 83.5 kbit/s** |
+
+**87 % of budget. 13 % headroom.** Thin, which is why the ADR-0007 fallback (replicate near
+NPCs, seed-derive far ones) is designed and documented but unbuilt.
+
+### 7.2 The four mechanisms that make it fit
+
+| # | Mechanism | Saving | Detail |
+|---|---|---|---|
+| 1 | **Distance culling** | 0–50 % | NPCs beyond `TUN-NET-NPC-CULL-RADIUS` 70 m are not sent. 70 m > `TUN-COMPASS-RANGE-MAX` 60 m, so a culled NPC can never affect anything the client can perceive (invariant §17.17) |
+| 2 | **Quantisation** | ~60 % vs. floats | Position 3×i16 at 1 cm; yaw u8 at 1°; anim 4+6 bits. **7 bytes per NPC** including index |
+| 3 | **Delta encoding** | ~40 % | Only NPCs whose quantised state changed since the client's last ack. A standing idle NPC costs nothing, and 40–60 % of the crowd is idle at any moment |
+| 4 | **Rate LOD** | ~20 % | NPCs beyond 45 m at 10 Hz. Interpolation error at walking speed is < 15 cm — far below every gameplay radius, and those NPCs are outside all of them anyway |
+
+### 7.3 Upstream
+
+| Component | Calculation | Bytes/s |
+|---|---|---|
+| `NET-C2S-INPUT` (9 B × 60 Hz) | | 540 |
+| Overhead (28 B × 60 packets/s) | | 1 680 |
+| Occasional reliable requests | | ~20 |
+| **Total** | | **2 240 B/s ≈ 18 kbit/s** |
+
+**Slightly over the 16 kbit/s budget, and the cause is packet overhead, not payload** — 28 bytes
+of header carrying 9 bytes of input. Mitigation: **coalesce two input commands per packet**,
+halving the packet rate to 30 Hz while preserving the 60 Hz sample rate. Cost is up to 16 ms of
+added input latency for the first command in each pair, against an 80 ms budget.
+
+> Recorded as open question 2. The naive implementation misses the budget; the fix is known,
+> cheap, and has a real cost that must be measured against `TUN-FEEL-INPUT-TO-ANIM-MAX`.
+
+---
+
+## 8. Lag compensation
+
+Full rationale in ADR-0010; the implementation contract:
+
+### 8.1 Rewind amount
+
+```gdscript
+## Time the world is rewound when validating an action from `peer`.
+## Clamped at both ends. The ceiling is the important half: it caps how far into
+## the past a high-ping player may reach, putting the cost of a bad connection on
+## the player who has one.
+func rewind_ticks(peer: int) -> int:
+    var rtt_half_ms: float = Net.rtt_ms(peer) * 0.5
+    var raw_ms: float = rtt_half_ms + Tuning.net.interp_buffer_ms      # 100 ms
+    var clamped: float = clampf(raw_ms, Tuning.net.lagcomp_min_ms,    # 100 ms
+                                        Tuning.net.lagcomp_max_ms)     # 200 ms
+    return int(round(clamped / 1000.0 * Tuning.net.server_tick_hz))
+```
+
+### 8.2 What is rewound
+
+| Entity | Rewound? | Why |
+|---|---|---|
+| Player positions and yaw | **Yes** | The primary error source |
+| **NPC positions** | **Yes** | NPCs determine LOS occlusion and blend membership. Validating against a *current* crowd when the attacker acted against a *past* one reintroduces the error we are fixing |
+| Cinderfall cloud volumes | **Yes** | A cloud that had not yet appeared must not retroactively block; one that has expired must still have blocked |
+| Blend membership | **Derived** from rewound NPC positions | Not stored historically |
+| Suspicion tier | **No** — current | Rewinding would let a player kill based on a tier the victim had already left |
+| Contract assignment | **No** — current | A rewound contract could let you kill someone no longer yours |
+| Cooldowns | **No** — current | Rewinding permits double-spends |
+
+### 8.3 History buffer
+
+`TUN-NET-LAGCOMP-HISTORY` 500 ms = 15 entries at 30 Hz. 6 pawns + 90 NPCs × 16 B × 15 ≈ **23 KB**.
+2.5× the maximum rewind, so the buffer is never the binding constraint (invariant §17.16).
+
+**Optimisation:** only entities within `TUN-CINDERFALL-RADIUS + TUN-KILL-RANGE` ≈ 7.5 m of the
+action are rewound — typically fewer than 10, not 96.
+
+### 8.4 Contest resolution
+
+Two kill initiations on the same victim within `TUN-KILL-CONTEST-WINDOW` 0.4 s are resolved by
+**server receive tick**, never by `InputCommand.client_tick`.
+
+This is a real trade: a low-ping player wins a genuine tie. The alternative — comparing
+client-claimed timestamps — is trivially forgeable and would hand the contest window to whoever
+lies best. Server receive order is the only ordering the server can actually trust.
+`TEL-CONTEST-RESOLVED` logs both peers' RTT so the skew is measurable rather than assumed.
+
+---
+
+## 9. Anti-cheat posture
+
+[`../00_meta/SCOPE_FENCE.md`](../00_meta/SCOPE_FENCE.md) OUT #9 defers all anti-cheat beyond
+server authority. What that buys, and what it does not:
+
+| Attack | Prevented? | By what |
+|---|---|---|
+| Teleport / speed hack | **Yes** | Server simulates movement from input; position is never client-supplied |
+| Kill anyone at any range | **Yes** | No message expresses "I killed X"; kill is a button validated server-side |
+| Score injection | **Yes** | `ScoreEvent`s are appended server-side only |
+| Suspicion spoofing | **Yes** | Never client-writable, never predicted |
+| Infinite abilities | **Yes** | Cooldown authority is server-side |
+| Reveal contract's persona | **Yes** | Not in any payload (§6.4) |
+| Reveal prey-warning direction | **Yes** | The message carries only a tick |
+| Wallhack on other players | **Partially** | Clients receive positions of players within snapshot range regardless of LOS. A modified client could render them. **Mitigated by relevance culling being positional, not visual** — but not eliminated |
+| See culled NPCs | **Yes** | Not sent |
+| Aimbot | **N/A** | There is no aiming skill to automate; `TUN-KILL-FACING-CONE` is 60° |
+| Input automation (perfect stun timing) | **No** | Would require behavioural detection, which is explicitly out of scope |
+
+**The honest gap is the player-position wallhack.** Full visual relevance culling (send only
+players with LOS) was considered and rejected for MVP: it would require a per-observer LOS test
+against every player every tick, and — worse — it would make a player *pop in* when LOS is
+established, which is a far more damaging artefact in a game about spotting people than the
+cheat it prevents. Recorded as open question 4.
+
+---
+
+## 10. Interfaces
+
+```gdscript
+## Validates and routes every inbound client message. THE authority chokepoint:
+## no client message reaches a system without passing through here.
+class_name RpcRouter
+extends Node
+
+## Returns false and logs if the sender lacks authority. Every C2S handler
+## calls this FIRST. There is no path around it.
+func _authorise(peer: int, msg: StringName) -> bool
+
+@rpc("any_peer", "unreliable", "call_remote", 0)
+func c2s_input(payload: PackedByteArray) -> void
+
+@rpc("any_peer", "reliable", "call_remote", 1)
+func c2s_ability_request(slot: int, aim_origin: Vector3, aim_dir: Vector3) -> void
+```
+
+```gdscript
+## Builds a per-client snapshot: cull, delta, quantise.
+class_name SnapshotBuilder
+extends Node
+
+## Per-client because render_state and compass data are per-observer.
+func build_for(peer: int, ctx: MatchContext) -> PackedByteArray
+
+## NPCs whose quantised state changed since this client's last ack.
+func _npc_deltas(peer: int, ctx: MatchContext) -> Array[NpcDelta]
+
+## Positional culling at TUN-NET-NPC-CULL-RADIUS. NOT visual culling — see §9.
+func _relevant_npcs(peer: int, ctx: MatchContext) -> PackedInt32Array
+```
+
+```gdscript
+## 500 ms ring of transforms, for kill/stun validation only (ADR-0010).
+class_name LagCompHistory
+extends RefCounted
+
+func record(tick: int, ctx: MatchContext) -> void
+
+## Rewinds ONLY entities within `radius` of `around` — typically < 10, not 96.
+func rewind(tick: int, around: Vector3, radius: float) -> RewoundWorld
+```
+
+```gdscript
+## Interpolates remote entities TUN-NET-INTERP-BUFFER (100 ms) in the past.
+## Interpolates on RECEIVED TIMESTAMPS, never an assumed interval, because far
+## NPCs arrive at 10 Hz and near ones at 30 Hz.
+class_name SnapshotInterpolator
+extends Node
+
+func push(snapshot: Snapshot) -> void
+func sample(entity_id: int, render_time_ms: float) -> EntityState
+```
+
+---
+
+## 11. Files this chapter creates
+
+| Path | Purpose |
+|---|---|
+| `scripts/net/net.gd` | `Net` autoload — peer lifecycle, role, RTT |
+| `scripts/net/server/rpc_router.gd` | Authority chokepoint |
+| `scripts/net/server/snapshot_builder.gd` | Cull, delta, quantise |
+| `scripts/net/server/lag_comp_history.gd` | 500 ms ring |
+| `scripts/net/client/input_sender.gd` | 60 Hz sampling and send |
+| `scripts/net/client/predictor.gd` | Local prediction |
+| `scripts/net/client/reconciler.gd` | The §4.2 loop |
+| `scripts/net/client/interpolator.gd` | Timestamp-based interpolation |
+| `scripts/net/protocol/input_command.gd` | `InputCommand` |
+| `scripts/net/protocol/snapshot.gd` | Snapshot serialise / deserialise |
+| `scripts/net/protocol/messages.gd` | `NET-` ID constants + payload schemas |
+| `scripts/net/protocol/quantise.gd` | Position / yaw / phase quantisation helpers |
+
+---
+
+## 12. Test hooks
+
+| Test | Asserts |
+|---|---|
+| `test_no_client_authority.gd` | **Source scan:** no `@rpc` handler writes to a system's state without passing `_authorise`. Every C2S entry in §6.1 has a non-empty authority check |
+| `test_client_cannot_assert_outcome.gd` | The message catalogue contains no C2S message with an outcome field. Parsed from `messages.gd` |
+| `test_prediction_reconciliation.gd` | At synthetic 150 ms RTT with a forced divergence, the client converges within `TUN-NET-RECONCILE-SMOOTH-TIME` with no visual discontinuity |
+| `test_reconcile_snaps_sim_blends_visual.gd` | After reconciliation the simulation position equals the server's exactly, while the visual is offset and decaying |
+| `test_input_buffer_overflow.gd` | At 600 ms RTT the buffer force-accepts rather than accumulating unbounded error |
+| `test_interpolation_timestamps.gd` | Mixed 30 Hz and 10 Hz entity streams both interpolate correctly with no stutter at the LOD boundary |
+| `test_snapshot_size.gd` | Worst-case snapshot (6 players, 90 NPCs, all moving) is within `TUN-NET-BANDWIDTH-BUDGET-DOWN` |
+| `test_crowd_bandwidth.gd` | Measured bytes/s per client over a 60 s synthetic worst case is within budget (ADR-0007 compliance) |
+| `test_upstream_bandwidth.gd` | Upstream within `TUN-NET-BANDWIDTH-BUDGET-UP` — **currently expected to FAIL without input coalescing (§7.3)** |
+| `test_npc_cull_radius.gd` | `TUN-NET-NPC-CULL-RADIUS >= TUN-COMPASS-RANGE-MAX` (invariant §17.17) |
+| `test_payload_omissions.gd` | The snapshot and `NET-S2C-CONTRACT-ASSIGNED` contain **no** persona, exact position, elevation or tier field for the contract; `NET-S2C-PREY-WARNING` has exactly one field |
+| `test_render_state_per_observer.gd` | With one player at suspicion 100, five observers receive `PLAIN` and only their hunter/prey receives `HARD` |
+| `test_lagcomp_rewind.gd` | Kill valid at 150 ms rewind, invalid at 0; invalid at 250 ms (proving the clamp); NPC-occluded LOS clear in the past; unspawned Cinderfall does not block |
+| `test_lagcomp_no_exploit.gd` | Rewound validation cannot resolve against a stale contract, stale tier, or spent cooldown |
+| `test_no_client_time_in_kill.gd` | `KillSystem` and `StunSystem` never read `InputCommand.client_tick` |
+| `test_channel_separation.gd` | Reliable event floods do not delay snapshot delivery |
+| `test_join_leave_stable.gd` | 3 clients joining and leaving repeatedly for 5 minutes leaves the cycle valid and no orphaned entities |
+
+---
+
+## 13. Performance budget contribution
+
+Against `TUN-PERF-NET-BUDGET` **1.5 ms** (client) and `TUN-PERF-SERVER-TICK-BUDGET` 8.0 ms.
+
+| Item | Budget | Notes |
+|---|---|---|
+| **Client** | | |
+| Snapshot deserialise + dequantise | ≤ 0.35 ms | ~96 entities |
+| Interpolation sampling | ≤ 0.40 ms | Per rendered frame |
+| Reconciliation (typical, no replay) | ≤ 0.10 ms | |
+| Reconciliation (worst, 32-command replay) | ≤ 0.60 ms | Budgeted at worst case — a reconciliation storm under packet loss is exactly when frame time matters |
+| Input sample, serialise, send | ≤ 0.05 ms | |
+| **Client total (typical)** | **≤ 0.90 ms** of 1.5 ms | |
+| **Client total (worst)** | **≤ 1.40 ms** of 1.5 ms | |
+| **Server**, per 33 ms tick | | |
+| Input ingest + validate (6 clients × 2) | ≤ 0.10 ms | |
+| Snapshot build (6 clients, cull + delta + quantise) | ≤ 1.20 ms | **The server's largest single cost after the crowd** |
+| LagCompHistory record | ≤ 0.15 ms | 96 transforms into a ring |
+| Rewind (per kill/stun, < 10 entities) | ≤ 0.05 ms | Rare |
+| **Server total** | **≤ 1.50 ms** of 8.0 ms | |
+
+---
+
+## 14. Open questions
+
+| # | Question | Position | Needed by |
+|---|---|---|---|
+| 1 | Downstream is at 87 % of budget with 13 % headroom (§7.1). Is that enough margin for real network conditions? | Probably not for a comfortable margin. The ADR-0007 fallback (replicate near, seed-derive far) is designed but unbuilt. Trigger is `test_crowd_bandwidth.gd` failing or a real playtest exceeding 90 kbit/s at the 95th percentile | M3 |
+| 2 | **Upstream misses budget** (18 vs 16 kbit/s) due to packet overhead, not payload (§7.3). Coalesce two input commands per packet? | Yes, but measure the latency cost against `TUN-FEEL-INPUT-TO-ANIM-MAX` 80 ms first. Up to 16 ms added for the first command of each pair | M2 |
+| 3 | Should `TUN-NET-SNAPSHOT-RATE` drop to 15 Hz for far NPCs, beyond the existing 10 Hz LOD? Would buy ~30 % of the downstream budget | Untested. The hook exists. Do not use it before measuring — it interacts with interpolation error at exactly the distances where players are trying to distinguish clones | M3 |
+| 4 | **Player positions are sent without LOS culling**, so a modified client could wallhack players (§9). Add visual relevance culling? | **No for MVP.** Per-observer LOS against every player every tick is expensive, and pop-in when LOS is established is a worse artefact in *this* game than the cheat it prevents. Revisit only with a population and evidence of actual cheating | Post-M6 |
+| 5 | Ability tells are predicted locally but effects are not (§4.4). Does the ~RTT gap between a local tell and the confirmed effect feel wrong at 100 ms+? | Measure at M5. If it does, the fallback is to delay the local tell to match — costing responsiveness to gain consistency | M5 |
