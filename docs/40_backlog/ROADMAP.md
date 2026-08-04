@@ -59,10 +59,21 @@ exit criterion is somebody's named deliverable rather than a shared assumption.
 
 **Exit:** project scaffolded, CI green, event bus and tuning resources in place, greybox map loads.
 
+> **Status 2026-08-04 — 11 of 12 done.** US-0001 … US-0011 complete and marked.
+> Only **US-0012** remains: boot scene, `--server` branch, export presets, greybox
+> `MAP-VETRAIO`. CI is green on `main` with 7 jobs; 44 architecture guards and 32
+> unit tests run and are counted. **Nothing is playable until US-0012** — there is
+> no scene to launch.
+>
+> Two deliverables below are only half-true until then: the export presets do not
+> exist yet, and the six CI jobs are *required by agreement, not by the server* —
+> branch protection needs GitHub Pro on a private repo. See
+> [`../20_tdd/12_build_and_ci.md`](../20_tdd/12_build_and_ci.md) §1.3.
+
 | Delivers | |
 |---|---|
 | `project.godot`, `.godot-version`, export presets | Engine pinned; three presets with their exclusion lists |
-| Six CI jobs, all required on `main` | import · lint · test · ip-guard · asset-inventory · export |
+| Six CI jobs on `main` | import · lint · test · ip-guard · asset-inventory · export — plus a version-resolve job. *Required by agreement; see §1.3 of TDD-12.* |
 | The full folder tree + `test/arch/` guards | The layer rule is enforced from commit one |
 | `Ids`, all eight autoloads, the string table | |
 | `TuningProfile` + every sub-resource + `data/tuning/default/*.tres` | **All 269 values, from TUNABLES.md** |
@@ -71,7 +82,7 @@ exit criterion is somebody's named deliverable rather than a shared assumption.
 ### 2.1 Why the tuning layer lands first
 
 It is tempting to hardcode values now and externalise later. That inverts the cost: retrofitting
-~180 constants across 40 files is a multi-day refactor with a long tail of missed values, and
+269 constants across 40 files is a multi-day refactor with a long tail of missed values, and
 every day before it happens is a day someone writes another literal.
 
 More importantly, `test_tuning_docs_sync.gd` is the primary defence against `RISK-AGENT-DRIFT`,

@@ -207,6 +207,52 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 
 ---
 
+## Where the work is right now
+
+*Updated 2026-08-04. Keep this section current — it is the first thing a fresh
+session reads, and a stale one is worse than none.*
+
+**M0 is 11 of 12 stories done.** US-0001 … US-0011 are `status: done` in
+`docs/40_backlog/stories/` with their acceptance criteria ticked. **US-0012**
+(boot scene, `--server` flag, export presets, greybox map) is the only one left,
+and it closes the milestone.
+
+What exists and works:
+
+| | |
+|---|---|
+| CI | 7 jobs, green on `main`. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
+| Tests | 44 architecture guards + 32 unit tests, both counted in CI |
+| Tuning | 269 tunables across 14 resource classes; all 20 cross-field invariants assert |
+| Autoloads | All eight, fleshed. `Tuning` precomputes 86 durations to integer server ticks |
+| Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |
+
+**Nothing is playable yet.** There is no scene to run — that is US-0012.
+
+### Four things that will cost you an hour if you do not know them
+
+1. **The tuning classes are GENERATED.** Never hand-edit `scripts/core/ids.gd`,
+   `scripts/core/tuning/*.gd` or `tuning_index.gd` — the next generator run
+   silently reverts you. See `tools/tuning_codegen/README.md`.
+2. **`duplicate(true)` does not deep-copy a `TuningProfile`.** The sections are
+   *external* resources, and Godot's deep duplicate only copies embedded ones.
+   Use `TuningProfile.clone()`. Getting this wrong writes to the live profile.
+3. **Verify against `git archive HEAD`, not the working tree.** Git does not
+   track empty directories, and a local pass proved nothing once already.
+4. **`main` has no server-side protection** — see §1.3 of
+   `docs/20_tdd/12_build_and_ci.md`. Run `git config core.hooksPath .githooks` in
+   every fresh clone, and wait for a run to report `completed success` before
+   merging. `gh run watch` can return while a run is still queued.
+
+### Local environment
+
+Godot and gdtoolkit are not on `PATH` on this machine:
+
+- `C:\Users\Slimex\Desktop\Godot_v4.7.1-stable_win64.exe`
+- `C:\Users\Slimex\AppData\Roaming\Python\Python314\Scripts\gdlint.exe`
+
+---
+
 ## Fresh session? Read these four first
 
 1. This file.

@@ -70,7 +70,7 @@ CI jobs required on `main`.
 
 `Ids`, the eight autoloads, the string table, and every `TuningProfile` sub-resource.
 
-**Why here:** retrofitting ~180 constants across 40 files is a multi-day refactor with a long
+**Why here:** retrofitting 269 constants across 40 files is a multi-day refactor with a long
 tail of misses, and `test_tuning_docs_sync.gd` — the primary defence against `RISK-AGENT-DRIFT` —
 cannot exist until the resources do.
 
