@@ -50,6 +50,15 @@ regardless of which named workflow we adopt.
 | **Merge strategy** | Squash merge. One commit per story on `main` keeps the history a readable list of completed work, and makes `git revert` of a whole story trivial. |
 | **Rebase, don't merge, before opening a PR** | Keeps the branch's diff minimal and the eventual squash clean. |
 | **No direct pushes to `main`** | Including by agents. Including for "trivial" fixes. |
+
+> **Enforcement gap, recorded 2026-08-04.** The two rows above are policy, not
+> yet mechanism. Branch protection and rulesets both require GitHub Pro on a
+> private repository, and the API returns 403 on the current plan. Squash-only
+> merging *is* enforced server-side; "no direct push" and "no merge on red" are
+> currently enforced only by `.githooks/pre-push` and by discipline. A local
+> hook is bypassable and does not survive a fresh clone until `core.hooksPath`
+> is set. Full detail and the promotion path:
+> [`../../20_tdd/12_build_and_ci.md`](../../20_tdd/12_build_and_ci.md) §1.3.
 | **Incomplete work is inert, not absent** | A partially-built system merges when it is *harmless*: unregistered, unreferenced, behind a `Tuning`-driven flag, or reachable only from a debug command. It does not wait on a branch. |
 | **Scene files are claimed** | Before editing a `.tscn` that someone else may be editing, say so. A conflicted scene is re-authored in the editor, never hand-merged (see `.gitattributes` and [`../../30_bible/SCENE_AND_NODE_CONVENTIONS.md`](../../30_bible/SCENE_AND_NODE_CONVENTIONS.md) §7). This is a process rule because no tooling solves it. |
 | **Commit message convention** | `<type>(<scope>): <summary>` — types `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `perf`. Scope is a system slug (`compass`, `crowd`, `net`) or a doc section (`gdd`, `tdd`, `bible`). Body explains *why*. |

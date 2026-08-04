@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+#
+# Refuses a direct push to main (ADR-0009, CLAUDE.md "Never push directly to
+# main").
+#
+# WHY THIS EXISTS INSTEAD OF BRANCH PROTECTION. GitHub's server-side branch
+# protection and rulesets both require GitHub Pro on a private repository; the
+# API returns 403 on the current plan. See docs/20_tdd/12_build_and_ci.md §1.2.
+#
+# BE CLEAR ABOUT WHAT THIS IS. A local hook is a guard rail, not a gate. It is
+# bypassable with --no-verify, it lives on the client, and a fresh clone does
+# not run it until `core.hooksPath` is set. It stops the accidental push and
+# the automated one — which is the actual risk here — and it stops nothing a
+# determined person does on purpose. It is not a substitute for the real thing
+# and must be replaced by it the moment the plan allows.
+
+set -euo pipefail
+
+PROTECTED="main"
+z40="0000000000000000000000000000000000000000"
+
+while read -r _local_ref local_sha remote_ref _remote_sha; do
+	[ "$remote_ref" = "refs/heads/$PROTECTED" ] || continue
+
+	# A deletion is `git push origin :main`. Refuse that too.
+	if [ "$local_sha" = "$z40" ]; then
+		echo "pre-push: REFUSED — that would delete '$PROTECTED'." >&2
+		exit 1
+	fi
+
+	cat >&2 <<-EOF
+
+		pre-push: REFUSED — direct push to '$PROTECTED'.
+
+		  ADR-0009: main moves only through a squash-merged pull request with all
+		  six checks green. A direct push skips every one of them.
+
+		  Put it on a branch instead:
+
+		    git switch -c fix/<slug>
+		    git push -u origin fix/<slug>
+		    gh pr create --fill
+
+		  Genuine emergency only:  git push --no-verify
+		  If you reach for that twice, the process is wrong, not the hook.
+
+	EOF
+	exit 1
+done
+
+exit 0
