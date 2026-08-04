@@ -34,3 +34,6 @@ desktop.ini
 # Local overrides — see docs/20_tdd/12_build_and_ci.md
 /override.cfg
 /data/tuning/local/
+
+# Agent working files
+implementation_plan.md
