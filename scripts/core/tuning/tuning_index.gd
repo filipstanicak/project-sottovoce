@@ -44,6 +44,7 @@ const FIELD := {
 	&"TUN-TRAVERSE-PROBE-HEIGHT-FOOT": ["movement", "probe_height_foot", "m"],
 	&"TUN-TRAVERSE-PROBE-LENGTH": ["movement", "probe_length", "m"],
 	&"TUN-TRAVERSE-INPUT-BUFFER": ["movement", "traverse_input_buffer", "s"],
+	&"TUN-TRAVERSE-GAP-ALIGN-ARC": ["movement", "gap_align_arc", "deg"],
 	&"TUN-TRAVERSE-GAP-PROBE-AHEAD": ["movement", "gap_probe_ahead", "m"],
 	&"TUN-TRAVERSE-GAP-PROBE-DEPTH": ["movement", "gap_probe_depth", "m"],
 	&"TUN-TRAVERSE-GAP-PROBE-STEP": ["movement", "gap_probe_step", "m"],

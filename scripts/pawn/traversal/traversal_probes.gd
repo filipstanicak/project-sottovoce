@@ -41,6 +41,8 @@ func refresh(ctx: PawnContext) -> ProbeResult:
 	_cast_obstacle_top(space, probe, feet, yaw)
 	_cast_climb_top(space, probe, feet, yaw)
 	_cast_gap(space, probe, feet, yaw)
+	_cast_gap_fan(space, probe, feet, yaw)
+	_cast_ledge(space, probe, ctx)
 	# LAST. Everything above is a reading; this is the claim that a reading was
 	# taken at all, and the resolver refuses to act on a result without it.
 	probe.valid = true
@@ -212,3 +214,76 @@ func _ray(space: PhysicsDirectSpaceState3D, from: Vector3, to: Vector3) -> Dicti
 func _space() -> PhysicsDirectSpaceState3D:
 	var world := get_world_3d()
 	return null if world == null else world.direct_space_state
+
+
+## Auto-align. Re-runs the gap march at yaw offsets within
+## `TUN-TRAVERSE-GAP-ALIGN-ARC` when facing straight ahead found no far side.
+##
+## **ONLY WHEN THE STRAIGHT MARCH FAILED**, and only at an edge. A player already
+## facing across the gap gets the answer they aimed at — the fan supplies one
+## they did not have, it never overrides one they did. It also keeps the cost off
+## every frame: five times the gap casts, on the frames a player is standing at
+## an edge with the crossing slightly off their nose.
+func _cast_gap_fan(
+	space: PhysicsDirectSpaceState3D, probe: ProbeResult, feet: Vector3, yaw: float
+) -> void:
+	# The raw fields, not `at_edge()` — `valid` is not set until every cast has
+	# run, and this IS one of them. Asking the finished-reading question from
+	# inside the reading is how the fan silently never fired.
+	if not probe.foot_clear or probe.ground_ahead or probe.gap_distance != INF:
+		return
+	for offset: float in ProbeLayout.gap_align_offsets():
+		if is_zero_approx(offset):
+			continue  # Already cast, straight ahead, and it found nothing.
+		var probed := ProbeResult.new()
+		_cast_gap(space, probed, feet, yaw + offset)
+		if probed.gap_distance == INF:
+			continue
+		probe.gap_distance = probed.gap_distance
+		probe.drop_height = probed.drop_height
+		probe.gap_yaw_offset = offset
+		return
+
+
+## The ledge probes. Airborne only — a grounded pawn is not falling past
+## anything, and skipping them keeps five casts off the common frame.
+##
+## Fans laterally out to `TUN-TRAVERSE-MAGNET-RADIUS`, because GDD-02 §7.3
+## forgives "not being laterally aligned with the ledge". The offset that finds
+## one is kept, signed, so the grab snaps toward the ledge rather than away.
+func _cast_ledge(space: PhysicsDirectSpaceState3D, probe: ProbeResult, ctx: PawnContext) -> void:
+	if ctx.grounded:
+		return
+	for lateral: float in ProbeLayout.ledge_lateral_offsets():
+		var from := ProbeLayout.ledge_origin(ctx.position, ctx.yaw, lateral)
+		var to := from + ProbeLayout.forward(ctx.yaw) * Tuning.movement.probe_length
+		var hit := _ray(space, from, to)
+		if hit.is_empty():
+			continue
+		var top := _ledge_top(space, ctx, lateral, from.distance_to(hit["position"]))
+		if top == INF or not ProbeLayout.ledge_is_reachable(top):
+			continue
+		probe.ledge_found = true
+		probe.ledge_lateral = lateral
+		probe.ledge_height = top
+		return
+
+
+## Height of the top edge above the pawn's feet, or `INF`.
+##
+## Cast down from PAST THE FACE THE LEDGE RAY HIT, not from a fixed step ahead:
+## a wall 0.5 m away and one 0.9 m away have their tops in different places, and
+## a cast at a fixed offset lands in front of the near one and inside the far
+## one. Placing it at the measured hit distance is what `_cast_obstacle_top`
+## already does, for exactly the same reason.
+func _ledge_top(
+	space: PhysicsDirectSpaceState3D, ctx: PawnContext, lateral: float, hit_distance: float
+) -> float:
+	var base := ProbeLayout.ledge_origin(ctx.position, ctx.yaw, lateral)
+	var ahead := ProbeLayout.forward(ctx.yaw) * (hit_distance + Tuning.movement.gap_probe_step)
+	# Start above mantle height measured from the FEET, so the ray begins clear of
+	# anything a ledge could be — the same rule the obstacle-top cast follows.
+	var rise := Tuning.movement.traverse_mantle_max_height - Tuning.movement.probe_height_chest
+	var from := base + ahead + Vector3.UP * rise
+	var hit := _ray(space, from, from + Vector3.DOWN * ProbeLayout.gap_depth())
+	return INF if hit.is_empty() else (hit["position"] as Vector3).y - ctx.position.y
