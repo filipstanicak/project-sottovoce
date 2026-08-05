@@ -212,15 +212,18 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 *Updated 2026-08-05. Keep this section current — it is the first thing a fresh
 session reads, and a stale one is worse than none.*
 
-**M0 IS COMPLETE. M1 IS 2 OF 12.** US-0013 (state machine skeleton) and US-0014
-(the transition table) are `status: done`. **US-0015 is next** — the six
-locomotion states and the speed ladder, the first story where the pawn moves.
+**M0 IS COMPLETE. M1 IS 3 OF 12.** US-0013 (state machine), US-0014 (transition
+table) and US-0015 (the speed ladder) are `status: done`. **US-0016 is next** —
+the input map, `InputCommand` and dual input buffering.
 
-**Nothing moves yet.** The state graph exists and is asserted; no state
-integrates motion. M1's exit is one player walking, blending, jogging,
-sprinting, climbing and vaulting locally, and its gate is *subjective* — see
-ROADMAP §3.1. **If the pawn does not feel good at M1, it will not feel good at
-M6.**
+**The pawn integrates motion but nothing drives it.** The six locomotion states
+compute velocity from an `InputCommand`, and 93 unit tests exercise them — but
+no real input reaches them yet, so launching the game still shows a static map.
+US-0016 is what connects a keyboard to the ladder.
+
+M1's gate is *subjective* (ROADMAP §3.1). **If the pawn does not feel good at
+M1, it will not feel good at M6** — and nothing merged so far can tell you
+whether it does. That judgement needs a human at the controls, after US-0016.
 
 **The game runs, with the map:**
 
@@ -235,13 +238,13 @@ The pawn scenes exist but hold no states, so nothing walks. See
 | | |
 |---|---|
 | CI | 7 jobs, green on `main`. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | 58 architecture guards + 87 unit tests, both counted in CI |
-| Tuning | 269 tunables across 14 resource classes; all 20 cross-field invariants assert |
+| Tests | 58 architecture guards + 93 unit tests, both counted in CI |
+| Tuning | 271 tunables across 14 resource classes; all 20 cross-field invariants assert |
 | Autoloads | All eight. `Tuning` precomputes 86 durations to integer server ticks |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |
 | Boot | Branches on `--server`; 7 CLI flags parsed in pure Core; 5 export presets |
 | Map | `MAP-VETRAIO` greybox, 120 × 120 m. Client loads 28 meshes, server loads none |
-| Pawn | 15 states declared, 115 transition edges asserted against the normative diagram. Three states implemented (`KillAnim`, `Stunned`, `Blended`); twelve are US-0015+ |
+| Pawn | 15 states declared, 121 transition edges asserted against the normative diagram. Nine implemented: six locomotion + `KillAnim`, `Stunned`, `Blended`. Six are US-0017+ |
 
 **Four criteria are deliberately unticked** in US-0002/3/4/5, all variants of
 "required check on `main`". They are blocked by the GitHub plan, not by the work

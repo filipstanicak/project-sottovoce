@@ -116,14 +116,21 @@ state machine, locally.
 | Camera rig: spring arm, FOV ladder, occlusion, crowd-scan | |
 | `test_feel_latency.gd` measuring input→animation | |
 
-> **Status 2026-08-05 — 2 of 12.** US-0013 (state machine skeleton) and US-0014
-> (the transition table) are done. The graph is declared and asserted edge-for-edge
-> against the §3 diagram in GDD-02, in both directions.
+> **Status 2026-08-05 — 3 of 12.** US-0013, US-0014 and US-0015 are done. Fifteen
+> states declared, 121 edges asserted against the §3 diagram in both directions,
+> and the six locomotion states integrate motion from an `InputCommand`.
 >
-> **Nothing moves.** Three of fifteen states are implemented — `KillAnim`,
-> `Stunned` and `Blended`, because US-0014's acceptance criteria named their
-> interrupt behaviour specifically. The six locomotion states and the speed ladder
-> are US-0015, and no state integrates motion yet.
+> **Nothing drives them yet.** No real input reaches the ladder, so the game still
+> launches to a static map. US-0016 connects a keyboard to it.
+>
+> **The feel gate below is untested and untestable so far.** It is subjective and
+> needs a human at the controls; the mechanical half — slowing reaches BlendWalk
+> in one tick from all six states at all six speeds, velocity falling on that same
+> tick — is asserted, and that is all that is asserted.
+>
+> [ADR-0012](../00_meta/adr/ADR-0012-slow-is-always-available.md) amended the §3
+> diagram during US-0015: `Any → Blend-walk` and `Any → Idle` were declared in §2.2
+> but never drawn, because Mermaid cannot express a wildcard edge.
 
 ### 3.1 The M1 feel gate
 
