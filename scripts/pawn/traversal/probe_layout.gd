@@ -23,6 +23,16 @@ enum Probe { CHEST, WAIST, FOOT }
 ## nothing in the map sits near this boundary for it to arbitrate.
 const _CLIMBABLE_MAX_UP_DOT: float = 0.5
 
+## How far past the hit face to look for an obstacle's top, as fractions of
+## `TUN-TRAVERSE-GAP-PROBE-STEP`.
+##
+## **SEVERAL, BECAUSE OBSTACLES ARE NOT ALL THICKER THAN ONE STEP.** A single
+## cast a full step past the face lands *beyond* anything thinner than that —
+## a fence, a railing, a stall edge — and measures the floor behind it. The
+## metrics bible constrains vaultable geometry's HEIGHT and says nothing about
+## its thickness, so thin obstacles are normal and must resolve.
+const TOP_SAMPLE_FRACTIONS: Array[float] = [0.25, 0.5, 1.0]
+
 
 ## Unit vector the pawn is facing, on the ground plane. Yaw 0 faces +Z, matching
 ## `LocomotionState._is_backpedalling` and `InputCommand.move`.
@@ -53,15 +63,18 @@ static func target(feet: Vector3, yaw: float, probe: Probe) -> Vector3:
 	return origin(feet, probe) + forward(yaw) * Tuning.movement.probe_length
 
 
-## The down-cast that looks for the top of an obstacle the waist probe hit.
+## The down-casts that look for the top of an obstacle the waist probe hit.
 ##
-## Starts at `TUN-TRAVERSE-MANTLE-MAX-HEIGHT` — the tallest thing that can still
-## be an obstacle top rather than a climb — and one step *beyond* the hit, so it
-## lands on the obstacle's upper surface rather than on its near face.
-static func obstacle_top_origin(feet: Vector3, yaw: float, hit_distance: float) -> Vector3:
-	var ahead := hit_distance + Tuning.movement.gap_probe_step
+## Each starts at `TUN-TRAVERSE-MANTLE-MAX-HEIGHT` — the tallest thing that can
+## still be an obstacle top rather than a climb — and past the hit, so it lands
+## on the obstacle's upper surface rather than on its near face.
+static func obstacle_top_origins(feet: Vector3, yaw: float, hit_distance: float) -> Array:
+	var out: Array = []
 	var top := Tuning.movement.traverse_mantle_max_height
-	return feet + forward(yaw) * ahead + Vector3.UP * top
+	for fraction: float in TOP_SAMPLE_FRACTIONS:
+		var ahead := hit_distance + Tuning.movement.gap_probe_step * fraction
+		out.append(feet + forward(yaw) * ahead + Vector3.UP * top)
+	return out
 
 
 ## The down-cast that measures how tall a climbable façade is.

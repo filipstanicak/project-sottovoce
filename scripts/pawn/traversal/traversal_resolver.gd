@@ -109,7 +109,63 @@ static func _is_climb(probe: ProbeResult) -> bool:
 static func resolve(ctx: PawnContext) -> StringName:
 	if not PawnInputBuffer.consume_traverse(ctx):
 		return PawnState.STAY
-	return state_for(classify(ctx))
+	var case := classify(ctx)
+	plan(ctx, case)
+	return state_for(case)
+
+
+## Commit the manoeuvre's geometry to `ctx`, once, at the instant of the press.
+##
+## **PLANNED ONCE AND NEVER RE-READ.** The probes refresh every physics frame, so
+## a state that recomputed its target mid-manoeuvre would chase the wall it is
+## currently crossing — and would chase it differently on the server than on the
+## client's replay, because the two are a frame apart. Committing here is what
+## makes the displacement identical on every peer, which is the whole premise of
+## ANIMATION_SPEC §4's root-motion allowance.
+static func plan(ctx: PawnContext, case: Case) -> void:
+	ctx.traverse_case = case
+	ctx.traverse_start = ctx.position
+	ctx.traverse_target = ctx.position
+	ctx.traverse_peak_y = ctx.position.y
+	var probe := ctx.probe_result
+	var forward := ProbeLayout.forward(ctx.yaw)
+	match case:
+		Case.VAULT:
+			# OVER it and down the far side, to the landing the probes measured.
+			# Not a guess at how thick the obstacle was: nothing measures that.
+			ctx.traverse_target = (
+				ctx.position + forward * probe.beyond_distance + Vector3.DOWN * probe.beyond_drop
+			)
+			# Clear the top by the foot probe's height, so the pawn goes over the
+			# wall rather than through it.
+			ctx.traverse_peak_y = (
+				ctx.position.y + probe.obstacle_top + Tuning.movement.probe_height_foot
+			)
+		Case.MANTLE:
+			# ONTO it. The obstacle-top cast already stands one step past the
+			# face, which is where a mantle puts your feet. No arc: the target IS
+			# the top, so a straight rise lands on it.
+			var ahead := probe.distance + Tuning.movement.gap_probe_step
+			ctx.traverse_target = ctx.position + forward * ahead + Vector3.UP * probe.obstacle_top
+			ctx.traverse_peak_y = ctx.traverse_target.y
+		_:
+			pass
+
+
+## How long the committed manoeuvre lasts, in `step()` ticks.
+##
+## **ZERO FOR ANYTHING THAT IS NOT A VAULT OR A MANTLE.** Returning the vault
+## duration for, say, `Case.NONE` would be a lie with a plausible value, and
+## `VaultState` would hold a pawn motionless for half a second on a plan that
+## does not exist. Zero makes it leave on the first tick instead.
+static func duration_ticks(case: int) -> int:
+	match case:
+		Case.VAULT:
+			return Tuning.step_ticks(&"TUN-TRAVERSE-VAULT-DURATION")
+		Case.MANTLE:
+			return Tuning.step_ticks(&"TUN-TRAVERSE-MANTLE-DURATION")
+		_:
+			return 0
 
 
 static func state_for(case: Case) -> StringName:

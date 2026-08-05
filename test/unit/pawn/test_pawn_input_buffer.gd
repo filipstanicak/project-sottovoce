@@ -119,11 +119,47 @@ func test_the_machine_ticks_the_buffer_inside_step() -> void:
 	# THE POINT OF THE WHOLE FILE. A client-only buffer would predict a vault the
 	# server never performed, and the correction would snap the pawn back through
 	# the wall it just climbed. `step()` is the shared code path; nothing else is.
+	#
+	# Asserted through the press being SPENT rather than through it being armed:
+	# since US-0019 the locomotion states resolve a traverse on the same tick the
+	# buffer arms it, which is the forgiveness working, not the buffer failing.
 	var machine := PawnStateMachine.new()
 	machine.register(IdleState.new())
 	var ctx := PawnContext.new()
 	ctx.state_id = PawnStateId.IDLE
 
 	machine.step(ctx, _press_traverse(), DT)
-	assert_true(PawnInputBuffer.has_traverse(ctx), "step() did not tick the action buffer")
+	assert_false(
+		PawnInputBuffer.has_traverse(ctx),
+		"step() never reached the buffer — the press is neither armed nor spent"
+	)
 	machine.free()
+
+
+func test_a_press_that_resolves_to_nothing_is_still_spent() -> void:
+	# GDD-02 §7.2 case 7. A failed traverse consumes the input and plays nothing,
+	# because a press left armed would fire at the next wall the player walked
+	# past — a manoeuvre they asked for somewhere else, seconds ago.
+	var machine := PawnStateMachine.new()
+	machine.register(IdleState.new())
+	var ctx := PawnContext.new()
+	ctx.state_id = PawnStateId.IDLE
+	ctx.probe_result.valid = true
+	ctx.probe_result.ground_ahead = true
+
+	assert_eq(machine.step(ctx, _press_traverse(), DT), PawnStateId.IDLE, "an empty street vaulted")
+	assert_false(PawnInputBuffer.has_traverse(ctx), "a failed traverse stayed armed")
+	machine.free()
+
+
+func test_the_buffer_still_decays_when_nothing_consumes_it() -> void:
+	# The decay path, which the states no longer exercise now that they consume.
+	# It is what forgives a press made before the obstacle is in probe range.
+	var ctx := PawnContext.new()
+	PawnInputBuffer.tick(ctx, _press_traverse())
+	PawnInputBuffer.tick(ctx, InputCommand.empty(1))
+	assert_eq(
+		ctx.traverse_buffer_ticks,
+		Tuning.step_ticks(&"TUN-TRAVERSE-INPUT-BUFFER") - 1,
+		"the buffer did not decay by exactly one tick"
+	)

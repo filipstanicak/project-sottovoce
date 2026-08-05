@@ -178,9 +178,26 @@ player is visually committed but mechanically free — which reads as the game b
 | Category | Root motion | Reason |
 |---|---|---|
 | Locomotion (walk, stroll, jog, run, sprint) | **❌ Never** | Speed comes from `MovementTuning`, and prediction replays that integration. Root motion would make the *animation* authoritative over position, which would diverge between server and client |
-| Traversal (vault, mantle, climb mount/top, ledge grab) | **✅ Yes** | These are fixed-displacement manoeuvres against static geometry. Root motion gives exact foot and hand placement, and the displacement is identical on every peer because the geometry is |
+| Traversal (vault, mantle, climb mount/top, ledge grab) | **✅ Yes, for placement** | These are fixed-displacement manoeuvres against static geometry. Root motion gives exact foot and hand placement *within* a displacement the simulation decides — see §4.2 |
 | Combat (kill, stun, abilities) | **❌ Never** | The killer must remain exactly where the server says. A kill animation that moved the killer would need lag-compensated reconciliation of the animation itself |
 | Death | ❌ | Corpse position is server-authoritative |
+
+### 4.0 Which layer owns position — clarified in US-0019
+
+"The displacement is identical on every peer because the geometry is" is true of the geometry
+and not automatically of the *clip*. An animation advanced by frame time, on a client that is
+interpolating, is not the same source of truth as one advanced by tick count on a headless
+server — and pawn position is replayed during reconciliation, where anything frame-driven
+diverges (TDD-03 §3.1).
+
+**So the simulation owns position and the animation is matched to it.**
+`TraversalResolver.plan()` commits a start, a target and an arc peak once, at the instant of the
+press, from that tick's probe reading; the traversal state interpolates them by tick. Root
+motion aligns hands and feet *within* that displacement rather than deciding it.
+
+This does not relax §4's table. Root motion still appears on traversal clips and nowhere else,
+for exactly the reason given: those manoeuvres are fixed displacements against static geometry.
+It says which layer is authoritative when the two disagree, which the table did not.
 
 ### 4.1 The kill animation's contact frame
 

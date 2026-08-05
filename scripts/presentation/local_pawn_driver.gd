@@ -85,6 +85,15 @@ func _physics_process(delta: float) -> void:
 func _apply_motion(command: InputCommand) -> void:
 	ctx.yaw = command.look_yaw
 	_body.rotation.y = ctx.yaw
+	if _machine.drives_position(ctx):
+		# A traversal owns its own position: it is a fixed displacement against
+		# static geometry, planned once and interpolated. Running move_and_slide()
+		# here with the velocity frozen would leave the body where it stood and
+		# then overwrite the plan with it — a vault that computes a perfect arc
+		# and never moves the pawn.
+		_body.global_position = ctx.position
+		_body.velocity = Vector3.ZERO
+		return
 	_body.velocity = ctx.velocity
 	if not ctx.grounded or not _body.is_on_floor():
 		_body.velocity.y -= _gravity() * (1.0 / Tuning.net.client_input_rate)

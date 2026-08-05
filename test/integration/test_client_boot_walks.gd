@@ -156,6 +156,55 @@ func test_the_probes_refresh_before_the_state_machine_steps() -> void:
 	assert_lt(refresh, step, "the probes refresh AFTER step() — the states read last frame")
 
 
+func test_pressing_traverse_at_a_real_wall_puts_the_pawn_over_it() -> void:
+	# **THE WHOLE POINT OF US-0019**, through the real driver, the real machine and
+	# the real binding. A vault that works in a unit test and not here is a vault
+	# nobody can perform.
+	# Let the pawn settle onto the map floor FIRST. Built against the spawn
+	# position instead, the wall sits 0.1 m low — and a 0.9 m wall whose waist
+	# probe sits at 0.85 has only 5 cm of margin, so it reads as no wall at all.
+	await _run(6)
+	var start := _driver.ctx.position
+	_wall_in_front(0.9)
+	await _run(2)
+
+	Input.action_press(&"input_traverse")
+	await _run(2)
+	Input.action_release(&"input_traverse")
+	assert_eq(_driver.ctx.state_id, PawnStateId.VAULT, "a traverse at a 0.9 m wall did not vault")
+
+	await _run(Tuning.step_ticks(&"TUN-TRAVERSE-VAULT-DURATION") + 8)
+	assert_eq(_driver.ctx.state_id, PawnStateId.IDLE, "the pawn never came out of the vault")
+	assert_gt(
+		_driver.ctx.position.z - start.z, 0.9, "the pawn is still on the near side of the wall"
+	)
+
+
+func test_a_traverse_in_an_empty_street_does_nothing_at_all() -> void:
+	# Case 7's silence, in the place a player will meet it most often.
+	var before := _driver.ctx.position
+	Input.action_press(&"input_traverse")
+	await _run(6)
+	Input.action_release(&"input_traverse")
+	assert_eq(_driver.ctx.state_id, PawnStateId.IDLE, "an empty street produced a manoeuvre")
+	assert_almost_eq(_driver.ctx.position.distance_to(before), 0.0, 0.2, "the pawn moved anyway")
+
+
+## A `height`-tall wall 0.7 m in front of the pawn, standing on the ground the
+## pawn is standing on — so call this only once the pawn has settled.
+func _wall_in_front(height: float) -> void:
+	var body := StaticBody3D.new()
+	body.collision_layer = CollisionLayers.WORLD
+	body.collision_mask = 0
+	var shape := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = Vector3(6.0, height, 0.4)
+	shape.shape = box
+	body.add_child(shape)
+	_root.get_node("World").add_child(body)
+	body.global_position = _driver.ctx.position + Vector3(0.0, height * 0.5, 0.7)
+
+
 func test_the_reconciliation_buffer_fills_as_the_pawn_is_driven() -> void:
 	# The client-only half of the dual buffer. It is filled now, before US-0033
 	# replays from it, because a buffer whose first use is also its first test is

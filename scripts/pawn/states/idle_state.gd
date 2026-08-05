@@ -25,6 +25,9 @@ func camera_fov(_ctx: PawnContext) -> float:
 
 func step(ctx: PawnContext, input: InputCommand, delta: float) -> StringName:
 	_integrate(ctx, input, delta)
+	var traversed := _traverse(ctx)
+	if traversed != STAY:
+		return traversed
 	if not input.wants_movement():
 		return STAY
 	# Default movement is STROLL, not blend-walk. Blend-walk is a deliberate act.

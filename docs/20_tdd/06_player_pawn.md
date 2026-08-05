@@ -155,6 +155,10 @@ const TRANSITIONS: Dictionary = {
 
 ## step() REQUESTS a transition; the machine VALIDATES it.
 ## An illegal request asserts in debug and push_errors + is ignored in release.
+##
+## A state's OWN exit is not an interruption and is not gated on
+## is_interruptible() — US-0019: gating it made every uninterruptible state
+## permanent, and both Vault and KillAnim are uninterruptible by design.
 func _request(ctx: PawnContext, to: StringName, priority: int) -> bool:
     if to.is_empty():
         return false
@@ -483,7 +487,7 @@ func PawnContext.apply_authoritative(state: PredictedState) -> void
 | `scripts/pawn/pawn_state_machine.gd` | Machine + `TRANSITIONS` |
 | `scripts/pawn/pawn_state.gd` | Base class |
 | `scripts/pawn/pawn_context.gd` | `PawnContext` |
-| `scripts/pawn/states/state_*.gd` | **14 files** — one per state |
+| `scripts/pawn/states/*_state.gd` | **15 files** — one per state; `vault_state.gd` covers vault and mantle both |
 | `scripts/pawn/traversal/traversal_probes.gd` | Probe casting |
 | `scripts/pawn/traversal/traversal_resolver.gd` | §4.2 resolution, the magnet window and auto-align |
 | `scripts/pawn/probe_result.gd` | `ProbeResult` |
@@ -516,6 +520,8 @@ func PawnContext.apply_authoritative(state: PredictedState) -> void
 | `test_blended_yields.gd` | A blended pawn can be killed and stunned normally |
 | `test_traversal_resolution.gd` | All seven §4.2 cases in priority order, **including case 7's silence** |
 | `test_traversal_forgiveness.gd` | A traverse 0.20 s early or 0.25 s late still resolves |
+| `test_vault_state.gd` | Durations, costs, interrupt rules, and a trajectory that goes OVER the wall |
+| `test_state_may_end_itself.gd` | An uninterruptible state can still complete — Vault and KillAnim both |
 | `test_traversal_case_states.gd` | Every case names a state the graph can enter from locomotion |
 | `test_traversal_resolution_geometry.gd` | The seven cases resolve from **real** geometry, not a hand-filled struct |
 | `test_traversal_assists_geometry.gd` | The gap fan and the ledge probes fire against real bodies |
