@@ -21,6 +21,21 @@ func target_speed() -> float:
 	return 0.0
 
 
+## What a traverse press resolves to, or `STAY`.
+##
+## **THE PRESS FINALLY DOES SOMETHING.** Checked before the speed ladder, because
+## a player who asked to cross a wall has made a more specific request than
+## "keep walking" — and because `TraversalResolver.resolve()` consumes the
+## buffered input whether or not it finds anything, which must happen exactly
+## once per press.
+##
+## Called from every locomotion state: GDD-02 §3's diagram draws `Loco --> Vault`
+## against the group, not against any one rung, and a vault from a sprint is the
+## same manoeuvre as a vault from a stroll.
+func _traverse(ctx: PawnContext) -> StringName:
+	return TraversalResolver.resolve(ctx)
+
+
 ## Where `INPUT-SLOW` and a released stick lead. ADR-0012: from EVERY locomotion
 ## state, in ONE tick, never gated, never delayed, never refused.
 func _slow_or_stop(input: InputCommand) -> StringName:

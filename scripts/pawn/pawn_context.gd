@@ -41,6 +41,23 @@ var traverse_buffer_ticks: int = 0
 var ability_buffer_ticks: int = 0
 var ledge_magnet_ticks: int = 0
 
+## THE MANOEUVRE IN PROGRESS, committed at the instant of the press.
+##
+## A `TraversalResolver.Case`, with the world positions it decided on. Planned
+## ONCE and never re-read: the probes are refreshed every frame, and a pawn that
+## re-targeted itself halfway through a vault would chase the wall it is
+## currently crossing. `PawnStateId.VAULT` covers both a vault and a mantle, and
+## this is what tells them apart — the duration and the suspicion cost differ.
+var traverse_case: int = 0
+var traverse_start: Vector3 = Vector3.ZERO
+var traverse_target: Vector3 = Vector3.ZERO
+
+## World height the manoeuvre arcs over. A vault that lerped straight from start
+## to target would pass THROUGH the wall it is crossing — visibly wrong before
+## any animation exists, and wrong in the simulation, which is what decides
+## whether the pawn ends up on the far side.
+var traverse_peak_y: float = 0.0
+
 # --- Gameplay (SERVER-AUTHORITATIVE — mirrored, NEVER predicted) ---
 var suspicion: float = 0.0
 var tier: int = 0
@@ -72,4 +89,8 @@ func reset_for_spawn(at: Vector3, facing: float) -> void:
 	traverse_buffer_ticks = 0
 	ability_buffer_ticks = 0
 	ledge_magnet_ticks = 0
+	traverse_case = 0
+	traverse_start = Vector3.ZERO
+	traverse_target = Vector3.ZERO
+	traverse_peak_y = 0.0
 	probe_result.clear()

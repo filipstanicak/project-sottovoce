@@ -116,7 +116,7 @@ state machine, locally.
 | Camera rig: spring arm, FOV ladder, occlusion, crowd-scan | |
 | `test_feel_latency.gd` measuring input→animation | |
 
-> **Status 2026-08-05 — 6 of 12.** US-0013 to US-0018 are done. Fifteen states
+> **Status 2026-08-05 — 7 of 12.** US-0013 to US-0019 are done. Fifteen states
 > declared, 121 edges asserted against the §3 diagram in both directions, and
 > **the pawn walks on the ground**: a key press reaches the speed ladder through
 > the real input map, and the traversal probes see the district around it.
@@ -131,10 +131,10 @@ state machine, locally.
 > **The feel gate below is now judgeable for the first time, and has not been
 > judged.** It is subjective and needs a human at the controls. The mechanical
 > halves — slowing reaches BlendWalk in one tick from all six states at all six
-> speeds, input→pawn is one physics frame, and every traversal case resolves from
-> real geometry — are asserted. **Nothing performs a traversal yet**: the resolver
-> names a state and `Vault`, `Climb` and `Drop` are US-0019 and US-0020. The FOV
-> ladder is US-0022.
+> speeds, input→pawn is one physics frame, every traversal case resolves from
+> real geometry, and **the pawn vaults** — pressing traverse at a wall puts it on
+> the far side, asserted end to end through the real driver. `Climb` and `Drop`
+> are US-0020; the FOV ladder is US-0022.
 >
 > [ADR-0012](../00_meta/adr/ADR-0012-slow-is-always-available.md) amended the §3
 > diagram during US-0015: `Any → Blend-walk` and `Any → Idle` were declared in §2.2

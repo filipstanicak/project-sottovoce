@@ -65,6 +65,14 @@ var obstacle_top: float = INF
 ## nothing beyond it is a vault into a wall.
 var clear_beyond: bool = false
 
+## Horizontal distance from the pawn to that landing, or `INF`. **THIS IS WHERE
+## A VAULT PUTS YOU**, so it comes from the geometry rather than from a guess at
+## how thick the obstacle was.
+var beyond_distance: float = INF
+
+## How far below the pawn's feet that landing sits.
+var beyond_drop: float = INF
+
 ## Retained from the pre-US-0017 shape. The height of the nearest forward hit,
 ## which is `obstacle_top` when there is one and the raw hit height otherwise.
 var height: float = 0.0
@@ -146,6 +154,8 @@ func clear() -> void:
 	surface_height = INF
 	obstacle_top = INF
 	clear_beyond = false
+	beyond_distance = INF
+	beyond_drop = INF
 	height = 0.0
 	ground_ahead = false
 	gap_distance = INF

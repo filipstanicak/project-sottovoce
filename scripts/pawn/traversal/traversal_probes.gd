@@ -89,15 +89,22 @@ func _cast_obstacle_top(
 ) -> void:
 	if not probe.waist_hit:
 		return
-	var from := ProbeLayout.obstacle_top_origin(feet, yaw, probe.distance)
-	var hit := _ray(space, from, from + Vector3.DOWN * ProbeLayout.gap_depth())
-	if not hit.is_empty():
+	# The HIGHEST surface found, not the first. Samples that overshoot a thin
+	# obstacle land on the floor behind it, and the floor is always lower.
+	var best := INF
+	for from: Vector3 in ProbeLayout.obstacle_top_origins(feet, yaw, probe.distance):
+		var hit := _ray(space, from, from + Vector3.DOWN * ProbeLayout.gap_depth())
+		if hit.is_empty():
+			continue
 		var top := (hit["position"] as Vector3).y - feet.y
-		# A "top" at the pawn's own feet is the FLOOR, seen through a wall the
-		# cast started inside. There is no obstacle top here to speak of.
-		if top > Tuning.movement.probe_height_foot:
-			probe.obstacle_top = top
-			probe.height = top
+		# A "top" at the pawn's own feet is the FLOOR — either behind a thin
+		# obstacle, or seen through a wall the cast started inside.
+		if top <= Tuning.movement.probe_height_foot:
+			continue
+		best = top if best == INF else maxf(best, top)
+	if best != INF:
+		probe.obstacle_top = best
+		probe.height = best
 	if probe.obstacle_top == INF:
 		return
 	_cast_clear_beyond(space, probe, feet, yaw)
@@ -115,8 +122,13 @@ func _cast_clear_beyond(
 	var landing := _ray(space, beyond, beyond + Vector3.DOWN * ProbeLayout.gap_depth())
 	if landing.is_empty():
 		return
-	var drop := feet.y - (landing["position"] as Vector3).y
+	var point: Vector3 = landing["position"]
+	var drop := feet.y - point.y
 	probe.clear_beyond = drop <= Tuning.movement.traverse_drop_safe_height
+	if not probe.clear_beyond:
+		return
+	probe.beyond_distance = Vector2(point.x - feet.x, point.z - feet.z).length()
+	probe.beyond_drop = drop
 
 
 ## How tall the climbable façade is, for §7.2 case 6's `<= TUN-TRAVERSE-CLIMB-

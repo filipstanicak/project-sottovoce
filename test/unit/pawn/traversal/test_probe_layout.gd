@@ -124,19 +124,37 @@ func test_the_down_probe_reaches_past_a_safe_drop() -> void:
 	assert_gt(Tuning.movement.gap_probe_depth, Tuning.movement.traverse_drop_safe_height)
 
 
-func test_the_obstacle_top_cast_starts_beyond_the_hit_and_above_a_mantle() -> void:
-	# It must land on the obstacle's UPPER SURFACE, not on its near face — the
-	# height it returns is the vault/mantle decision.
-	var origin := ProbeLayout.obstacle_top_origin(Vector3.ZERO, 0.0, 0.5)
-	assert_gt(origin.z, 0.5, "the top cast is not past the hit")
-	assert_almost_eq(origin.y, Tuning.movement.traverse_mantle_max_height, 0.001)
+func test_the_obstacle_top_casts_start_beyond_the_hit_and_above_a_mantle() -> void:
+	# They must land on the obstacle's UPPER SURFACE, not on its near face — the
+	# height they return is the vault/mantle decision.
+	var origins := ProbeLayout.obstacle_top_origins(Vector3.ZERO, 0.0, 0.5)
+	assert_gt(origins.size(), 1, "a single sample cannot measure a thin obstacle")
+	for origin: Vector3 in origins:
+		assert_gt(origin.z, 0.5, "a top cast is not past the hit")
+		assert_almost_eq(origin.y, Tuning.movement.traverse_mantle_max_height, 0.001)
+
+
+func test_the_nearest_top_sample_lands_inside_a_thin_obstacle() -> void:
+	# **THE BUG THIS EXISTS FOR.** A single cast a full step past the face lands
+	# BEYOND anything thinner than that — a fence, a railing, a stall edge — and
+	# measures the floor behind it. The metrics bible constrains vaultable
+	# geometry's height and says nothing about its thickness.
+	var origins := ProbeLayout.obstacle_top_origins(Vector3.ZERO, 0.0, 0.5)
+	var nearest: Vector3 = origins[0]
+	assert_lt(
+		nearest.z - 0.5,
+		Tuning.movement.gap_probe_step,
+		"the closest top sample is a full step out, so a thin obstacle is missed"
+	)
 
 
 func test_the_clear_beyond_cast_is_further_out_than_the_top_cast() -> void:
-	# Landing ON the obstacle is a mantle. "Clear beyond" has to look past it.
-	var top := ProbeLayout.obstacle_top_origin(Vector3.ZERO, 0.0, 0.5)
+	# Landing ON the obstacle is a mantle. "Clear beyond" has to look past every
+	# sample that could have measured its top.
+	var origins := ProbeLayout.obstacle_top_origins(Vector3.ZERO, 0.0, 0.5)
+	var furthest: Vector3 = origins[origins.size() - 1]
 	var beyond := ProbeLayout.clear_beyond_origin(Vector3.ZERO, 0.0, 0.5)
-	assert_gt(beyond.z, top.z, "the clear-beyond cast does not look past the obstacle")
+	assert_gt(beyond.z, furthest.z, "the clear-beyond cast does not look past the obstacle")
 
 
 func test_a_wall_is_climbable_and_a_floor_is_not() -> void:

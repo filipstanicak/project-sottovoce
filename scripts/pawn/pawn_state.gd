@@ -38,6 +38,19 @@ func exit(_ctx: PawnContext) -> void:
 	pass
 
 
+## Whether this state writes `ctx.position` itself rather than integrating a
+## velocity. False for everything except traversal.
+##
+## **A TRAVERSAL IS A FIXED DISPLACEMENT AGAINST STATIC GEOMETRY**, planned once
+## and interpolated (ANIMATION_SPEC §4). The driver must move the body TO that
+## position rather than running `move_and_slide()` and reading back where the
+## physics engine put it — which, with the velocity frozen, is nowhere. A vault
+## that computed a perfect arc and never moved the pawn is exactly what that
+## looks like, and no unit test can see it.
+func drives_position() -> bool:
+	return false
+
+
 ## The deterministic step. Returns the id of the requested next state, or STAY.
 ##
 ## It REQUESTS; the machine VALIDATES. A state does not know the transition

@@ -18,9 +18,13 @@ extends Node
 ## `scripts/pawn/` does.
 signal state_changed(from: StringName, to: StringName)
 
-## The states that exist today. US-0016 onward fill in the rest; a pawn entering
+## The states that exist today. US-0020 onward fill in the rest; a pawn entering
 ## an unregistered state is caught by `step()` rather than crashing, because a
 ## half-registered machine during M1 is a normal intermediate condition.
+##
+## `Climb` and `Drop` are still missing, so a traverse pressed at a façade or an
+## edge push_errors instead of moving. That noise is deliberate: the alternative
+## is silence, and silence is indistinguishable from the resolver being wrong.
 const REGISTERED: Array[GDScript] = [
 	preload("res://scripts/pawn/states/idle_state.gd"),
 	preload("res://scripts/pawn/states/blend_walk_state.gd"),
@@ -28,6 +32,7 @@ const REGISTERED: Array[GDScript] = [
 	preload("res://scripts/pawn/states/jog_state.gd"),
 	preload("res://scripts/pawn/states/run_state.gd"),
 	preload("res://scripts/pawn/states/sprint_state.gd"),
+	preload("res://scripts/pawn/states/vault_state.gd"),
 	preload("res://scripts/pawn/states/blended_state.gd"),
 	preload("res://scripts/pawn/states/kill_anim_state.gd"),
 	preload("res://scripts/pawn/states/stunned_state.gd"),
@@ -65,6 +70,13 @@ func state_for(id: StringName) -> PawnState:
 	return _states.get(id)
 
 
+## Whether the pawn's current state writes its own position. The driver asks
+## before integrating; see `PawnState.drives_position`.
+func drives_position(ctx: PawnContext) -> bool:
+	var current: PawnState = _states.get(ctx.state_id)
+	return current != null and current.drives_position()
+
+
 ## Advance one tick. Returns the id the pawn is in afterwards.
 func step(ctx: PawnContext, input: InputCommand, delta: float) -> StringName:
 	var current: PawnState = _states.get(ctx.state_id)
@@ -83,7 +95,11 @@ func step(ctx: PawnContext, input: InputCommand, delta: float) -> StringName:
 	TraversalResolver.tick_magnet(ctx)
 	var requested := current.step(ctx, input, delta)
 	if requested != PawnState.STAY:
-		transition(ctx, requested, current.interrupt_priority())
+		# NOT an interruption. A state asking to leave is COMPLETION, and gating it
+		# on `is_interruptible()` deadlocks every state that declines to be
+		# interrupted: it refuses its own exit and holds the pawn forever.
+		# `Vault` and `KillAnim` were both built that way and neither could end.
+		transition(ctx, requested, current.interrupt_priority(), false)
 	return ctx.state_id
 
 
@@ -115,7 +131,12 @@ func spawn_into(ctx: PawnContext, id: StringName) -> bool:
 ## programming error, not a runtime condition: `step()` asked for somewhere the
 ## graph does not go, and silently clamping that to "stay put" would hide the
 ## bug behind a pawn that occasionally ignores input.
-func transition(ctx: PawnContext, to: StringName, priority: int) -> bool:
+##
+## `interrupting` is false when the CURRENT state asked to leave. Interruption is
+## something done TO a state by something else; a state ending is not that, and
+## checking `is_interruptible()` on a state's own exit makes every
+## uninterruptible state permanent.
+func transition(ctx: PawnContext, to: StringName, priority: int, interrupting: bool = true) -> bool:
 	if to == PawnState.STAY:
 		return false
 	if not _states.has(to):
@@ -133,8 +154,9 @@ func transition(ctx: PawnContext, to: StringName, priority: int) -> bool:
 		return false
 
 	var current: PawnState = _states[ctx.state_id]
-	if not current.is_interruptible(ctx) and priority <= current.interrupt_priority():
-		return false
+	if interrupting and not current.is_interruptible(ctx):
+		if priority <= current.interrupt_priority():
+			return false
 
 	var from := ctx.state_id
 	current.exit(ctx)
