@@ -1,0 +1,42 @@
+## Stunned. GDD-02 §3.1 and §3.2 rule 2.
+##
+## **NOTHING INTERRUPTS THIS.** Not another stun, not a kill attempt (which
+## simply succeeds), not input. Four seconds of total helplessness is the point
+## of the mechanic, not a side effect of it — design law 5 says the prey must
+## have teeth, and this is the tooth.
+##
+## CLAUDE.md never-do #13: never weaken stun to make hunting feel better. If
+## hunters are frustrated, make the Anonymous approach more reliable instead.
+class_name StunnedState
+extends PawnState
+
+
+func id() -> StringName:
+	return PawnStateId.STUNNED
+
+
+func interrupt_priority() -> int:
+	return PRIORITY_COMBAT
+
+
+## Never, for the full duration. Only a FATAL-priority request — being killed —
+## gets through, and that is not an interruption so much as an ending.
+func is_interruptible(_ctx: PawnContext) -> bool:
+	return false
+
+
+## Forced to maximum. Everyone nearby now knows exactly what you are, which is
+## the other half of the punishment.
+func suspicion_rate(_ctx: PawnContext) -> float:
+	return 0.0
+
+
+func enter(ctx: PawnContext) -> void:
+	super(ctx)
+	ctx.suspicion = Tuning.suspicion.max_value
+
+
+func step(ctx: PawnContext, _input: InputCommand, _delta: float) -> StringName:
+	if ctx.state_timer_ticks >= Tuning.ticks(&"TUN-STUN-FREEZE"):
+		return PawnStateId.IDLE
+	return STAY
