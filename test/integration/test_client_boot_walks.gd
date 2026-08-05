@@ -107,6 +107,55 @@ func test_releasing_movement_returns_to_idle() -> void:
 	assert_eq(_driver.ctx.state_id, PawnStateId.IDLE, "the pawn did not stop")
 
 
+func test_the_pawn_stands_on_the_ground_and_does_not_fall() -> void:
+	# **US-0016 COULD NOT TELL WALKING FROM FALLING.** Its movement test asserted
+	# only that the pawn had travelled more than half a metre, which a pawn
+	# dropping through the world satisfies handsomely.
+	#
+	# It was falling. The capsule was centred on the body origin, so placing the
+	# origin on a spawn point buried the pawn to the waist; `MapData.spawn_points`
+	# and `TUN-TRAVERSE-PROBE-HEIGHT-*` are both measured from the ground, and the
+	# scene disagreed with both. US-0017's probes are what noticed — they reported
+	# no floor under a pawn standing in the middle of the district.
+	var start := _driver.ctx.position.y
+	await _run(FRAMES)
+	assert_almost_eq(_driver.ctx.position.y, start, 0.2, "the pawn is falling through the map")
+	assert_true(_driver.ctx.grounded, "the pawn never found the floor")
+
+
+func test_walking_forward_moves_horizontally_and_not_downward() -> void:
+	# The other half of the same hole. Distance alone cannot distinguish the two.
+	var start := _driver.ctx.position
+	Input.action_press(&"input_move_forward")
+	await _run(FRAMES)
+	var moved := _driver.ctx.position - start
+	assert_gt(Vector2(moved.x, moved.z).length(), 0.5, "the pawn did not travel along the ground")
+	assert_lt(absf(moved.y), 0.5, "the pawn's travel was mostly vertical")
+
+
+func test_the_probes_run_against_the_real_map() -> void:
+	# `test_traversal_probes_geometry.gd` proves the casts work against boxes this
+	# suite built. This proves they are wired into the driver and pointed at
+	# MAP-VETRAIO — the pawn is standing on the district's floor, and the probes
+	# can see it.
+	await _run(2)
+	var probe: ProbeResult = _driver.ctx.probe_result
+	assert_true(probe.valid, "the probes never ran in the real client scene")
+	assert_true(probe.ground_ahead, "the probes cannot see the ground the pawn is standing on")
+	assert_false(probe.at_edge(), "a pawn on a spawn point reads as standing at a cliff")
+
+
+func test_the_probes_refresh_before_the_state_machine_steps() -> void:
+	# TDD-06 §4: raycasts are only valid in the physics step, and a state casting
+	# its own would cast again on every reconciliation replay — the same query
+	# against a world that has since moved on.
+	var source := SourceScanner.read("res://scripts/presentation/local_pawn_driver.gd")
+	var refresh := source.find("_probes.refresh(")
+	var step := source.find("_machine.step(")
+	assert_gt(refresh, -1, "the driver does not refresh the probes")
+	assert_lt(refresh, step, "the probes refresh AFTER step() — the states read last frame")
+
+
 func test_the_reconciliation_buffer_fills_as_the_pawn_is_driven() -> void:
 	# The client-only half of the dual buffer. It is filled now, before US-0033
 	# replays from it, because a buffer whose first use is also its first test is
