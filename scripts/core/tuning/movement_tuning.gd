@@ -163,6 +163,24 @@ extends Resource
 ## TUN-TRAVERSE-INPUT-BUFFER
 @export_range(0.1, 0.3, 0.1) var traverse_input_buffer: float = 0.2
 
+## How far ahead of the pawn the downward gap probe starts. Promoted from prose in
+## ../10_gdd/02_player_controller.md §7.1. Far enough to clear the pawn's own 0.35 m radius,
+## close enough that the edge is detected before the pawn is over it.
+## TUN-TRAVERSE-GAP-PROBE-AHEAD
+@export_range(0.4, 0.9, 0.1) var gap_probe_ahead: float = 0.6
+
+## How deep the downward probes look. Deeper than TUN-TRAVERSE-DROP-SAFE-HEIGHT so a landing that
+## will stagger is still found — resolving to a costly drop is a decision the player gets to
+## make; finding nothing is the game refusing to answer.
+## TUN-TRAVERSE-GAP-PROBE-DEPTH
+@export_range(3.0, 8.0, 0.1) var gap_probe_depth: float = 5.0
+
+## Spacing of the downward probes marching out to TUN-TRAVERSE-GAP-MAX. This is the resolution at
+## which a landing edge is found: coarser and a narrow ledge across a gap is missed, finer and it
+## costs raycasts every frame on every pawn.
+## TUN-TRAVERSE-GAP-PROBE-STEP
+@export_range(0.2, 0.8, 0.1) var gap_probe_step: float = 0.4
+
 ## Hard ceiling on input-to-visible-response, measured locally with prediction. Above ~100 ms
 ## players report the character as "floaty" and stop trusting close-range timing — fatal in a
 ## game decided at 2.5 m.

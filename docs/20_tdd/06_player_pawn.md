@@ -316,6 +316,32 @@ Three forward rays plus one down ray. All mask `WORLD` only (§1.2).
   GAP           ▼ from 0.6 m ahead, down 5.0 m           distinguishes gap from drop
 ```
 
+**Heights are measured from the pawn's FEET**, and the body origin is the feet: both pawn scenes
+raise the capsule by half its height so it sits on the origin rather than straddling it.
+`MapData.spawn_points` is measured the same way. US-0017 found the two disagreeing — the pawn had
+been falling through the map since US-0016, and the probes were the first thing to notice,
+because they reported no floor under a pawn standing in the middle of the district.
+
+Three more down-casts are needed beyond the four drawn, and each answers a question §7.2 asks:
+
+| Cast | From | Answers |
+|---|---|---|
+| Obstacle top | `TUN-TRAVERSE-MANTLE-MAX-HEIGHT` above the feet, one step past the hit | `obstacle_top` — **the vault/mantle decision** |
+| Clear beyond | the same height, two steps past | `clear_beyond` — is there anywhere to land |
+| Climb top | `TUN-TRAVERSE-CLIMB-MAX-HEIGHT` above the feet | `surface_height` — how tall the façade is |
+
+The climb cast starts higher on purpose. A cast that begins *inside* geometry is not reported by
+Godot at all: the ray passes through and hits whatever is beyond. Casting from mantle height at a
+4 m façade therefore measured the floor behind it and returned an obstacle top of **0.0** — which
+satisfies `<= TUN-TRAVERSE-VAULT-MAX-HEIGHT`, and would have made every façade in Vetraio a vault
+into a wall. `TraversalProbes` rejects any "top" at or below foot height for the same reason.
+
+The gap probe **marches**, at `TUN-TRAVERSE-GAP-PROBE-STEP`, from
+`TUN-TRAVERSE-GAP-PROBE-AHEAD` out to `TUN-TRAVERSE-GAP-MAX`. A single cast at 0.6 m can only
+report "no ground right here", which distinguishes nothing: every gap and every drop look
+identical at 0.6 m. Ground found further out than a safe drop below is not a far side either —
+it is what you fall to, not what you jump to.
+
 ### 4.2 Resolution, in pseudocode
 
 Normative. The **first match wins**, and the order is the order in
@@ -370,13 +396,18 @@ static func resolve(ctx: PawnContext) -> StringName:
 
 | Window | Tunable | Ticks | Forgives |
 |---|---|---|---|
-| Early press | `TUN-TRAVERSE-INPUT-BUFFER` 0.20 s | 6 | Pressing before the obstacle is in probe range |
-| Late press | `TUN-TRAVERSE-MAGNET-WINDOW` 0.25 s | 8 | Pressing after you have passed the ledge |
+| Early press | `TUN-TRAVERSE-INPUT-BUFFER` 0.20 s | **12** | Pressing before the obstacle is in probe range |
+| Late press | `TUN-TRAVERSE-MAGNET-WINDOW` 0.25 s | **15** | Pressing after you have passed the ledge |
 | Lateral | `TUN-TRAVERSE-MAGNET-RADIUS` 0.6 m | — | Not being aligned with the ledge |
 | Gap facing | ±20° | — | Not facing exactly across the gap |
 
 **Combined ~0.45 s.** Enormous by action-game standards, and correct: a missed ledge must be a
 *decision* error, never a *timing* error.
+
+> The tick counts are `Tuning.step_ticks()` at 60 Hz, not `Tuning.ticks()` at the 30 Hz net
+> tick — these counters advance once per `step()`. This table said 6 and 8 until US-0017;
+> those were the 30 Hz figures, which is the same mistake §1.1 of
+> [`03_core_loop_and_tick.md`](03_core_loop_and_tick.md) records four merged call sites making.
 
 ### 4.4 The level-design contract
 
@@ -444,7 +475,9 @@ func PawnContext.apply_authoritative(state: PredictedState) -> void
 | `scripts/pawn/states/state_*.gd` | **14 files** — one per state |
 | `scripts/pawn/traversal/traversal_probes.gd` | Probe casting |
 | `scripts/pawn/traversal/traversal_resolver.gd` | §4.2 resolution |
-| `scripts/pawn/traversal/probe_result.gd` | `ProbeResult` |
+| `scripts/pawn/probe_result.gd` | `ProbeResult` |
+| `scripts/pawn/traversal/probe_layout.gd` | Pure probe geometry — where the casts go |
+| `scripts/core/collision_layers.gd` | The four layer masks, mirrored from `[layer_names]` |
 | `scripts/core/math/locomotion.gd` | Shared acceleration |
 | `scripts/pawn/pawn_input_buffer.gd` | The action buffer (§3), inside `step()` |
 | `scripts/net/protocol/input_bits.gd` | Button bitfield constants |
@@ -476,6 +509,9 @@ func PawnContext.apply_authoritative(state: PredictedState) -> void
 | `test_step_counters_use_step_ticks.gd` | Nothing under `scripts/pawn/` compares a 60 Hz counter against the 30 Hz conversion |
 | `test_client_boot_walks.gd` | **A key press moves the pawn**, through the real scene and the real bindings |
 | `test_probes_mask_world_only.gd` | Probe masks exclude `PAWN` and `NPC` layers |
+| `test_probe_layout.gd` | Origins, reach, facing and the gap march are the tunables |
+| `test_probe_result.gd` | A cleared result reads as *unknown*, never as a vaultable kerb |
+| `test_traversal_probes_geometry.gd` | The casts see real bodies at 0.9 m, 1.8 m, 4 m and across a 2 m gap |
 | `test_pawn_context_size.gd` | `PawnContext` has ≤ 25 fields (TDD-01 open question 2) |
 | `test_pawn_no_literals.gd` | No bare numeric literal under `scripts/pawn/` except 0, 1, −1 |
 | `test_pawn_file_lengths.gd` | No file under `scripts/pawn/` exceeds 400 lines; no function exceeds 40 |

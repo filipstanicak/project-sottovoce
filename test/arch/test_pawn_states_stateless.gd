@@ -21,25 +21,65 @@ const PAWN_DIR := "res://scripts/pawn"
 ## Anything else at class scope is not.
 const ALLOWED_PREFIXES: Array[String] = ["const ", "signal ", "enum ", "class_name ", "extends "]
 
-## Files in scripts/pawn/ that are NOT states and may hold data: the context is
-## per-pawn data by definition, and the machine owns the shared registry.
-const NOT_A_STATE: Array[String] = [
-	"pawn_context.gd",
-	"pawn_state_machine.gd",
-	"input_command.gd",
-	"probe_result.gd",
-	"pawn_state_id.gd",
-]
+## The root of the inheritance chain that makes a file a shared state object.
+const STATE_ROOT := "PawnState"
 
 
+## Every file under scripts/pawn/ whose class reaches `PawnState` by `extends`.
+##
+## DERIVED, not listed. This used to be a blacklist of the files that were not
+## states, which meant every new non-state file under scripts/pawn/ —
+## `pawn_input_buffer.gd` in US-0016, `traversal/` in US-0017 — failed the guard
+## until someone added a name to it. A list that has to grow to keep a guard
+## quiet is a list that eventually gets a state added to it by mistake.
+##
+## `TraversalProbes` is the clarifying case: it holds a reused query object and
+## that is correct, because it is a node in the pawn scene and there is one per
+## pawn. The sharing hazard is specific to `PawnState`, whose instances are
+## registered once and used by every pawn on the server.
 func _state_files() -> PackedStringArray:
-	var out: PackedStringArray = []
+	var parents: Dictionary = {}
+	var by_class: Dictionary = {}
 	for path: String in SourceScanner.gd_files(PAWN_DIR):
-		var base := path.get_file()
-		if NOT_A_STATE.has(base):
+		var declared := _declared_class(path)
+		if declared == "":
 			continue
-		out.append(path)
+		by_class[declared] = path
+		parents[declared] = _extends_of(path)
+
+	var out: PackedStringArray = []
+	for declared: String in by_class:
+		if declared != STATE_ROOT and _reaches_state_root(declared, parents):
+			out.append(by_class[declared])
+	out.sort()
 	return out
+
+
+func _reaches_state_root(declared: String, parents: Dictionary) -> bool:
+	var seen: Dictionary = {}
+	var current: String = parents.get(declared, "")
+	while current != "" and not seen.has(current):
+		if current == STATE_ROOT:
+			return true
+		seen[current] = true
+		current = parents.get(current, "")
+	return false
+
+
+func _declared_class(path: String) -> String:
+	return _first_token(path, "class_name ")
+
+
+func _extends_of(path: String) -> String:
+	return _first_token(path, "extends ")
+
+
+func _first_token(path: String, prefix: String) -> String:
+	for pair: Array in SourceScanner.code_lines(path):
+		var line := String(pair[1]).strip_edges()
+		if line.begins_with(prefix):
+			return line.substr(prefix.length()).strip_edges().split(" ")[0]
+	return ""
 
 
 func test_no_state_declares_a_variable() -> void:
@@ -73,8 +113,29 @@ func test_the_base_class_itself_holds_no_data() -> void:
 
 
 func test_the_scan_is_looking_at_real_files() -> void:
-	# Guards the guard: an empty file list makes both checks above vacuous.
+	# Guards the guard: an empty file list makes both checks above vacuous. The
+	# second number is the one that matters now that membership is derived — nine
+	# states are implemented plus `LocomotionState`, and a chain that stopped
+	# resolving would silently scan none of them.
 	assert_gt(SourceScanner.gd_files(PAWN_DIR).size(), 3, "scripts/pawn/ scan found almost nothing")
+	assert_gt(
+		_state_files().size(),
+		8,
+		"the extends chain stopped resolving — no PawnState subclass is being scanned"
+	)
+
+
+func test_the_derivation_excludes_what_is_not_a_state() -> void:
+	# The other direction. A per-pawn node like `TraversalProbes` MAY hold data,
+	# and sweeping it in would push its reused query object into `PawnContext`,
+	# where it does not belong.
+	var scanned: Dictionary = {}
+	for path: String in _state_files():
+		scanned[path.get_file()] = true
+	for base: String in ["pawn_context.gd", "traversal_probes.gd", "probe_result.gd"]:
+		assert_false(scanned.has(base), "%s is not a PawnState and must not be scanned" % base)
+	assert_true(scanned.has("sprint_state.gd"), "a real state fell out of the scan")
+	assert_true(scanned.has("locomotion_state.gd"), "the shared base fell out of the scan")
 
 
 func test_the_context_is_not_a_node() -> void:

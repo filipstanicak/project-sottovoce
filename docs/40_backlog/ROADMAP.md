@@ -116,16 +116,23 @@ state machine, locally.
 | Camera rig: spring arm, FOV ladder, occlusion, crowd-scan | |
 | `test_feel_latency.gd` measuring input→animation | |
 
-> **Status 2026-08-05 — 4 of 12.** US-0013 to US-0016 are done. Fifteen states
+> **Status 2026-08-05 — 5 of 12.** US-0013 to US-0017 are done. Fifteen states
 > declared, 121 edges asserted against the §3 diagram in both directions, and
-> **the pawn walks**: a key press reaches the speed ladder through the real input
-> map, and `test_client_boot_walks.gd` asserts it end to end.
+> **the pawn walks on the ground**: a key press reaches the speed ladder through
+> the real input map, and the traversal probes see the district around it.
+>
+> It was walking through the air until US-0017. The capsule was centred on the
+> body origin while `MapData.spawn_points` and the probe heights were both
+> measured from the ground, so the pawn spawned buried and fell — and US-0016's
+> movement test could not tell falling from walking, because it asserted only
+> that the pawn had *travelled*. The probes noticed: they reported no floor under
+> a pawn standing in the middle of Vetraio.
 >
 > **The feel gate below is now judgeable for the first time, and has not been
 > judged.** It is subjective and needs a human at the controls. The mechanical
 > halves — slowing reaches BlendWalk in one tick from all six states at all six
 > speeds, and input→pawn is one physics frame — are asserted; the FOV ladder and
-> the vaults are US-0017 to US-0022.
+> the vaults are US-0018 to US-0022.
 >
 > [ADR-0012](../00_meta/adr/ADR-0012-slow-is-always-available.md) amended the §3
 > diagram during US-0015: `Any → Blend-walk` and `Any → Idle` were declared in §2.2

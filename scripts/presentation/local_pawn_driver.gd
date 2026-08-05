@@ -33,6 +33,7 @@ var ctx := PawnContext.new()
 
 var _body: CharacterBody3D
 var _machine: PawnStateMachine
+var _probes: TraversalProbes
 var _sampler: InputSampler
 var _history := InputHistory.new()
 
@@ -49,6 +50,11 @@ func _ready() -> void:
 		Log.error("the local pawn has no PawnStateMachine", &"pawn")
 		set_physics_process(false)
 		return
+	_probes = _body.get_node_or_null("TraversalProbes") as TraversalProbes
+	if _probes == null:
+		Log.error("the local pawn has no TraversalProbes", &"pawn")
+		set_physics_process(false)
+		return
 
 	ctx.body = _body
 	ctx.reset_for_spawn(_spawn_position(), 0.0)
@@ -63,6 +69,10 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	var command := _sampler.sample(delta)
 	_history.push(command)
+	# BEFORE step(), once per physics frame. Raycasts are only valid in the
+	# physics step, and a state casting its own would cast again on every
+	# reconciliation replay — the same query against a world that has moved on.
+	_probes.refresh(ctx)
 	_machine.step(ctx, command, delta)
 	_apply_motion(command)
 	pawn_stepped.emit(ctx)
