@@ -49,9 +49,19 @@ that is currently *enforced* as opposed to merely agreed.
 | `lint` | Any `gdlint` violation; any file `gdformat` would change | ~20 s |
 | `ip-guard` | **Any banned term anywhere in the repo** | ~5 s |
 | `asset-inventory` | An asset with no licence row, **or a stale row** | ~5 s |
-| `test` | Any unit or architecture test failure | ~40 s |
+| `test` | Any architecture, unit **or integration** test failure | ~60 s |
 | `integration` | Headless 3-client harness failure | ~180 s |
 | `export` | Export failure, or a preset missing an exclusion | ~120 s |
+
+> **The `integration` row is not built yet.** There are seven jobs on `main` and that is not one
+> of them: the 3-client harness is US-0036, in M2, and it needs the networking that does not
+> exist. What *does* run is `test/integration/` as a third step inside `test`, added in US-0016
+> — scene-booting tests on one peer, no harness. `.ci/run_gut.sh` skips the directory when it is
+> empty, so this cost nothing until there was something to run.
+>
+> It was worth adding early. Unit tests prove `step()` is correct; they cannot prove anything
+> ever *calls* it, and a broken boot path has now survived a fully green suite twice — once with
+> 92 tests passing, once with 222.
 
 ### 1.1 `ip-guard`
 
