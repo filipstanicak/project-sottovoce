@@ -1,4 +1,6 @@
-[gd_scene format=3 uid="uid://bs0ttovclientroot"]
+[gd_scene load_steps=2 format=3 uid="uid://bs0ttovclientroot"]
+
+[ext_resource type="PackedScene" path="res://scenes/map/map_vetraio.tscn" id="1_map"]
 
 ; Client topology: mirrors of replicated state, the local pawn, and the HUD.
 ; Carries no GameSystem — systems exist only server-side (TDD-01 §1.2).
@@ -10,3 +12,5 @@
 [node name="Mirrors" type="Node" parent="."]
 
 [node name="Hud" type="CanvasLayer" parent="."]
+
+[node name="Map" parent="World" instance=ExtResource("1_map")]

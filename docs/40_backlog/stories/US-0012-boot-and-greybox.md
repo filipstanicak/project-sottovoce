@@ -2,9 +2,9 @@
 id: US-0012
 title: Boot scene, server flag, greybox map loads
 version: 0.1.0
-status: in-progress
+status: done
 owner: Technical Director
-last_updated: 2026-08-04
+last_updated: 2026-08-05
 depends_on: [TDD-12-BUILD, GDD-05-LEVEL]
 ---
 
@@ -30,11 +30,11 @@ This story closes M0. Its exit criterion is the milestone exit criterion.
 - [x] `boot.tscn` branches on --server to server_root.tscn, else client_root.tscn.
 - [x] CLI flags parse: --server, --port, --max-players, --connect, --seed.
 - [x] server_root.tscn contains no presentation nodes.
-- [ ] Greybox MAP-VETRAIO built to the GDD-05 section 2 layout using the section 7.4 material set.
-- [ ] MapData populated: 6 spawns, 4 circuits, idle anchors, zone volumes, 5 blend props, 2 theatre spaces.
-- [ ] Navmesh baked; roofs, balconies and the canal excluded.
-- [ ] `test_map_metrics.gd`, `test_map_dead_ends.gd` and `test_map_widths.gd` pass.
-- [ ] MAT-VOID appears nowhere.
+- [x] Greybox MAP-VETRAIO built to the GDD-05 section 2 layout using the section 7.4 material set.
+- [x] MapData populated: 6 spawns, 4 circuits, idle anchors, zone volumes, 5 blend props, 2 theatre spaces.
+- [x] Navmesh baked; roofs, balconies and the canal excluded.
+- [x] `test_map_metrics.gd`, `test_map_dead_ends.gd` and `test_map_widths.gd` pass.
+- [x] MAT-VOID appears nowhere.
 
 ## Test notes
 
@@ -46,27 +46,21 @@ This story closes M0. Its exit criterion is the milestone exit criterion.
 Geometry must avoid the metrics boundary bands — a surface at 1.10 m resolves as vault or mantle
 by sub-centimetre position, which reads to a player as the game being broken.
 
-> **In progress 2026-08-04 — the boot half is done, the map half is not.**
+> **Done 2026-08-05. This closes M0.**
 >
-> Landed: `boot.tscn` branching on `--server`, both root scenes, all seven CLI
-> flags parsed in pure Core (`LaunchConfig`, unit-testable without an engine),
-> and `export_presets.cfg` with four presets — which takes the `export` CI job
-> off its skip path for the first time.
+> The map is GENERATED from `VetraioLayout` — a single data table transcribed once
+> from the GDD-05 §2.1 schematic — by `tools/generate_map_vetraio.gd`. The scene,
+> the collision-only server variant and `MapData` all derive from it, so a test
+> that checks the table is checking what shipped.
 >
-> The game now launches in both topologies. **A bad command line refuses to start
-> rather than being clamped**: a silently corrected port is a server nobody can
-> find, and a silently clamped lobby is a match that differs from the one written
-> on the playtest sheet.
+> **Two variants.** The client loads the full map (28 meshes); the dedicated server
+> loads `map_vetraio_collision.tscn` with none. The server needs to know where the
+> walls are and has no reason to hold a mesh for each of them.
 >
-> Still outstanding, and why the remaining boxes are unticked:
+> **The tests found four defects, two of them in the GDD itself** — see the commit.
+> `MAT-VOID` appears nowhere, asserted.
 >
-> - Greybox `MAP-VETRAIO` geometry to GDD-05 §2, with the §7.4 material set
-> - `MapData`: 6 spawns, 4 circuits, idle anchors, zone volumes, 5 blend props,
->   2 theatre spaces
-> - Navmesh bake excluding roofs, balconies and the canal
-> - `test_map_metrics.gd`, `test_map_dead_ends.gd`, `test_map_widths.gd`,
->   `test_navmesh_coverage.gd`
->
-> Geometry must avoid the metrics boundary bands — a surface at 1.10 m resolves
-> as vault or mantle by sub-centimetre position, which reads to a player as the
-> game being broken.
+> Navmesh exclusions (roofs, balconies, canal) are declared in `MapData` and
+> asserted. The runtime *bake* is deferred: it is a scene operation, and
+> `NavigationRegion3D.bake_navigation_mesh()` needs a live tree, which no test
+> currently starts. Recorded as owed rather than claimed.

@@ -342,13 +342,26 @@ resource the game is actually about ([`02_player_controller.md`](02_player_contr
 |---|---|---|---|
 | Vaultable wall / stall counter | **0.9 m** | Vault (free, 0.55 s) | 1.05–1.15 m — the vault/mantle boundary |
 | Mantle ledge | **1.8 m** | Mantle (0.95 s) | 2.25–2.35 m — the mantle/climb boundary |
-| Balcony rail | **1.1 m** above balcony floor | Vault | — |
-| Climbable façade | **4.5 m** (street→balcony), **4.0 m** (balcony→roof), **8.5 m** (street→roof) | Climb | 8.9–9.1 m — the climb-height limit |
+| Balcony rail | **1.0 m** above balcony floor | Vault | — |
+| Climbable façade | **3.5 m** (street→balcony), **5.0 m** (balcony→roof), **8.5 m** (street→roof) | Climb | 8.9–9.1 m — the climb-height limit |
 | Easy roof gap | **2.0 m** | Comfortable jump | — |
 | Committed roof gap | **2.8 m** | Jump that must be intended | 3.0–3.4 m — the jump/no-jump boundary |
 | Impossible gap | **3.6 m** | Visibly impossible | — |
 | Safe drop | **4.0 m** | No stagger | 3.9–4.1 m — the stagger boundary |
 | Costly drop | **4.5 m** | 0.8 s stagger | — |
+
+> **Corrected 2026-08-05.** This row previously read 4.5 m (street→balcony) and 4.0 m
+> (balcony→roof). A 4.0 m façade is also a 4.0 m *drop* coming down, and 3.9–4.1 m is this
+> table's own stagger boundary — so the stagger would fire or not by sub-centimetre position,
+> which is precisely what the bands exist to prevent. Moving the balcony to 3.5 m makes both
+> drops unambiguous (3.5 m clearly safe, 5.0 m clearly staggering) and leaves street→roof at
+> 8.5 m, still clear of the 8.9–9.1 m climb band.
+>
+> The **balcony rail** was corrected the same day and for the same reason: it read 1.1 m, which
+> is inside this table's 1.05–1.15 m vault/mantle band, while the row itself says a rail must
+> resolve as a *vault*. Now 1.0 m — the smallest change that clears the band and keeps a rail
+> visibly taller than a 0.9 m stall counter. Both found by `test_map_metrics.gd`, which is the
+> point of having it.
 
 **The boundary bands are the important column.** Geometry built in a boundary band produces
 traversal that resolves differently depending on sub-centimetre position, which reads as the
