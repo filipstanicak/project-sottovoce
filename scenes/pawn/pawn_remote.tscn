@@ -1,0 +1,15 @@
+[gd_scene format=3]
+
+; CLIENT — interpolated only. TDD-06 §1 rule 2.
+;
+; NOT a CharacterBody3D and NO state machine, DELIBERATELY. Remote pawns are
+; interpolated 100 ms in the past (ADR-0002); simulating one would produce a
+; second, wrong answer that disagrees with the server's.
+
+[node name="PawnRemote" type="Node3D"]
+
+[node name="PersonaVisuals" type="Node3D" parent="."]
+
+[node name="InterpolationTarget" type="Node3D" parent="."]
+
+[node name="FootstepEmitter" type="Node3D" parent="."]

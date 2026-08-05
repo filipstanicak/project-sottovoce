@@ -2,7 +2,10 @@
   "mcpServers": {
     "godot": {
       "command": "npx",
-      "args": ["@coding-solo/godot-mcp"]
+      "args": ["@coding-solo/godot-mcp"],
+      "env": {
+        "GODOT_PATH": "C:\\Users\\Slimex\\Desktop\\Godot_v4.7.1-stable_win64.exe"
+      }
     }
   }
 }

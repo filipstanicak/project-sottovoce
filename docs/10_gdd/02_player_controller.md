@@ -153,7 +153,7 @@ into the acceleration curve.
 
 ## 3. The player state machine
 
-Fourteen states. This diagram is **normative**: the transition table in
+Fifteen states. This diagram is **normative**: the transition table in
 `PawnStateMachine.TRANSITIONS` is asserted against it by `test_pawn_transitions.gd`
 (ADR-0008). If the code and this diagram disagree, the diagram is right until an ADR says
 otherwise.
@@ -238,6 +238,13 @@ requested at priority *P* may interrupt a state whose `is_interruptible()` is fa
 | **StunAnim** | `INPUT-STUN` + pursuer in range and ≥ Noticed | 0.7 s | No below FATAL | COMBAT | none if valid; `TUN-STUN-INVALID-SUSPICION` +20 if not |
 | **Stunned** | Stunned by prey | `TUN-STUN-FREEZE` 4.0 s | No below FATAL | COMBAT | forced to `TUN-SUSPICION-MAX` |
 | **Dead** | Kill resolved against you | Corpse spawned | No | FATAL | n/a |
+
+> **Corrected 2026-08-05: fifteen, not fourteen.** Six places in the corpus said
+> "fourteen states" while this table and the normative diagram above both list fifteen.
+> §3 states the diagram is normative, so the prose was corrected rather than the table.
+> `StunAnim` (you performing a stun) and `Stunned` (you being stunned) are distinct
+> states with different priorities and exit conditions; neither is redundant.
+> `PawnStateId.ALL` is the machine-readable list, asserted by `test_pawn_state_count.gd`.
 
 ### 3.2 The three interrupt rules that matter
 
@@ -537,7 +544,7 @@ channels that commonly fail: colour, sound, and sustained visual attention.
 
 - [ ] Every action in §1.2 and §1.3 is bound, rebindable, and present in the input map resource.
 - [ ] `INPUT-KILL` and `INPUT-STUN` cannot be bound to the same control; the binding UI refuses it.
-- [ ] All fourteen states in §3 exist as separate `PawnState` subclasses (ADR-0008).
+- [ ] All fifteen states in §3 exist as separate `PawnState` subclasses (ADR-0008).
 - [ ] `PawnStateMachine.TRANSITIONS` matches the §3 diagram edge for edge, asserted by `test_pawn_transitions.gd`.
 - [ ] `Any → BlendWalk` succeeds from every locomotion state within one tick, from any speed.
 - [ ] Measured input-to-animation latency ≤ `TUN-FEEL-INPUT-TO-ANIM-MAX` (80 ms) at 60 fps with prediction active.

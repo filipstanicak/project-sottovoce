@@ -13,7 +13,7 @@ supersedes: none
 
 ## Context
 
-The player pawn has fourteen states:
+The player pawn has fifteen states:
 
 `Idle · Blend · Stroll · Jog · Sprint · Climb · Vault · Drop · Blended · KillAnim ·
 StunAnim · Stunned · Dead · Respawning`
@@ -98,7 +98,7 @@ Supporting rules:
 2. **`PawnContext` carries everything mutable** — velocity, position, suspicion accumulator,
    timers, the tuning reference, the traversal probe results. State objects hold no per-pawn
    data, so a single instance of each state is shared across all pawns on the server. Fourteen
-   objects total, not fourteen per player.
+   objects total, not fifteen per player.
 3. **Non-interruptible states declare it** via `is_interruptible()` returning false with a
    timer, rather than by other code knowing not to interrupt them. `KillAnim` refusing
    interruption is a property of `KillAnim`, stated once.

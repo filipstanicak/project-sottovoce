@@ -1,0 +1,24 @@
+[gd_scene load_steps=3 format=3]
+
+; SERVER — no visuals, no camera, no audio. TDD-06 §1.
+; The collision shape and PawnStateMachine script are IDENTICAL to pawn_local:
+; reconciliation replays buffered inputs through the same code path the server
+; used, so a divergence in shape or step logic is a divergence in prediction.
+
+[ext_resource type="Script" path="res://scripts/pawn/pawn_state_machine.gd" id="1_fsm"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_pawn"]
+radius = 0.35
+height = 1.8
+
+[node name="PawnServer" type="CharacterBody3D"]
+collision_layer = 2
+collision_mask = 1
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+shape = SubResource("CapsuleShape3D_pawn")
+
+[node name="PawnStateMachine" type="Node" parent="."]
+script = ExtResource("1_fsm")
+
+[node name="TraversalProbes" type="Node3D" parent="."]
