@@ -1,0 +1,28 @@
+[gd_scene load_steps=3 format=3]
+
+; CLIENT — the predicted local pawn. TDD-06 §1.
+; Same collision shape, same layers, same PawnStateMachine script as the server.
+
+[ext_resource type="Script" path="res://scripts/pawn/pawn_state_machine.gd" id="1_fsm"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_pawn"]
+radius = 0.35
+height = 1.8
+
+[node name="PawnLocal" type="CharacterBody3D"]
+collision_layer = 2
+collision_mask = 1
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+shape = SubResource("CapsuleShape3D_pawn")
+
+[node name="PawnStateMachine" type="Node" parent="."]
+script = ExtResource("1_fsm")
+
+[node name="TraversalProbes" type="Node3D" parent="."]
+
+[node name="PersonaVisuals" type="Node3D" parent="."]
+
+[node name="CameraMount" type="Node3D" parent="."]
+
+[node name="FootstepEmitter" type="Node3D" parent="."]
