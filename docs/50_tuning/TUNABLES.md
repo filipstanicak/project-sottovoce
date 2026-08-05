@@ -91,6 +91,8 @@ and kicking makes that diagnosis harder.
 | `TUN-SPEED-ACCEL` | 18.0 | m/s² | 12–26 | Reaches sprint in 0.34 s. High, because input latency must not feel like sluggishness; the *cost* of sprinting is suspicion, not acceleration. |
 | `TUN-SPEED-DECEL` | 24.0 | m/s² | 16–34 | Stopping is faster than starting, so that "stop and blend" is instantly available. This asymmetry is the thesis in the acceleration curve. |
 | `TUN-SPEED-TURN-RATE-GROUND` | 540 | deg/s | 360–720 | Turning is not throttled by speed state — a player must always be able to look. |
+| `TUN-SPEED-RUN-HOLD` | 0.35 | s | 0.2–0.6 | How long `INPUT-RUN` must be held before Jog escalates to Run. Promoted from prose in 02_player_controller.md §2.2; the escalation is a gameplay timing and belongs here like every other. |
+| `TUN-SPEED-SPRINT-HOLD` | 0.4 | s | 0.3–0.6 | Sustained-hold threshold for `INPUT-SPRINT`, the alternative to a double-tap. Deliberately awkward (§1.5): sprinting must be a decision, not a lean on the stick. Promoted from prose. |
 | `TUN-SPEED-BACKPEDAL-MULT` | 0.55 | × | 0.4–0.8 | Backing away from a hunter is possible but slow; the correct defensive answer is to blend, not to retreat. |
 
 ### 2.2 Traversal

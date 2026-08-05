@@ -18,8 +18,28 @@ extends Node
 ## `scripts/pawn/` does.
 signal state_changed(from: StringName, to: StringName)
 
+## The states that exist today. US-0016 onward fill in the rest; a pawn entering
+## an unregistered state is caught by `step()` rather than crashing, because a
+## half-registered machine during M1 is a normal intermediate condition.
+const REGISTERED: Array[GDScript] = [
+	preload("res://scripts/pawn/states/idle_state.gd"),
+	preload("res://scripts/pawn/states/blend_walk_state.gd"),
+	preload("res://scripts/pawn/states/stroll_state.gd"),
+	preload("res://scripts/pawn/states/jog_state.gd"),
+	preload("res://scripts/pawn/states/run_state.gd"),
+	preload("res://scripts/pawn/states/sprint_state.gd"),
+	preload("res://scripts/pawn/states/blended_state.gd"),
+	preload("res://scripts/pawn/states/kill_anim_state.gd"),
+	preload("res://scripts/pawn/states/stunned_state.gd"),
+]
+
 ## id -> PawnState. ONE INSTANCE PER STATE, shared by every pawn.
 var _states: Dictionary = {}
+
+
+func _ready() -> void:
+	for script: GDScript in REGISTERED:
+		register(script.new())
 
 
 ## Register a state object. Asserts the key matches the object's own `id()`,
