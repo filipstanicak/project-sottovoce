@@ -116,21 +116,24 @@ state machine, locally.
 | Camera rig: spring arm, FOV ladder, occlusion, crowd-scan | |
 | `test_feel_latency.gd` measuring input→animation | |
 
-> **Status 2026-08-05 — 3 of 12.** US-0013, US-0014 and US-0015 are done. Fifteen
-> states declared, 121 edges asserted against the §3 diagram in both directions,
-> and the six locomotion states integrate motion from an `InputCommand`.
+> **Status 2026-08-05 — 4 of 12.** US-0013 to US-0016 are done. Fifteen states
+> declared, 121 edges asserted against the §3 diagram in both directions, and
+> **the pawn walks**: a key press reaches the speed ladder through the real input
+> map, and `test_client_boot_walks.gd` asserts it end to end.
 >
-> **Nothing drives them yet.** No real input reaches the ladder, so the game still
-> launches to a static map. US-0016 connects a keyboard to it.
->
-> **The feel gate below is untested and untestable so far.** It is subjective and
-> needs a human at the controls; the mechanical half — slowing reaches BlendWalk
-> in one tick from all six states at all six speeds, velocity falling on that same
-> tick — is asserted, and that is all that is asserted.
+> **The feel gate below is now judgeable for the first time, and has not been
+> judged.** It is subjective and needs a human at the controls. The mechanical
+> halves — slowing reaches BlendWalk in one tick from all six states at all six
+> speeds, and input→pawn is one physics frame — are asserted; the FOV ladder and
+> the vaults are US-0017 to US-0022.
 >
 > [ADR-0012](../00_meta/adr/ADR-0012-slow-is-always-available.md) amended the §3
 > diagram during US-0015: `Any → Blend-walk` and `Any → Idle` were declared in §2.2
 > but never drawn, because Mermaid cannot express a wildcard edge.
+>
+> **US-0016 found four merged durations running at half length**, including the
+> stun freeze, which design law 5 forbids weakening. `Tuning.ticks()` converts at
+> the 30 Hz net tick; counters inside `step()` advance at 60. See TDD-03 §1.1.
 
 ### 3.1 The M1 feel gate
 

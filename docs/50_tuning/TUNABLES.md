@@ -93,6 +93,10 @@ and kicking makes that diagnosis harder.
 | `TUN-SPEED-TURN-RATE-GROUND` | 540 | deg/s | 360–720 | Turning is not throttled by speed state — a player must always be able to look. |
 | `TUN-SPEED-RUN-HOLD` | 0.35 | s | 0.2–0.6 | How long `INPUT-RUN` must be held before Jog escalates to Run. Promoted from prose in 02_player_controller.md §2.2; the escalation is a gameplay timing and belongs here like every other. |
 | `TUN-SPEED-SPRINT-HOLD` | 0.4 | s | 0.3–0.6 | Sustained-hold threshold for `INPUT-SPRINT`, the alternative to a double-tap. Deliberately awkward (§1.5): sprinting must be a decision, not a lean on the stick. Promoted from prose. |
+| `TUN-SPEED-SPRINT-DOUBLETAP` | 0.25 | s | 0.15–0.4 | Maximum gap between the two `INPUT-SPRINT` presses of a double-tap. The other half of §1.5's deliberate friction, and the half that had no number: the GDD says "double-tap" and never said how fast. Short enough that a nervous re-press does not sprint you; long enough to be reachable under pressure. |
+| `TUN-SPEED-STICK-DEADZONE` | 0.15 | × | 0.05–0.25 | Below this, the left stick reads as no input at all. Not cosmetic: `wants_movement()` decides `→ Idle`, so a drifting stick would hold a pawn out of the one state where suspicion decays fastest. |
+| `TUN-SPEED-STICK-BLENDWALK-MAX` | 0.3 | × | 0.2–0.45 | Left-stick magnitude at or below which a gamepad walks at blend-walk without holding the modifier (§1.3). Promoted from prose; it is the pad's half of the most important key in the game. |
+| `TUN-SPEED-TRIGGER-RUN` | 0.75 | × | 0.5–0.95 | Analogue trigger pull above which `INPUT-RUN` reads as *full* rather than partial — GDD-02 §1.3's "partial pull = jog, full pull = run". Below it the pad is held at jog, which is the rung a player can afford. |
 | `TUN-SPEED-BACKPEDAL-MULT` | 0.55 | × | 0.4–0.8 | Backing away from a hunter is possible but slow; the correct defensive answer is to blend, not to retreat. |
 
 ### 2.2 Traversal

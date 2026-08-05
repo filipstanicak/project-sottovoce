@@ -37,6 +37,6 @@ func enter(ctx: PawnContext) -> void:
 
 
 func step(ctx: PawnContext, _input: InputCommand, _delta: float) -> StringName:
-	if ctx.state_timer_ticks >= Tuning.ticks(&"TUN-STUN-FREEZE"):
+	if ctx.state_timer_ticks >= Tuning.step_ticks(&"TUN-STUN-FREEZE"):
 		return PawnStateId.IDLE
 	return STAY

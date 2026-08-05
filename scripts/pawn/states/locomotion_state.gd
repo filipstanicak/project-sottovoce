@@ -74,7 +74,7 @@ func _integrate(ctx: PawnContext, input: InputCommand, delta: float) -> void:
 func _is_backpedalling(input: InputCommand) -> bool:
 	if not input.wants_movement():
 		return false
-	var facing := Vector2(sin(input.yaw), cos(input.yaw))
+	var facing := Vector2(sin(input.look_yaw), cos(input.look_yaw))
 	return input.move.normalized().dot(facing) < -0.5
 
 

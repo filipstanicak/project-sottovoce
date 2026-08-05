@@ -41,6 +41,15 @@ remains true, with one refinement this chapter makes precise:
 > **All gameplay *decisions* happen at 30 Hz. Pawn *integration* substeps at 60 Hz, two
 > substeps per net tick, one per received `InputCommand`.**
 
+> **THERE ARE THEREFORE TWO TICK DOMAINS, AND MIXING THEM HALVES A DURATION.**
+> `Tuning.ticks()` converts seconds at 30 Hz. Anything incremented inside `step()` —
+> `ctx.state_timer_ticks`, the action buffers — advances at 60, and must be compared against
+> `Tuning.step_ticks()` instead. US-0016 found four merged call sites that had used the wrong
+> one: the stun freeze ran 1.0 s instead of 2.0, the kill animation 0.7 s instead of 1.4, and
+> Jog escalated to Run in 0.18 s instead of 0.35. Nothing failed, because both are plausible
+> integers. `test_step_counters_use_step_ticks.gd` now refuses the 30 Hz conversion anywhere
+> under `scripts/pawn/`.
+
 This is not a contradiction, it is the mechanism. `TUN-NET-CLIENT-INPUT-RATE` is 60 Hz, so the
 server receives two input commands per net tick and must apply each with `dt = 1/60` to
 reproduce what the client predicted. If the server integrated once at `dt = 1/30` while the
@@ -275,7 +284,14 @@ var seq: int                 ## Monotonic per client. Used for ack and reconcili
 var move: Vector2            ## Quantised to 8 bits per axis.
 var look_yaw: float          ## Quantised to TUN-NET-QUANT-YAW (1 deg).
 var look_pitch: float
-var buttons: int             ## Bitfield: SLOW RUN SPRINT TRAVERSE KILL STUN BLEND ABILITY1 ABILITY2 SCAN
+## Bitfield: SLOW RUN SPRINT TRAVERSE KILL STUN BLEND ABILITY1 ABILITY2 SCAN
+## then RUN_FULL, appended in US-0016. GDD-02 §1.3 requires "partial pull = jog,
+## full pull = run", and the ten above cannot express it: the ladder escalates on
+## a sustained RUN, so a half-pulled trigger would be dragged up to Run against
+## the player's intent. A key press has strength 1.0 and is always full.
+## THE ORDER IS THE WIRE FORMAT. Append only; reordering remaps every button
+## between builds and nothing crashes, because every value is a valid bitfield.
+var buttons: int
 
 ## The client's tick when sampled. ADVISORY ONLY — used for diagnostics.
 ## NEVER used to order events or resolve contests: it is client-supplied and forgeable.

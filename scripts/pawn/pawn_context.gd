@@ -26,14 +26,19 @@ var grounded: bool = true
 # --- State machine (PREDICTED) ---
 var state_id: StringName = PawnStateId.RESPAWNING
 
-## Ticks since the current state was entered. INTEGER: states compare against
-## precomputed tick counts from `Tuning.ticks()`, never against an accumulated
+## Ticks since the current state was entered. INTEGER, never an accumulated
 ## float, because accumulated float error diverges between server and client.
+##
+## **INCREMENTED ONCE PER `step()`, SO IT COUNTS 60 Hz TICKS.** States compare it
+## against `Tuning.step_ticks()`. Comparing it against `Tuning.ticks()`, which
+## converts at the 30 Hz net tick, halves every duration silently — see
+## `Tuning.step_ticks` for the four that shipped that way.
 var state_timer_ticks: int = 0
 
 # --- Traversal (PREDICTED) ---
 var probe_result: ProbeResult = ProbeResult.new()
 var traverse_buffer_ticks: int = 0
+var ability_buffer_ticks: int = 0
 var ledge_magnet_ticks: int = 0
 
 # --- Gameplay (SERVER-AUTHORITATIVE — mirrored, NEVER predicted) ---
@@ -65,5 +70,6 @@ func reset_for_spawn(at: Vector3, facing: float) -> void:
 	tier = 0
 	blend_state = 0
 	traverse_buffer_ticks = 0
+	ability_buffer_ticks = 0
 	ledge_magnet_ticks = 0
 	probe_result.clear()

@@ -24,10 +24,10 @@ func interrupt_priority() -> int:
 ## an accumulated float — this decides whether a save landed, and a value that
 ## drifts between server and client decides it differently on each.
 func is_interruptible(ctx: PawnContext) -> bool:
-	return ctx.state_timer_ticks < Tuning.ticks(&"TUN-KILL-CORPSE-SPAWN-DELAY")
+	return ctx.state_timer_ticks < Tuning.step_ticks(&"TUN-KILL-CORPSE-SPAWN-DELAY")
 
 
 func step(ctx: PawnContext, _input: InputCommand, _delta: float) -> StringName:
-	if ctx.state_timer_ticks >= Tuning.ticks(&"TUN-KILL-ANIM-DURATION"):
+	if ctx.state_timer_ticks >= Tuning.step_ticks(&"TUN-KILL-ANIM-DURATION"):
 		return PawnStateId.IDLE
 	return STAY

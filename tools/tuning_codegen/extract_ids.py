@@ -7,6 +7,7 @@ DOCS = os.path.join(ROOT, "docs")
 
 GRAMMAR = {
     "SYS":     r"^SYS-[A-Z][A-Z0-9]*(-[A-Z0-9]+)*$",
+    "INPUT":   r"^INPUT-[A-Z]+(-[A-Z0-9]+)*$",
     "SCORE":   r"^SCORE-[A-Z]+$",
     "ABIL":    r"^ABIL-[A-Z]+$",
     "PASV":    r"^PASV-[A-Z]+$",

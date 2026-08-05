@@ -25,6 +25,7 @@ depends_on: [DOC-GLOSSARY, DOC-IP-GUARDRAILS]
 |---|---|---|---|
 | `SYS-` | Gameplay system | `^SYS-[A-Z][A-Z0-9]*(-[A-Z0-9]+)*$` | `SYS-COMPASS`, `SYS-NET-LAGCOMP` |
 | `TUN-` | Tunable constant | `^TUN-[A-Z0-9]+(-[A-Z0-9]+)+$` | `TUN-SUSPICION-DECAY-BASE` |
+| `INPUT-` | Player input action | `^INPUT-[A-Z]+(-[A-Z0-9]+)*$` | `INPUT-SLOW`, `INPUT-ABILITY-1` |
 | `SCORE-` | Score event kind | `^SCORE-[A-Z]+$` | `SCORE-BLENDED` |
 | `ABIL-` | Ability | `^ABIL-[A-Z]+$` | `ABIL-CINDERFALL` |
 | `PASV-` | Passive | `^PASV-[A-Z]+$` | `PASV-STILLNESS` |
@@ -48,6 +49,12 @@ depends_on: [DOC-GLOSSARY, DOC-IP-GUARDRAILS]
 
 `test_id_grammar.gd` validates every ID appearing in the corpus and the codebase against these
 regexes.
+
+> **`INPUT-` was registered late, in US-0016.** GDD-02 §1.2 and §1.3 had been naming fifteen
+> `INPUT-` IDs since the first draft, but this table never listed the prefix — so the scanner
+> never harvested them, the grammar never checked them, and `Ids` never mirrored them. They read
+> as IDs everywhere they appeared while being, mechanically, prose. Registering the namespace is
+> what makes the input map checkable against the design instead of merely consistent with it.
 
 ---
 

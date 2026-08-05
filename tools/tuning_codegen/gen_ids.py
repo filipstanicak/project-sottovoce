@@ -17,6 +17,7 @@ for ns in ids:
 # documentation-only. TUN- has its own mechanism (US-0007). LOC-, MAT-, PROP-
 # and TEL- are runtime-bound but arrive with the systems that use them.
 NAMESPACES = [
+    ("INPUT",   "Player input actions. GDD-02 §1.2 (KBM) and §1.3 (gamepad)."),
     ("SCORE",   "Score event kinds. The ScoreEvent log is keyed on these."),
     ("ABIL",    "Abilities."),
     ("PASV",    "Passives."),
