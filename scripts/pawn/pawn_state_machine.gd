@@ -77,6 +77,10 @@ func step(ctx: PawnContext, input: InputCommand, delta: float) -> StringName:
 	# changes the simulation, and a client-only one predicts vaults the server
 	# never performed (TDD-06 §3).
 	PawnInputBuffer.tick(ctx, input)
+	# The other half of the ~0.45 s window: the buffer above forgives pressing
+	# EARLY, this forgives pressing late. Probe-driven rather than input-driven,
+	# and in step() for the same reason — it changes what the simulation does.
+	TraversalResolver.tick_magnet(ctx)
 	var requested := current.step(ctx, input, delta)
 	if requested != PawnState.STAY:
 		transition(ctx, requested, current.interrupt_priority())

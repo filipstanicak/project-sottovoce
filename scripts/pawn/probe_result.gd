@@ -84,6 +84,28 @@ var gap_distance: float = INF
 ## probes found nothing within `TUN-TRAVERSE-GAP-PROBE-DEPTH`.
 var drop_height: float = INF
 
+## Yaw offset, radians, at which the far side was found. Zero when the pawn is
+## already facing across the gap.
+##
+## GDD-02 §7.3's auto-align: a player should not have to be square to a gap they
+## can plainly see. Bounded by `TUN-TRAVERSE-GAP-ALIGN-ARC`, so it forgives aim
+## and never turns you toward a gap you were not crossing.
+var gap_yaw_offset: float = 0.0
+
+# --- Ledge (airborne only) ---
+
+## A grabbable ledge is in reach. **THE FORGIVENESS CASE**, and §7.2 case 1:
+## catching a ledge you are falling past beats everything else.
+var ledge_found: bool = false
+
+## Signed lateral offset to that ledge, metres — negative is to the pawn's left.
+## Bounded by `TUN-TRAVERSE-MAGNET-RADIUS`; this is what "not being laterally
+## aligned with the ledge" is forgiven by.
+var ledge_lateral: float = 0.0
+
+## Height of the ledge above the pawn's feet.
+var ledge_height: float = INF
+
 
 ## True when the pawn is standing at an edge: nothing at foot height ahead, and
 ## no ground ahead either.
@@ -98,6 +120,16 @@ func at_edge() -> bool:
 ## True when a landing was found within the jumpable range.
 func gap_is_crossable(max_gap: float) -> bool:
 	return gap_distance <= max_gap
+
+
+## True when a grabbable ledge sits within `radius` metres laterally.
+##
+## Requires `valid` for the same reason `at_edge()` does: an unprobed result has
+## `ledge_found` false, but a caller reading the fields directly could not tell
+## "no ledge" from "never looked", and this is the branch that decides whether a
+## falling player catches themselves.
+func ledge_within(radius: float) -> bool:
+	return valid and ledge_found and absf(ledge_lateral) <= radius
 
 
 ## Reset to "found nothing". Called at the top of every refresh, so a stale
@@ -118,3 +150,7 @@ func clear() -> void:
 	ground_ahead = false
 	gap_distance = INF
 	drop_height = INF
+	gap_yaw_offset = 0.0
+	ledge_found = false
+	ledge_lateral = 0.0
+	ledge_height = INF

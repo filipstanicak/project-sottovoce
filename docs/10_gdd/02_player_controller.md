@@ -457,7 +457,7 @@ Evaluated in this order. **First match wins.** This ordering is normative and is
 | Ledge-grab magnetism (time) | `TUN-TRAVERSE-MAGNET-WINDOW` | 0.25 s | Pressing traverse *late* — after you have already passed the ledge. |
 | Ledge-grab magnetism (space) | `TUN-TRAVERSE-MAGNET-RADIUS` | 0.6 m | Not being laterally aligned with the ledge. |
 | Traverse input buffer | `TUN-TRAVERSE-INPUT-BUFFER` | 0.20 s | Pressing traverse *early* — before the obstacle is in probe range. |
-| Gap-jump auto-align | — | ±20° | Not facing exactly across the gap. |
+| Gap-jump auto-align | `TUN-TRAVERSE-GAP-ALIGN-ARC` | ±20° | Not facing exactly across the gap. |
 
 **Combined, a player has a ~0.45 s window (0.20 s early + 0.25 s late) around any traverse
 opportunity.** That is enormous by action-game standards, and it is correct: the player's

@@ -212,9 +212,10 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 *Updated 2026-08-05. Keep this section current — it is the first thing a fresh
 session reads, and a stale one is worse than none.*
 
-**M0 IS COMPLETE. M1 IS 5 OF 12.** US-0013 (state machine), US-0014 (transition
-table), US-0015 (the speed ladder), US-0016 (input) and US-0017 (traversal
-probes) are `status: done`. **US-0018 is next** — the traversal resolver.
+**M0 IS COMPLETE. M1 IS 6 OF 12.** US-0013 (state machine), US-0014 (transition
+table), US-0015 (the speed ladder), US-0016 (input), US-0017 (traversal probes)
+and US-0018 (the resolver) are `status: done`. **US-0019 is next** — the vault
+and mantle states, which are what finally performs a traversal.
 
 **THE PAWN WALKS, ON THE GROUND.** A key press reaches the speed ladder through
 the real input map, and the probes see the district around it.
@@ -237,14 +238,14 @@ any test.
 | | |
 |---|---|
 | CI | 7 jobs, green on `main`. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | 86 architecture guards + 178 unit + 30 integration, all three counted in CI |
-| Tuning | 277 tunables across 14 resource classes; all 20 cross-field invariants assert |
+| Tests | 86 architecture guards + 216 unit + 43 integration, all three counted in CI |
+| Tuning | 278 tunables across 14 resource classes; all 20 cross-field invariants assert |
 | Autoloads | All eight. `Tuning` precomputes 89 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |
 | Boot | Branches on `--server`; 7 CLI flags parsed in pure Core; 5 export presets |
 | Map | `MAP-VETRAIO` greybox, 120 × 120 m. Client loads 28 meshes, server loads none |
 | Pawn | 15 states declared, 121 transition edges asserted against the normative diagram. Nine implemented: six locomotion + `KillAnim`, `Stunned`, `Blended`. Six are US-0019+ |
-| Traversal | 3 forward + 4 down casts, `WORLD`-masked, refreshed before `step()`. `ProbeResult` is filled; **nothing resolves it yet** — that is US-0018 |
+| Traversal | Probes cast, `ProbeResult` filled, all seven §7.2 cases resolve from real geometry, both forgiveness windows open. **Nothing performs a traversal** — `Vault`, `Climb` and `Drop` are US-0019/0020 |
 | Input | 21 `InputMap` actions from 15 `INPUT-` IDs, KBM + pad. Chain GDD-02 → `Ids` → `InputActions` → `project.godot`, guarded on every hop, both directions |
 
 **Four criteria are deliberately unticked** in US-0002/3/4/5, all variants of

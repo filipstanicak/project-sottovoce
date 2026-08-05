@@ -163,6 +163,13 @@ extends Resource
 ## TUN-TRAVERSE-INPUT-BUFFER
 @export_range(0.1, 0.3, 0.1) var traverse_input_buffer: float = 0.2
 
+## Half-arc within which a gap jump auto-aligns to the crossing. Promoted from a bare "±20°" in
+## ../10_gdd/02_player_controller.md §7.3's forgiveness table, which was the one row there with
+## no ID. Wide enough that eyeballing the far side is enough, narrow enough that it never turns
+## you toward a gap you were not crossing.
+## TUN-TRAVERSE-GAP-ALIGN-ARC
+@export_range(10.0, 30.0, 0.1) var gap_align_arc: float = 20.0
+
 ## How far ahead of the pawn the downward gap probe starts. Promoted from prose in
 ## ../10_gdd/02_player_controller.md §7.1. Far enough to clear the pawn's own 0.35 m radius,
 ## close enough that the edge is detected before the pawn is over it.

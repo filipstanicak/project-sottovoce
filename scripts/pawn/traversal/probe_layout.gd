@@ -112,6 +112,53 @@ static func gap_depth() -> float:
 	return Tuning.movement.gap_probe_depth
 
 
+## Yaw offsets to fan the gap march across, in `Input`-agnostic radians:
+## straight ahead first, then alternating out to `TUN-TRAVERSE-GAP-ALIGN-ARC`.
+##
+## STRAIGHT AHEAD IS FIRST because the fan is forgiveness, not aim assist. A
+## player already facing across the gap must get the answer they aimed at; the
+## offsets only ever supply one they did not have.
+static func gap_align_offsets() -> PackedFloat32Array:
+	var arc := deg_to_rad(Tuning.movement.gap_align_arc)
+	return PackedFloat32Array([0.0, -arc * 0.5, arc * 0.5, -arc, arc])
+
+
+## Lateral offsets at which the ledge probes are cast, out to
+## `TUN-TRAVERSE-MAGNET-RADIUS`. Centre first, for the same reason.
+##
+## Signed: negative is the pawn's left. The sign survives into
+## `ProbeResult.ledge_lateral`, because a grab that snapped the wrong way would
+## be worse than no grab at all.
+static func ledge_lateral_offsets() -> PackedFloat32Array:
+	var radius := Tuning.movement.traverse_magnet_radius
+	return PackedFloat32Array([0.0, -radius * 0.5, radius * 0.5, -radius, radius])
+
+
+## World-space start of a ledge probe `lateral` metres to the side, cast forward
+## at chest height — where a falling player's hands are.
+##
+## `forward × up` is the pawn's RIGHT, so a positive `lateral` is to the right
+## and a negative one to the left. The sign survives into
+## `ProbeResult.ledge_lateral`; a grab that snapped the wrong way would be worse
+## than no grab at all.
+static func ledge_origin(feet: Vector3, yaw: float, lateral: float) -> Vector3:
+	return origin(feet, Probe.CHEST) + right(yaw) * lateral
+
+
+## Unit vector to the pawn's right, on the ground plane.
+static func right(yaw: float) -> Vector3:
+	return forward(yaw).cross(Vector3.UP).normalized()
+
+
+## Whether a ledge at `top` metres above the feet is within grabbing reach.
+##
+## The window is the magnet radius applied VERTICALLY as well as laterally: a
+## ledge level with your chest is the one you catch, and one at your ankles is
+## one you have already fallen past.
+static func ledge_is_reachable(top: float) -> bool:
+	return absf(top - Tuning.movement.probe_height_chest) <= Tuning.movement.traverse_magnet_radius
+
+
 ## Whether a surface steep enough to climb was hit. Compared against the WORLD
 ## up axis: a façade has a near-horizontal normal, a ramp does not, and a player
 ## must never find themselves climbing a staircase.

@@ -1,11 +1,11 @@
 ## **THE PROBES ACTUALLY SEE THINGS.** Real bodies, real raycasts, real
-## `ProbeResult`. GDD-02 §7.1 and §7.4, TDD-06 §4.
+## `ProbeResult`. GDD-02 §7.1 and §7.3, TDD-06 §4.
 ##
-## Everything else in US-0017 is testable without a world: `ProbeLayout` is
-## arithmetic and `ProbeResult` is a struct. Both can be perfectly correct while
-## the casts hit nothing, point backwards, or read the near face of a wall as its
-## top — and none of that would fail a unit test or throw an error. It would just
-## mean no wall in the district ever vaults.
+## Everything else in the traversal probes is testable without a world:
+## `ProbeLayout` is arithmetic and `ProbeResult` is a struct. Both can be
+## perfectly correct while the casts hit nothing, point backwards, or read the
+## near face of a wall as its top — and none of that would fail a unit test or
+## throw an error. It would just mean no wall in the district ever vaults.
 ##
 ## The heights are the ones the level-design contract (§7.4) builds at, because
 ## those are the cases the map will actually present:
@@ -17,68 +17,47 @@
 ## | 4.0 m+ | climb, always |
 ## | 2.0 m gap | easy jump |
 ##
-## Nothing here asserts what the *resolver* decides — that is US-0018. What is
-## asserted is that the numbers it will read are the right numbers.
+## What the *resolver* decides from these numbers is
+## `test_traversal_resolution_geometry.gd`. This file asserts the numbers.
 extends GutTest
 
-## Yaw 0 faces +Z (`ProbeLayout.forward`), so obstacles go in front at +Z.
-const FACING := 0.0
+const FACING := TraversalWorld.FACING
 
-var _world: Node3D
+var _world: TraversalWorld
 var _probes: TraversalProbes
-var _slab: StaticBody3D
 
 
 func before_each() -> void:
-	_world = Node3D.new()
-	add_child_autofree(_world)
+	var host := Node3D.new()
+	add_child_autofree(host)
+	_world = TraversalWorld.new(host)
 	_probes = TraversalProbes.new()
-	_world.add_child(_probes)
-	_ground()
+	_world.root.add_child(_probes)
 
 
-func _ground() -> void:
-	# 40 x 40 slab whose TOP surface is y = 0, so a pawn's feet sit at the origin.
-	_slab = _box(Vector3(40.0, 2.0, 40.0), Vector3(0.0, -1.0, 0.0))
-
-
-## Replace the slab with one that stops at `near_edge`, and put its far side at
-## `far_edge` and `far_drop` metres down. A `far_edge` beyond reach leaves a
-## sheer drop with nothing to land on.
-func _open_gap(near_edge: float, far_edge: float, far_drop: float = 0.0) -> void:
-	_slab.queue_free()
-	_world.remove_child(_slab)
-	_slab = null
-	# Behind and up to the near edge.
-	_box(Vector3(40.0, 2.0, 40.0), Vector3(0.0, -1.0, near_edge - 20.0))
-	if far_edge < 100.0:
-		_box(Vector3(40.0, 2.0, 40.0), Vector3(0.0, -1.0 - far_drop, far_edge + 20.0))
-
-
-## A static WORLD body. `size` is full extents; `centre` is its middle.
 func _box(size: Vector3, centre: Vector3) -> StaticBody3D:
-	var body := StaticBody3D.new()
-	body.collision_layer = CollisionLayers.WORLD
-	body.collision_mask = 0
-	var shape := CollisionShape3D.new()
-	var box := BoxShape3D.new()
-	box.size = size
-	shape.shape = box
-	body.add_child(shape)
-	_world.add_child(body)
-	body.global_position = centre
-	return body
+	return _world.box(size, centre)
 
 
-## A wall of `height`, standing on the ground, `ahead` metres in front.
 func _obstacle(height: float, ahead: float, thickness: float = 0.4) -> void:
-	_box(Vector3(6.0, height, thickness), Vector3(0.0, height * 0.5, ahead))
+	_world.obstacle(height, ahead, thickness)
+
+
+func _open_gap(near_edge: float, far_edge: float, far_drop: float = 0.0) -> void:
+	_world.open_gap(near_edge, far_edge, far_drop)
+
+
+func _ledge_block(lateral: float, height: float = 1.35) -> void:
+	_world.ledge_block(lateral, height)
 
 
 func _probe_at(feet: Vector3) -> ProbeResult:
-	var ctx := PawnContext.new()
-	ctx.position = feet
-	ctx.yaw = FACING
+	return await _probe_ctx(TraversalWorld.context(feet, FACING, true))
+
+
+## Two physics frames so the bodies this test built are in the space before
+## anything casts against them.
+func _probe_ctx(ctx: PawnContext) -> ProbeResult:
 	await get_tree().physics_frame
 	await get_tree().physics_frame
 	return _probes.refresh(ctx)

@@ -392,6 +392,17 @@ static func resolve(ctx: PawnContext) -> StringName:
     return ""
 ```
 
+### 4.2.1 Seven cases, four states
+
+`resolve()` returns a state id, and two pairs collapse into one: gap jump and drop both enter
+`Drop`, vault and mantle both enter `Vault`. That makes the ordering above **untestable from the
+return value alone** — a test that saw only the state could not tell case 2 from case 3.
+
+`TraversalResolver` therefore exposes `classify() -> Case` beside `resolve() -> StringName`. The
+design specifies an ordering, so the code exposes one. `classify()` is side-effect free, so a
+tell or an animation anticipation can ask what a traverse *would* do without consuming the
+player's press; only `resolve()` spends it.
+
 ### 4.3 Forgiveness
 
 | Window | Tunable | Ticks | Forgives |
@@ -399,7 +410,7 @@ static func resolve(ctx: PawnContext) -> StringName:
 | Early press | `TUN-TRAVERSE-INPUT-BUFFER` 0.20 s | **12** | Pressing before the obstacle is in probe range |
 | Late press | `TUN-TRAVERSE-MAGNET-WINDOW` 0.25 s | **15** | Pressing after you have passed the ledge |
 | Lateral | `TUN-TRAVERSE-MAGNET-RADIUS` 0.6 m | — | Not being aligned with the ledge |
-| Gap facing | ±20° | — | Not facing exactly across the gap |
+| Gap facing | `TUN-TRAVERSE-GAP-ALIGN-ARC` ±20° | — | Not facing exactly across the gap |
 
 **Combined ~0.45 s.** Enormous by action-game standards, and correct: a missed ledge must be a
 *decision* error, never a *timing* error.
@@ -474,7 +485,7 @@ func PawnContext.apply_authoritative(state: PredictedState) -> void
 | `scripts/pawn/pawn_context.gd` | `PawnContext` |
 | `scripts/pawn/states/state_*.gd` | **14 files** — one per state |
 | `scripts/pawn/traversal/traversal_probes.gd` | Probe casting |
-| `scripts/pawn/traversal/traversal_resolver.gd` | §4.2 resolution |
+| `scripts/pawn/traversal/traversal_resolver.gd` | §4.2 resolution, the magnet window and auto-align |
 | `scripts/pawn/probe_result.gd` | `ProbeResult` |
 | `scripts/pawn/traversal/probe_layout.gd` | Pure probe geometry — where the casts go |
 | `scripts/core/collision_layers.gd` | The four layer masks, mirrored from `[layer_names]` |
@@ -505,6 +516,9 @@ func PawnContext.apply_authoritative(state: PredictedState) -> void
 | `test_blended_yields.gd` | A blended pawn can be killed and stunned normally |
 | `test_traversal_resolution.gd` | All seven §4.2 cases in priority order, **including case 7's silence** |
 | `test_traversal_forgiveness.gd` | A traverse 0.20 s early or 0.25 s late still resolves |
+| `test_traversal_case_states.gd` | Every case names a state the graph can enter from locomotion |
+| `test_traversal_resolution_geometry.gd` | The seven cases resolve from **real** geometry, not a hand-filled struct |
+| `test_traversal_assists_geometry.gd` | The gap fan and the ledge probes fire against real bodies |
 | `test_pawn_input_buffer.gd` | The action buffer arms, decays, expires and is consumed exactly once — at the **step** rate |
 | `test_step_counters_use_step_ticks.gd` | Nothing under `scripts/pawn/` compares a 60 Hz counter against the 30 Hz conversion |
 | `test_client_boot_walks.gd` | **A key press moves the pawn**, through the real scene and the real bindings |
