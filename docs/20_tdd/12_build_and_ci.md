@@ -80,10 +80,18 @@ It scans **everything** — code, docs, commit messages via a separate hook, ass
 branch names. Renaming later does not work: names leak into history, filenames, screenshots and
 playtester vocabulary.
 
+Its file list comes from `.ci/repo_files.sh`, which refuses to return an empty one. See §1.5:
+this guard spent two milestones reporting "clean" over zero files outside a work tree.
+
 ### 1.2 `asset-inventory`
 
 Checked **in both directions**. A stale row is as much a defect as a missing one: it means
 someone deleted an asset and left a claim about it, which makes the whole register untrustworthy.
+
+Same enumeration, same refusal (§1.5) — with one asymmetry worth keeping straight. An empty
+*repository* scan is always a broken scan; an empty *asset* list is legitimate, since today every
+path under `assets/` is a `.gdkeep`. The emptiness check therefore belongs to the whole-tree
+enumeration and only there.
 
 ### 1.3 Enforcement status — read this before trusting the word "required"
 
@@ -147,6 +155,41 @@ The second matters more than the first. The cache bug was one bug; *a suite that
 silently runs the wrong tests and reports success* is a category, and nothing in
 GUT's exit code distinguishes it from a real pass. **Do not relax that check** —
 the green was the defect, not the red.
+
+### 1.5 Why the guards count their own file list
+
+It was a category, and on 2026-08-05 the second member turned up.
+
+`ip-guard` and `asset-inventory` both enumerated with `git ls-files`. That
+command fails outside a git work tree — and §8 of `.claude/commands/save.md`
+verifies every checkpoint from a `git archive HEAD | tar -x` extraction, which is
+not one. git wrote `fatal: not a git repository` to stderr, the read loop
+received nothing, `status` was still `0` at the end, and both guards printed
+**clean** and exited `0` having examined **zero of 739 files**.
+
+Measured, not argued: in that extraction a planted banned term under `scripts/`
+and an unlicensed file under `assets/` were both waved through.
+
+So for two milestones the checkpoint procedure ran two guards that could not
+fail, in the one place their result was most likely to be believed — a clean
+checkout. Both had passed every time anyone tested them, because everyone tested
+them in the work tree.
+
+The fix is `.ci/repo_files.sh`, sourced by both:
+
+1. **Enumeration falls back to `find`** when there is no work tree, so the guards
+   actually work where the checkpoint procedure runs them. A guard that cannot
+   run in the documented verification environment is a guard that is skipped
+   there.
+2. **An empty or implausible list is a hard failure.** Zero files, or a list not
+   containing `project.godot`, refuses in `run_gut.sh`'s voice rather than
+   reporting success. This repository tracks hundreds of files; an empty scan is
+   always a broken scan, never a clean one, and the two must never again look
+   alike.
+
+`test_ci_guards_refuse_empty_scan.gd` holds the line: only `repo_files.sh` may
+call `git ls-files`, every guard must load through it, and both refusals must
+still be there. **Do not relax it** — same reason as §1.4.
 
 ---
 
@@ -375,6 +418,7 @@ func flush_to(path: String) -> void        ## --record
 | `.github/actions/setup-godot/action.yml` | Installs the pinned engine; used by `import`, `test`, `export` |
 | `.githooks/pre-push` | Refuses a direct push to `main` (§1.3) |
 | `.ci/run_gut.sh` | Runs a GUT suite and fails if it ran fewer scripts than exist (§1.4) |
+| `.ci/repo_files.sh` | Sourced file enumeration; refuses to hand back an empty list (§1.5) |
 | `.ci/banned_terms.txt` · `ip_guard_exclude.txt` · `ip_guard.sh` | IP enforcement |
 | `.ci/check_asset_inventory.sh` | Bidirectional asset check |
 | `.gdlintrc` · `.gdformatrc` | Lint config |
@@ -402,6 +446,7 @@ func flush_to(path: String) -> void        ## --record
 | `test_ci_required_checks.gd` | `ci.yml` defines all six jobs and each is required |
 | `test_banned_terms_sync.gd` | `.ci/banned_terms.txt` matches IP_GUARDRAILS §2.1–2.3 exactly |
 | `test_ip_guard_exclusions.gd` | Exactly two files are exempt |
+| `test_ci_guards_refuse_empty_scan.gd` | Only `repo_files.sh` calls `git ls-files`; both guards load through it; both refusals survive (§1.5) |
 | `test_gut_excluded.gd` | No GUT symbol in any release export |
 | `test_import_time.gd` | Cold headless import ≤ 90 s |
 | `test_suite_time.gd` | Unit + arch suites ≤ 45 s combined |

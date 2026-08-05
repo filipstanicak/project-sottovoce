@@ -14,11 +14,22 @@
 # so every value read from a file is stripped of a trailing CR. Without that an
 # exclusion silently fails to match on one platform and not the other — worse
 # than no exclusion, because it fails asymmetrically.
+#
+# The file list comes from .ci/repo_files.sh, which REFUSES to hand back an
+# empty one. This guard used to enumerate with a bare `git ls-files` and so
+# reported "clean" over zero files in an archive extraction — read that script's
+# header before changing anything here.
 set -uo pipefail
+
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=repo_files.sh
+. "$HERE/repo_files.sh"
 
 TERMS=".ci/banned_terms.txt"
 EXCLUDE=".ci/ip_guard_exclude.txt"
 status=0
+
+repo_files_load "ip-guard" || exit 1
 
 exclusions=()
 while IFS= read -r line || [ -n "$line" ]; do
@@ -35,9 +46,7 @@ is_excluded() {
 }
 
 # --- file contents -----------------------------------------------------------
-while IFS= read -r path || [ -n "$path" ]; do
-  path="${path%$'\r'}"
-  [ -z "$path" ] && continue
+for path in "${REPO_FILES[@]}"; do
   [ -f "$path" ] || continue
   is_excluded "$path" && continue
 
@@ -46,19 +55,17 @@ while IFS= read -r path || [ -n "$path" ]; do
     echo "$hits" | sed 's/^/    /'
     status=1
   fi
-done < <(git ls-files)
+done
 
 # --- paths themselves --------------------------------------------------------
 # A banned term in a filename or directory name is as bad as one in a file.
-while IFS= read -r path || [ -n "$path" ]; do
-  path="${path%$'\r'}"
-  [ -z "$path" ] && continue
+for path in "${REPO_FILES[@]}"; do
   is_excluded "$path" && continue
   if printf '%s' "$path" | grep -qi -f "$TERMS" 2>/dev/null; then
     echo "IP GUARD FAILURE: banned term in path: $path"
     status=1
   fi
-done < <(git ls-files)
+done
 
 if [ "$status" -eq 0 ]; then
   echo "ip-guard: clean"
