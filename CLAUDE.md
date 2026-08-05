@@ -209,43 +209,45 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 
 ## Where the work is right now
 
-*Updated 2026-08-04. Keep this section current — it is the first thing a fresh
+*Updated 2026-08-05. Keep this section current — it is the first thing a fresh
 session reads, and a stale one is worse than none.*
 
-**M0 is 11 of 12 done, and US-0012 is half done.** US-0001 … US-0011 are
-`status: done`. **US-0012 is `in-progress`**: its boot half landed, its map half
-has not been started. It closes the milestone.
+**M0 IS COMPLETE. All twelve stories are `status: done`.** The milestone's exit
+criterion — *project scaffolded, CI green, event bus and tuning resources in
+place, greybox map loads* — holds.
 
-**The project launches.** Both topologies boot:
+**The game runs, with the map:**
 
 ```bash
 godot --headless -- --server --port 27015 --max-players 6
 godot -- --connect 127.0.0.1:27015
 ```
 
-There is no map yet, so there is nothing to *see* — the scenes are empty roots.
-
-What exists and works:
+There is no pawn yet, so nothing moves. **M1 is the next milestone** — see
+`docs/40_backlog/ROADMAP.md` §3 and the `US-0013`+ stories.
 
 | | |
 |---|---|
 | CI | 7 jobs, green on `main`. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | 49 architecture guards + 43 unit tests, both counted in CI |
+| Tests | 54 architecture guards + 69 unit tests, both counted in CI |
 | Tuning | 269 tunables across 14 resource classes; all 20 cross-field invariants assert |
-| Autoloads | All eight, fleshed. `Tuning` precomputes 86 durations to integer server ticks |
+| Autoloads | All eight. `Tuning` precomputes 86 durations to integer server ticks |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |
-| Boot | `boot.tscn` branches on `--server`; 7 CLI flags parsed in pure Core; 4 export presets |
+| Boot | Branches on `--server`; 7 CLI flags parsed in pure Core; 5 export presets |
+| Map | `MAP-VETRAIO` greybox, 120 × 120 m. Client loads 28 meshes, server loads none |
 
-**What is left in US-0012:** greybox `MAP-VETRAIO` to GDD-05 §2 with the §7.4
-material set, `MapData` (6 spawns, 4 circuits, idle anchors, zone volumes, 5 blend
-props, 2 theatre spaces), the navmesh bake excluding roofs/balconies/canal, and
-`test_map_metrics`, `test_map_dead_ends`, `test_map_widths`, `test_navmesh_coverage`.
+**Four criteria are deliberately unticked** in US-0002/3/4/5, all variants of
+"required check on `main`". They are blocked by the GitHub plan, not by the work
+— see §1.3 of `docs/20_tdd/12_build_and_ci.md`. The navmesh **bake** is likewise
+owed and recorded in US-0012.
 
-### Five things that will cost you an hour if you do not know them
+### Six things that will cost you an hour if you do not know them
 
-1. **The tuning classes are GENERATED.** Never hand-edit `scripts/core/ids.gd`,
-   `scripts/core/tuning/*.gd` or `tuning_index.gd` — the next generator run
-   silently reverts you. See `tools/tuning_codegen/README.md`.
+1. **Two things are GENERATED.** `scripts/core/ids.gd`, `scripts/core/tuning/*.gd`
+   and `tuning_index.gd` come from `tools/tuning_codegen/run_all.py`; the map
+   scenes and `MapData` come from `tools/generate_map_vetraio.gd`, whose single
+   source is `scripts/core/vetraio_layout.gd`. Hand-edits to any of them are
+   silently reverted on the next run. **Change the layout table, not the scene.**
 2. **`duplicate(true)` does not deep-copy a `TuningProfile`.** The sections are
    *external* resources, and Godot's deep duplicate only copies embedded ones.
    Use `TuningProfile.clone()`. Getting this wrong writes to the live profile.
@@ -254,7 +256,12 @@ props, 2 theatre spaces), the navmesh bake excluding roofs/balconies/canal, and
 4. **No test boots a scene.** The whole boot path was broken — `change_scene_to_file`
    from `_ready()` fails while the tree is still building — with 92 tests green.
    Run the game after touching anything scene-related.
-5. **`main` has no server-side protection** — see §1.3 of
+5. **OPENING THE GODOT EDITOR REWRITES `project.godot`** and deletes every key
+   whose value matches an engine default, plus every comment. It did this once
+   already, removing `rendering_method` and `physics_ticks_per_second`.
+   `test_project_settings_pinned.gd` now catches it; the fix is
+   `git checkout project.godot`. `--headless --editor` is safe; the GUI is not.
+6. **`main` has no server-side protection** — see §1.3 of
    `docs/20_tdd/12_build_and_ci.md`. Run `git config core.hooksPath .githooks` in
    every fresh clone, and wait for a run to report `completed success` before
    merging. `gh run watch` can return while a run is still queued.
@@ -265,6 +272,14 @@ Godot and gdtoolkit are not on `PATH` on this machine:
 
 - `C:\Users\Slimex\Desktop\Godot_v4.7.1-stable_win64.exe`
 - `C:\Users\Slimex\AppData\Roaming\Python\Python314\Scripts\gdlint.exe`
+
+`.ci/run_gut.sh` invokes a bare `godot`, so shim it before running a suite:
+
+```bash
+printf '#!/usr/bin/env bash\nexec "/c/Users/Slimex/Desktop/Godot_v4.7.1-stable_win64.exe" "$@"\n' > /tmp/shim/godot
+chmod +x /tmp/shim/godot
+export PATH="/tmp/shim:/c/Users/Slimex/AppData/Roaming/Python/Python314/Scripts:$PATH"
+```
 
 ---
 
