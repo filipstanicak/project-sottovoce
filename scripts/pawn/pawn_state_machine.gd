@@ -1,8 +1,7 @@
 ## Holds the fifteen shared state objects and arbitrates transitions.
 ##
-## SKELETON — the legal-edge table is US-0014 and the concrete states are
-## US-0015 onward. What exists here is the machinery every one of them plugs
-## into: a registry of shared instances, and the request/validate split.
+## The concrete states arrive in US-0015 onward; the graph they move through is
+## already declared, in `PawnTransitions`.
 ##
 ## `step()` REQUESTS a transition; the machine VALIDATES it (TDD-06 §2.2). A
 ## state deliberately does not know the graph — that is what keeps the graph in
@@ -61,9 +60,10 @@ func step(ctx: PawnContext, input: InputCommand, delta: float) -> StringName:
 
 ## Validate and perform a transition. Returns whether it happened.
 ##
-## `is_valid_edge` is overridden by US-0014's table; until then every edge
-## between known states is permitted, which is why this is a skeleton and not
-## the finished machine.
+## An illegal request ASSERTS in debug and push_errors in release. It is a
+## programming error, not a runtime condition: `step()` asked for somewhere the
+## graph does not go, and silently clamping that to "stay put" would hide the
+## bug behind a pawn that occasionally ignores input.
 func transition(ctx: PawnContext, to: StringName, priority: int) -> bool:
 	if to == PawnState.STAY:
 		return false
@@ -87,7 +87,7 @@ func transition(ctx: PawnContext, to: StringName, priority: int) -> bool:
 	return true
 
 
-## Whether `from -> to` is a legal edge. US-0014 replaces this with the
-## centralised table asserted against the normative diagram in GDD-02 §3.
+## Whether `from -> to` is a legal edge, per the centralised table asserted
+## against the normative diagram in GDD-02 §3.
 func is_valid_edge(from: StringName, to: StringName) -> bool:
-	return PawnStateId.exists(from) and PawnStateId.exists(to)
+	return PawnTransitions.allows(from, to)
