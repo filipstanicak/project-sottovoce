@@ -255,7 +255,7 @@ any test.
 — see §1.3 of `docs/20_tdd/12_build_and_ci.md`. The navmesh **bake** is likewise
 owed and recorded in US-0012.
 
-### Seven things that will cost you an hour if you do not know them
+### Nine things that will cost you an hour if you do not know them
 
 1. **Two things are GENERATED.** `scripts/core/ids.gd`, `scripts/core/tuning/*.gd`
    and `tuning_index.gd` come from `tools/tuning_codegen/run_all.py`; the map
@@ -288,7 +288,18 @@ owed and recorded in US-0012.
    `docs/20_tdd/12_build_and_ci.md`. Run `git config core.hooksPath .githooks` in
    every fresh clone, and wait for a run to report `completed success` before
    merging. `gh run watch` can return while a run is still queued.
-7. **THERE ARE TWO TICK DOMAINS.** `Tuning.ticks()` converts at the 30 Hz net
+7. **A STATE THAT WRITES `ctx.position` MUST SAY SO**, by returning true from
+   `PawnState.drives_position()`. Otherwise `LocalPawnDriver` runs
+   `move_and_slide()` and overwrites it from the physics body — which, with the
+   velocity frozen as a traversal requires, has not moved. US-0019's vault
+   computed a perfect arc and left the pawn exactly where it stood. Every unit
+   test passed, because they call `step()` directly and the driver does not.
+8. **A STATE'S OWN EXIT IS NOT AN INTERRUPTION.** `transition()` takes an
+   `interrupting` flag and `step()` passes false. Gating a state's completion on
+   `is_interruptible()` makes every uninterruptible state permanent: `Vault` and
+   `KillAnim` both declined their own exit, the latter since US-0013, unnoticed
+   because nothing had ever run it. The symptom is a frozen player, not an error.
+9. **THERE ARE TWO TICK DOMAINS.** `Tuning.ticks()` converts at the 30 Hz net
    tick; `Tuning.step_ticks()` converts at the 60 Hz input rate. Anything
    incremented inside `PawnState.step()` — `ctx.state_timer_ticks`, the action
    buffers — advances at 60 and must use `step_ticks`. Getting it wrong halves

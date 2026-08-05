@@ -487,7 +487,7 @@ func PawnContext.apply_authoritative(state: PredictedState) -> void
 | `scripts/pawn/pawn_state_machine.gd` | Machine + `TRANSITIONS` |
 | `scripts/pawn/pawn_state.gd` | Base class |
 | `scripts/pawn/pawn_context.gd` | `PawnContext` |
-| `scripts/pawn/states/*_state.gd` | **15 files** — one per state; `vault_state.gd` covers vault and mantle both |
+| `scripts/pawn/states/*_state.gd` | **15 eventually** — one per state; `vault_state.gd` covers vault and mantle both. **Ten exist**, plus `locomotion_state.gd`, which is a shared base and not a state |
 | `scripts/pawn/traversal/traversal_probes.gd` | Probe casting |
 | `scripts/pawn/traversal/traversal_resolver.gd` | §4.2 resolution, the magnet window and auto-align |
 | `scripts/pawn/probe_result.gd` | `ProbeResult` |
