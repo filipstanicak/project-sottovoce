@@ -79,3 +79,18 @@ python tools/tuning_codegen/run_all.py && gdformat scripts/ && git diff --stat s
 An empty diff is the check. A non-empty one means either TUNABLES.md changed or
 someone hand-edited a generated file — and hand-editing a generated file is a
 change that the next run silently reverts.
+
+## The other generator
+
+`tools/generate_map_vetraio.gd` builds `scenes/map/*.tscn` and
+`data/maps/map_vetraio.tres` from `scripts/core/vetraio_layout.gd` by the same
+principle. It runs *in the engine*, because the scenes must be written by Godot's
+own serialiser:
+
+```bash
+godot --headless -s res://tools/generate_map_vetraio.gd
+```
+
+It strips the random `unique_id` Godot stamps on every node, without which
+re-running produces a 300-line diff in which nothing changed — and
+"regenerate, then check `git diff` is empty" stops being a verification.

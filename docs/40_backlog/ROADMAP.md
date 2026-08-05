@@ -59,19 +59,23 @@ exit criterion is somebody's named deliverable rather than a shared assumption.
 
 **Exit:** project scaffolded, CI green, event bus and tuning resources in place, greybox map loads.
 
-> **Status 2026-08-04 — 11 of 12 done, US-0012 half done.** US-0001 … US-0011
-> complete and marked. **US-0012 is `in-progress`**: `boot.tscn`, the `--server`
-> branch, both root scenes, the seven CLI flags and all four export presets have
-> landed; the greybox `MAP-VETRAIO`, `MapData`, the navmesh bake and the four map
-> tests have not been started.
+> **M0 COMPLETE — 2026-08-05.** All twelve stories are `status: done`. The exit
+> criterion holds: the project is scaffolded, CI is green on seven jobs, the event
+> bus and tuning resources are in place, and the greybox `MAP-VETRAIO` loads in
+> both topologies. 54 architecture guards and 69 unit tests run and are counted.
 >
-> **The project launches** in both topologies, but there is no map, so the root
-> scenes are empty. CI is green on `main` with 7 jobs; 49 architecture guards and
-> 43 unit tests run and are counted.
+> **Nothing moves yet** — there is no pawn. That is M1.
 >
-> One deliverable below remains only half-true: the six CI jobs are *required by
-> agreement, not by the server* — branch protection needs GitHub Pro on a private
-> repo. See [`../20_tdd/12_build_and_ci.md`](../20_tdd/12_build_and_ci.md) §1.3.
+> Two deliverables below are still only half-true, and are recorded rather than
+> rounded up:
+>
+> - The six CI jobs are **required by agreement, not by the server** — branch
+>   protection needs GitHub Pro on a private repo
+>   ([`../20_tdd/12_build_and_ci.md`](../20_tdd/12_build_and_ci.md) §1.3). Four
+>   acceptance criteria in US-0002/3/4/5 stay unticked for this reason.
+> - The **navmesh bake** is declared and asserted as exclusions in `MapData`, but
+>   the runtime bake needs a live scene tree that no test starts. Recorded in
+>   US-0012.
 
 | Delivers | |
 |---|---|

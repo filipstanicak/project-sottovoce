@@ -62,6 +62,28 @@ func _save_scene(root: Node3D, path: String) -> bool:
 	if packed.pack(root) != OK or ResourceSaver.save(packed, path) != OK:
 		push_error("failed to save %s" % path)
 		return false
+	return _strip_unique_ids(path)
+
+
+## Godot stamps every node with a RANDOM `unique_id` on save, so re-running the
+## generator produces a 300-line diff in which nothing changed. Stripping them
+## makes the committed scenes byte-stable, which is the only way "regenerate and
+## check git diff is empty" can be the verification it claims to be.
+func _strip_unique_ids(path: String) -> bool:
+	var file := FileAccess.open(path, FileAccess.READ)
+	if file == null:
+		push_error("could not reopen %s" % path)
+		return false
+	var text := file.get_as_text()
+	file.close()
+
+	var cleaned := RegEx.create_from_string(" unique_id=-?[0-9]+").sub(text, "", true)
+	var out := FileAccess.open(path, FileAccess.WRITE)
+	if out == null:
+		push_error("could not rewrite %s" % path)
+		return false
+	out.store_string(cleaned)
+	out.close()
 	return true
 
 
