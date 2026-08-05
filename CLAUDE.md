@@ -212,46 +212,46 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 *Updated 2026-08-05. Keep this section current — it is the first thing a fresh
 session reads, and a stale one is worse than none.*
 
-**M0 IS COMPLETE. M1 IS 3 OF 12.** US-0013 (state machine), US-0014 (transition
-table) and US-0015 (the speed ladder) are `status: done`. **US-0016 is next** —
-the input map, `InputCommand` and dual input buffering.
+**M0 IS COMPLETE. M1 IS 4 OF 12.** US-0013 (state machine), US-0014 (transition
+table), US-0015 (the speed ladder) and US-0016 (input) are `status: done`.
+**US-0017 is next** — the traversal probes.
 
-**The pawn integrates motion but nothing drives it.** The six locomotion states
-compute velocity from an `InputCommand`, and 93 unit tests exercise them — but
-no real input reaches them yet, so launching the game still shows a static map.
-US-0016 is what connects a keyboard to the ladder.
-
-M1's gate is *subjective* (ROADMAP §3.1). **If the pawn does not feel good at
-M1, it will not feel good at M6** — and nothing merged so far can tell you
-whether it does. That judgement needs a human at the controls, after US-0016.
-
-**The game runs, with the map:**
+**THE PAWN WALKS.** A key press reaches the speed ladder through the real input
+map, and `test/integration/test_client_boot_walks.gd` asserts it end to end.
+Launch a client and you can drive it:
 
 ```bash
 godot --headless -- --server --port 27015 --max-players 6
 godot -- --connect 127.0.0.1:27015
 ```
 
-The pawn scenes exist but hold no states, so nothing walks. See
-`docs/40_backlog/ROADMAP.md` §3 and the `US-0015`+ stories.
+WASD, Left Ctrl to blend-walk, Left Shift to run, double-tap Shift to sprint.
+The camera is `DebugFollowCamera` — scaffolding in `scripts/debug/`, not
+`SYS-CAMERA`, which is US-0021 to US-0023.
+
+M1's gate is *subjective* (ROADMAP §3.1). **If the pawn does not feel good at
+M1, it will not feel good at M6.** It is judgeable for the first time and has
+not been judged — that needs a human at the controls, and the answer is not in
+any test.
 
 | | |
 |---|---|
 | CI | 7 jobs, green on `main`. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | 58 architecture guards + 93 unit tests, both counted in CI |
-| Tuning | 271 tunables across 14 resource classes; all 20 cross-field invariants assert |
-| Autoloads | All eight. `Tuning` precomputes 86 durations to integer server ticks |
+| Tests | 70 architecture guards + 152 unit + 7 integration, all three counted in CI |
+| Tuning | 274 tunables across 14 resource classes; all 20 cross-field invariants assert |
+| Autoloads | All eight. `Tuning` precomputes 89 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |
 | Boot | Branches on `--server`; 7 CLI flags parsed in pure Core; 5 export presets |
 | Map | `MAP-VETRAIO` greybox, 120 × 120 m. Client loads 28 meshes, server loads none |
 | Pawn | 15 states declared, 121 transition edges asserted against the normative diagram. Nine implemented: six locomotion + `KillAnim`, `Stunned`, `Blended`. Six are US-0017+ |
+| Input | 21 `InputMap` actions from 15 `INPUT-` IDs, KBM + pad. Chain GDD-02 → `Ids` → `InputActions` → `project.godot`, guarded on every hop, both directions |
 
 **Four criteria are deliberately unticked** in US-0002/3/4/5, all variants of
 "required check on `main`". They are blocked by the GitHub plan, not by the work
 — see §1.3 of `docs/20_tdd/12_build_and_ci.md`. The navmesh **bake** is likewise
 owed and recorded in US-0012.
 
-### Six things that will cost you an hour if you do not know them
+### Seven things that will cost you an hour if you do not know them
 
 1. **Two things are GENERATED.** `scripts/core/ids.gd`, `scripts/core/tuning/*.gd`
    and `tuning_index.gd` come from `tools/tuning_codegen/run_all.py`; the map
@@ -263,9 +263,12 @@ owed and recorded in US-0012.
    Use `TuningProfile.clone()`. Getting this wrong writes to the live profile.
 3. **Verify against `git archive HEAD`, not the working tree.** Git does not
    track empty directories, and a local pass proved nothing once already.
-4. **No test boots a scene.** The whole boot path was broken — `change_scene_to_file`
-   from `_ready()` fails while the tree is still building — with 92 tests green.
-   Run the game after touching anything scene-related.
+4. **The CLIENT scene is booted by a test now; the server scene is not.**
+   `test/integration/test_client_boot_walks.gd` drives the real client through
+   the real bindings. Everything else is still unbooted, and this trap has bitten
+   twice: `change_scene_to_file` from `_ready()` failed with 92 tests green, and
+   spawning through `transition()` into an unimplemented state failed with 222.
+   **Run the game after touching anything scene-related.**
 5. **OPENING THE GODOT EDITOR REWRITES `project.godot`** and deletes every key
    whose value matches an engine default, plus every comment. It did this once
    already, removing `rendering_method` and `physics_ticks_per_second`.
@@ -275,6 +278,14 @@ owed and recorded in US-0012.
    `docs/20_tdd/12_build_and_ci.md`. Run `git config core.hooksPath .githooks` in
    every fresh clone, and wait for a run to report `completed success` before
    merging. `gh run watch` can return while a run is still queued.
+7. **THERE ARE TWO TICK DOMAINS.** `Tuning.ticks()` converts at the 30 Hz net
+   tick; `Tuning.step_ticks()` converts at the 60 Hz input rate. Anything
+   incremented inside `PawnState.step()` — `ctx.state_timer_ticks`, the action
+   buffers — advances at 60 and must use `step_ticks`. Getting it wrong halves
+   the duration *silently*, because both are plausible integers. Four merged
+   call sites had it wrong until US-0016, including the stun freeze, which
+   design law 5 forbids weakening. `test_step_counters_use_step_ticks.gd` now
+   refuses `Tuning.ticks(` anywhere under `scripts/pawn/`.
 
 ### Local environment
 

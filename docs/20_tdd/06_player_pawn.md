@@ -274,20 +274,30 @@ simulation result. A client-only action buffer would mean the client predicting 
 server never performed.
 
 ```gdscript
-## Called every step. A traverse pressed up to TUN-TRAVERSE-INPUT-BUFFER (0.2 s)
-## before it becomes legal is honoured rather than dropped.
-static func tick_action_buffer(ctx: PawnContext, input: InputCommand) -> void:
-    if input.buttons & InputBits.TRAVERSE:
-        ctx.traverse_buffer_ticks = Tuning.ticks(&"TUN-TRAVERSE-INPUT-BUFFER")   # 6 ticks
+## Called every step, from PawnStateMachine.step(), BEFORE the state runs — so a
+## press and its consumption can land on the same tick. Implemented as
+## PawnInputBuffer (US-0016).
+##
+## Tuning.STEP_ticks, not Tuning.ticks. This counter advances once per step(),
+## which runs at 60 Hz; the 30 Hz conversion would forgive 0.10 s while every
+## document says 0.20. See TDD-03 §1.1 — the two tick domains.
+static func tick(ctx: PawnContext, input: InputCommand) -> void:
+    if input.traverse:
+        ctx.traverse_buffer_ticks = Tuning.step_ticks(&"TUN-TRAVERSE-INPUT-BUFFER")  # 12 ticks
     elif ctx.traverse_buffer_ticks > 0:
         ctx.traverse_buffer_ticks -= 1
 
+## CONSUMING: a buffered input must fire exactly once, or it re-triggers on the
+## next legal frame and vaults the player somewhere they did not ask for.
 static func consume_traverse(ctx: PawnContext) -> bool:
     if ctx.traverse_buffer_ticks > 0:
         ctx.traverse_buffer_ticks = 0
         return true
     return false
 ```
+
+The ability buffer is the same shape against `TUN-ABILITY-INPUT-BUFFER` and a separate counter.
+Sharing one would let a traverse eat an ability the player also pressed.
 
 ---
 
@@ -436,7 +446,13 @@ func PawnContext.apply_authoritative(state: PredictedState) -> void
 | `scripts/pawn/traversal/traversal_resolver.gd` | §4.2 resolution |
 | `scripts/pawn/traversal/probe_result.gd` | `ProbeResult` |
 | `scripts/core/math/locomotion.gd` | Shared acceleration |
+| `scripts/pawn/pawn_input_buffer.gd` | The action buffer (§3), inside `step()` |
 | `scripts/net/protocol/input_bits.gd` | Button bitfield constants |
+| `scripts/net/protocol/input_actions.gd` | The action table: `INPUT-` ID → bit, kind, bindings |
+| `scripts/net/client/input_history.gd` | The reconciliation buffer (§3), client only |
+| `scripts/presentation/input_sampler.gd` | The only file that touches `Input` |
+| `scripts/presentation/input_rebinder.gd` | The only file that writes `InputMap` |
+| `scripts/presentation/local_pawn_driver.gd` | Drives `step()` at 60 Hz from sampled input |
 
 ---
 
@@ -456,6 +472,9 @@ func PawnContext.apply_authoritative(state: PredictedState) -> void
 | `test_blended_yields.gd` | A blended pawn can be killed and stunned normally |
 | `test_traversal_resolution.gd` | All seven §4.2 cases in priority order, **including case 7's silence** |
 | `test_traversal_forgiveness.gd` | A traverse 0.20 s early or 0.25 s late still resolves |
+| `test_pawn_input_buffer.gd` | The action buffer arms, decays, expires and is consumed exactly once — at the **step** rate |
+| `test_step_counters_use_step_ticks.gd` | Nothing under `scripts/pawn/` compares a 60 Hz counter against the 30 Hz conversion |
+| `test_client_boot_walks.gd` | **A key press moves the pawn**, through the real scene and the real bindings |
 | `test_probes_mask_world_only.gd` | Probe masks exclude `PAWN` and `NPC` layers |
 | `test_pawn_context_size.gd` | `PawnContext` has ≤ 25 fields (TDD-01 open question 2) |
 | `test_pawn_no_literals.gd` | No bare numeric literal under `scripts/pawn/` except 0, 1, −1 |

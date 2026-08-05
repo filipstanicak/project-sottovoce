@@ -163,6 +163,12 @@ jobs:
       - name: Unit tests
         run: bash .ci/run_gut.sh test/unit "unit tests"
 
+      # Boots real scenes. Unit tests prove step() is correct; they cannot prove
+      # anything ever CALLS it, and twice now a broken boot path has survived a
+      # fully green suite — once with 92 tests passing, once with 222.
+      - name: Integration tests
+        run: bash .ci/run_gut.sh test/integration "integration tests"
+
   # ----------------------------------------------------------------- export --
   export:
     name: export

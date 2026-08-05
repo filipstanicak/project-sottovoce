@@ -46,6 +46,7 @@ var ability: AbilityTuning
 var flags: FeatureFlags
 
 var _ticks: Dictionary = {}
+var _step_ticks: Dictionary = {}
 
 
 func _ready() -> void:
@@ -67,6 +68,27 @@ func _ready() -> void:
 ## slow frame. Returns 0 for a non-duration or an unknown ID.
 func ticks(id: StringName) -> int:
 	return int(_ticks.get(id, 0))
+
+
+## Precomputed integer ticks of `PawnState.step()`, which runs at
+## `TUN-NET-CLIENT-INPUT-RATE` 60 Hz — NOT at the 30 Hz net tick.
+##
+## **THERE ARE TWO TICK DOMAINS AND MIXING THEM HALVES A DURATION.** TDD-03 §1.1:
+## every gameplay *decision* happens at 30 Hz, but pawn *integration* substeps at
+## 60 Hz, once per received `InputCommand`. So a counter incremented inside
+## `step()` — `ctx.state_timer_ticks`, the action buffers — advances twice as
+## fast as `ticks()` assumes, and comparing the two makes every window expire at
+## half its tuned length.
+##
+## It did exactly that, silently, from US-0013 until US-0016 found it: the stun
+## freeze ran 1.0 s instead of 2.0, the kill animation 0.7 s instead of 1.4, and
+## Jog escalated to Run in 0.18 s instead of 0.35. Nothing failed, because both
+## numbers are plausible integers.
+##
+## **If a counter is incremented in `step()`, compare it against this.** If it is
+## incremented once per net tick, compare it against `ticks()`.
+func step_ticks(id: StringName) -> int:
+	return int(_step_ticks.get(id, 0))
 
 
 ## True when `id` is a duration and therefore has a tick count.
@@ -135,7 +157,7 @@ func _bind_sections() -> void:
 
 func _recompute_ticks() -> void:
 	_ticks.clear()
-	var rate := net.server_tick
+	_step_ticks.clear()
 	for id: StringName in Index.FIELD:
 		var entry: Array = Index.FIELD[id]
 		var unit: String = entry[2]
@@ -147,7 +169,10 @@ func _recompute_ticks() -> void:
 		var seconds := float(holder.get(StringName(entry[1])))
 		if unit == "ms":
 			seconds /= 1000.0
-		_ticks[id] = int(round(seconds * rate))
+		_ticks[id] = int(round(seconds * net.server_tick))
+		# The second domain. See step_ticks(): a counter advanced once per
+		# PawnState.step() runs at the input rate, not the net tick.
+		_step_ticks[id] = int(round(seconds * net.client_input_rate))
 
 
 func _resolve_holder(name: String) -> Variant:

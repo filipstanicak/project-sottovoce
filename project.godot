@@ -45,7 +45,145 @@ window/stretch/aspect="keep_height"
 
 [input]
 
-; Bound in US-0016. Declared here so the map exists from the first commit.
+; US-0016. THE DEFAULT BINDINGS. GDD-02 §1.2 (keyboard/mouse) and §1.3 (gamepad).
+;
+; Action names are the INPUT- IDs, lowercased with hyphens as underscores —
+; INPUT-ABILITY-1 is input_ability_1. The transform is mechanical in both
+; directions (InputActions.action_name), so no lookup table can drift.
+; test_input_map_bound.gd asserts this section against InputActions, which is
+; asserted against Ids, which is asserted against GDD-02. Adding a row here
+; without a row there fails; the reverse fails too.
+;
+; Every deadzone is 0.05, not Godot's 0.2. The real gate is
+; TUN-SPEED-STICK-DEADZONE, applied by InputSampler — one authority, in tuning,
+; where it can be changed without touching engine configuration. A large
+; deadzone here would silently clamp the tunable's lower range.
+;
+; INPUT-MENU is the one action with no rebind (GDD-02 §1.4): a player who has
+; rebound their way out of the pause menu cannot rebind their way back in.
+
+input_move_left={
+"deadzone": 0.05,
+"events": [Object(InputEventKey,"device":-1,"physical_keycode":65,"pressed":false)
+, Object(InputEventJoypadMotion,"device":-1,"axis":0,"axis_value":-1.0)
+]
+}
+input_move_right={
+"deadzone": 0.05,
+"events": [Object(InputEventKey,"device":-1,"physical_keycode":68,"pressed":false)
+, Object(InputEventJoypadMotion,"device":-1,"axis":0,"axis_value":1.0)
+]
+}
+input_move_back={
+"deadzone": 0.05,
+"events": [Object(InputEventKey,"device":-1,"physical_keycode":83,"pressed":false)
+, Object(InputEventJoypadMotion,"device":-1,"axis":1,"axis_value":1.0)
+]
+}
+input_move_forward={
+"deadzone": 0.05,
+"events": [Object(InputEventKey,"device":-1,"physical_keycode":87,"pressed":false)
+, Object(InputEventJoypadMotion,"device":-1,"axis":1,"axis_value":-1.0)
+]
+}
+input_look_left={
+"deadzone": 0.05,
+"events": [Object(InputEventJoypadMotion,"device":-1,"axis":2,"axis_value":-1.0)
+]
+}
+input_look_right={
+"deadzone": 0.05,
+"events": [Object(InputEventJoypadMotion,"device":-1,"axis":2,"axis_value":1.0)
+]
+}
+input_look_down={
+"deadzone": 0.05,
+"events": [Object(InputEventJoypadMotion,"device":-1,"axis":3,"axis_value":1.0)
+]
+}
+input_look_up={
+"deadzone": 0.05,
+"events": [Object(InputEventJoypadMotion,"device":-1,"axis":3,"axis_value":-1.0)
+]
+}
+input_slow={
+"deadzone": 0.05,
+"events": [Object(InputEventKey,"device":-1,"physical_keycode":4194326,"location":1,"pressed":false)
+, Object(InputEventJoypadButton,"device":-1,"button_index":7,"pressed":false)
+]
+}
+input_run={
+"deadzone": 0.05,
+"events": [Object(InputEventKey,"device":-1,"physical_keycode":4194325,"location":1,"pressed":false)
+, Object(InputEventJoypadMotion,"device":-1,"axis":4,"axis_value":1.0)
+]
+}
+input_sprint={
+"deadzone": 0.05,
+"events": [Object(InputEventKey,"device":-1,"physical_keycode":4194325,"location":1,"pressed":false)
+, Object(InputEventJoypadButton,"device":-1,"button_index":1,"pressed":false)
+]
+}
+input_traverse={
+"deadzone": 0.05,
+"events": [Object(InputEventKey,"device":-1,"physical_keycode":32,"pressed":false)
+, Object(InputEventJoypadButton,"device":-1,"button_index":0,"pressed":false)
+]
+}
+input_kill={
+"deadzone": 0.05,
+"events": [Object(InputEventMouseButton,"device":-1,"button_index":1,"pressed":false)
+, Object(InputEventJoypadMotion,"device":-1,"axis":5,"axis_value":1.0)
+]
+}
+input_stun={
+"deadzone": 0.05,
+"events": [Object(InputEventMouseButton,"device":-1,"button_index":2,"pressed":false)
+, Object(InputEventJoypadButton,"device":-1,"button_index":10,"pressed":false)
+]
+}
+input_blend={
+"deadzone": 0.05,
+"events": [Object(InputEventKey,"device":-1,"physical_keycode":69,"pressed":false)
+, Object(InputEventJoypadButton,"device":-1,"button_index":2,"pressed":false)
+]
+}
+input_ability_1={
+"deadzone": 0.05,
+"events": [Object(InputEventKey,"device":-1,"physical_keycode":81,"pressed":false)
+, Object(InputEventJoypadButton,"device":-1,"button_index":9,"pressed":false)
+]
+}
+input_ability_2={
+"deadzone": 0.05,
+"events": [Object(InputEventKey,"device":-1,"physical_keycode":70,"pressed":false)
+, Object(InputEventJoypadButton,"device":-1,"button_index":3,"pressed":false)
+]
+}
+input_scan={
+"deadzone": 0.05,
+"events": [Object(InputEventMouseButton,"device":-1,"button_index":3,"pressed":false)
+, Object(InputEventJoypadButton,"device":-1,"button_index":8,"pressed":false)
+]
+}
+input_shoulder={
+"deadzone": 0.05,
+"events": [Object(InputEventKey,"device":-1,"physical_keycode":88,"pressed":false)
+, Object(InputEventJoypadButton,"device":-1,"button_index":14,"pressed":false)
+]
+}
+input_score={
+"deadzone": 0.05,
+"events": [Object(InputEventKey,"device":-1,"physical_keycode":4194306,"pressed":false)
+, Object(InputEventJoypadButton,"device":-1,"button_index":4,"pressed":false)
+]
+}
+input_menu={
+"deadzone": 0.05,
+"events": [Object(InputEventKey,"device":-1,"physical_keycode":4194305,"pressed":false)
+, Object(InputEventJoypadButton,"device":-1,"button_index":6,"pressed":false)
+]
+}
 
 [layer_names]
 

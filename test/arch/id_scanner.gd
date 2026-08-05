@@ -10,6 +10,7 @@ extends RefCounted
 ## `test_id_grammar.gd`, which fails if this table and that section disagree.
 const GRAMMAR := {
 	"SYS": "^SYS-[A-Z][A-Z0-9]*(-[A-Z0-9]+)*$",
+	"INPUT": "^INPUT-[A-Z]+(-[A-Z0-9]+)*$",
 	"SCORE": "^SCORE-[A-Z]+$",
 	"ABIL": "^ABIL-[A-Z]+$",
 	"PASV": "^PASV-[A-Z]+$",
@@ -35,7 +36,7 @@ const GRAMMAR := {
 ## MAT-, PROP- and TEL- are runtime-bound but arrive with the systems that
 ## consume them, so mirroring them now would be a list nothing reads.
 const MIRRORED: Array[String] = [
-	"SCORE", "ABIL", "PASV", "PERSONA", "ARCH", "MAP", "EVT", "NET", "SFX", "MUS", "ANIM"
+	"INPUT", "SCORE", "ABIL", "PASV", "PERSONA", "ARCH", "MAP", "EVT", "NET", "SFX", "MUS", "ANIM"
 ]
 
 ## Declared in the corpus with a namespace prefix, but NOT a member of that

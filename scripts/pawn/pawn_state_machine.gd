@@ -72,10 +72,37 @@ func step(ctx: PawnContext, input: InputCommand, delta: float) -> StringName:
 		push_error("pawn is in unregistered state %s" % ctx.state_id)
 		return ctx.state_id
 	ctx.state_timer_ticks += 1
+	# Before the state runs, so a traverse pressed early is already armed when the
+	# state that could honour it looks. Inside step() deliberately: the buffer
+	# changes the simulation, and a client-only one predicts vaults the server
+	# never performed (TDD-06 §3).
+	PawnInputBuffer.tick(ctx, input)
 	var requested := current.step(ctx, input, delta)
 	if requested != PawnState.STAY:
 		transition(ctx, requested, current.interrupt_priority())
 	return ctx.state_id
+
+
+## Place a pawn into `id` with no edge check, and run its `enter()`.
+##
+## **SPAWNING IS NOT A TRANSITION.** There is no state to come *from*: a pawn
+## being placed in the world has no history, and asking the graph to justify the
+## move would be asking it a question it does not model. `PawnContext` starts in
+## `Respawning`, which is `SYS-SPAWN`'s state and does not exist until US-0062;
+## routing a spawn through `transition()` therefore looked up a state that was
+## not registered and took the whole boot down with it — with 222 tests green.
+##
+## Returns false for an unregistered target, so a caller cannot leave a pawn in a
+## state nothing can step.
+func spawn_into(ctx: PawnContext, id: StringName) -> bool:
+	if not _states.has(id):
+		push_error("cannot spawn into unregistered state %s" % id)
+		return false
+	var from := ctx.state_id
+	ctx.state_id = id
+	_states[id].enter(ctx)
+	state_changed.emit(from, id)
+	return true
 
 
 ## Validate and perform a transition. Returns whether it happened.
@@ -89,6 +116,12 @@ func transition(ctx: PawnContext, to: StringName, priority: int) -> bool:
 		return false
 	if not _states.has(to):
 		push_error("transition to unregistered state %s" % to)
+		return false
+	if not _states.has(ctx.state_id):
+		# The FROM state is unregistered. During M1 that is a normal intermediate
+		# condition — six states arrive in US-0017+ — and it must not crash the
+		# lookup below. Use `spawn_into()` to place a pawn without an edge.
+		push_error("transition FROM unregistered state %s" % ctx.state_id)
 		return false
 	if not is_valid_edge(ctx.state_id, to):
 		assert(false, "Illegal transition %s -> %s (TDD-06 §2.2)" % [ctx.state_id, to])

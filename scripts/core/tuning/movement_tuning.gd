@@ -61,6 +61,31 @@ extends Resource
 ## TUN-SPEED-SPRINT-HOLD
 @export_range(0.3, 0.6, 0.1) var sprint_hold: float = 0.4
 
+## Maximum gap between the two INPUT-SPRINT presses of a double-tap. The other half of §1.5's
+## deliberate friction, and the half that had no number: the GDD says "double-tap" and never said
+## how fast. Short enough that a nervous re-press does not sprint you; long enough to be
+## reachable under pressure.
+## TUN-SPEED-SPRINT-DOUBLETAP
+@export_range(0.15, 0.4, 0.01) var sprint_doubletap: float = 0.25
+
+## Below this, the left stick reads as no input at all. Not cosmetic: wants_movement() decides →
+## Idle, so a drifting stick would hold a pawn out of the one state where suspicion decays
+## fastest.
+## TUN-SPEED-STICK-DEADZONE
+@export_range(0.05, 0.25, 0.01) var stick_deadzone: float = 0.15
+
+## Left-stick magnitude at or below which a gamepad walks at blend-walk without holding the
+## modifier (§1.3). Promoted from prose; it is the pad's half of the most important key in the
+## game.
+## TUN-SPEED-STICK-BLENDWALK-MAX
+@export_range(0.2, 0.45, 0.01) var stick_blendwalk_max: float = 0.3
+
+## Analogue trigger pull above which INPUT-RUN reads as full rather than partial — GDD-02 §1.3's
+## "partial pull = jog, full pull = run". Below it the pad is held at jog, which is the rung a
+## player can afford.
+## TUN-SPEED-TRIGGER-RUN
+@export_range(0.5, 0.95, 0.01) var trigger_run: float = 0.75
+
 ## Backing away from a hunter is possible but slow; the correct defensive answer is to blend, not
 ## to retreat.
 ## TUN-SPEED-BACKPEDAL-MULT

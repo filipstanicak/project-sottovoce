@@ -43,7 +43,7 @@ depends_on: [DOC-GLOSSARY, TUN-INDEX, GDD-01-VISION]
 | Look | `INPUT-LOOK` | Mouse | Axis (2D) | |
 | **Blend-walk** | `INPUT-SLOW` | `Left Ctrl` | Hold | Forces `TUN-SPEED-BLENDWALK`. The most important key in the game. |
 | **Run** | `INPUT-RUN` | `Left Shift` | Hold | Raises the ceiling to `TUN-SPEED-RUN`. |
-| **Sprint** | `INPUT-SPRINT` | `Left Shift` (double-tap or hold past `TUN-SPEED-SPRINT-HOLD`) | Hold | Deliberately *awkward* — see §1.5. |
+| **Sprint** | `INPUT-SPRINT` | `Left Shift` (double-tap within `TUN-SPEED-SPRINT-DOUBLETAP`, or hold past `TUN-SPEED-SPRINT-HOLD`) | Hold | Deliberately *awkward* — see §1.5. |
 | **Traverse** | `INPUT-TRAVERSE` | `Space` | Press | Context-resolved (§7). |
 | **Kill** | `INPUT-KILL` | `Left Mouse` | Press | Validity conditions in [`03_social_stealth.md`](03_social_stealth.md) §10. |
 | **Stun** | `INPUT-STUN` | `Right Mouse` | Press | Only valid against your pursuer. Misuse is punished (`TUN-STUN-INVALID-STAGGER`). |
@@ -62,8 +62,8 @@ depends_on: [DOC-GLOSSARY, TUN-INDEX, GDD-01-VISION]
 |---|---|---|
 | Move | Left stick | Stick magnitude maps continuously to the speed ladder — the analogue advantage. |
 | Look | Right stick | |
-| Blend-walk | `L3` (click) toggle **or** stick magnitude < 0.3 | Toggle by default on pad, because holding a click is uncomfortable. |
-| Run | `L2` / `LT` (analogue) | Partial pull = jog, full pull = run. |
+| Blend-walk | `L3` (click) toggle **or** stick magnitude ≤ `TUN-SPEED-STICK-BLENDWALK-MAX` | Toggle by default on pad, because holding a click is uncomfortable. |
+| Run | `L2` / `LT` (analogue) | Partial pull = jog; past `TUN-SPEED-TRIGGER-RUN` = run. |
 | Sprint | `L2` full + `A` / cross | Two-input, matching the KBM awkwardness. |
 | Traverse | `A` / cross | |
 | Kill | `R2` / `RT` | |
@@ -95,8 +95,16 @@ This is a known, accepted MVP limitation and is the first thing a real profile s
 
 ### 1.5 Why sprint is deliberately awkward
 
-`INPUT-SPRINT` requires a double-tap or a sustained hold past `TUN-SPEED-SPRINT-HOLD`, on both KBM and pad.
+`INPUT-SPRINT` requires a double-tap within `TUN-SPEED-SPRINT-DOUBLETAP`, or a sustained hold past
+`TUN-SPEED-SPRINT-HOLD`, on both KBM and pad.
 This is intentional friction, and it is the only intentional friction in the input scheme.
+
+**The friction is resolved client-side**, in the input sampler, and reaches the pawn as a single
+already-decided bit. That is deliberate: sprint is not an *outcome*, so nothing about it needs
+server adjudication (never-do #2 governs kill and stun, which are validated against the
+lag-compensated world). A modified client could skip the double-tap and gain nothing but the
+suspicion it costs — which is the whole price. The friction exists to stop *accidents*, not
+cheats, and a rule that only has to survive accident belongs where the accident happens.
 
 Sprinting reaches **Noticed** in 1.2 s and **Exposed** in 2.8 s
 (`TUN-SUSPICION-GAIN-SPRINT` 25/s). It is a three-second budget, not a movement mode

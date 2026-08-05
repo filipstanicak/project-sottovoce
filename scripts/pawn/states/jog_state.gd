@@ -34,6 +34,12 @@ func step(ctx: PawnContext, input: InputCommand, delta: float) -> StringName:
 	# Escalation is a HOLD, not a press. Counted in ticks because this decides a
 	# suspicion rate, and an accumulated float would decide it differently on the
 	# server than on the replay.
-	if ctx.state_timer_ticks >= Tuning.ticks(&"TUN-SPEED-RUN-HOLD"):
+	#
+	# And it is a hold at FULL pull. A gamepad half-pulling the trigger is asking
+	# to stay here (GDD-02 §1.3); dragging it up to Run would take away the one
+	# advantage the analogue stick is meant to have. A key press is always full.
+	if not input.run_full:
+		return STAY
+	if ctx.state_timer_ticks >= Tuning.step_ticks(&"TUN-SPEED-RUN-HOLD"):
 		return PawnStateId.RUN
 	return STAY

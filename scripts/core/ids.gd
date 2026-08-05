@@ -16,6 +16,24 @@
 class_name Ids
 extends RefCounted
 
+# --- INPUT ---------------------------------------------------------------
+## Player input actions. GDD-02 §1.2 (KBM) and §1.3 (gamepad).
+const INPUT_ABILITY_1 := &"INPUT-ABILITY-1"
+const INPUT_ABILITY_2 := &"INPUT-ABILITY-2"
+const INPUT_BLEND := &"INPUT-BLEND"
+const INPUT_KILL := &"INPUT-KILL"
+const INPUT_LOOK := &"INPUT-LOOK"
+const INPUT_MENU := &"INPUT-MENU"
+const INPUT_MOVE := &"INPUT-MOVE"
+const INPUT_RUN := &"INPUT-RUN"
+const INPUT_SCAN := &"INPUT-SCAN"
+const INPUT_SCORE := &"INPUT-SCORE"
+const INPUT_SHOULDER := &"INPUT-SHOULDER"
+const INPUT_SLOW := &"INPUT-SLOW"
+const INPUT_SPRINT := &"INPUT-SPRINT"
+const INPUT_STUN := &"INPUT-STUN"
+const INPUT_TRAVERSE := &"INPUT-TRAVERSE"
+
 # --- SCORE ---------------------------------------------------------------
 ## Score event kinds. The ScoreEvent log is keyed on these.
 const SCORE_BLENDED := &"SCORE-BLENDED"
