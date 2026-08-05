@@ -212,9 +212,15 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 *Updated 2026-08-05. Keep this section current — it is the first thing a fresh
 session reads, and a stale one is worse than none.*
 
-**M0 IS COMPLETE. All twelve stories are `status: done`.** The milestone's exit
-criterion — *project scaffolded, CI green, event bus and tuning resources in
-place, greybox map loads* — holds.
+**M0 IS COMPLETE. M1 IS 2 OF 12.** US-0013 (state machine skeleton) and US-0014
+(the transition table) are `status: done`. **US-0015 is next** — the six
+locomotion states and the speed ladder, the first story where the pawn moves.
+
+**Nothing moves yet.** The state graph exists and is asserted; no state
+integrates motion. M1's exit is one player walking, blending, jogging,
+sprinting, climbing and vaulting locally, and its gate is *subjective* — see
+ROADMAP §3.1. **If the pawn does not feel good at M1, it will not feel good at
+M6.**
 
 **The game runs, with the map:**
 
@@ -223,18 +229,19 @@ godot --headless -- --server --port 27015 --max-players 6
 godot -- --connect 127.0.0.1:27015
 ```
 
-There is no pawn yet, so nothing moves. **M1 is the next milestone** — see
-`docs/40_backlog/ROADMAP.md` §3 and the `US-0013`+ stories.
+The pawn scenes exist but hold no states, so nothing walks. See
+`docs/40_backlog/ROADMAP.md` §3 and the `US-0015`+ stories.
 
 | | |
 |---|---|
 | CI | 7 jobs, green on `main`. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | 54 architecture guards + 69 unit tests, both counted in CI |
+| Tests | 58 architecture guards + 87 unit tests, both counted in CI |
 | Tuning | 269 tunables across 14 resource classes; all 20 cross-field invariants assert |
 | Autoloads | All eight. `Tuning` precomputes 86 durations to integer server ticks |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |
 | Boot | Branches on `--server`; 7 CLI flags parsed in pure Core; 5 export presets |
 | Map | `MAP-VETRAIO` greybox, 120 × 120 m. Client loads 28 meshes, server loads none |
+| Pawn | 15 states declared, 115 transition edges asserted against the normative diagram. Three states implemented (`KillAnim`, `Stunned`, `Blended`); twelve are US-0015+ |
 
 **Four criteria are deliberately unticked** in US-0002/3/4/5, all variants of
 "required check on `main`". They are blocked by the GitHub plan, not by the work
