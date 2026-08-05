@@ -73,6 +73,7 @@ Otherwise a log line is sufficient.
 | 2026-08-03 | — | Minimap, kill-cam and cosmetics recorded as permanent design laws rather than schedule cuts. |
 | 2026-08-04 | ADR-0011 | Engine version pinned to **Godot 4.7.1 stable** (was 4.5). Recorded as a superseding ADR rather than an edit, because ADR-0001's own rule forbids absorbing a version change silently. |
 | 2026-08-03 | ASM-0030 | Contract portrait starts unknown and is filled permanently by completing a Compass lock — reconciles the brief's HUD element with the rule that a hunter is never told their contract's persona, and gives the lock a payoff worth its cost. |
+| 2026-08-05 | — | CI guards enumerate files through `.ci/repo_files.sh`, which falls back to `find` outside a git work tree and **fails on an empty or anchorless list**. `ip-guard` and `asset-inventory` had reported "clean" over zero of 739 files in a `git archive HEAD` extraction — the environment the checkpoint procedure uses. Rejected: making the guards merely skip outside git, which preserves the vacuous green and hides it better. TDD-12 §1.5. |
 
 ---
 

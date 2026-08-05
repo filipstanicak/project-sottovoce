@@ -34,6 +34,7 @@ That is a stop-and-ask condition in
 | `test_ids_match_glossary` | An ID in code but not the docs, **or the reverse** | Each file reads fine alone; only the comparison shows the gap |
 | `test_id_grammar` | A malformed ID | `MAT-GREY-FLOOR` and `MAT-STONE` both look like material IDs |
 | `test_ids_are_stringname` | `"ID"` where `&"ID"` was meant | One character; behaviour is identical, allocation is not |
+| `test_ci_guards_refuse_empty_scan` | A CI guard reporting "clean" over zero files | It passes in the work tree, where anyone would test it; only the clean checkout is vacuous |
 
 The last one is the pattern: these failures are all *individually defensible*
 and *collectively fatal*.

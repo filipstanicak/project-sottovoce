@@ -237,7 +237,7 @@ any test.
 | | |
 |---|---|
 | CI | 7 jobs, green on `main`. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | 70 architecture guards + 152 unit + 7 integration, all three counted in CI |
+| Tests | 74 architecture guards + 152 unit + 7 integration, all three counted in CI |
 | Tuning | 274 tunables across 14 resource classes; all 20 cross-field invariants assert |
 | Autoloads | All eight. `Tuning` precomputes 89 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |
@@ -263,6 +263,12 @@ owed and recorded in US-0012.
    Use `TuningProfile.clone()`. Getting this wrong writes to the live profile.
 3. **Verify against `git archive HEAD`, not the working tree.** Git does not
    track empty directories, and a local pass proved nothing once already.
+   **The extraction has no `.git`**, so anything reaching for git there gets
+   nothing: `ip-guard` and `asset-inventory` both enumerated with `git ls-files`
+   and printed "clean" over **zero of 739 files** for two milestones — vacuously
+   green exactly where the checkpoint most trusted them. Both now enumerate
+   through `.ci/repo_files.sh`, which falls back to `find` and refuses an empty
+   list. TDD-12 §1.5. If you write a third guard, source that helper.
 4. **The CLIENT scene is booted by a test now; the server scene is not.**
    `test/integration/test_client_boot_walks.gd` drives the real client through
    the real bindings. Everything else is still unbooted, and this trap has bitten
