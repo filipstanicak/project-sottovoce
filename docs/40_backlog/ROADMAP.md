@@ -62,7 +62,7 @@ exit criterion is somebody's named deliverable rather than a shared assumption.
 > **M0 COMPLETE — 2026-08-05.** All twelve stories are `status: done`. The exit
 > criterion holds: the project is scaffolded, CI is green on seven jobs, the event
 > bus and tuning resources are in place, and the greybox `MAP-VETRAIO` loads in
-> both topologies. 54 architecture guards and 69 unit tests run and are counted.
+> both topologies. At M0 exit: 54 architecture guards and 69 unit tests, both counted.
 >
 > **Nothing moves yet** — there is no pawn. That is M1.
 >
@@ -115,6 +115,15 @@ state machine, locally.
 | Traversal probes + the 7-case resolver + forgiveness windows | |
 | Camera rig: spring arm, FOV ladder, occlusion, crowd-scan | |
 | `test_feel_latency.gd` measuring input→animation | |
+
+> **Status 2026-08-05 — 2 of 12.** US-0013 (state machine skeleton) and US-0014
+> (the transition table) are done. The graph is declared and asserted edge-for-edge
+> against the §3 diagram in GDD-02, in both directions.
+>
+> **Nothing moves.** Three of fifteen states are implemented — `KillAnim`,
+> `Stunned` and `Blended`, because US-0014's acceptance criteria named their
+> interrupt behaviour specifically. The six locomotion states and the speed ladder
+> are US-0015, and no state integrates motion yet.
 
 ### 3.1 The M1 feel gate
 
