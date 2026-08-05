@@ -1,4 +1,6 @@
-[gd_scene format=3 uid="uid://bs0ttovserverroot"]
+[gd_scene load_steps=2 format=3 uid="uid://bs0ttovserverroot"]
+
+[ext_resource type="PackedScene" path="res://scenes/map/map_vetraio_collision.tscn" id="1_map"]
 
 ; Server topology. NO PRESENTATION NODES — the release server export excludes
 ; scripts/presentation/, scripts/mirrors/ and scenes/ui/ entirely, so anything
@@ -10,3 +12,5 @@
 [node name="Systems" type="Node" parent="."]
 
 [node name="World" type="Node3D" parent="."]
+
+[node name="Map" parent="World" instance=ExtResource("1_map")]
