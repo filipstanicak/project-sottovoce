@@ -21,6 +21,8 @@ const FIELD := {
 	&"TUN-SPEED-ACCEL": ["movement", "accel", "m/s²"],
 	&"TUN-SPEED-DECEL": ["movement", "decel", "m/s²"],
 	&"TUN-SPEED-TURN-RATE-GROUND": ["movement", "turn_rate_ground", "deg/s"],
+	&"TUN-SPEED-RUN-HOLD": ["movement", "run_hold", "s"],
+	&"TUN-SPEED-SPRINT-HOLD": ["movement", "sprint_hold", "s"],
 	&"TUN-SPEED-BACKPEDAL-MULT": ["movement", "backpedal_mult", "×"],
 	&"TUN-TRAVERSE-VAULT-MAX-HEIGHT": ["movement", "traverse_vault_max_height", "m"],
 	&"TUN-TRAVERSE-VAULT-DURATION": ["movement", "vault_duration", "s"],

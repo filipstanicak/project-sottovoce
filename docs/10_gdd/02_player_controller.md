@@ -43,7 +43,7 @@ depends_on: [DOC-GLOSSARY, TUN-INDEX, GDD-01-VISION]
 | Look | `INPUT-LOOK` | Mouse | Axis (2D) | |
 | **Blend-walk** | `INPUT-SLOW` | `Left Ctrl` | Hold | Forces `TUN-SPEED-BLENDWALK`. The most important key in the game. |
 | **Run** | `INPUT-RUN` | `Left Shift` | Hold | Raises the ceiling to `TUN-SPEED-RUN`. |
-| **Sprint** | `INPUT-SPRINT` | `Left Shift` (double-tap or hold past 0.4 s) | Hold | Deliberately *awkward* — see §1.5. |
+| **Sprint** | `INPUT-SPRINT` | `Left Shift` (double-tap or hold past `TUN-SPEED-SPRINT-HOLD`) | Hold | Deliberately *awkward* — see §1.5. |
 | **Traverse** | `INPUT-TRAVERSE` | `Space` | Press | Context-resolved (§7). |
 | **Kill** | `INPUT-KILL` | `Left Mouse` | Press | Validity conditions in [`03_social_stealth.md`](03_social_stealth.md) §10. |
 | **Stun** | `INPUT-STUN` | `Right Mouse` | Press | Only valid against your pursuer. Misuse is punished (`TUN-STUN-INVALID-STAGGER`). |
@@ -95,7 +95,7 @@ This is a known, accepted MVP limitation and is the first thing a real profile s
 
 ### 1.5 Why sprint is deliberately awkward
 
-`INPUT-SPRINT` requires a double-tap or a sustained hold past 0.4 s, on both KBM and pad.
+`INPUT-SPRINT` requires a double-tap or a sustained hold past `TUN-SPEED-SPRINT-HOLD`, on both KBM and pad.
 This is intentional friction, and it is the only intentional friction in the input scheme.
 
 Sprinting reaches **Noticed** in 1.2 s and **Exposed** in 2.8 s
@@ -137,7 +137,7 @@ expressed as one conditional, and invariant §17.3 in TUNABLES asserts it.
 | Idle → Blend-walk | `INPUT-MOVE` magnitude > 0 with `INPUT-SLOW` held | |
 | Idle → Stroll | `INPUT-MOVE` magnitude > 0, no modifier | Default movement is Stroll, not Blend-walk. Blend-walk is a deliberate act. |
 | Stroll → Jog | `INPUT-RUN` held | |
-| Jog → Run | `INPUT-RUN` held ≥ 0.35 s | Continuous ramp; the discrete names are for tuning and telemetry, the acceleration is smooth. |
+| Jog → Run | `INPUT-RUN` held ≥ `TUN-SPEED-RUN-HOLD` | Continuous ramp; the discrete names are for tuning and telemetry, the acceleration is smooth. |
 | Run → Sprint | `INPUT-SPRINT` satisfied (§1.5) | |
 | Any → Blend-walk | `INPUT-SLOW` pressed | **Always available and instant.** Slowing down is never gated, never delayed, never refused. |
 | Any → Idle | `INPUT-MOVE` released | Deceleration at `TUN-SPEED-DECEL` 24 m/s², faster than acceleration — see below. |
@@ -152,6 +152,12 @@ into the acceleration curve.
 ---
 
 ## 3. The player state machine
+
+> **Amended by [ADR-0012](../00_meta/adr/ADR-0012-slow-is-always-available.md), 2026-08-05.**
+> Six edges were added: `Jog`/`Run`/`Sprint` → `BlendWalk` and → `Idle`. §2.2 declares
+> `Any → Blend-walk` "always available and instant" and `Any → Idle` on move-release, but
+> Mermaid has no notation for a wildcard edge, so neither row had ever been drawn — which
+> made `Sprint → BlendWalk` illegal in the asserted table and the M1 feel gate unmeetable.
 
 Fifteen states. This diagram is **normative**: the transition table in
 `PawnStateMachine.TRANSITIONS` is asserted against it by `test_pawn_transitions.gd`
@@ -178,6 +184,13 @@ stateDiagram-v2
         Run --> Jog: release INPUT-RUN
         Run --> Sprint: INPUT-SPRINT
         Sprint --> Run: release INPUT-SPRINT
+
+        Jog --> BlendWalk: INPUT-SLOW
+        Run --> BlendWalk: INPUT-SLOW
+        Sprint --> BlendWalk: INPUT-SLOW
+        Jog --> Idle: no move
+        Run --> Idle: no move
+        Sprint --> Idle: no move
     }
 
     Loco --> Vault: INPUT-TRAVERSE + waist probe hit

@@ -50,6 +50,17 @@ extends Resource
 ## TUN-SPEED-TURN-RATE-GROUND
 @export_range(360.0, 720.0, 0.1) var turn_rate_ground: float = 540.0
 
+## How long INPUT-RUN must be held before Jog escalates to Run. Promoted from prose in
+## 02_player_controller.md §2.2; the escalation is a gameplay timing and belongs here like every
+## other.
+## TUN-SPEED-RUN-HOLD
+@export_range(0.2, 0.6, 0.01) var run_hold: float = 0.35
+
+## Sustained-hold threshold for INPUT-SPRINT, the alternative to a double-tap. Deliberately
+## awkward (§1.5): sprinting must be a decision, not a lean on the stick. Promoted from prose.
+## TUN-SPEED-SPRINT-HOLD
+@export_range(0.3, 0.6, 0.1) var sprint_hold: float = 0.4
+
 ## Backing away from a hunter is possible but slow; the correct defensive answer is to blend, not
 ## to retreat.
 ## TUN-SPEED-BACKPEDAL-MULT
