@@ -245,7 +245,7 @@ US-0024 measures it against clips that do not exist.
 
 | | |
 |---|---|
-| CI | 7 jobs, green on `main`. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
+| CI | 7 jobs. **Last actually ran 2026-08-05 on `ac959b6`** — the four commits since have never been through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
 | Tests | 86 architecture guards + 333 unit + 64 integration, all three counted in CI |
 | Tuning | 282 tunables across 14 resource classes; all 22 cross-field invariants assert |
 | Autoloads | All eight. `Tuning` precomputes 89 durations into **two** tick tables — see trap 7 |
@@ -257,10 +257,13 @@ US-0024 measures it against clips that do not exist.
 | Camera | Real spring arm: 2.6 m, shoulder swap, occlusion that pulls **in** and never sideways, `WORLD`-masked so a crowd cannot push it. The FOV ladder is bound to the **state**, never to `ctx.velocity`: the rung is a consequence of the decision, not of the physics that follows it |
 | Input | 21 `InputMap` actions from 15 `INPUT-` IDs, KBM + pad. Chain GDD-02 → `Ids` → `InputActions` → `project.godot`, guarded on every hop, both directions |
 
-**Four criteria are deliberately unticked** in US-0002/3/4/5, all variants of
-"required check on `main`". They are blocked by the GitHub plan, not by the work
-— see §1.3 of `docs/20_tdd/12_build_and_ci.md`. The navmesh **bake** is likewise
-owed and recorded in US-0012.
+**Five criteria are deliberately unticked.** Four are in US-0002/3/4/5, all
+variants of "required check on `main`", blocked by the GitHub plan and not by the
+work — see §1.3 of `docs/20_tdd/12_build_and_ci.md`. The fifth is US-0022's
+motion-reduction line: the FOV **lock** is done and tested, but the persistent
+speed indicator that compensates for the warning channel it removes belongs to
+the HUD (US-0084), and half a criterion is not a tick. The navmesh **bake** is
+likewise owed and recorded in US-0012.
 
 ### Eleven things that will cost you an hour if you do not know them
 
@@ -295,11 +298,14 @@ owed and recorded in US-0012.
    `docs/20_tdd/12_build_and_ci.md`. Run `git config core.hooksPath .githooks` in
    every fresh clone, and wait for a run to report `completed success` before
    merging. `gh run watch` can return while a run is still queued.
-   **AND SINCE 2026-08-06 THERE ARE NO RUNS AT ALL** — zero in twenty-four hours,
-   across every trigger, with Actions reporting `enabled`. Probably exhausted
-   free-plan minutes; unconfirmed. Check that a run actually appears before
-   waiting on one, and verify from a `git archive HEAD` extraction meanwhile.
-   TDD-12 §1.3.1.
+   **AND THERE ARE NO RUNS AT ALL SINCE `31039868975` ON 2026-08-05T19:32Z** —
+   nothing across any trigger, with Actions reporting `enabled`. Probably
+   exhausted free-plan minutes; unconfirmed, because the billing endpoint needs a
+   `user` OAuth scope this token does not carry. **Three stories have now merged
+   on local evidence** (#33, #35, #36) with the owner's say-so. Check that a run
+   actually appears before waiting on one — a stale `gh run list` looks exactly
+   like a healthy pipeline that has not fired yet — and verify from a
+   `git archive HEAD` extraction meanwhile. TDD-12 §1.3.1.
 7. **A STATE THAT WRITES `ctx.position` MUST SAY SO**, by returning true from
    `PawnState.drives_position()`. Otherwise `LocalPawnDriver` runs
    `move_and_slide()` and overwrites it from the physics body — which, with the
