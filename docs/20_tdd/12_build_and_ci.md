@@ -140,10 +140,16 @@ The likeliest cause is the free plan's Actions minutes being exhausted for the b
 this repository burned a great deal of CI in a single day — but that is **unconfirmed**: the
 billing endpoint needs a `user` OAuth scope this project's token does not carry.
 
-US-0020 was merged on local evidence, with the project owner's explicit authorisation, verified
-from a `git archive HEAD` extraction running exactly what the `test` job runs. That is the
-substitute, and it is a weaker one: it proves the suites pass on this machine, with this Godot
-build, in this shell.
+US-0020, US-0021 and US-0022 — PRs #33, #35 and #36 — were all merged on local evidence, with the
+project owner's explicit authorisation, verified from a `git archive HEAD` extraction running
+exactly what the `test` job runs. Each PR body records that CI did not run.
+
+That is the substitute, and it is a weaker one: it proves the suites pass on this machine, with
+this Godot build, in this shell. **Three consecutive merges is where a substitute stops being a
+stopgap.** The last observed run was `31039868975` at 2026-08-05T19:32Z; nothing since, on any
+trigger. Before trusting a green tick on anything merged after that timestamp, check that a run
+exists at all — `gh run list` returning stale rows looks identical to a healthy pipeline that
+simply has not fired yet.
 
 **Check whether Actions is producing runs before relying on it as a gate.** A pipeline that
 silently stops firing looks identical to a pipeline with nothing to do, and §1.4's lesson applies

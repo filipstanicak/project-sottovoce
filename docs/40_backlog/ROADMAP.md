@@ -107,14 +107,14 @@ and exports** — and does nothing else.
 **Exit:** one player can walk / blend / jog / sprint / climb / vault with camera and the full
 state machine, locally.
 
-| Delivers | |
+| Delivers | Status 2026-08-06 |
 |---|---|
-| All 14 `PawnState` classes + centralised transition table | ADR-0008 |
-| The speed ladder, wired to `MovementTuning` | |
-| Input map, `InputCommand`, dual input buffering | |
-| Traversal probes + the 7-case resolver + forgiveness windows | |
-| Camera rig: spring arm, FOV ladder, occlusion, crowd-scan | |
-| `test_feel_latency.gd` measuring input→animation | |
+| All 15 `PawnState` classes + centralised transition table | ADR-0008. **Partial by design** — 15 declared and all 121 edges asserted, but `Respawning`, `StunAnim` and `Dead` belong to `SYS-SPAWN` and `SYS-COMBAT` and are M4. Twelve implemented |
+| The speed ladder, wired to `MovementTuning` | Done, US-0015 |
+| Input map, `InputCommand`, dual input buffering | Done, US-0016 |
+| Traversal probes + the 7-case resolver + forgiveness windows | Done, US-0017–0020 |
+| Camera rig: spring arm, FOV ladder, occlusion, crowd-scan | Arm, occlusion and ladder done (US-0021, US-0022). **Crowd-scan outstanding** — US-0023 |
+| `test_feel_latency.gd` measuring input→animation | **Not started and not startable.** US-0024 measures against animation clips that do not exist |
 
 > **Status 2026-08-06 — 10 of 12.** US-0013 to US-0022 are done. Fifteen states
 > declared, twelve implemented, 121 edges asserted against the §3 diagram in both

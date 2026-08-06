@@ -32,7 +32,13 @@ before they read the tier indicator.
 - [x] Transitions at 90 deg/s.
 - [x] FOV matches the ladder within 1 degree at each steady speed state.
 - [x] Each PawnState returns its own camera_fov from CameraTuning.
-- [x] Motion-reduction mode locks FOV at 62 and the compensating indicator is added elsewhere.
+- [ ] Motion-reduction mode locks FOV at 62 and the compensating indicator is added elsewhere.
+      **The lock is done and tested; the indicator does not exist.** `CameraRig.motion_reduction`
+      locks the lens to `TUN-CAM-FOV-MOTION-REDUCED`, and `test_camera_fov_ladder.gd` proves it
+      against the real rig at the widest rung. The persistent speed-state indicator that
+      compensates for the channel the lock removes is `SYS-UI`'s, and blocked on the HUD
+      (US-0084). Left unticked because the tick is what a skimmer reads, and a skimmer must not
+      conclude the compensating channel exists.
 
 ## Test notes
 
