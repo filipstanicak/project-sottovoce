@@ -16,7 +16,7 @@ func target_speed() -> float:
 	return Tuning.movement.run
 
 
-func suspicion_rate(_ctx: PawnContext) -> float:
+func _ground_rate(_ctx: PawnContext) -> float:
 	return Tuning.suspicion.gain_run
 
 

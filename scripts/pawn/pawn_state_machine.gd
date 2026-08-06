@@ -18,13 +18,13 @@ extends Node
 ## `scripts/pawn/` does.
 signal state_changed(from: StringName, to: StringName)
 
-## The states that exist today. US-0020 onward fill in the rest; a pawn entering
-## an unregistered state is caught by `step()` rather than crashing, because a
-## half-registered machine during M1 is a normal intermediate condition.
+## The states that exist today. A pawn entering an unregistered state is caught
+## by `step()` rather than crashing, because a half-registered machine during M1
+## is a normal intermediate condition.
 ##
-## `Climb` and `Drop` are still missing, so a traverse pressed at a façade or an
-## edge push_errors instead of moving. That noise is deliberate: the alternative
-## is silence, and silence is indistinguishable from the resolver being wrong.
+## **EVERY TRAVERSAL STATE IS HERE AS OF US-0020.** What is left — `Respawning`,
+## `StunAnim`, `Dead` — belongs to `SYS-SPAWN` and `SYS-KILL` in M4, and none of
+## them is reachable from anything a player can press today.
 const REGISTERED: Array[GDScript] = [
 	preload("res://scripts/pawn/states/idle_state.gd"),
 	preload("res://scripts/pawn/states/blend_walk_state.gd"),
@@ -33,6 +33,8 @@ const REGISTERED: Array[GDScript] = [
 	preload("res://scripts/pawn/states/run_state.gd"),
 	preload("res://scripts/pawn/states/sprint_state.gd"),
 	preload("res://scripts/pawn/states/vault_state.gd"),
+	preload("res://scripts/pawn/states/climb_state.gd"),
+	preload("res://scripts/pawn/states/drop_state.gd"),
 	preload("res://scripts/pawn/states/blended_state.gd"),
 	preload("res://scripts/pawn/states/kill_anim_state.gd"),
 	preload("res://scripts/pawn/states/stunned_state.gd"),

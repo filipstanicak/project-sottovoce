@@ -522,6 +522,9 @@ func PawnContext.apply_authoritative(state: PredictedState) -> void
 | `test_traversal_forgiveness.gd` | A traverse 0.20 s early or 0.25 s late still resolves |
 | `test_vault_state.gd` | Durations, costs, interrupt rules, and a trajectory that goes OVER the wall |
 | `test_state_may_end_itself.gd` | An uninterruptible state can still complete — Vault and KillAnim both |
+| `test_climb_state.gd` | A climb is priced per METRE: 9 m is 3.2 s and +38.6, a third of that for 3 m |
+| `test_drop_state.gd` | The stratum arithmetic — balcony→street clean, roof→balcony staggers |
+| `test_roof_toll.gd` | Every locomotion state pays `TUN-SUSPICION-GAIN-ROOF` above the stratum, and none recovers |
 | `test_traversal_case_states.gd` | Every case names a state the graph can enter from locomotion |
 | `test_traversal_resolution_geometry.gd` | The seven cases resolve from **real** geometry, not a hand-filled struct |
 | `test_traversal_assists_geometry.gd` | The gap fan and the ledge probes fire against real bodies |

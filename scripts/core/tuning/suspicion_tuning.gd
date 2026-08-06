@@ -46,8 +46,17 @@ extends Resource
 ## TUN-SUSPICION-GAIN-JOG
 @export_range(2.0, 7.0, 0.1) var gain_jog: float = 4.0
 
-## Being on the rooftop stratum at all, regardless of speed. Noticed in 1.7 s. Roofs are fast and
-## empty; a civilian is never up there. This is what stops the roofs from being strictly better.
+## World height at or above which a pawn counts as being on the rooftop stratum, and so pays TUN-
+## SUSPICION-GAIN-ROOF. Sits between MAP-VETRAIO's balcony (3.5 m) and roof (8.5 m) strata, so a
+## balcony is free and a roof is not. Absolute, and that only works while the street stratum is
+## flat at y = 0 — a map with varying ground level needs real stratum data in MapData instead.
+## TUN-SUSPICION-ROOF-HEIGHT
+@export_range(4.0, 8.0, 0.1) var roof_height: float = 6.0
+
+## Being on the rooftop stratum at all, regardless of speed. Noticed in 1.7 s — which is 30/18,
+## the toll alone: decay does not run up there, or the same figure would be 3.0 s. A roof is not
+## somewhere you recover slowly, it is somewhere you do not recover. Roofs are fast and empty; a
+## civilian is never up there. This is what stops the roofs from being strictly better.
 ## TUN-SUSPICION-GAIN-ROOF
 @export_range(14.0, 24.0, 0.1) var gain_roof: float = 18.0
 

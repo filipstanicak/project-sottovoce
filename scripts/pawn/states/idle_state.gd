@@ -15,7 +15,7 @@ func target_speed() -> float:
 	return 0.0
 
 
-func suspicion_rate(_ctx: PawnContext) -> float:
+func _ground_rate(_ctx: PawnContext) -> float:
 	return _decay_rate()
 
 

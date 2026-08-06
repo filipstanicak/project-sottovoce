@@ -127,29 +127,124 @@ static func plan(ctx: PawnContext, case: Case) -> void:
 	ctx.traverse_start = ctx.position
 	ctx.traverse_target = ctx.position
 	ctx.traverse_peak_y = ctx.position.y
-	var probe := ctx.probe_result
-	var forward := ProbeLayout.forward(ctx.yaw)
 	match case:
 		Case.VAULT:
-			# OVER it and down the far side, to the landing the probes measured.
-			# Not a guess at how thick the obstacle was: nothing measures that.
-			ctx.traverse_target = (
-				ctx.position + forward * probe.beyond_distance + Vector3.DOWN * probe.beyond_drop
-			)
-			# Clear the top by the foot probe's height, so the pawn goes over the
-			# wall rather than through it.
-			ctx.traverse_peak_y = (
-				ctx.position.y + probe.obstacle_top + Tuning.movement.probe_height_foot
-			)
+			_plan_vault(ctx)
 		Case.MANTLE:
-			# ONTO it. The obstacle-top cast already stands one step past the
-			# face, which is where a mantle puts your feet. No arc: the target IS
-			# the top, so a straight rise lands on it.
-			var ahead := probe.distance + Tuning.movement.gap_probe_step
-			ctx.traverse_target = ctx.position + forward * ahead + Vector3.UP * probe.obstacle_top
-			ctx.traverse_peak_y = ctx.traverse_target.y
+			_plan_mantle(ctx)
+		Case.CLIMB:
+			_plan_climb(ctx)
+		Case.LEDGE_GRAB:
+			_plan_ledge_grab(ctx)
+		Case.GAP_JUMP:
+			_plan_gap_jump(ctx)
+		Case.DROP:
+			_plan_drop(ctx)
 		_:
 			pass
+
+
+## OVER it and down the far side, to the landing the probes measured. Not a guess
+## at how thick the obstacle was: nothing measures that.
+static func _plan_vault(ctx: PawnContext) -> void:
+	var probe := ctx.probe_result
+	var forward := ProbeLayout.forward(ctx.yaw)
+	ctx.traverse_target = (
+		ctx.position + forward * probe.beyond_distance + Vector3.DOWN * probe.beyond_drop
+	)
+	# Clear the top by the foot probe's height, so the pawn goes over the wall
+	# rather than through it.
+	ctx.traverse_peak_y = ctx.position.y + probe.obstacle_top + Tuning.movement.probe_height_foot
+
+
+## ONTO it. The obstacle-top cast already stands one step past the face, which is
+## where a mantle puts your feet. No arc: the target IS the top, so a straight
+## rise lands on it.
+static func _plan_mantle(ctx: PawnContext) -> void:
+	var probe := ctx.probe_result
+	var ahead := probe.distance + Tuning.movement.gap_probe_step
+	ctx.traverse_target = (
+		ctx.position + ProbeLayout.forward(ctx.yaw) * ahead + Vector3.UP * probe.obstacle_top
+	)
+	ctx.traverse_peak_y = ctx.traverse_target.y
+
+
+## UP the façade to its top, and one step onto it. The distance decides how long
+## the climb takes: `TUN-SPEED-CLIMB` is a speed, not a duration, so a 9 m face
+## costs three times what a 3 m one does.
+static func _plan_climb(ctx: PawnContext) -> void:
+	var probe := ctx.probe_result
+	var over := probe.distance + Tuning.movement.gap_probe_step
+	ctx.traverse_target = (
+		ctx.position + ProbeLayout.forward(ctx.yaw) * over + Vector3.UP * probe.surface_height
+	)
+	ctx.traverse_peak_y = ctx.traverse_target.y
+
+
+## Sideways onto the ledge you were falling past, then up onto it. The lateral
+## component is the whole point of the magnet radius.
+static func _plan_ledge_grab(ctx: PawnContext) -> void:
+	var probe := ctx.probe_result
+	var side := ProbeLayout.right(ctx.yaw) * probe.ledge_lateral
+	var reach := probe.distance if probe.distance > 0.0 else Tuning.movement.probe_length
+	ctx.traverse_target = (
+		ctx.position + side + ProbeLayout.forward(ctx.yaw) * reach + Vector3.UP * probe.ledge_height
+	)
+	ctx.traverse_peak_y = ctx.traverse_target.y
+
+
+## Across. The landing is where the marching gap probe found ground.
+static func _plan_gap_jump(ctx: PawnContext) -> void:
+	var probe := ctx.probe_result
+	ctx.traverse_target = (
+		ctx.position
+		+ ProbeLayout.forward(ctx.yaw) * probe.gap_distance
+		+ Vector3.DOWN * _finite(probe.drop_height)
+	)
+	ctx.traverse_peak_y = ctx.position.y + _launch_apex()
+
+
+## Straight down off the edge, one step out so the pawn clears the lip.
+static func _plan_drop(ctx: PawnContext) -> void:
+	var probe := ctx.probe_result
+	ctx.traverse_target = (
+		ctx.position
+		+ ProbeLayout.forward(ctx.yaw) * Tuning.movement.gap_probe_ahead
+		+ Vector3.DOWN * _finite(probe.drop_height)
+	)
+	ctx.traverse_peak_y = ctx.position.y
+
+
+## `INF` means the probes found no floor at all. Falling forever is not a
+## manoeuvre, so an unmeasured drop is treated as the deepest one the probes can
+## see — the pawn lands somewhere rather than leaving the world.
+static func _finite(drop: float) -> float:
+	return Tuning.movement.gap_probe_depth if drop == INF else drop
+
+
+## How high a gap jump rises above its launch, from `TUN-TRAVERSE-GAPJUMP-LAUNCH`
+## and the pinned gravity. `v² / 2g`, which is the apex of a ballistic arc.
+static func _launch_apex() -> float:
+	var v := Tuning.movement.gapjump_launch
+	return (v * v) / (2.0 * maxf(Tuning.gravity, 0.001))
+
+
+## How long a gap jump is airborne: `2v / g`, the full up-and-down flight.
+static func gapjump_flight_ticks() -> int:
+	var seconds := 2.0 * Tuning.movement.gapjump_launch / maxf(Tuning.gravity, 0.001)
+	return maxi(int(round(seconds * Tuning.net.client_input_rate)), 1)
+
+
+## How long a fall of `height` metres takes, in `step()` ticks: `sqrt(2h/g)`.
+##
+## Derived rather than tuned. GDD-02 §6's cost table quotes ~0.9 s for a 4 m drop
+## and ~1.1 s for a hard one, which is what gravity gives — the numbers in the
+## design were read off the physics, so tuning them separately would let the two
+## disagree.
+static func fall_ticks(height: float) -> int:
+	var h := maxf(height, 0.0)
+	var seconds := sqrt(2.0 * h / maxf(Tuning.gravity, 0.001))
+	return maxi(int(round(seconds * Tuning.net.client_input_rate)), 1)
 
 
 ## How long the committed manoeuvre lasts, in `step()` ticks.

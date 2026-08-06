@@ -45,11 +45,22 @@ var ui_audio: UiAudioTuning
 var ability: AbilityTuning
 var flags: FeatureFlags
 
+## Gravity, in m/s², read once from the pinned `physics/3d/default_gravity`.
+##
+## Surfaced here because `scripts/pawn/` needs it — a drop is ballistic — and
+## `Tuning` is the one autoload that code is allowed to touch. Read rather than
+## tuned, so there is exactly ONE source: `project.godot`, pinned by
+## `test_project_settings_pinned.gd` precisely because "a changed default would
+## alter every drop and stagger". A `TUN-` twin would be a second source that
+## could disagree with the engine the pawn actually falls in.
+var gravity: float = 9.8
+
 var _ticks: Dictionary = {}
 var _step_ticks: Dictionary = {}
 
 
 func _ready() -> void:
+	gravity = float(ProjectSettings.get_setting("physics/3d/default_gravity", gravity))
 	var path := DEFAULT_PROFILE
 	if _hot_reload_available() and ResourceLoader.exists(LOCAL_PROFILE):
 		path = LOCAL_PROFILE

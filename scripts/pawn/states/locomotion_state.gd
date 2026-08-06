@@ -98,3 +98,32 @@ func _is_backpedalling(input: InputCommand) -> bool:
 ## Jog, Run and Sprint override this with a positive gain rather than scaling it.
 func _decay_rate() -> float:
 	return -Tuning.suspicion.decay_base
+
+
+## What this state costs at ground level. Overridden by every subclass; the roof
+## surcharge is added on top by `suspicion_rate()`, which subclasses do not touch.
+func _ground_rate(_ctx: PawnContext) -> float:
+	return _decay_rate()
+
+
+## Height is ABSOLUTE, and that only works while the street stratum is flat at
+## y = 0. MAP-VETRAIO is; a map with varying ground level needs real stratum data
+## in `MapData`, and `TUN-SUSPICION-ROOF-HEIGHT` says so.
+static func _on_roof_stratum(ctx: PawnContext) -> bool:
+	return ctx.position.y >= Tuning.suspicion.roof_height
+
+
+## **THE ROOF TOLL.** `TUN-SUSPICION-GAIN-ROOF` 18/s for being up there at all,
+## "regardless of speed" (TUNABLES §3.2) — added to whatever the speed already
+## costs rather than replacing it.
+##
+## **DECAY DOES NOT RUN ON A ROOF.** Netting the 8/s decay against the 18/s toll
+## would reach Noticed in 3.0 s, and TUNABLES §3.2 says 1.7 s — which is 30/18,
+## the toll alone. A roof is not somewhere you recover slowly; it is somewhere
+## you do not recover. That is what makes §6.1's rule true: the roofs are for
+## *crossing*, never for *waiting*, and the expensive mistake is lingering.
+func suspicion_rate(ctx: PawnContext) -> float:
+	var ground := _ground_rate(ctx)
+	if not _on_roof_stratum(ctx):
+		return ground
+	return maxf(ground, 0.0) + Tuning.suspicion.gain_roof

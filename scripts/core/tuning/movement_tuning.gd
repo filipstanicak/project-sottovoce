@@ -163,6 +163,13 @@ extends Resource
 ## TUN-TRAVERSE-INPUT-BUFFER
 @export_range(0.1, 0.3, 0.1) var traverse_input_buffer: float = 0.2
 
+## Upward launch speed of a gap jump. Gives a ~0.8 s flight under the pinned 9.8 gravity, which
+## is the figure §6's traversal cost table already quotes. Horizontal speed is derived from the
+## gap the probes measured, not tuned: a gap at or under TUN-TRAVERSE-GAP-MAX is jumpable always,
+## and a launch that sometimes fell short would make that a lie.
+## TUN-TRAVERSE-GAPJUMP-LAUNCH
+@export_range(3.0, 5.0, 0.1) var gapjump_launch: float = 3.9
+
 ## Half-arc within which a gap jump auto-aligns to the crossing. Promoted from a bare "±20°" in
 ## ../10_gdd/02_player_controller.md §7.3's forgiveness table, which was the one row there with
 ## no ID. Wide enough that eyeballing the far side is enough, narrow enough that it never turns

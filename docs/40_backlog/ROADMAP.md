@@ -116,25 +116,31 @@ state machine, locally.
 | Camera rig: spring arm, FOV ladder, occlusion, crowd-scan | |
 | `test_feel_latency.gd` measuring input→animation | |
 
-> **Status 2026-08-05 — 7 of 12.** US-0013 to US-0019 are done. Fifteen states
-> declared, 121 edges asserted against the §3 diagram in both directions, and
-> **the pawn walks on the ground**: a key press reaches the speed ladder through
-> the real input map, and the traversal probes see the district around it.
+> **Status 2026-08-05 — 8 of 12.** US-0013 to US-0020 are done. Fifteen states
+> declared, ten implemented, 121 edges asserted against the §3 diagram in both
+> directions.
 >
-> It was walking through the air until US-0017. The capsule was centred on the
+> **The pawn walks and traverses.** A key press reaches the speed ladder through
+> the real input map; the probes see the district; all seven §7.2 cases resolve
+> from real geometry; and vault, mantle, climb, drop and gap jump all perform.
+> The vault and the climb are asserted end to end through the real driver.
+>
+> It was walking through the *air* until US-0017. The capsule was centred on the
 > body origin while `MapData.spawn_points` and the probe heights were both
 > measured from the ground, so the pawn spawned buried and fell — and US-0016's
 > movement test could not tell falling from walking, because it asserted only
 > that the pawn had *travelled*. The probes noticed: they reported no floor under
 > a pawn standing in the middle of Vetraio.
 >
-> **The feel gate below is now judgeable for the first time, and has not been
-> judged.** It is subjective and needs a human at the controls. The mechanical
-> halves — slowing reaches BlendWalk in one tick from all six states at all six
-> speeds, input→pawn is one physics frame, every traversal case resolves from
-> real geometry, and **the pawn vaults** — pressing traverse at a wall puts it on
-> the far side, asserted end to end through the real driver. `Climb` and `Drop`
-> are US-0020; the FOV ladder is US-0022.
+> **The feel gate below is judgeable and has not been judged.** It is subjective
+> and needs a human at the controls. Two of its four lines cannot be judged yet
+> at all: **the camera is still `DebugFollowCamera`**, scaffolding in
+> `scripts/debug/`, so the FOV ladder does not exist until US-0022 — and
+> input→animation cannot be measured until there is an animation, which is
+> US-0024 against clips that do not exist.
+>
+> What *can* be judged today is the first two lines: slowing is instant from
+> every state, and sloppy vaults resolve.
 >
 > [ADR-0012](../00_meta/adr/ADR-0012-slow-is-always-available.md) amended the §3
 > diagram during US-0015: `Any → Blend-walk` and `Any → Idle` were declared in §2.2
