@@ -212,9 +212,9 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 *Updated 2026-08-05. Keep this section current — it is the first thing a fresh
 session reads, and a stale one is worse than none.*
 
-**M0 IS COMPLETE. M1 IS 8 OF 12.** US-0013 to US-0020 are `status: done`.
-**US-0021 is next** — the camera rig, which is the first of three `SYS-CAMERA`
-stories and the thing standing between M1 and a judgeable feel gate.
+**M0 IS COMPLETE. M1 IS 9 OF 12.** US-0013 to US-0021 are `status: done`.
+**US-0022 is next** — the FOV ladder, which turns the camera into §4.2's
+warning channel.
 
 **THE PAWN WALKS AND TRAVERSES.** A key press reaches the speed ladder through
 the real input map, the probes see the district, and every manoeuvre performs —
@@ -228,26 +228,26 @@ godot -- --connect 127.0.0.1:27015
 
 WASD, Left Ctrl to blend-walk, Left Shift to run, double-tap Shift to sprint,
 Space to traverse — the game picks the manoeuvre from what is in front of you.
-The camera is `DebugFollowCamera`, scaffolding in `scripts/debug/`, not
-`SYS-CAMERA`, which is US-0021 to US-0023.
+The camera is the real `SYS-CAMERA` rig as of US-0021. It holds a fixed FOV:
+the ladder is US-0022 and crowd-scan is US-0023.
 
 M1's gate is *subjective* (ROADMAP §3.1). **If the pawn does not feel good at
-M1, it will not feel good at M6.** Two of its four lines are judgeable now —
-instant slowdown, sloppy vaults — and **two cannot be judged at all yet**: the
-FOV ladder needs the camera rig (US-0022), and input→animation needs an
-animation (US-0024, against clips that do not exist).
+M1, it will not feel good at M6.** Three of its four lines are judgeable now;
+**the fourth cannot exist yet** — input→animation needs an animation, and
+US-0024 measures it against clips that do not exist.
 
 | | |
 |---|---|
 | CI | 7 jobs, green on `main`. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | 86 architecture guards + 282 unit + 46 integration, all three counted in CI |
-| Tuning | 280 tunables across 14 resource classes; all 20 cross-field invariants assert |
+| Tests | 86 architecture guards + 310 unit + 55 integration, all three counted in CI |
+| Tuning | 281 tunables across 14 resource classes; all 20 cross-field invariants assert |
 | Autoloads | All eight. `Tuning` precomputes 89 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |
 | Boot | Branches on `--server`; 7 CLI flags parsed in pure Core; 5 export presets |
 | Map | `MAP-VETRAIO` greybox, 120 × 120 m. Client loads 28 meshes, server loads none |
 | Pawn | 15 states declared, 121 transition edges asserted against the normative diagram. **Twelve implemented**: six locomotion + `Vault`, `Climb`, `Drop`, `KillAnim`, `Stunned`, `Blended`. `Respawning`, `StunAnim` and `Dead` are M4 |
 | Traversal | **Complete.** Probes cast, all seven §7.2 cases resolve from real geometry, both forgiveness windows open, and vault, mantle, climb, drop and gap jump all perform |
+| Camera | Real spring arm: 2.6 m, shoulder swap, occlusion that pulls **in** and never sideways, `WORLD`-masked so a crowd cannot push it. Fixed FOV — the ladder is US-0022 |
 | Input | 21 `InputMap` actions from 15 `INPUT-` IDs, KBM + pad. Chain GDD-02 → `Ids` → `InputActions` → `project.godot`, guarded on every hop, both directions |
 
 **Four criteria are deliberately unticked** in US-0002/3/4/5, all variants of

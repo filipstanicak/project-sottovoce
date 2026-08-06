@@ -114,6 +114,12 @@ func _spawn_position() -> Vector3:
 	return map.spawn_points[clampi(spawn_index, 0, map.spawn_count() - 1)]
 
 
+## Whether the player may aim the camera right now. `CameraRig` asks; the answer
+## belongs to the pawn's current state, which is where GDD-02 §4 puts it.
+func camera_controlled() -> bool:
+	return _machine == null or _machine.camera_controlled(ctx)
+
+
 ## Unacknowledged commands, for the reconciliation US-0033 will perform.
 func history() -> InputHistory:
 	return _history

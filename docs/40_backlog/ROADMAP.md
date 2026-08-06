@@ -116,7 +116,7 @@ state machine, locally.
 | Camera rig: spring arm, FOV ladder, occlusion, crowd-scan | |
 | `test_feel_latency.gd` measuring input→animation | |
 
-> **Status 2026-08-05 — 8 of 12.** US-0013 to US-0020 are done. Fifteen states
+> **Status 2026-08-06 — 9 of 12.** US-0013 to US-0021 are done. Fifteen states
 > declared, ten implemented, 121 edges asserted against the §3 diagram in both
 > directions.
 >
@@ -132,15 +132,15 @@ state machine, locally.
 > that the pawn had *travelled*. The probes noticed: they reported no floor under
 > a pawn standing in the middle of Vetraio.
 >
-> **The feel gate below is judgeable and has not been judged.** It is subjective
-> and needs a human at the controls. Two of its four lines cannot be judged yet
-> at all: **the camera is still `DebugFollowCamera`**, scaffolding in
-> `scripts/debug/`, so the FOV ladder does not exist until US-0022 — and
-> input→animation cannot be measured until there is an animation, which is
-> US-0024 against clips that do not exist.
+> **The camera is real as of US-0021** — spring arm, shoulder offset and swap,
+> occlusion that pulls in rather than sideways, and NPCs that do not push it.
+> `DebugFollowCamera` is deleted.
 >
-> What *can* be judged today is the first two lines: slowing is instant from
-> every state, and sloppy vaults resolve.
+> **The feel gate below is judgeable and has not been judged.** It is subjective
+> and needs a human at the controls. Three of its four lines can be judged now;
+> **the fourth cannot exist yet**: input→animation needs an animation, and
+> US-0024 measures it against clips that do not exist. The FOV ladder arrives in
+> US-0022.
 >
 > [ADR-0012](../00_meta/adr/ADR-0012-slow-is-always-available.md) amended the §3
 > diagram during US-0015: `Any → Blend-walk` and `Any → Idle` were declared in §2.2

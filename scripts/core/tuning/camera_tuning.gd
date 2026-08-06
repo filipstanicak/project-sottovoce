@@ -50,6 +50,13 @@ extends Resource
 ## TUN-CAM-SHOULDER-SWAP-TIME
 @export_range(0.15, 0.4, 0.01) var shoulder_swap_time: float = 0.25
 
+## How far short of an occluder the arm stops. Below it the near plane clips into geometry and
+## the player sees through the wall; above it the camera reads as detached from the surface it is
+## avoiding. Promoted from prose — GDD-02 §4.4 describes the pull-in without saying where it
+## stops.
+## TUN-CAM-OCCLUSION-MARGIN
+@export_range(0.1, 0.5, 0.1) var occlusion_margin: float = 0.2
+
 ## Speed at which the arm pulls in on collision. Fast, because a camera stuck in a wall in a game
 ## about looking at people is a critical failure.
 ## TUN-CAM-OCCLUSION-PULL-RATE

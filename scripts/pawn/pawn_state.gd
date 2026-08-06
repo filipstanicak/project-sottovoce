@@ -51,6 +51,21 @@ func drives_position() -> bool:
 	return false
 
 
+## Whether the player may still aim the camera in this state. GDD-02 §4.
+##
+## **TRUE FOR EVERYTHING EXCEPT BEING STUNNED**, deliberately and including the
+## kill animation, the vault and the drop. Those take away your *movement*, and
+## taking away the look as well would mean the game deciding what you get to
+## witness during the seconds you have least control — in a game whose whole
+## subject is watching and being watched.
+##
+## `Stunned` is the exception because helplessness is the mechanic there: design
+## law 5 says the prey must have teeth, and the teeth are that a reckless hunter
+## loses the ability to *look* as well as to move.
+func camera_controlled() -> bool:
+	return true
+
+
 ## The deterministic step. Returns the id of the requested next state, or STAY.
 ##
 ## It REQUESTS; the machine VALIDATES. A state does not know the transition
