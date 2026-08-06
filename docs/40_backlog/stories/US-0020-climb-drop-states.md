@@ -4,7 +4,7 @@ title: Climb, drop and gap-jump states
 version: 1.0.0
 status: done
 owner: Technical Director
-last_updated: 2026-08-05
+last_updated: 2026-08-06
 depends_on: [TDD-06-PAWN, GDD-05-LEVEL]
 ---
 
