@@ -130,6 +130,25 @@ making the repository public — but public is gated on the originality review i
 `docs/00_meta/IP_GUARDRAILS.md`, so it is not a shortcut. The ruleset JSON is
 ready to apply unchanged.
 
+### 1.3.1 Actions stopped running on 2026-08-06
+
+Worse than unenforced: **absent**. Zero workflow runs in twenty-four hours, across a PR open, a
+force-push, a close-and-reopen and a rebase. `actions/permissions` reports `enabled`, the
+workflow reports `active`, and no run is created for any event.
+
+The likeliest cause is the free plan's Actions minutes being exhausted for the billing period —
+this repository burned a great deal of CI in a single day — but that is **unconfirmed**: the
+billing endpoint needs a `user` OAuth scope this project's token does not carry.
+
+US-0020 was merged on local evidence, with the project owner's explicit authorisation, verified
+from a `git archive HEAD` extraction running exactly what the `test` job runs. That is the
+substitute, and it is a weaker one: it proves the suites pass on this machine, with this Godot
+build, in this shell.
+
+**Check whether Actions is producing runs before relying on it as a gate.** A pipeline that
+silently stops firing looks identical to a pipeline with nothing to do, and §1.4's lesson applies
+here too — the green was the defect, and so is the absence of red.
+
 ### 1.4 Why the test job counts its own scripts
 
 On 2026-08-04 CI reported **All tests passed** for a commit whose three new

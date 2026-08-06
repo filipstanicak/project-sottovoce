@@ -288,6 +288,11 @@ owed and recorded in US-0012.
    `docs/20_tdd/12_build_and_ci.md`. Run `git config core.hooksPath .githooks` in
    every fresh clone, and wait for a run to report `completed success` before
    merging. `gh run watch` can return while a run is still queued.
+   **AND SINCE 2026-08-06 THERE ARE NO RUNS AT ALL** — zero in twenty-four hours,
+   across every trigger, with Actions reporting `enabled`. Probably exhausted
+   free-plan minutes; unconfirmed. Check that a run actually appears before
+   waiting on one, and verify from a `git archive HEAD` extraction meanwhile.
+   TDD-12 §1.3.1.
 7. **A STATE THAT WRITES `ctx.position` MUST SAY SO**, by returning true from
    `PawnState.drives_position()`. Otherwise `LocalPawnDriver` runs
    `move_and_slide()` and overwrites it from the physics body — which, with the
