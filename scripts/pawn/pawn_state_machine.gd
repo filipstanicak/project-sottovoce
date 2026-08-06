@@ -79,6 +79,15 @@ func drives_position(ctx: PawnContext) -> bool:
 	return current != null and current.drives_position()
 
 
+## Whether the player may aim the camera right now. The rig asks; see
+## `PawnState.camera_controlled`. An unregistered state leaves control with the
+## player, because taking the camera away is the exceptional case and a gap in
+## the registry is not a reason to do it.
+func camera_controlled(ctx: PawnContext) -> bool:
+	var current: PawnState = _states.get(ctx.state_id)
+	return current == null or current.camera_controlled()
+
+
 ## Advance one tick. Returns the id the pawn is in afterwards.
 func step(ctx: PawnContext, input: InputCommand, delta: float) -> StringName:
 	var current: PawnState = _states.get(ctx.state_id)

@@ -15,6 +15,18 @@ func id() -> StringName:
 	return PawnStateId.STUNNED
 
 
+## **THE ONE STATE THAT TAKES THE CAMERA.** GDD-02 §4: control is retained during
+## KillAnim, Vault and Drop, and removed here — the view snaps to a fixed offset
+## and the player watches whatever is in front of them.
+##
+## That is the point of a stun. Design law 5 says the prey must have teeth, and
+## the teeth are not merely that the hunter stops moving: it is that for the
+## whole freeze they cannot even choose where to look while their target walks
+## away. Never soften this to make hunting feel better.
+func camera_controlled() -> bool:
+	return false
+
+
 func interrupt_priority() -> int:
 	return PRIORITY_COMBAT
 

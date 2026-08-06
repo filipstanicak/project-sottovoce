@@ -118,8 +118,8 @@ Appending is safe by construction; reordering is not, and `input_bits.gd` says s
 
 - **No options screen.** Rebinding, hold/toggle and mode switching are complete as an API with
   unit tests. The screen is M5.
-- **No camera rig.** `DebugFollowCamera` is scaffolding in `scripts/debug/`, stripped from
-  release, so a human can see the pawn at all. `SYS-CAMERA` is US-0021 to US-0023.
+- **No camera rig.** `DebugFollowCamera` was scaffolding in `scripts/debug/` so a human could
+  see the pawn at all. US-0021 replaced it with the real `SYS-CAMERA` rig and deleted it.
 - **No networking.** `InputHistory` is filled but never replayed; reconciliation is US-0033.
 - **The M1 feel gate is now judgeable and has not been judged.** It is subjective and needs a
   human at the controls.

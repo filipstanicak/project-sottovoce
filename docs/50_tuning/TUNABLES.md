@@ -533,6 +533,7 @@ the ordered lever list are in [`../10_gdd/07_balance.md`](../10_gdd/07_balance.m
 | `TUN-CAM-ARM-HEIGHT` | 1.55 | m | 1.4–1.8 | Pivot height — roughly shoulder height on the tallest persona. |
 | `TUN-CAM-SHOULDER-OFFSET` | 0.45 | m | 0.3–0.7 | Lateral offset. |
 | `TUN-CAM-SHOULDER-SWAP-TIME` | 0.25 | s | 0.15–0.4 | Time to swap shoulders. |
+| `TUN-CAM-OCCLUSION-MARGIN` | 0.2 | m | 0.1–0.5 | How far short of an occluder the arm stops. Below it the near plane clips into geometry and the player sees through the wall; above it the camera reads as detached from the surface it is avoiding. Promoted from prose — GDD-02 §4.4 describes the pull-in without saying where it stops. |
 | `TUN-CAM-OCCLUSION-PULL-RATE` | 12.0 | m/s | 8–20 | Speed at which the arm pulls in on collision. Fast, because a camera stuck in a wall in a game about looking at people is a critical failure. |
 | `TUN-CAM-OCCLUSION-RESTORE-RATE` | 4.0 | m/s | 2–8 | Speed of restoration. Slower than pull-in, to avoid oscillation in doorways. |
 | `TUN-CAM-CROWDSCAN-SPEED` | 0.45 | × | 0.3–0.7 | Look-sensitivity multiplier while holding the crowd-scan input. Slow, precise panning for reading a crowd — the game's central act, given its own input. |

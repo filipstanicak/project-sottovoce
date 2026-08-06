@@ -4,7 +4,7 @@
 [ext_resource type="PackedScene" path="res://scenes/pawn/pawn_local.tscn" id="2_pawn"]
 [ext_resource type="Script" path="res://scripts/presentation/input_sampler.gd" id="3_sampler"]
 [ext_resource type="Script" path="res://scripts/presentation/local_pawn_driver.gd" id="4_driver"]
-[ext_resource type="Script" path="res://scripts/debug/debug_follow_camera.gd" id="5_camera"]
+[ext_resource type="Script" path="res://scripts/presentation/camera/camera_rig.gd" id="5_camera"]
 
 ; Client topology: mirrors of replicated state, the local pawn, and the HUD.
 ; Carries no GameSystem — systems exist only server-side (TDD-01 §1.2).
@@ -12,7 +12,8 @@
 ; US-0016 added the input chain: InputSampler reads the controls, LocalPawnDriver
 ; feeds PawnStateMachine.step() at 60 Hz, and the pawn finally moves.
 ;
-; DebugFollowCamera is scaffolding, not SYS-CAMERA. The rig is US-0021.
+; US-0021 replaced DebugFollowCamera with the real SYS-CAMERA rig. The FOV
+; ladder is US-0022 and crowd-scan is US-0023, so the rig holds a fixed FOV.
 
 [node name="ClientRoot" type="Node"]
 
@@ -34,6 +35,7 @@ script = ExtResource("4_driver")
 pawn_path = NodePath("../World/PawnLocal")
 sampler_path = NodePath("../InputSampler")
 
-[node name="DebugFollowCamera" type="Camera3D" parent="World"]
+[node name="CameraRig" type="Camera3D" parent="World"]
 script = ExtResource("5_camera")
 driver_path = NodePath("../../LocalPawnDriver")
+sampler_path = NodePath("../../InputSampler")
