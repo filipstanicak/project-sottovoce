@@ -88,6 +88,19 @@ func camera_controlled(ctx: PawnContext) -> bool:
 	return current == null or current.camera_controlled()
 
 
+## The FOV rung the pawn's current state sits on. GDD-02 §4.2; see
+## `PawnState.camera_fov`.
+##
+## The ladder lives on the STATES, not in a table here, because the state is what
+## the player took an action to reach. A rig that mapped speed to FOV itself
+## would disagree with the state machine for the length of every acceleration
+## ramp — widening while the pawn is still labelled Stroll — and the widening is
+## supposed to be the consequence of the decision, not of the physics.
+func camera_fov(ctx: PawnContext) -> float:
+	var current: PawnState = _states.get(ctx.state_id)
+	return CameraFov.default_fov() if current == null else current.camera_fov(ctx)
+
+
 ## Advance one tick. Returns the id the pawn is in afterwards.
 func step(ctx: PawnContext, input: InputCommand, delta: float) -> StringName:
 	var current: PawnState = _states.get(ctx.state_id)

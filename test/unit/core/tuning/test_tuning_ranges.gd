@@ -1,4 +1,4 @@
-## Every shipped value is inside its own documented range, and the 20 cross-field
+## Every shipped value is inside its own documented range, and the 22 cross-field
 ## invariants from TUNABLES.md §17 hold.
 ##
 ## The range half catches a typo. The invariant half catches the subtler thing: a
@@ -58,7 +58,7 @@ func test_every_value_is_inside_its_export_range() -> void:
 
 
 func test_all_cross_field_invariants_hold() -> void:
-	# All 20 now assert for real. Invariants 11 and 12 were pending until
+	# All 22 now assert for real. Invariants 11 and 12 were pending until
 	# AbilityData existed, and reported "cannot check" rather than passing over
 	# the gap — if either ever regresses to that, this fails loudly rather than
 	# quietly going green on 18 of 20.
@@ -84,6 +84,28 @@ func test_the_ability_invariants_are_live() -> void:
 			hit = true
 	cinderfall.radius = radius
 	assert_true(hit, "breaking invariant 12 produced no error — it is inert")
+
+
+func test_the_fov_invariants_are_live() -> void:
+	# 21 and 22, falsified rather than trusted. An inverted FOV ladder is the one
+	# tuning error in this file that a playtester would feel and never be able to
+	# name — the lens would tell a sprinting player they were calm — so the check
+	# has to be proven to fire, not merely to exist.
+	var p := _profile()
+	p.camera.fov_jog = p.camera.fov_stroll - 1.0
+	var inverted := false
+	for e: String in p.validate():
+		if e.begins_with("21."):
+			inverted = true
+	assert_true(inverted, "inverting the FOV ladder produced no error — invariant 21 is inert")
+
+	p = _profile()
+	p.camera.fov_motion_reduced = p.camera.fov_sprint + 5.0
+	var outside := false
+	for e: String in p.validate():
+		if e.begins_with("22."):
+			outside = true
+	assert_true(outside, "a locked FOV outside the ladder produced no error — 22 is inert")
 
 
 func test_the_invariant_checker_actually_fires() -> void:

@@ -20,6 +20,15 @@ func interrupt_priority() -> int:
 	return PRIORITY_COMBAT
 
 
+## Neutral, and deliberately so. The lens says ONE thing — how fast you are
+## moving — and a player mid-kill already knows what they are doing. Widening
+## here would spend the channel on information the actor has and the victim
+## cannot see, and would leave every future reader guessing whether a wide lens
+## meant speed or violence.
+func camera_fov(_ctx: PawnContext) -> float:
+	return Tuning.camera.fov_stroll
+
+
 ## Open until the contact frame, closed after. Compared in TICKS, never against
 ## an accumulated float — this decides whether a save landed, and a value that
 ## drifts between server and client decides it differently on each.

@@ -1,4 +1,4 @@
-## The 20 cross-field invariants from TUNABLES.md §17.
+## The 22 cross-field invariants from TUNABLES.md §17.
 ##
 ## A value can be inside its own documented range and still be wrong, because
 ## what matters is its relationship to another value. Invariant 1 is the clearest
@@ -15,6 +15,7 @@ extends RefCounted
 static func check(p: TuningProfile) -> Array[String]:
 	var e: Array[String] = []
 	e.append_array(_speed_ladder(p))
+	e.append_array(_fov_ladder(p))
 	e.append_array(_crowd_relations(p))
 	e.append_array(_suspicion_and_tiers(p))
 	e.append_array(_combat(p))
@@ -57,6 +58,48 @@ static func _speed_ladder(p: TuningProfile) -> Array[String]:
 					% [ladder[i][0], ladder[i][1], ladder[i + 1][0], ladder[i + 1][1]]
 				)
 			)
+	return e
+
+
+## 21, 22. The FOV ladder mirrors the speed ladder and must run the same way.
+## GDD-02 §4.2: inverted, the lens would still be a channel — it would simply
+## tell a sprinting player they were calm, which is worse than silence.
+static func _fov_ladder(p: TuningProfile) -> Array[String]:
+	var e: Array[String] = []
+	var ladder: Array[Array] = [
+		["fov_blend", p.camera.fov_blend],
+		["fov_stroll", p.camera.fov_stroll],
+		["fov_jog", p.camera.fov_jog],
+		["fov_run", p.camera.fov_run],
+		["fov_sprint", p.camera.fov_sprint],
+	]
+	for i: int in range(ladder.size() - 1):
+		if float(ladder[i][1]) >= float(ladder[i + 1][1]):
+			e.append(
+				(
+					(
+						"21. FOV ladder not monotonic: %s (%.1f) >= %s (%.1f) — "
+						+ "speed would read as calm"
+					)
+					% [ladder[i][0], ladder[i][1], ladder[i + 1][0], ladder[i + 1][1]]
+				)
+			)
+	# 22. The one value motion-reduction locks to replaces the whole ladder, so it
+	# must sit inside the span it replaces or it frames EVERY speed unusually.
+	if p.camera.fov_motion_reduced < p.camera.fov_blend:
+		e.append(
+			(
+				"22. camera.fov_motion_reduced (%.1f) must be >= camera.fov_blend (%.1f)"
+				% [p.camera.fov_motion_reduced, p.camera.fov_blend]
+			)
+		)
+	if p.camera.fov_motion_reduced > p.camera.fov_sprint:
+		e.append(
+			(
+				"22. camera.fov_motion_reduced (%.1f) must be <= camera.fov_sprint (%.1f)"
+				% [p.camera.fov_motion_reduced, p.camera.fov_sprint]
+			)
+		)
 	return e
 
 

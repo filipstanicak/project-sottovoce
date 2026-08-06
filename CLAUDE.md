@@ -116,9 +116,13 @@ reference anything in `scripts/presentation/`.
 
 ```bash
 # Tests
-godot --headless -s addons/gut/gut_cmdln.gd -gdir=res://test/unit -gexit
-godot --headless -s addons/gut/gut_cmdln.gd -gdir=res://test/arch -gexit
-godot --headless -s addons/gut/gut_cmdln.gd -gdir=res://test/integration -gexit
+# Prefer these — they refuse to pass over a suite that ran too few scripts.
+.ci/run_gut.sh test/unit unit
+.ci/run_gut.sh test/arch arch
+.ci/run_gut.sh test/integration integration
+
+# By hand. -ginclude_subdirs IS NOT OPTIONAL — see trap 10.
+godot --headless -s addons/gut/gut_cmdln.gd -gdir=res://test/unit -ginclude_subdirs -gexit
 
 # Lint and format
 gdlint scripts/ test/ tools/
@@ -212,9 +216,11 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 *Updated 2026-08-05. Keep this section current — it is the first thing a fresh
 session reads, and a stale one is worse than none.*
 
-**M0 IS COMPLETE. M1 IS 9 OF 12.** US-0013 to US-0021 are `status: done`.
-**US-0022 is next** — the FOV ladder, which turns the camera into §4.2's
-warning channel.
+**M0 IS COMPLETE. M1 IS 10 OF 12.** US-0013 to US-0022 are `status: done`.
+**US-0023 is next** — crowd-scan, the game's "aim down sights", which grants
+**no mechanical advantage at all**: no reveal, no highlight, no tag. Only
+slower, closer, quieter looking. GDD-02 §4.3 calls it the single clearest
+statement of what kind of game this is; do not let it acquire a tell.
 
 **THE PAWN WALKS AND TRAVERSES.** A key press reaches the speed ladder through
 the real input map, the probes see the district, and every manoeuvre performs —
@@ -228,8 +234,9 @@ godot -- --connect 127.0.0.1:27015
 
 WASD, Left Ctrl to blend-walk, Left Shift to run, double-tap Shift to sprint,
 Space to traverse — the game picks the manoeuvre from what is in front of you.
-The camera is the real `SYS-CAMERA` rig as of US-0021. It holds a fixed FOV:
-the ladder is US-0022 and crowd-scan is US-0023.
+The camera is the real `SYS-CAMERA` rig as of US-0021, and since US-0022 the
+lens widens with the speed **state** — 55° blend-walk to 72° sprint at 90°/s.
+Crowd-scan is US-0023.
 
 M1's gate is *subjective* (ROADMAP §3.1). **If the pawn does not feel good at
 M1, it will not feel good at M6.** Three of its four lines are judgeable now;
@@ -239,15 +246,15 @@ US-0024 measures it against clips that do not exist.
 | | |
 |---|---|
 | CI | 7 jobs, green on `main`. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | 86 architecture guards + 310 unit + 55 integration, all three counted in CI |
-| Tuning | 281 tunables across 14 resource classes; all 20 cross-field invariants assert |
+| Tests | 86 architecture guards + 333 unit + 64 integration, all three counted in CI |
+| Tuning | 282 tunables across 14 resource classes; all 22 cross-field invariants assert |
 | Autoloads | All eight. `Tuning` precomputes 89 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |
 | Boot | Branches on `--server`; 7 CLI flags parsed in pure Core; 5 export presets |
 | Map | `MAP-VETRAIO` greybox, 120 × 120 m. Client loads 28 meshes, server loads none |
 | Pawn | 15 states declared, 121 transition edges asserted against the normative diagram. **Twelve implemented**: six locomotion + `Vault`, `Climb`, `Drop`, `KillAnim`, `Stunned`, `Blended`. `Respawning`, `StunAnim` and `Dead` are M4 |
 | Traversal | **Complete.** Probes cast, all seven §7.2 cases resolve from real geometry, both forgiveness windows open, and vault, mantle, climb, drop and gap jump all perform |
-| Camera | Real spring arm: 2.6 m, shoulder swap, occlusion that pulls **in** and never sideways, `WORLD`-masked so a crowd cannot push it. Fixed FOV — the ladder is US-0022 |
+| Camera | Real spring arm: 2.6 m, shoulder swap, occlusion that pulls **in** and never sideways, `WORLD`-masked so a crowd cannot push it. The FOV ladder is bound to the **state**, never to `ctx.velocity`: the rung is a consequence of the decision, not of the physics that follows it |
 | Input | 21 `InputMap` actions from 15 `INPUT-` IDs, KBM + pad. Chain GDD-02 → `Ids` → `InputActions` → `project.godot`, guarded on every hop, both directions |
 
 **Four criteria are deliberately unticked** in US-0002/3/4/5, all variants of
@@ -255,7 +262,7 @@ US-0024 measures it against clips that do not exist.
 — see §1.3 of `docs/20_tdd/12_build_and_ci.md`. The navmesh **bake** is likewise
 owed and recorded in US-0012.
 
-### Nine things that will cost you an hour if you do not know them
+### Eleven things that will cost you an hour if you do not know them
 
 1. **Two things are GENERATED.** `scripts/core/ids.gd`, `scripts/core/tuning/*.gd`
    and `tuning_index.gd` come from `tools/tuning_codegen/run_all.py`; the map
@@ -312,6 +319,19 @@ owed and recorded in US-0012.
    call sites had it wrong until US-0016, including the stun freeze, which
    design law 5 forbids weakening. `test_step_counters_use_step_ticks.gd` now
    refuses `Tuning.ticks(` anywhere under `scripts/pawn/`.
+10. **GUT REPORTS "NOTHING WAS RUN" AS A SUCCESS SHAPE, NOT AS A FAILURE.**
+    Without `-ginclude_subdirs` it scans only the top level of `-gdir`, finds no
+    `test_*.gd` — every suite here is nested — and prints *"On the one hand
+    nothing failed, on the other hand nothing did anything"*. It is the same
+    silent-skip family as trap 3 and as the cache bug in `.ci/run_gut.sh`'s
+    header. **Use `.ci/run_gut.sh`**, which counts the scripts on disk and
+    refuses to pass over a short run.
+11. **THE FUNCTION-LENGTH GUARD MEASURES `func` TO `func`**, so a function is
+    charged for the docstring of the one AFTER it. Adding a seven-line docstring
+    to a new function pushed its *neighbour* over 40 lines in US-0022. The
+    message names the wrong function, and the tempting fix — deleting a
+    docstring — is the wrong one. Shorten the comment you just added, or split
+    the function the guard actually named.
 
 ### Local environment
 

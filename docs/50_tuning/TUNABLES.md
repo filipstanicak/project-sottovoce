@@ -529,6 +529,7 @@ the ordered lever list are in [`../10_gdd/07_balance.md`](../10_gdd/07_balance.m
 | `TUN-CAM-FOV-RUN` | 69.0 | deg | 64–74 | " |
 | `TUN-CAM-FOV-SPRINT` | 72.0 | deg | 68–80 | Wide FOV at sprint. Speed lines and peripheral distortion. The camera itself tells you that you are doing something conspicuous. |
 | `TUN-CAM-FOV-BLEND-RATE` | 90.0 | deg/s | 60–140 | FOV transition speed between states. Fast enough to track a speed change, slow enough not to snap. |
+| `TUN-CAM-FOV-MOTION-REDUCED` | 62.0 | deg | 55–70 | The single FOV motion-reduction mode locks to, replacing the whole ladder. Sits between stroll and jog so no speed is framed unusually — the mode removes a warning channel and must not add a framing bias on top. Promoted from prose — [`../10_gdd/02_player_controller.md`](../10_gdd/02_player_controller.md) §9.4 gives the value without an ID. The compensating speed indicator it trades for is `SYS-UI`'s, in US-0084. |
 | `TUN-CAM-ARM-LENGTH` | 2.6 | m | 2.2–3.2 | Spring-arm length. Far enough to see your own silhouette (you must be able to judge how you look), close enough to keep the crowd legible. |
 | `TUN-CAM-ARM-HEIGHT` | 1.55 | m | 1.4–1.8 | Pivot height — roughly shoulder height on the tallest persona. |
 | `TUN-CAM-SHOULDER-OFFSET` | 0.45 | m | 0.3–0.7 | Lateral offset. |
@@ -646,6 +647,8 @@ Beyond each row's own Range, these cross-field invariants are asserted at load:
 | 18 | `TUN-SCORE-BLENDED > TUN-SCORE-PATIENT > TUN-SCORE-SILENT` | The bonus hierarchy encodes the design thesis. If a tuning change inverts it, the tuning change is wrong. |
 | 19 | `TUN-SCORE-STUN == TUN-SCORE-CONTRACT` | Defence pays like offence. |
 | 20 | `sum(TUN-PERF-*-BUDGET for client) <= TUN-PERF-FRAME-BUDGET` | The budget must actually add up. Currently 15.5 / 16.6 ms, leaving 1.1 ms of margin. |
+| 21 | `TUN-CAM-FOV-BLEND < STROLL < JOG < RUN < SPRINT` | The FOV ladder is a warning channel ([`../10_gdd/02_player_controller.md`](../10_gdd/02_player_controller.md) §4.2), and it only warns while it runs the same direction as the speed ladder it mirrors. Inverted, speed would read as calm and slowing down would read as alarm — the thesis, backwards, in the one channel that reaches the player pre-consciously. |
+| 22 | `TUN-CAM-FOV-BLEND <= TUN-CAM-FOV-MOTION-REDUCED <= TUN-CAM-FOV-SPRINT` | Motion-reduction replaces the ladder with one value. Outside the ladder's own span that value would frame *every* speed unusually, which is a second cost on top of the warning channel the mode already gives up. |
 
 ---
 

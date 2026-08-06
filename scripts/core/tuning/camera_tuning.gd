@@ -33,6 +33,13 @@ extends Resource
 ## TUN-CAM-FOV-BLEND-RATE
 @export_range(60.0, 140.0, 0.1) var fov_blend_rate: float = 90.0
 
+## The single FOV motion-reduction mode locks to, replacing the whole ladder. Sits between stroll
+## and jog so no speed is framed unusually — the mode removes a warning channel and must not add
+## a framing bias on top. Promoted from prose — ../10_gdd/02_player_controller.md §9.4 gives the
+## value without an ID. The compensating speed indicator it trades for is SYS-UI's, in US-0084.
+## TUN-CAM-FOV-MOTION-REDUCED
+@export_range(55.0, 70.0, 0.1) var fov_motion_reduced: float = 62.0
+
 ## Spring-arm length. Far enough to see your own silhouette (you must be able to judge how you
 ## look), close enough to keep the crowd legible.
 ## TUN-CAM-ARM-LENGTH

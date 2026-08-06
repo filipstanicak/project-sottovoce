@@ -27,6 +27,14 @@ func camera_controlled() -> bool:
 	return false
 
 
+## Neutral, like `KillAnim` and for the same reason: the lens reports speed, and
+## a stunned player is not moving. The punishment is already the fixed offset and
+## four seconds of watching — dramatising it with the lens would spend the
+## warning channel on a state the player cannot act on.
+func camera_fov(_ctx: PawnContext) -> float:
+	return Tuning.camera.fov_stroll
+
+
 func interrupt_priority() -> int:
 	return PRIORITY_COMBAT
 

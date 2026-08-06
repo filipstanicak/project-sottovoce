@@ -202,6 +202,7 @@ const FIELD := {
 	&"TUN-CAM-FOV-RUN": ["camera", "fov_run", "deg"],
 	&"TUN-CAM-FOV-SPRINT": ["camera", "fov_sprint", "deg"],
 	&"TUN-CAM-FOV-BLEND-RATE": ["camera", "fov_blend_rate", "deg/s"],
+	&"TUN-CAM-FOV-MOTION-REDUCED": ["camera", "fov_motion_reduced", "deg"],
 	&"TUN-CAM-ARM-LENGTH": ["camera", "arm_length", "m"],
 	&"TUN-CAM-ARM-HEIGHT": ["camera", "arm_height", "m"],
 	&"TUN-CAM-SHOULDER-OFFSET": ["camera", "shoulder_offset", "m"],
