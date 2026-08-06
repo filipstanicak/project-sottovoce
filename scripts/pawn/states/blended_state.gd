@@ -21,6 +21,16 @@ func is_interruptible(_ctx: PawnContext) -> bool:
 	return true
 
 
+## The narrowest lens outside crowd-scan. GDD-02 §4.2's ladder names speeds, and
+## blending is not one — but the narrow end of that ladder exists to make distant
+## faces larger and more comparable, and standing still inside a group *looking at
+## people* is the purest instance of that act in the game. A blended player framed
+## at stroll would be given a wider view for holding still, which is the ladder
+## backwards.
+func camera_fov(_ctx: PawnContext) -> float:
+	return Tuning.camera.fov_blend
+
+
 ## Suspicion crushes toward zero over TUN-BLEND-CRUSH-TIME. Negative because the
 ## rate is added: blending is the one state that actively buys anonymity back.
 func suspicion_rate(_ctx: PawnContext) -> float:

@@ -120,6 +120,14 @@ func camera_controlled() -> bool:
 	return _machine == null or _machine.camera_controlled(ctx)
 
 
+## The FOV rung the pawn is on. Asked for by `CameraRig` and answered by the
+## state, the same delegation as above and for the same reason: GDD-02 §4.2 binds
+## the lens to the SPEED STATE, and a rig deciding it from `ctx.velocity` would
+## drift from the state table on every acceleration ramp.
+func camera_fov() -> float:
+	return CameraFov.default_fov() if _machine == null else _machine.camera_fov(ctx)
+
+
 ## Unacknowledged commands, for the reconciliation US-0033 will perform.
 func history() -> InputHistory:
 	return _history

@@ -546,7 +546,7 @@ channels that commonly fail: colour, sound, and sustained visual attention.
 
 | Provision | Detail |
 |---|---|
-| **Motion-reduction mode** | Disables FOV changes with speed (locks to 62°), reduces camera bob, removes speed-line effects, and slows the Compass's visual pulse animation while preserving its cadence. |
+| **Motion-reduction mode** | Disables FOV changes with speed (locks to `TUN-CAM-FOV-MOTION-REDUCED`, 62°), reduces camera bob, removes speed-line effects, and slows the Compass's visual pulse animation while preserving its cadence. |
 | **Trade-off, stated honestly** | Motion-reduction removes the FOV warning channel (§4.2). To compensate, the mode adds a persistent numeric/iconic speed-state indicator to the HUD. This is a *different* channel, not a worse one, but it is more explicit and slightly less immersive. Players should know they are making that trade. |
 | **Camera shake** | Fully disableable. No gameplay information is ever carried by shake. |
 | **Reduced crowd density option** | **Deliberately not offered.** Crowd density is gameplay (Law 2), and reducing it would grant a competitive advantage by making players easier to pick out. Performance-driven density reduction is handled by fidelity LOD instead (`TUN-PERF-CROWD-LOD-*`), never by count. This is the one accessibility request we refuse, and the reason is recorded here so it does not have to be re-argued. |

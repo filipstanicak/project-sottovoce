@@ -116,8 +116,8 @@ state machine, locally.
 | Camera rig: spring arm, FOV ladder, occlusion, crowd-scan | |
 | `test_feel_latency.gd` measuring input→animation | |
 
-> **Status 2026-08-06 — 9 of 12.** US-0013 to US-0021 are done. Fifteen states
-> declared, ten implemented, 121 edges asserted against the §3 diagram in both
+> **Status 2026-08-06 — 10 of 12.** US-0013 to US-0022 are done. Fifteen states
+> declared, twelve implemented, 121 edges asserted against the §3 diagram in both
 > directions.
 >
 > **The pawn walks and traverses.** A key press reaches the speed ladder through
@@ -136,11 +136,17 @@ state machine, locally.
 > occlusion that pulls in rather than sideways, and NPCs that do not push it.
 > `DebugFollowCamera` is deleted.
 >
+> **The lens is a channel as of US-0022.** FOV is bound to the speed STATE, not
+> to velocity — the rung is a consequence of the decision, and a rig deriving it
+> from `ctx.velocity` would widen during every acceleration ramp while the pawn
+> was still labelled Stroll and still paying Stroll's rate. Motion-reduction's
+> lock exists; the mode, and the speed indicator that compensates for the channel
+> it removes, are US-0084.
+>
 > **The feel gate below is judgeable and has not been judged.** It is subjective
 > and needs a human at the controls. Three of its four lines can be judged now;
 > **the fourth cannot exist yet**: input→animation needs an animation, and
-> US-0024 measures it against clips that do not exist. The FOV ladder arrives in
-> US-0022.
+> US-0024 measures it against clips that do not exist.
 >
 > [ADR-0012](../00_meta/adr/ADR-0012-slow-is-always-available.md) amended the §3
 > diagram during US-0015: `Any → Blend-walk` and `Any → Idle` were declared in §2.2

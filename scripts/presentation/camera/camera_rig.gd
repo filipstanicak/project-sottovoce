@@ -14,8 +14,10 @@
 ##    surface hands a player pressed against a corner a free look down the street
 ##    beyond it. Camera position must never be an information channel.
 ##
-## The FOV ladder is US-0022 and crowd-scan is US-0023. This rig holds a fixed
-## FOV and does not read `INPUT-SCAN`.
+## The lens is the third thing here, and the only one that is a *message* rather
+## than a framing decision: `CameraFov` widens with the speed state, which is
+## §4.2's warning channel. Crowd-scan is US-0023; this rig does not read
+## `INPUT-SCAN` yet.
 class_name CameraRig
 extends Camera3D
 
@@ -31,6 +33,16 @@ extends Camera3D
 ## How far the player may look up and down, in degrees. Not a tunable either:
 ## it is the gimbal limit, and past it the arm inverts.
 @export var pitch_limit_degrees: float = 70.0
+
+## GDD-02 §9.4's accessibility mode, as far as the camera is concerned: the FOV
+## ladder stops moving and locks to `TUN-CAM-FOV-MOTION-REDUCED`.
+##
+## **NOTHING SETS THIS YET**, the same way nothing calls `swap_shoulder()`. The
+## options screen, the bob and speed-line halves of the mode, and — crucially —
+## the persistent speed indicator that compensates for the channel this removes
+## are all US-0084. Exported rather than hidden so the mode is drivable from the
+## editor and from a test before that arrives.
+@export var motion_reduction: bool = false
 
 @export var driver_path: NodePath
 @export var sampler_path: NodePath
@@ -53,7 +65,10 @@ func _ready() -> void:
 		return
 	sampler.command_sampled.connect(_on_command_sampled)
 	_distance = CameraArm.max_distance()
-	fov = Tuning.camera.fov_stroll
+	# Set, not blended, exactly once. A rig that started at the engine default 75°
+	# and swept down to 60 over a sixth of a second would open every match with a
+	# zoom the player did not ask for.
+	fov = CameraFov.wanted(CameraFov.default_fov(), motion_reduction)
 
 
 ## The look is read from the sampled command rather than from `Input`, so the
@@ -96,6 +111,7 @@ func _process(delta: float) -> void:
 
 	_shoulder = CameraArm.blend_shoulder(_shoulder, _shoulder_target, delta)
 	_distance = CameraArm.step_distance(_distance, _wanted_distance(ctx), delta)
+	fov = CameraFov.step(fov, CameraFov.wanted(_driver.camera_fov(), motion_reduction), delta)
 
 	global_position = CameraArm.position_at(ctx.position, _yaw, _pitch, _shoulder, _distance)
 	look_at(CameraArm.pivot(ctx.position), Vector3.UP)
