@@ -17,7 +17,7 @@ func target_speed() -> float:
 	return Tuning.movement.blend_walk
 
 
-func suspicion_rate(_ctx: PawnContext) -> float:
+func _ground_rate(_ctx: PawnContext) -> float:
 	return _decay_rate()
 
 

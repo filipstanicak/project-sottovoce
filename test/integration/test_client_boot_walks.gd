@@ -180,6 +180,26 @@ func test_pressing_traverse_at_a_real_wall_puts_the_pawn_over_it() -> void:
 	)
 
 
+func test_pressing_traverse_at_a_real_facade_climbs_it() -> void:
+	# The other end of the resolver, through the same real chain as the vault.
+	# A 4 m face is §7.4's "climb, always" — above the mantle ceiling, well inside
+	# the one-stratum limit.
+	await _run(6)
+	var start := _driver.ctx.position
+	_wall_in_front(4.0)
+	await _run(2)
+
+	Input.action_press(&"input_traverse")
+	await _run(2)
+	Input.action_release(&"input_traverse")
+	assert_eq(_driver.ctx.state_id, PawnStateId.CLIMB, "a traverse at a 4 m façade did not climb")
+
+	# 4 m at TUN-SPEED-CLIMB is about 1.4 s; allow the arrival plus slack.
+	await _run(int(4.0 / Tuning.movement.climb * Tuning.net.client_input_rate) + 20)
+	assert_eq(_driver.ctx.state_id, PawnStateId.IDLE, "the pawn never reached the top")
+	assert_gt(_driver.ctx.position.y - start.y, 3.0, "the pawn is still at the bottom of the wall")
+
+
 func test_a_traverse_in_an_empty_street_does_nothing_at_all() -> void:
 	# Case 7's silence, in the place a player will meet it most often.
 	var before := _driver.ctx.position

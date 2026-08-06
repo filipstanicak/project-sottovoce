@@ -77,15 +77,23 @@ static func obstacle_top_origins(feet: Vector3, yaw: float, hit_distance: float)
 	return out
 
 
-## The down-cast that measures how tall a climbable façade is.
+## The down-casts that measure how tall a climbable façade is.
 ##
-## Starts at `TUN-TRAVERSE-CLIMB-MAX-HEIGHT` — the ceiling §7.2 case 6 compares
+## Start at `TUN-TRAVERSE-CLIMB-MAX-HEIGHT` — the ceiling §7.2 case 6 compares
 ## against — rather than at mantle height, because a façade is by definition
 ## taller than anything a mantle can reach, and a cast that began inside it would
 ## pass straight through and measure the floor.
-static func climb_top_origin(feet: Vector3, yaw: float, hit_distance: float) -> Vector3:
-	var ahead := hit_distance + Tuning.movement.gap_probe_step
-	return feet + forward(yaw) * ahead + Vector3.UP * Tuning.movement.traverse_climb_max_height
+##
+## SEVERAL, for the same reason `obstacle_top_origins` samples several: a façade
+## thinner than one probe step has every single-sample cast land behind it. A
+## 0.4 m garden wall and a 0.4 m house wall are the same shape to a raycast.
+static func climb_top_origins(feet: Vector3, yaw: float, hit_distance: float) -> Array:
+	var out: Array = []
+	var top := Tuning.movement.traverse_climb_max_height
+	for fraction: float in TOP_SAMPLE_FRACTIONS:
+		var ahead := hit_distance + Tuning.movement.gap_probe_step * fraction
+		out.append(feet + forward(yaw) * ahead + Vector3.UP * top)
+	return out
 
 
 ## The down-cast that asks whether a vault has anywhere to land. One further step

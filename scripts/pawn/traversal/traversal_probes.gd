@@ -143,14 +143,19 @@ func _cast_climb_top(
 ) -> void:
 	if not probe.chest_hit or probe.obstacle_top != INF:
 		return
-	var from := ProbeLayout.climb_top_origin(feet, yaw, probe.distance)
-	var hit := _ray(space, from, from + Vector3.DOWN * Tuning.movement.traverse_climb_max_height)
-	if hit.is_empty():
-		return
-	var top := (hit["position"] as Vector3).y - feet.y
-	# Same rejection as above: below mantle height it is the floor, not a façade.
-	if top > Tuning.movement.traverse_mantle_max_height:
-		probe.surface_height = top
+	var reach := Tuning.movement.traverse_climb_max_height
+	var best := INF
+	for from: Vector3 in ProbeLayout.climb_top_origins(feet, yaw, probe.distance):
+		var hit := _ray(space, from, from + Vector3.DOWN * reach)
+		if hit.is_empty():
+			continue
+		var top := (hit["position"] as Vector3).y - feet.y
+		# Same rejection as the obstacle top: below mantle height it is the floor
+		# behind a thin façade, not the façade.
+		if top <= Tuning.movement.traverse_mantle_max_height:
+			continue
+		best = top if best == INF else maxf(best, top)
+	probe.surface_height = best
 
 
 ## The down-casts marching ahead, which distinguish a **gap** — ground found

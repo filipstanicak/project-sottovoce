@@ -382,7 +382,7 @@ Startle (`TUN-CROWD-STARTLE-RADIUS-SPRINT` 5 m).
 | **Vault** (≤ 1.1 m) | 0.55 s | **0** | 5 m | No | *Free.* A civilian hops a low wall. The only athletic move that costs nothing — and therefore the backbone of ground-level route-finding. |
 | **Mantle** (≤ 2.3 m) | 0.95 s | +11.4 (climb rate × duration) | 7 m | No | Cheap but visible: a 0.95 s commitment readable at 30 m. |
 | **Climb** (per metre) | 0.36 s/m | +4.3/m | 7 m | No | A 9 m climb: 3.2 s, +38.6 suspicion — **Noticed** before you arrive. |
-| **Arrive on roof stratum** | — | +18/s *while present* | — | No | Standing on a roof reaches **Noticed** in 1.7 s. The roofs are a highway with a toll booth. |
+| **Arrive on roof stratum** | — | +18/s *while present*, and **decay stops** | — | No | Standing on a roof reaches **Noticed** in 1.7 s — 30/18, the toll alone. Netting the 8/s decay against it would make that 3.0 s. The roofs are a highway with a toll booth. |
 | **Drop** (≤ 4 m) | ~0.9 s | 0 | 8 m | No | Free and fast. Dropping *down* is the cheap direction — descending into the crowd is always safer than ascending out of it. |
 | **Drop** (> 4 m, hard) | ~1.1 s + `TUN-TRAVERSE-DROP-STAGGER` 0.8 s | 0 | 12 m | Yes | The panic-off-a-roof move. No suspicion, but 0.8 s of helplessness on landing. |
 | **Gap jump** (≤ 3.2 m) | ~0.8 s | +18/s roof presence | 8 m | No | Only exists on the roof stratum, so it always carries the roof toll. |
