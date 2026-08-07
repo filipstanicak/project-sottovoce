@@ -105,13 +105,43 @@ func test_motion_reduction_locks_the_lens_wherever_the_pawn_is() -> void:
 	# ladder rather than damping it, because a slower blend still sweeps the same
 	# 17° and the sweep is the part that makes people ill.
 	for rung: float in [55.0, 60.0, 65.0, 69.0, 72.0]:
-		assert_almost_eq(CameraFov.wanted(rung, true), Tuning.camera.fov_motion_reduced, 0.001)
+		assert_almost_eq(
+			CameraFov.wanted(rung, true, false), Tuning.camera.fov_motion_reduced, 0.001
+		)
 	assert_almost_eq(Tuning.camera.fov_motion_reduced, 62.0, 0.001)
 
 
 func test_with_the_mode_off_the_rung_passes_straight_through() -> void:
 	for rung: float in [55.0, 60.0, 65.0, 69.0, 72.0]:
-		assert_almost_eq(CameraFov.wanted(rung, false), rung, 0.001)
+		assert_almost_eq(CameraFov.wanted(rung, false, false), rung, 0.001)
+
+
+func test_scanning_narrows_past_every_rung_including_the_lock() -> void:
+	# **SCAN WINS.** §9.4 disables FOV changes *with speed* — the ladder, which
+	# moves without being asked. Crowd-scan is one the player holds a button for,
+	# and it is the game's central act; removing it from motion-reduction players
+	# would hand them §9.4's own failure mode 9, a competitive disadvantage bought
+	# with an accessibility setting.
+	for locked: bool in [false, true]:
+		for rung: float in [55.0, 60.0, 65.0, 69.0, 72.0]:
+			assert_almost_eq(
+				CameraFov.wanted(rung, locked, true), Tuning.camera.crowdscan_fov, 0.001
+			)
+
+
+func test_the_scan_lens_is_narrower_than_anything_else_in_the_game() -> void:
+	# §4.3: "narrower than any speed state — leaning in". If it were not, the
+	# button would widen the view in some state, and the one thing the feature
+	# grants would be conditional.
+	assert_almost_eq(Tuning.camera.crowdscan_fov, 48.0, 0.001)
+	assert_lt(Tuning.camera.crowdscan_fov, Tuning.camera.fov_blend, "scan is not the narrowest")
+	assert_lt(Tuning.camera.crowdscan_fov, Tuning.camera.fov_motion_reduced)
+
+
+func test_scanning_slows_the_look_and_releasing_restores_it() -> void:
+	assert_almost_eq(CameraFov.look_scale(true), Tuning.camera.crowdscan_speed, 0.001)
+	assert_almost_eq(Tuning.camera.crowdscan_speed, 0.45, 0.001)
+	assert_almost_eq(CameraFov.look_scale(false), 1.0, 0.001, "the look stayed slow after a scan")
 
 
 func test_the_locked_value_sits_inside_the_ladder_it_replaces() -> void:

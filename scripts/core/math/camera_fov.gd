@@ -20,17 +20,37 @@ class_name CameraFov
 extends RefCounted
 
 
-## What the lens should be showing, given the state's rung and the accessibility
-## mode.
+## What the lens should be showing, given the state's rung, the crowd-scan input
+## and the accessibility mode.
+##
+## **SCAN WINS.** GDD-02 §9.4 disables FOV changes *with speed* — the ladder,
+## which moves constantly without being asked. Crowd-scan is a change the player
+## requests by holding a button, and it is the game's central act; taking it away
+## from motion-reduction players would hand them §9.4's own failure mode 9, a
+## competitive disadvantage bought with an accessibility setting. One line to
+## reverse if that reading is ever judged wrong.
 ##
 ## **MOTION REDUCTION REPLACES THE LADDER, IT DOES NOT DAMP IT.** A slower blend
 ## would still sweep the same 17°, which is the part that makes people ill —
-## GDD-02 §9.4 locks the value instead. The trade is real and stated to the
-## player: the warning channel goes away, and a persistent speed indicator is
-## added to the HUD in its place (US-0084). A *different* channel, not a worse
-## one, but the player must know they are making the trade.
-static func wanted(state_fov: float, motion_reduction: bool) -> float:
+## §9.4 locks the value instead. The trade is real and stated to the player: the
+## warning channel goes away, and a persistent speed indicator is added to the
+## HUD in its place (US-0084). A *different* channel, not a worse one, but the
+## player must know they are making the trade.
+static func wanted(state_fov: float, motion_reduction: bool, scanning: bool) -> float:
+	if scanning:
+		return Tuning.camera.crowdscan_fov
 	return Tuning.camera.fov_motion_reduced if motion_reduction else state_fov
+
+
+## The look-sensitivity multiplier for this frame. `TUN-CAM-CROWDSCAN-SPEED`
+## while scanning, 1.0 otherwise.
+##
+## **SLOWER LOOKING IS THE WHOLE FEATURE**, together with the narrower lens. It
+## is what a scan grants instead of a reveal: precision, and the seconds it costs
+## you to use it. Applied in `InputSampler`, so the scaled look reaches the pawn
+## and the server as one number and a replay reproduces the pan exactly.
+static func look_scale(scanning: bool) -> float:
+	return Tuning.camera.crowdscan_speed if scanning else 1.0
 
 
 ## Advance the current FOV toward `target` at `TUN-CAM-FOV-BLEND-RATE`.

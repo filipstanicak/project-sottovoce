@@ -63,7 +63,12 @@ func _integrate(ctx: PawnContext, input: InputCommand, delta: float) -> void:
 	#
 	# Only DOWNWARD. Escalation stays gradual, because taking speed one rung at a
 	# time is what makes it a decision.
-	if input.slow:
+	#
+	# Crowd-scan caps the SPEED, never the STATE — routing it through the slow
+	# path would drop a scanning sprinter into BlendWalk, whose suspicion DECAYS,
+	# and a button that launders suspicion is exactly the mechanical advantage
+	# §4.3 refuses to grant. Capped here it is a pure cost, never a discount.
+	if input.slow or input.scan:
 		wanted = minf(wanted, Tuning.movement.blend_walk)
 	if not input.wants_movement():
 		wanted = 0.0
