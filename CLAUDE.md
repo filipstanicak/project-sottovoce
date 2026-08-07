@@ -250,7 +250,7 @@ US-0024 measures it against clips that do not exist.
 
 | | |
 |---|---|
-| CI | 7 jobs. **Last actually ran 2026-08-05 on `ac959b6`** — the four commits since have never been through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
+| CI | 7 jobs. **Running again as of 2026-08-07 after a two-day outage** — run `31200490320`, all seven green. The seven commits merged during the outage were never through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
 | Tests | 90 architecture guards + 343 unit + 72 integration, all three counted in CI |
 | Tuning | 282 tunables across 14 resource classes; all 22 cross-field invariants assert |
 | Autoloads | All eight. `Tuning` precomputes 89 durations into **two** tick tables — see trap 7 |
@@ -303,14 +303,16 @@ likewise owed and recorded in US-0012.
    `docs/20_tdd/12_build_and_ci.md`. Run `git config core.hooksPath .githooks` in
    every fresh clone, and wait for a run to report `completed success` before
    merging. `gh run watch` can return while a run is still queued.
-   **AND THERE ARE NO RUNS AT ALL SINCE `31039868975` ON 2026-08-05T19:32Z** —
-   nothing across any trigger, with Actions reporting `enabled`. Probably
-   exhausted free-plan minutes; unconfirmed, because the billing endpoint needs a
-   `user` OAuth scope this token does not carry. **Three stories have now merged
-   on local evidence** (#33, #35, #36) with the owner's say-so. Check that a run
-   actually appears before waiting on one — a stale `gh run list` looks exactly
-   like a healthy pipeline that has not fired yet — and verify from a
-   `git archive HEAD` extraction meanwhile. TDD-12 §1.3.1.
+   **ACTIONS WENT SILENT FOR TWO DAYS AND CAME BACK.** No runs at all between
+   `31039868975` (2026-08-05T19:32Z) and `31200490320` (2026-08-07T17:03Z), on any
+   trigger, with Actions reporting `enabled` throughout — most likely exhausted
+   free-plan minutes, never confirmed, because the billing endpoint needs a `user`
+   OAuth scope this token does not carry. **Four stories and two checkpoints
+   merged on local evidence in the gap** (#33, #35, #36, #37, #38), each PR body
+   saying so. The pipeline is green again; if it goes quiet a second time, check
+   that a run actually *appears* before waiting on one — a stale `gh run list`
+   looks exactly like a healthy pipeline that has not fired yet — and verify from
+   a `git archive HEAD` extraction meanwhile. TDD-12 §1.3.1.
 7. **A STATE THAT WRITES `ctx.position` MUST SAY SO**, by returning true from
    `PawnState.drives_position()`. Otherwise `LocalPawnDriver` runs
    `move_and_slide()` and overwrites it from the physics body — which, with the
