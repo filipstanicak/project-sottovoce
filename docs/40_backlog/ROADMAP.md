@@ -69,7 +69,7 @@ exit criterion is somebody's named deliverable rather than a shared assumption.
 > Two deliverables below are still only half-true, and are recorded rather than
 > rounded up:
 >
-> - The six CI jobs are **required by agreement, not by the server** — branch
+> - The seven CI jobs are **required by agreement, not by the server** — branch
 >   protection needs GitHub Pro on a private repo
 >   ([`../20_tdd/12_build_and_ci.md`](../20_tdd/12_build_and_ci.md) §1.3). Four
 >   acceptance criteria in US-0002/3/4/5 stay unticked for this reason.
@@ -80,7 +80,7 @@ exit criterion is somebody's named deliverable rather than a shared assumption.
 | Delivers | |
 |---|---|
 | `project.godot`, `.godot-version`, export presets | Engine pinned; three presets with their exclusion lists |
-| Six CI jobs on `main` | import · lint · test · ip-guard · asset-inventory · export — plus a version-resolve job. *Required by agreement; see §1.3 of TDD-12.* |
+| Seven CI jobs on `main` | version · import · lint · ip-guard · asset-inventory · test · export. *Required by agreement, not by the server; see §1.3 of TDD-12.* |
 | The full folder tree + `test/arch/` guards | The layer rule is enforced from commit one |
 | `Ids`, all eight autoloads, the string table | |
 | `TuningProfile` + every sub-resource + `data/tuning/default/*.tres` | **All 269 values, from TUNABLES.md** |

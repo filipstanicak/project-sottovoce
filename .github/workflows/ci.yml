@@ -1,7 +1,13 @@
 # Project Sottovoce — CI
 #
-# Six required checks on `main` (TDD-12 §1). All six must be green to merge;
-# ADR-0009 forbids direct pushes to main.
+# Seven required checks on `main` (TDD-12 §1) — version, import, lint, ip-guard,
+# asset-inventory, test, export. All seven must be green to merge; ADR-0009
+# forbids direct pushes to main. NAMED, not counted: this comment said six for
+# two milestones after `version` was added, and so did three documents.
+#
+# Note the triggers below: `push` is restricted to main, so a topic branch runs
+# CI only once a PR is open against main. Pushing a branch and waiting for a run
+# waits forever.
 #
 # `import` runs first because everything else depends on a clean import, and
 # import errors are the most common cause of works-on-my-machine.

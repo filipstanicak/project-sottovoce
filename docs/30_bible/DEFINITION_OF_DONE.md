@@ -117,7 +117,9 @@ Copy into the PR description and tick as you go.
 - [ ] Commits follow `<type>(<scope>): <summary>` with a body explaining **why**.
 - [ ] Rebased on `main`, squash-merged.
 - [ ] Any feature flag added names the story that removes it.
-- [ ] CI green on all six jobs.
+- [ ] CI green on all **seven** jobs — `version`, `import`, `lint`, `ip-guard`,
+      `asset-inventory`, `test`, `export`. Named rather than counted, because the count
+      said six for two milestones after the seventh was added.
 - [ ] **The story file is marked.** `status: done`, `last_updated` bumped, and every
       acceptance criterion ticked. An unmet criterion stays **unticked** with a
       one-line note saying what blocks it — a story marked done over a criterion
