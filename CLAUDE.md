@@ -216,11 +216,11 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 *Updated 2026-08-05. Keep this section current — it is the first thing a fresh
 session reads, and a stale one is worse than none.*
 
-**M0 IS COMPLETE. M1 IS 10 OF 12.** US-0013 to US-0022 are `status: done`.
-**US-0023 is next** — crowd-scan, the game's "aim down sights", which grants
-**no mechanical advantage at all**: no reveal, no highlight, no tag. Only
-slower, closer, quieter looking. GDD-02 §4.3 calls it the single clearest
-statement of what kind of game this is; do not let it acquire a tell.
+**M0 IS COMPLETE. M1 IS 11 OF 12.** US-0013 to US-0023 are `status: done`.
+**US-0024 is next and CANNOT BE FINISHED** — the feel-latency harness measures
+input→animation against animation clips that do not exist. Read its story
+before starting: the honest deliverable is the harness plus a recorded reason
+the fourth M1 gate line stays unjudged, not a ticked criterion.
 
 **THE PAWN WALKS AND TRAVERSES.** A key press reaches the speed ladder through
 the real input map, the probes see the district, and every manoeuvre performs —
@@ -236,7 +236,8 @@ WASD, Left Ctrl to blend-walk, Left Shift to run, double-tap Shift to sprint,
 Space to traverse — the game picks the manoeuvre from what is in front of you.
 The camera is the real `SYS-CAMERA` rig as of US-0021, and since US-0022 the
 lens widens with the speed **state** — 55° blend-walk to 72° sprint at 90°/s.
-Crowd-scan is US-0023.
+Middle mouse holds crowd-scan: 48°, look at 0.45×, pace capped at blend-walk,
+and **nothing else at all** (US-0023).
 
 M1's gate is *subjective* (ROADMAP §3.1). **If the pawn does not feel good at
 M1, it will not feel good at M6.** Three of its four lines are judgeable now;
@@ -246,7 +247,7 @@ US-0024 measures it against clips that do not exist.
 | | |
 |---|---|
 | CI | 7 jobs. **Last actually ran 2026-08-05 on `ac959b6`** — the four commits since have never been through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | 86 architecture guards + 333 unit + 64 integration, all three counted in CI |
+| Tests | 86 architecture guards + 343 unit + 72 integration, all three counted in CI |
 | Tuning | 282 tunables across 14 resource classes; all 22 cross-field invariants assert |
 | Autoloads | All eight. `Tuning` precomputes 89 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |
@@ -254,7 +255,7 @@ US-0024 measures it against clips that do not exist.
 | Map | `MAP-VETRAIO` greybox, 120 × 120 m. Client loads 28 meshes, server loads none |
 | Pawn | 15 states declared, 121 transition edges asserted against the normative diagram. **Twelve implemented**: six locomotion + `Vault`, `Climb`, `Drop`, `KillAnim`, `Stunned`, `Blended`. `Respawning`, `StunAnim` and `Dead` are M4 |
 | Traversal | **Complete.** Probes cast, all seven §7.2 cases resolve from real geometry, both forgiveness windows open, and vault, mantle, climb, drop and gap jump all perform |
-| Camera | Real spring arm: 2.6 m, shoulder swap, occlusion that pulls **in** and never sideways, `WORLD`-masked so a crowd cannot push it. The FOV ladder is bound to the **state**, never to `ctx.velocity`: the rung is a consequence of the decision, not of the physics that follows it |
+| Camera | Real spring arm: 2.6 m, shoulder swap, occlusion that pulls **in** and never sideways, `WORLD`-masked so a crowd cannot push it. The FOV ladder is bound to the **state**, never to `ctx.velocity`: the rung is a consequence of the decision, not of the physics that follows it. Crowd-scan narrows to 48° and grants nothing |
 | Input | 21 `InputMap` actions from 15 `INPUT-` IDs, KBM + pad. Chain GDD-02 → `Ids` → `InputActions` → `project.godot`, guarded on every hop, both directions |
 
 **Five criteria are deliberately unticked.** Four are in US-0002/3/4/5, all

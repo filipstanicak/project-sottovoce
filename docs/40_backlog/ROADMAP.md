@@ -107,16 +107,16 @@ and exports** — and does nothing else.
 **Exit:** one player can walk / blend / jog / sprint / climb / vault with camera and the full
 state machine, locally.
 
-| Delivers | Status 2026-08-06 |
+| Delivers | Status 2026-08-07 |
 |---|---|
 | All 15 `PawnState` classes + centralised transition table | ADR-0008. **Partial by design** — 15 declared and all 121 edges asserted, but `Respawning`, `StunAnim` and `Dead` belong to `SYS-SPAWN` and `SYS-COMBAT` and are M4. Twelve implemented |
 | The speed ladder, wired to `MovementTuning` | Done, US-0015 |
 | Input map, `InputCommand`, dual input buffering | Done, US-0016 |
 | Traversal probes + the 7-case resolver + forgiveness windows | Done, US-0017–0020 |
-| Camera rig: spring arm, FOV ladder, occlusion, crowd-scan | Arm, occlusion and ladder done (US-0021, US-0022). **Crowd-scan outstanding** — US-0023 |
+| Camera rig: spring arm, FOV ladder, occlusion, crowd-scan | Done, US-0021–0023. Crowd-scan's audio duck is **not** done — `Audio` is a stub until US-0075 |
 | `test_feel_latency.gd` measuring input→animation | **Not started and not startable.** US-0024 measures against animation clips that do not exist |
 
-> **Status 2026-08-06 — 10 of 12.** US-0013 to US-0022 are done. Fifteen states
+> **Status 2026-08-07 — 11 of 12.** US-0013 to US-0023 are done. Fifteen states
 > declared, twelve implemented, 121 edges asserted against the §3 diagram in both
 > directions.
 >
@@ -142,6 +142,13 @@ state machine, locally.
 > was still labelled Stroll and still paying Stroll's rate. Motion-reduction's
 > lock exists; the mode, and the speed indicator that compensates for the channel
 > it removes, are US-0084.
+>
+> **Crowd-scan lands in US-0023 and grants nothing**, which is the point. 48°,
+> look at 0.45x, pace capped at blend-walk — and the cap is on the SPEED, never
+> the STATE, because routing it through the slow path would drop a scanning
+> player into BlendWalk, whose suspicion decays. A button that launders suspicion
+> is the mechanical advantage §4.3 exists to refuse. The audio half is blocked on
+> there being any audio at all (US-0075).
 >
 > **The feel gate below is judgeable and has not been judged.** It is subjective
 > and needs a human at the controls. Three of its four lines can be judged now;

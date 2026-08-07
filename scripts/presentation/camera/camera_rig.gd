@@ -16,8 +16,13 @@
 ##
 ## The lens is the third thing here, and the only one that is a *message* rather
 ## than a framing decision: `CameraFov` widens with the speed state, which is
-## §4.2's warning channel. Crowd-scan is US-0023; this rig does not read
-## `INPUT-SCAN` yet.
+## §4.2's warning channel, and narrows to 48° while `INPUT-SCAN` is held.
+##
+## **CROWD-SCAN GRANTS NOTHING.** §4.3: no reveal, no highlight, no tag. The rig
+## is where the whole feature lives precisely because there is nothing for any
+## other system to do with it — a scan that reached `SYS-COMPASS` or `SYS-CROWD`
+## would have become an ability. What it grants is a narrower lens and a slower
+## pan, and the advantage is entirely in the player's own perception.
 class_name CameraRig
 extends Camera3D
 
@@ -53,6 +58,7 @@ var _pitch: float = 0.0
 var _shoulder: float = float(CameraArm.Shoulder.RIGHT)
 var _shoulder_target: float = float(CameraArm.Shoulder.RIGHT)
 var _distance: float = 0.0
+var _scanning: bool = false
 var _query := PhysicsRayQueryParameters3D.new()
 
 
@@ -68,7 +74,7 @@ func _ready() -> void:
 	# Set, not blended, exactly once. A rig that started at the engine default 75°
 	# and swept down to 60 over a sixth of a second would open every match with a
 	# zoom the player did not ask for.
-	fov = CameraFov.wanted(CameraFov.default_fov(), motion_reduction)
+	fov = CameraFov.wanted(CameraFov.default_fov(), motion_reduction, false)
 
 
 ## The look is read from the sampled command rather than from `Input`, so the
@@ -77,6 +83,7 @@ func _ready() -> void:
 func _on_command_sampled(command: InputCommand) -> void:
 	if not _controlled():
 		return
+	_scanning = command.scan
 	_yaw = command.look_yaw
 	_pitch = clampf(command.look_pitch, -_pitch_limit(), _pitch_limit())
 
@@ -108,10 +115,14 @@ func _process(delta: float) -> void:
 		# target walks away. Design law 5, and not to be softened.
 		_yaw = ctx.yaw
 		_pitch = 0.0
+		# A stunned player is not scanning. The bit may still be set — the button
+		# is held and the sampler keeps reporting it — but scanning is an act of
+		# looking, and the look is exactly what a stun takes away.
+		_scanning = false
 
 	_shoulder = CameraArm.blend_shoulder(_shoulder, _shoulder_target, delta)
 	_distance = CameraArm.step_distance(_distance, _wanted_distance(ctx), delta)
-	fov = CameraFov.step(fov, CameraFov.wanted(_driver.camera_fov(), motion_reduction), delta)
+	fov = CameraFov.step(fov, _wanted_fov(), delta)
 
 	global_position = CameraArm.position_at(ctx.position, _yaw, _pitch, _shoulder, _distance)
 	look_at(CameraArm.pivot(ctx.position), Vector3.UP)
@@ -119,6 +130,19 @@ func _process(delta: float) -> void:
 
 func _controlled() -> bool:
 	return _driver == null or _driver.camera_controlled()
+
+
+## Whether the player is holding crowd-scan. Read by the tests, and by nothing
+## else — **there is nothing to grant.** GDD-02 §4.3 is explicit that scanning
+## produces no reveal, no highlight and no tag, so no system asks this question.
+func is_scanning() -> bool:
+	return _scanning
+
+
+## The lens this frame: the crowd-scan mode, the accessibility lock, or the
+## pawn's rung, in that order of precedence.
+func _wanted_fov() -> float:
+	return CameraFov.wanted(_driver.camera_fov(), motion_reduction, _scanning)
 
 
 func _pitch_limit() -> float:

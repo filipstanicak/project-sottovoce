@@ -82,20 +82,29 @@ func sample(delta: float) -> InputCommand:
 	_command.seq = _seq
 	_command.client_tick = _seq
 	_command.buttons = InputBits.NONE
-	_sample_look(delta)
+	# **BUTTONS BEFORE LOOK**, since US-0023. `INPUT-SCAN` scales look
+	# sensitivity, and whether it is held is only known after the hold/toggle
+	# latch has resolved — sampling the look first would apply a toggled scan one
+	# frame late. Sixteen milliseconds nobody would feel, and a command whose own
+	# fields disagreed with each other, which is the kind of thing a replay finds.
+	# `_sample_buttons` reads `_command.move`, so move still goes first.
 	_sample_move()
 	_sample_buttons()
+	_sample_look(delta)
 	return _command
 
 
+## Accumulated mouse motion and stick deflection, scaled by the crowd-scan
+## multiplier if it applies, into the command's absolute yaw and pitch.
 func _sample_look(delta: float) -> void:
-	_command.look_yaw -= _mouse_delta.x * mouse_sensitivity
-	_command.look_pitch -= _mouse_delta.y * mouse_sensitivity
+	var scale := CameraFov.look_scale(_command.scan)
+	_command.look_yaw -= _mouse_delta.x * mouse_sensitivity * scale
+	_command.look_pitch -= _mouse_delta.y * mouse_sensitivity * scale
 	_mouse_delta = Vector2.ZERO
 
 	var pad := _vector_for(Ids.INPUT_LOOK)
-	_command.look_yaw -= pad.x * pad_look_speed * delta
-	_command.look_pitch += pad.y * pad_look_speed * delta
+	_command.look_yaw -= pad.x * pad_look_speed * delta * scale
+	_command.look_pitch += pad.y * pad_look_speed * delta * scale
 	_command.look_yaw = wrapf(_command.look_yaw, -PI, PI)
 	_command.look_pitch = clampf(_command.look_pitch, -PI / 2.0, PI / 2.0)
 
