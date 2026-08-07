@@ -1,7 +1,9 @@
 # Project Sottovoce
 
 <!-- This file is generated from docs/30_bible/CLAUDE.md_SEED.md. -->
-<!-- Edit the seed, then copy here in the same commit. test_claude_md_synced.gd asserts they match. -->
+<!-- Edit the seed, then copy here in the same commit. The reverse too — this is the file that drifts. -->
+<!-- test_claude_md_synced.gd asserts every seed line appears here, in order. This file is a superset: -->
+<!-- "Where the work is right now" is authored here and must NOT be copied back into the seed. -->
 
 An online multiplayer **social-stealth** game for 4–6 players in a Renaissance-Italian city
 district. Every player holds a **contract** on one other player and is the contract of an unknown
@@ -217,10 +219,12 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 session reads, and a stale one is worse than none.*
 
 **M0 IS COMPLETE. M1 IS 11 OF 12.** US-0013 to US-0023 are `status: done`.
-**US-0024 is next and CANNOT BE FINISHED** — the feel-latency harness measures
-input→animation against animation clips that do not exist. Read its story
-before starting: the honest deliverable is the harness plus a recorded reason
-the fourth M1 gate line stays unjudged, not a ticked criterion.
+**US-0024 is next and only half of it can be built.** Criteria 1–3 measure
+input→animation against animation clips that do not exist; the harness can be
+written but not made to read a real number. **Criterion 4 is a human checklist
+and all three of its lines are now runnable** — instant slowdown from every
+state, ten sloppy vaults, and the FOV ladder perceptible without nausea. That
+needs the owner at the controls, not an agent. Do not tick it from a test.
 
 **THE PAWN WALKS AND TRAVERSES.** A key press reaches the speed ladder through
 the real input map, the probes see the district, and every manoeuvre performs —
@@ -246,8 +250,8 @@ US-0024 measures it against clips that do not exist.
 
 | | |
 |---|---|
-| CI | 7 jobs. **Last actually ran 2026-08-05 on `ac959b6`** — the four commits since have never been through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | 86 architecture guards + 343 unit + 72 integration, all three counted in CI |
+| CI | 7 jobs. **Running again as of 2026-08-07 after a two-day outage** — run `31200490320`, all seven green. The seven commits merged during the outage were never through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
+| Tests | 90 architecture guards + 343 unit + 72 integration, all three counted in CI |
 | Tuning | 282 tunables across 14 resource classes; all 22 cross-field invariants assert |
 | Autoloads | All eight. `Tuning` precomputes 89 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |
@@ -299,14 +303,16 @@ likewise owed and recorded in US-0012.
    `docs/20_tdd/12_build_and_ci.md`. Run `git config core.hooksPath .githooks` in
    every fresh clone, and wait for a run to report `completed success` before
    merging. `gh run watch` can return while a run is still queued.
-   **AND THERE ARE NO RUNS AT ALL SINCE `31039868975` ON 2026-08-05T19:32Z** —
-   nothing across any trigger, with Actions reporting `enabled`. Probably
-   exhausted free-plan minutes; unconfirmed, because the billing endpoint needs a
-   `user` OAuth scope this token does not carry. **Three stories have now merged
-   on local evidence** (#33, #35, #36) with the owner's say-so. Check that a run
-   actually appears before waiting on one — a stale `gh run list` looks exactly
-   like a healthy pipeline that has not fired yet — and verify from a
-   `git archive HEAD` extraction meanwhile. TDD-12 §1.3.1.
+   **ACTIONS WENT SILENT FOR TWO DAYS AND CAME BACK.** No runs at all between
+   `31039868975` (2026-08-05T19:32Z) and `31200490320` (2026-08-07T17:03Z), on any
+   trigger, with Actions reporting `enabled` throughout — most likely exhausted
+   free-plan minutes, never confirmed, because the billing endpoint needs a `user`
+   OAuth scope this token does not carry. **Four stories and two checkpoints
+   merged on local evidence in the gap** (#33, #35, #36, #37, #38), each PR body
+   saying so. The pipeline is green again; if it goes quiet a second time, check
+   that a run actually *appears* before waiting on one — a stale `gh run list`
+   looks exactly like a healthy pipeline that has not fired yet — and verify from
+   a `git archive HEAD` extraction meanwhile. TDD-12 §1.3.1.
 7. **A STATE THAT WRITES `ctx.position` MUST SAY SO**, by returning true from
    `PawnState.drives_position()`. Otherwise `LocalPawnDriver` runs
    `move_and_slide()` and overwrites it from the physics body — which, with the

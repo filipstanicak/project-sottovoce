@@ -130,26 +130,38 @@ making the repository public — but public is gated on the originality review i
 `docs/00_meta/IP_GUARDRAILS.md`, so it is not a shortcut. The ruleset JSON is
 ready to apply unchanged.
 
-### 1.3.1 Actions stopped running on 2026-08-06
+### 1.3.1 Actions stopped running on 2026-08-05 and resumed on 2026-08-07
 
-Worse than unenforced: **absent**. Zero workflow runs in twenty-four hours, across a PR open, a
-force-push, a close-and-reopen and a rebase. `actions/permissions` reports `enabled`, the
-workflow reports `active`, and no run is created for any event.
+Worse than unenforced: for two days, **absent**. Zero workflow runs across a PR open, a
+force-push, a close-and-reopen and a rebase. `actions/permissions` reported `enabled` throughout,
+the workflow reported `active`, and no run was created for any event.
 
 The likeliest cause is the free plan's Actions minutes being exhausted for the billing period —
 this repository burned a great deal of CI in a single day — but that is **unconfirmed**: the
 billing endpoint needs a `user` OAuth scope this project's token does not carry.
 
-US-0020, US-0021 and US-0022 — PRs #33, #35 and #36 — were all merged on local evidence, with the
-project owner's explicit authorisation, verified from a `git archive HEAD` extraction running
-exactly what the `test` job runs. Each PR body records that CI did not run.
+US-0020 to US-0023 and two checkpoints — PRs #33, #35, #36, #37 and #38 — were all merged on
+local evidence, with the project owner's explicit authorisation, verified from a
+`git archive HEAD` extraction running exactly what the `test` job runs. Each PR body records that
+CI did not run.
 
 That is the substitute, and it is a weaker one: it proves the suites pass on this machine, with
 this Godot build, in this shell. **Three consecutive merges is where a substitute stops being a
-stopgap.** The last observed run was `31039868975` at 2026-08-05T19:32Z; nothing since, on any
-trigger. Before trusting a green tick on anything merged after that timestamp, check that a run
-exists at all — `gh run list` returning stale rows looks identical to a healthy pipeline that
-simply has not fired yet.
+stopgap.**
+
+**Resolved 2026-08-07.** Run `31200490320` fired on a pull-request trigger and completed with all
+seven jobs green, forty-five and a half hours after `31039868975` at 2026-08-05T19:32Z. Nothing
+was changed to fix it, which is the unsatisfying part: the cause was never confirmed and the
+recovery is therefore not understood either. The exhausted-minutes theory fits the timing and
+remains unverified.
+
+What this leaves behind is a **gap in the audit trail**, not a defect in the tree. Seven commits
+— `d00ea86` through `1a641f1` — reached `main` without a CI run. The first post-outage run covers
+the tree, not the history: it proves the current state passes, and says nothing about whether any
+intermediate commit did. Every one was verified from a `git archive HEAD` extraction at the time.
+
+If it goes quiet again, check that a run *exists* before waiting on one. `gh run list` returning
+stale rows looks identical to a healthy pipeline that simply has not fired yet.
 
 **Check whether Actions is producing runs before relying on it as a gate.** A pipeline that
 silently stops firing looks identical to a pipeline with nothing to do, and §1.4's lesson applies
