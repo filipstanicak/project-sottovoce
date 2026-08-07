@@ -4,18 +4,35 @@ title: CLAUDE.md Seed — repo-root agent brief
 version: 0.1.0
 status: draft
 owner: Documentation Architect
-last_updated: 2026-08-03
+last_updated: 2026-08-07
 depends_on: [DOC-GLOSSARY, TUN-INDEX, DOC-SCOPE-FENCE, DOC-IP-GUARDRAILS]
 ---
 
 # CLAUDE.md Seed
 
-> **This file's content is copied verbatim to `/CLAUDE.md` at the repository root.** Everything
-> below the line is the repo-root file. Keep it under ~250 lines: it is loaded into every agent
-> session, and a brief nobody finishes reading is a brief nobody follows.
+> **Everything below the line appears verbatim in `/CLAUDE.md` at the repository root**, in this
+> order. When you change this file, copy the change to `/CLAUDE.md` in the same commit — and the
+> other way round, which is the direction that actually drifts.
 >
-> When you change this file, copy it to `/CLAUDE.md` in the same commit.
-> `test_claude_md_synced.gd` asserts the two match.
+> **The root file is a superset, deliberately.** It carries one extra section this file does not
+> and must not: *"Where the work is right now"*, plus the traps and the local-environment notes
+> under it. That section changes with every story and records which machine the toolchain is on;
+> duplicating it here would mean editing two files per story to keep a checked-in copy of
+> something that is stale by design a week later.
+>
+> So: **the stable brief is authored here and reviewed as corpus. The live state is authored at
+> the root and reviewed as a checkpoint.** `test_claude_md_synced.gd` asserts the first half of
+> that — every line below appears at the root, in order — and that the live section appears only
+> at the root.
+>
+> Keep it under ~250 lines: it is loaded into every agent session, and a brief nobody finishes
+> reading is a brief nobody follows.
+>
+> **This claim went unenforced from US-0001 to US-0023.** The guard was named here and never
+> written, so the two files were free to diverge and did — the `.ci/run_gut.sh` command block was
+> added at the root in US-0022 and never copied back. That is the same vacuously-green shape as
+> trap 3: a document asserting a check that does not exist is worse than one asserting nothing,
+> because it stops anyone looking.
 
 ---
 
@@ -134,9 +151,13 @@ reference anything in `scripts/presentation/`.
 
 ```bash
 # Tests
-godot --headless -s addons/gut/gut_cmdln.gd -gdir=res://test/unit -gexit
-godot --headless -s addons/gut/gut_cmdln.gd -gdir=res://test/arch -gexit
-godot --headless -s addons/gut/gut_cmdln.gd -gdir=res://test/integration -gexit
+# Prefer these — they refuse to pass over a suite that ran too few scripts.
+.ci/run_gut.sh test/unit unit
+.ci/run_gut.sh test/arch arch
+.ci/run_gut.sh test/integration integration
+
+# By hand. -ginclude_subdirs IS NOT OPTIONAL — see trap 10.
+godot --headless -s addons/gut/gut_cmdln.gd -gdir=res://test/unit -ginclude_subdirs -gexit
 
 # Lint and format
 gdlint scripts/ test/ tools/
@@ -222,6 +243,8 @@ Halt and ask rather than guessing if:
 - You are about to violate any item in the never-do list "just this once".
 
 Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
+
+---
 
 ---
 

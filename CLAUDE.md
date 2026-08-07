@@ -1,7 +1,9 @@
 # Project Sottovoce
 
 <!-- This file is generated from docs/30_bible/CLAUDE.md_SEED.md. -->
-<!-- Edit the seed, then copy here in the same commit. test_claude_md_synced.gd asserts they match. -->
+<!-- Edit the seed, then copy here in the same commit. The reverse too — this is the file that drifts. -->
+<!-- test_claude_md_synced.gd asserts every seed line appears here, in order. This file is a superset: -->
+<!-- "Where the work is right now" is authored here and must NOT be copied back into the seed. -->
 
 An online multiplayer **social-stealth** game for 4–6 players in a Renaissance-Italian city
 district. Every player holds a **contract** on one other player and is the contract of an unknown
@@ -247,7 +249,7 @@ US-0024 measures it against clips that do not exist.
 | | |
 |---|---|
 | CI | 7 jobs. **Last actually ran 2026-08-05 on `ac959b6`** — the four commits since have never been through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | 86 architecture guards + 343 unit + 72 integration, all three counted in CI |
+| Tests | 90 architecture guards + 343 unit + 72 integration, all three counted in CI |
 | Tuning | 282 tunables across 14 resource classes; all 22 cross-field invariants assert |
 | Autoloads | All eight. `Tuning` precomputes 89 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |
