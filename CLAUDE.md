@@ -262,13 +262,14 @@ US-0024 measures it against clips that do not exist.
 | Camera | Real spring arm: 2.6 m, shoulder swap, occlusion that pulls **in** and never sideways, `WORLD`-masked so a crowd cannot push it. The FOV ladder is bound to the **state**, never to `ctx.velocity`: the rung is a consequence of the decision, not of the physics that follows it. Crowd-scan narrows to 48° and grants nothing |
 | Input | 21 `InputMap` actions from 15 `INPUT-` IDs, KBM + pad. Chain GDD-02 → `Ids` → `InputActions` → `project.godot`, guarded on every hop, both directions |
 
-**Five criteria are deliberately unticked.** Four are in US-0002/3/4/5, all
+**Six criteria are deliberately unticked.** Four are in US-0002/3/4/5, all
 variants of "required check on `main`", blocked by the GitHub plan and not by the
 work — see §1.3 of `docs/20_tdd/12_build_and_ci.md`. The fifth is US-0022's
 motion-reduction line: the FOV **lock** is done and tested, but the persistent
 speed indicator that compensates for the warning channel it removes belongs to
-the HUD (US-0084), and half a criterion is not a tick. The navmesh **bake** is
-likewise owed and recorded in US-0012.
+the HUD (US-0084), and half a criterion is not a tick. The sixth is US-0023's
+audio duck — `Audio.play()` is an empty stub until US-0075, so there is no
+ambience to duck. The navmesh **bake** is likewise owed and recorded in US-0012.
 
 ### Eleven things that will cost you an hour if you do not know them
 

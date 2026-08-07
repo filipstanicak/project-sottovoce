@@ -40,21 +40,22 @@ flowchart LR
     EXPORT --> GREEN([green])
 ```
 
-All six jobs are **required checks** on `main` (ADR-0009) — see §1.3 for how far
-that is currently *enforced* as opposed to merely agreed.
+**Seven jobs run**, and all of them are **required checks** on `main` (ADR-0009) — see §1.3 for
+how far that is currently *enforced* as opposed to merely agreed. The table below listed six and
+called them all, which is the sort of drift a count invites; the names are now the workflow's.
 
 | Job | Fails on | Typical |
 |---|---|---|
+| `version` | `.godot-version` missing or unparseable — it resolves the engine every other job uses | ~2 s |
 | `import` | Any import error or script parse failure | ~70 s cold, ~15 s cached |
 | `lint` | Any `gdlint` violation; any file `gdformat` would change | ~20 s |
 | `ip-guard` | **Any banned term anywhere in the repo** | ~5 s |
 | `asset-inventory` | An asset with no licence row, **or a stale row** | ~5 s |
 | `test` | Any architecture, unit **or integration** test failure | ~60 s |
-| `integration` | Headless 3-client harness failure | ~180 s |
 | `export` | Export failure, or a preset missing an exclusion | ~120 s |
 
-> **The `integration` row is not built yet.** There are seven jobs on `main` and that is not one
-> of them: the 3-client harness is US-0036, in M2, and it needs the networking that does not
+> **An `integration` job is still not built, and the row for it has now been removed** rather
+> than left looking pending. The seven above are what runs: the 3-client harness is US-0036, in M2, and it needs the networking that does not
 > exist. What *does* run is `test/integration/` as a third step inside `test`, added in US-0016
 > — scene-booting tests on one peer, no harness. `.ci/run_gut.sh` skips the directory when it is
 > empty, so this cost nothing until there was something to run.
@@ -451,7 +452,7 @@ func flush_to(path: String) -> void        ## --record
 
 | Path | Purpose |
 |---|---|
-| `.github/workflows/ci.yml` | The six jobs |
+| `.github/workflows/ci.yml` | The seven jobs |
 | `.github/actions/setup-godot/action.yml` | Installs the pinned engine; used by `import`, `test`, `export` |
 | `.githooks/pre-push` | Refuses a direct push to `main` (§1.3) |
 | `.ci/run_gut.sh` | Runs a GUT suite and fails if it ran fewer scripts than exist (§1.4) |
@@ -473,21 +474,32 @@ func flush_to(path: String) -> void        ## --record
 
 ## 11. Test hooks
 
-| Test | Asserts |
-|---|---|
-| `test_export_excludes.gd` | Every §3 exclusion is present; `addons/gut/` excluded from all presets |
-| `test_headless_server_runs_without_presentation.gd` | A server export with all presentation excluded completes a full match. **The architecture's proof** |
-| `test_server_flag.gd` | `--server` produces server topology; its absence produces client topology |
-| `test_cli_args.gd` | Every §4 flag parses, with defaults |
-| `test_debug_stripped.gd` | A release export contains no `scripts/debug/` symbol |
-| `test_ci_required_checks.gd` | `ci.yml` defines all six jobs and each is required |
-| `test_banned_terms_sync.gd` | `.ci/banned_terms.txt` matches IP_GUARDRAILS §2.1–2.3 exactly |
-| `test_ip_guard_exclusions.gd` | Exactly two files are exempt |
-| `test_ci_guards_refuse_empty_scan.gd` | Only `repo_files.sh` calls `git ls-files`; both guards load through it; both refusals survive (§1.5) |
-| `test_gut_excluded.gd` | No GUT symbol in any release export |
-| `test_import_time.gd` | Cold headless import ≤ 90 s |
-| `test_suite_time.gd` | Unit + arch suites ≤ 45 s combined |
-| `test_local_playtest_launches.gd` | The tool script launches 1 server + 3 clients and all connect |
+> **A PLAN, NOT AN INVENTORY.** These are the guards this chapter's stories create across M0–M6,
+> and **twelve of the thirteen do not exist yet.** The table is marked accordingly, because the
+> §10/§11 pair reads like a list of things that are already checked — and this project has now
+> twice found a document naming a guard that was never written. The seed claimed
+> `test_claude_md_synced.gd` asserted CLAUDE.md matched it, from US-0001 until US-0023; the two
+> diverged in the gap.
+>
+> The near-equivalents that DO exist are noted. `test_launch_config.gd` covers what
+> `test_cli_args` was going to, under a name that says which class it tests — TDD-02's naming
+> rule, which this table predates.
+
+| Test | Asserts | Built? |
+|---|---|---|
+| `test_export_excludes.gd` | Every §3 exclusion is present; `addons/gut/` excluded from all presets | No — US-0088 |
+| `test_headless_server_runs_without_presentation.gd` | A server export with all presentation excluded completes a full match. **The architecture's proof** | No — needs a full match, M4. `test_server_root_has_no_presentation.gd` guards the static half |
+| `test_server_flag.gd` | `--server` produces server topology; its absence produces client topology | No. `test_launch_config.gd` covers the parse; the topology branch is unbooted (trap 4) |
+| `test_cli_args.gd` | Every §4 flag parses, with defaults | **Yes, as `test_launch_config.gd`** |
+| `test_debug_stripped.gd` | A release export contains no `scripts/debug/` symbol | No — needs an export, US-0088 |
+| `test_ci_required_checks.gd` | `ci.yml` defines all seven jobs and each is required | No. §1's table said six for two milestones while seven ran; this guard is what would have caught that |
+| `test_banned_terms_sync.gd` | `.ci/banned_terms.txt` matches IP_GUARDRAILS §2.1–2.3 exactly | No |
+| `test_ip_guard_exclusions.gd` | Exactly two files are exempt | No |
+| `test_ci_guards_refuse_empty_scan.gd` | Only `repo_files.sh` calls `git ls-files`; both guards load through it; both refusals survive (§1.5) | **Yes** — US-0020 |
+| `test_gut_excluded.gd` | No GUT symbol in any release export | No — needs an export |
+| `test_import_time.gd` | Cold headless import ≤ 90 s | No |
+| `test_suite_time.gd` | Unit + arch suites ≤ 45 s combined | No |
+| `test_local_playtest_launches.gd` | The tool script launches 1 server + 3 clients and all connect | No — needs networking, M2 |
 
 ---
 
