@@ -219,10 +219,12 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 session reads, and a stale one is worse than none.*
 
 **M0 IS COMPLETE. M1 IS 11 OF 12.** US-0013 to US-0023 are `status: done`.
-**US-0024 is next and CANNOT BE FINISHED** — the feel-latency harness measures
-input→animation against animation clips that do not exist. Read its story
-before starting: the honest deliverable is the harness plus a recorded reason
-the fourth M1 gate line stays unjudged, not a ticked criterion.
+**US-0024 is next and only half of it can be built.** Criteria 1–3 measure
+input→animation against animation clips that do not exist; the harness can be
+written but not made to read a real number. **Criterion 4 is a human checklist
+and all three of its lines are now runnable** — instant slowdown from every
+state, ten sloppy vaults, and the FOV ladder perceptible without nausea. That
+needs the owner at the controls, not an agent. Do not tick it from a test.
 
 **THE PAWN WALKS AND TRAVERSES.** A key press reaches the speed ladder through
 the real input map, the probes see the district, and every manoeuvre performs —
