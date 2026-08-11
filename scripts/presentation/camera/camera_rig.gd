@@ -49,8 +49,11 @@ extends Camera3D
 ## editor and from a test before that arrives.
 @export var motion_reduction: bool = false
 
+## One path, not two. The rig used to hold a `sampler_path` as well and take the
+## look straight off `InputSampler.command_sampled` — but the driver is the only
+## thing that samples, and a second reference to the sampler is how a second
+## caller of `sample()` gets written.
 @export var driver_path: NodePath
-@export var sampler_path: NodePath
 
 var _driver: LocalPawnDriver
 var _yaw: float = 0.0
@@ -64,12 +67,11 @@ var _query := PhysicsRayQueryParameters3D.new()
 
 func _ready() -> void:
 	_driver = get_node_or_null(driver_path) as LocalPawnDriver
-	var sampler := get_node_or_null(sampler_path) as InputSampler
-	if _driver == null or sampler == null:
-		Log.error("CameraRig is not wired to a driver and a sampler", &"camera")
+	if _driver == null:
+		Log.error("CameraRig is not wired to a driver", &"camera")
 		set_process(false)
 		return
-	sampler.command_sampled.connect(_on_command_sampled)
+	_driver.command_sampled.connect(_on_command_sampled)
 	_distance = CameraArm.max_distance()
 	# Set, not blended, exactly once. A rig that started at the engine default 75°
 	# and swept down to 60 over a sixth of a second would open every match with a

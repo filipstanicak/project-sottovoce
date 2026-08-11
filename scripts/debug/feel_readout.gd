@@ -23,20 +23,22 @@ extends CanvasLayer
 const HISTORY := 10
 
 var _driver: LocalPawnDriver
-var _sampler: InputSampler
 var _label: Label
 var _outcomes: Array[bool] = []
 var _was_held: bool = false
 var _awaiting: bool = false
 
 
-## Built by `LocalPawnDriver`, which is the only thing that knows both halves of
-## what this displays. Not an `@export` on a scene node, for the export reason
-## above.
-static func attach(to: Node, driver: LocalPawnDriver, sampler: InputSampler) -> Node:
+## Built by `LocalPawnDriver`, which emits **both** halves of what this displays.
+## Not an `@export` on a scene node, for the export reason above.
+##
+## It took an `InputSampler` too until the double-sample fix (trap 12): the
+## command came off `InputSampler.command_sampled` and the step off the driver.
+## The sampler no longer emits anything — it is a service the driver calls once a
+## frame — so there is one source here now, which is the point of that change.
+static func attach(to: Node, driver: LocalPawnDriver) -> Node:
 	var readout: CanvasLayer = (load("res://scripts/debug/feel_readout.gd") as GDScript).new()
 	readout._driver = driver
-	readout._sampler = sampler
 	to.add_child(readout)
 	return readout
 
@@ -52,13 +54,13 @@ func _ready() -> void:
 	add_child(_label)
 	if _driver != null:
 		_driver.pawn_stepped.connect(_on_pawn_stepped)
-	if _sampler != null:
-		_sampler.command_sampled.connect(_on_command_sampled)
+		_driver.command_sampled.connect(_on_command_sampled)
 
 
 ## The press, read off the sampled command rather than off `Input` — the sampler
 ## is the only place that polls the device, and a debug node reaching past it
-## would make that claim untrue.
+## would make that claim untrue. It would also poll it a second time, which is
+## exactly the defect trap 12 records.
 ##
 ## **NOT off `ctx.traverse_buffer_ticks`**, which was the obvious idea and is
 ## always zero by the time anyone else can look: `PawnInputBuffer.tick()` arms the

@@ -234,23 +234,12 @@ three are blocked, each by something real:
 
 **M1's remaining work is not code.** It is one human sitting down with the game.
 
-**KNOWN DEFECT, FOUND 2026-08-08, NOT YET FIXED.** `InputSampler.sample()` runs
-**twice per physics frame** — once from the sampler's own `_physics_process`,
-which emits `command_sampled`, and once from `LocalPawnDriver._physics_process`,
-which calls it directly. Consequences, measured:
-
-- **`SprintGate` counts at double rate**, so `TUN-SPEED-SPRINT-HOLD` opens sprint
-  in **0.2 s instead of 0.4** — the deliberate friction GDD-02 §1.5 spends a page
-  defending, at half price. Trap 9's family: a duration silently halved.
-- `_seq` and `client_tick` advance at ~120/s instead of 60. Harmless today,
-  load-bearing for reconciliation in US-0033.
-- The camera and the pawn consume *different invocations*. Framing agrees only
-  because `_command` is a reused object holding absolute look values.
-
-Whichever way it is fixed — the driver reading the signal, or the sampler not
-emitting — the choice changes M2's ordering, so it wants its own change with its
-own tests. **The M1 feel gate should be judged with this in mind, or re-run
-after.**
+**THE DOUBLE-SAMPLE FOUND ON 2026-08-08 IS FIXED**, as of 2026-08-11.
+`InputSampler.sample()` ran twice per physics frame and `TUN-SPEED-SPRINT-HOLD`
+opened sprint in 0.21 s instead of 0.4 — half the friction GDD-02 §1.5 defends.
+The sampler no longer drives itself; `LocalPawnDriver` is the only caller and
+owns `command_sampled`. **Trap 12**, and two guards. Any feel judgement recorded
+before this date was made against the fast sprint gate and should be re-run.
 
 **THE PAWN WALKS AND TRAVERSES.** A key press reaches the speed ladder through
 the real input map, the probes see the district, and every manoeuvre performs —
@@ -277,7 +266,7 @@ US-0024 measures it against clips that do not exist.
 | | |
 |---|---|
 | CI | 7 jobs. **Running again as of 2026-08-07 after a two-day outage** — run `31200490320`, all seven green. The seven commits merged during the outage were never through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | 93 architecture guards + 359 unit + 82 integration, all three counted in CI |
+| Tests | 98 architecture guards + 359 unit + 86 integration, all three counted in CI |
 | Tuning | 282 tunables across 14 resource classes; all 22 cross-field invariants assert |
 | Autoloads | All eight. `Tuning` precomputes 89 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |
@@ -286,7 +275,7 @@ US-0024 measures it against clips that do not exist.
 | Pawn | 15 states declared, 121 transition edges asserted against the normative diagram. **Twelve implemented**: six locomotion + `Vault`, `Climb`, `Drop`, `KillAnim`, `Stunned`, `Blended`. `Respawning`, `StunAnim` and `Dead` are M4 |
 | Traversal | **Complete.** Probes cast, all seven §7.2 cases resolve from real geometry, both forgiveness windows open, and vault, mantle, climb, drop and gap jump all perform |
 | Camera | Real spring arm: 2.6 m, shoulder swap, occlusion that pulls **in** and never sideways, `WORLD`-masked so a crowd cannot push it. The FOV ladder is bound to the **state**, never to `ctx.velocity`: the rung is a consequence of the decision, not of the physics that follows it. Crowd-scan narrows to 48° and grants nothing |
-| Input | 21 `InputMap` actions from 15 `INPUT-` IDs, KBM + pad. Chain GDD-02 → `Ids` → `InputActions` → `project.godot`, guarded on every hop, both directions |
+| Input | 21 `InputMap` actions from 15 `INPUT-` IDs, KBM + pad. Chain GDD-02 → `Ids` → `InputActions` → `project.godot`, guarded on every hop, both directions. **Sampled once per physics frame by `LocalPawnDriver`, the only caller** — see trap 12 |
 
 **Ten criteria are deliberately unticked**, each blocked by something real. A
 prose count of these has now drifted three times, so they are a table — and the
@@ -304,7 +293,7 @@ The navmesh **bake** is likewise owed and recorded in US-0012. **Nothing here is
 forgotten and nothing is half-ticked** — a story marked done over a criterion
 that is not true makes the whole backlog unreadable as a status view.
 
-### Eleven things that will cost you an hour if you do not know them
+### Twelve things that will cost you an hour if you do not know them
 
 1. **Two things are GENERATED.** `scripts/core/ids.gd`, `scripts/core/tuning/*.gd`
    and `tuning_index.gd` come from `tools/tuning_codegen/run_all.py`; the map
@@ -379,6 +368,18 @@ that is not true makes the whole backlog unreadable as a status view.
     message names the wrong function, and the tempting fix — deleting a
     docstring — is the wrong one. Shorten the comment you just added, or split
     the function the guard actually named.
+12. **`InputSampler.sample()` IS NOT A GETTER, AND HAS EXACTLY ONE CALLER.** It
+    advances `_seq`, resolves every hold/toggle latch and ticks `SprintGate`.
+    From US-0016 to US-0025 it ran **twice a frame** — the sampler emitted from
+    its own `_physics_process` and `LocalPawnDriver` took a second sample in
+    its. Input ran at 120 Hz, and `TUN-SPEED-SPRINT-HOLD` opened in 0.21 s
+    instead of 0.4, halving the friction GDD-02 §1.5 spends a page defending.
+    Nothing looked wrong: `_command` is one reused object holding **absolute**
+    look values, so the two invocations agreed on everything visible and
+    differed only in what was counted. Same family as trap 9. `command_sampled`
+    is now declared on the **driver**, beside the only call that produces it —
+    if you need a command, listen to that. `test_input_sampled_by_one_caller.gd`
+    names the cause; `test_input_sampled_once.gd` measures the consequence.
 
 ### Local environment
 
