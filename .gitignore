@@ -40,3 +40,14 @@ implementation_plan.md
 
 # Tuning codegen intermediates — derived from TUNABLES.md, regenerated every run.
 /tools/tuning_codegen/*.json
+
+# `> /dev/null` on Windows. Git Bash resolves it; cmd and PowerShell do not, so a
+# redirect from either writes a literal "dev/null" file at the repo root — or a
+# "dev/null/" directory, when something copies into it. A worktree here collected
+# four git hooks that way, and they were untracked and unignored, one `git add -A`
+# from being committed.
+#
+# Narrow on purpose: "/dev/" would silently swallow a real dev/ folder if anyone
+# ever adds one, and this project has enough silent things in it already.
+/dev/null
+/dev/null/
