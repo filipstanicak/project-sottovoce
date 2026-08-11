@@ -135,11 +135,30 @@ godot -- --connect 127.0.0.1:27015
 Controls: **WASD** move · **Left Ctrl** blend-walk · **Left Shift** run (hold ~0.35 s for Run) ·
 **double-tap Shift** sprint · **Space** traverse · **Middle mouse** crowd-scan.
 
+A readout appears top-left in any debug build (`scripts/debug/feel_readout.gd`, attached at
+runtime by `LocalPawnDriver` — never by a scene, because the release presets strip that folder):
+
+```
+STATE   Sprint
+SPEED    6.20 m/s
+LENS     72.0 deg
+HEIGHT   0.10 m
+
+TRAVERSE  ##.#####.#
+          8 of 10 resolved
+```
+
+**It tells you what you cannot feel and nothing else** — which state you were in, what the lens
+is doing, and how your last ten traverse presses went. It deliberately does *not* say whether
+slowing felt instant. A readout that answered that would replace the judgement the gate is asking
+for with a number about the judgement.
+
 ### 1. Slowing down is instant from every state
 
 For each row: reach the state, then hit **Left Ctrl** and judge whether the pawn slows *on the
-press* or a beat after it. There is no state readout, deliberately — if you need one to tell,
-the answer is already no.
+press* or a beat after it. Use the readout to confirm you were in the state you meant to be in
+— **not** to decide whether it felt instant. If you need the numbers to tell, the answer is
+already no.
 
 | Reach it by | State | Instant? |
 |---|---|---|
@@ -156,7 +175,8 @@ the answer is already no.
 Approach a low wall ten times at bad angles, off-centre, late, and at different speeds. Press
 Space each time. Count how many produce a vault rather than nothing.
 
-**Ten of ten, or the forgiveness windows need work.** Score: ___ / 10
+**Ten of ten, or the forgiveness windows need work.** The readout tallies it: `#` resolved,
+`.` produced nothing. Score: ___ / 10
 
 ### 3. The FOV ladder is perceptible without being nauseating
 
@@ -190,6 +210,10 @@ motion-reduction must be discoverable *before* someone feels ill — GDD-02 §9.
   run it** — a harness placed there would never execute. That is the fourth declared-but-not-real
   thing this milestone has turned up; it is recorded here rather than fixed, because wiring a new
   suite into CI is not this story's scope.
-- **No debug overlay.** Considered and rejected: judging §1 needs a *feel*, not a readout, and
-  wiring a `scripts/debug/` node into `client_root.tscn` risks a release export referencing a
-  stripped script on the last story of the milestone.
+- **No fix for the double-sampled input.** Found while wiring the readout and recorded in
+  CLAUDE.md's live section: `InputSampler.sample()` runs **twice per physics frame**, once from
+  the sampler's own `_physics_process` and once from `LocalPawnDriver`. `SprintGate` therefore
+  counts at double rate and `TUN-SPEED-SPRINT-HOLD` opens in **0.2 s instead of 0.4**. That is
+  the deliberate friction §1.5 spends a page defending, at half price. It is a defect in merged
+  code, it changes how sprint feels, and it is **not this story's to fix** — but the feel gate
+  above should be judged with it in mind, or re-run after it is fixed.

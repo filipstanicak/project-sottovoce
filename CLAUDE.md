@@ -234,6 +234,24 @@ three are blocked, each by something real:
 
 **M1's remaining work is not code.** It is one human sitting down with the game.
 
+**KNOWN DEFECT, FOUND 2026-08-08, NOT YET FIXED.** `InputSampler.sample()` runs
+**twice per physics frame** — once from the sampler's own `_physics_process`,
+which emits `command_sampled`, and once from `LocalPawnDriver._physics_process`,
+which calls it directly. Consequences, measured:
+
+- **`SprintGate` counts at double rate**, so `TUN-SPEED-SPRINT-HOLD` opens sprint
+  in **0.2 s instead of 0.4** — the deliberate friction GDD-02 §1.5 spends a page
+  defending, at half price. Trap 9's family: a duration silently halved.
+- `_seq` and `client_tick` advance at ~120/s instead of 60. Harmless today,
+  load-bearing for reconciliation in US-0033.
+- The camera and the pawn consume *different invocations*. Framing agrees only
+  because `_command` is a reused object holding absolute look values.
+
+Whichever way it is fixed — the driver reading the signal, or the sampler not
+emitting — the choice changes M2's ordering, so it wants its own change with its
+own tests. **The M1 feel gate should be judged with this in mind, or re-run
+after.**
+
 **THE PAWN WALKS AND TRAVERSES.** A key press reaches the speed ladder through
 the real input map, the probes see the district, and every manoeuvre performs —
 vault, mantle, climb, drop and gap jump. `test/integration/` asserts the walk,
@@ -259,7 +277,7 @@ US-0024 measures it against clips that do not exist.
 | | |
 |---|---|
 | CI | 7 jobs. **Running again as of 2026-08-07 after a two-day outage** — run `31200490320`, all seven green. The seven commits merged during the outage were never through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | 90 architecture guards + 359 unit + 77 integration, all three counted in CI |
+| Tests | 93 architecture guards + 359 unit + 82 integration, all three counted in CI |
 | Tuning | 282 tunables across 14 resource classes; all 22 cross-field invariants assert |
 | Autoloads | All eight. `Tuning` precomputes 89 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |

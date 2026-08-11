@@ -64,6 +64,22 @@ func _ready() -> void:
 	if not _machine.spawn_into(ctx, PawnStateId.IDLE):
 		set_physics_process(false)
 	_body.global_position = ctx.position
+	_attach_feel_readout()
+
+
+## US-0024's feel-gate readout, in debug builds only.
+##
+## **LOADED, NEVER REFERENCED BY A SCENE.** The three release presets exclude
+## `scripts/debug/*`, so a `.tscn` naming that script would ship a scene pointing
+## at a file that is not there. Two guards, because either alone is a way to
+## break an export: `has_feature("debug")` is false in a release build, and the
+## existence check covers a debug build assembled with the folder stripped
+## anyway. `test_no_scene_references_debug.gd` guards the other direction.
+func _attach_feel_readout() -> void:
+	const PATH := "res://scripts/debug/feel_readout.gd"
+	if not OS.has_feature("debug") or not ResourceLoader.exists(PATH):
+		return
+	(load(PATH) as GDScript).attach(self, self, _sampler)
 
 
 func _physics_process(delta: float) -> void:
