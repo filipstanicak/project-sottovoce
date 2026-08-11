@@ -114,11 +114,12 @@ state machine, locally.
 | Input map, `InputCommand`, dual input buffering | Done, US-0016 |
 | Traversal probes + the 7-case resolver + forgiveness windows | Done, US-0017–0020 |
 | Camera rig: spring arm, FOV ladder, occlusion, crowd-scan | Done, US-0021–0023. Crowd-scan's audio duck is **not** done — `Audio` is a stub until US-0075 |
-| `test_feel_latency.gd` measuring input→animation | **Not started and not startable.** US-0024 measures against animation clips that do not exist |
+| `test_feel_latency.gd` measuring input→animation | **Built, and it cannot reach the animation.** US-0024 measures three of five stages; `ANIMATE` has no clip and `PRESENT` no display. A tripwire fails the day a clip lands |
 
-> **Status 2026-08-07 — 11 of 12.** US-0013 to US-0023 are done. Fifteen states
-> declared, twelve implemented, 121 edges asserted against the §3 diagram in both
-> directions.
+> **Status 2026-08-07 — 11 of 12, and the twelfth is not code.** US-0013 to
+> US-0023 are done and US-0024 is `in-progress` with everything buildable built.
+> Fifteen states declared, twelve implemented, 121 edges asserted against the §3
+> diagram in both directions.
 >
 > **The pawn walks and traverses.** A key press reaches the speed ladder through
 > the real input map; the probes see the district; all seven §7.2 cases resolve
@@ -150,10 +151,13 @@ state machine, locally.
 > is the mechanical advantage §4.3 exists to refuse. The audio half is blocked on
 > there being any audio at all (US-0075).
 >
-> **The feel gate below is judgeable and has not been judged.** It is subjective
-> and needs a human at the controls. Three of its four lines can be judged now;
-> **the fourth cannot exist yet**: input→animation needs an animation, and
-> US-0024 measures it against clips that do not exist.
+> **The feel gate below is judgeable and has not been judged**, and that is now
+> the only thing between M1 and its exit. Three of its four lines need a human at
+> the controls; US-0024 carries the procedure. **The fourth cannot be judged at
+> all** — input→animation needs an animation. `test_feel_latency.gd` measures the
+> three stages that exist (16.7 ms slowing, 33.3 ms from rest, against an 80 ms
+> budget) and declares the two it cannot reach, and a tripwire in
+> `test_feel_chain.gd` goes red the day a clip lands.
 >
 > [ADR-0012](../00_meta/adr/ADR-0012-slow-is-always-available.md) amended the §3
 > diagram during US-0015: `Any → Blend-walk` and `Any → Idle` were declared in §2.2

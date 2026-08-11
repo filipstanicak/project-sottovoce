@@ -218,13 +218,21 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 *Updated 2026-08-05. Keep this section current — it is the first thing a fresh
 session reads, and a stale one is worse than none.*
 
-**M0 IS COMPLETE. M1 IS 11 OF 12.** US-0013 to US-0023 are `status: done`.
-**US-0024 is next and only half of it can be built.** Criteria 1–3 measure
-input→animation against animation clips that do not exist; the harness can be
-written but not made to read a real number. **Criterion 4 is a human checklist
-and all three of its lines are now runnable** — instant slowdown from every
-state, ten sloppy vaults, and the FOV ladder perceptible without nausea. That
-needs the owner at the controls, not an agent. Do not tick it from a test.
+**M0 IS COMPLETE. M1 IS 11 OF 12 AND CANNOT CLOSE YET.** US-0013 to US-0023 are
+`status: done`; **US-0024 is `in-progress` and everything buildable in it is
+built.** One of its four criteria is met (the commitment ceiling). The other
+three are blocked, each by something real:
+
+- **Input→animation cannot be measured.** `test_feel_latency.gd` exists and
+  reads 16.7 ms slowing down, 33.3 ms accelerating from rest — three of the five
+  stages `FeelChain` declares. `ANIMATE` has no clip to change pose and `PRESENT`
+  has no display in headless CI. **The number is a lower bound and says so.**
+  `test_feel_chain.gd` holds a tripwire that goes red the day a clip lands.
+- **"With prediction active" needs prediction**, which is US-0032, in M2.
+- **The feel-gate checklist is the owner's.** Three runnable lines, a procedure
+  in the story file, and no test may tick it.
+
+**M1's remaining work is not code.** It is one human sitting down with the game.
 
 **THE PAWN WALKS AND TRAVERSES.** A key press reaches the speed ladder through
 the real input map, the probes see the district, and every manoeuvre performs —
@@ -251,7 +259,7 @@ US-0024 measures it against clips that do not exist.
 | | |
 |---|---|
 | CI | 7 jobs. **Running again as of 2026-08-07 after a two-day outage** — run `31200490320`, all seven green. The seven commits merged during the outage were never through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | 90 architecture guards + 343 unit + 72 integration, all three counted in CI |
+| Tests | 90 architecture guards + 359 unit + 77 integration, all three counted in CI |
 | Tuning | 282 tunables across 14 resource classes; all 22 cross-field invariants assert |
 | Autoloads | All eight. `Tuning` precomputes 89 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |
