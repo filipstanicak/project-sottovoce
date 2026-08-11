@@ -210,10 +210,11 @@ motion-reduction must be discoverable *before* someone feels ill — GDD-02 §9.
   run it** — a harness placed there would never execute. That is the fourth declared-but-not-real
   thing this milestone has turned up; it is recorded here rather than fixed, because wiring a new
   suite into CI is not this story's scope.
-- **No fix for the double-sampled input.** Found while wiring the readout and recorded in
-  CLAUDE.md's live section: `InputSampler.sample()` runs **twice per physics frame**, once from
-  the sampler's own `_physics_process` and once from `LocalPawnDriver`. `SprintGate` therefore
-  counts at double rate and `TUN-SPEED-SPRINT-HOLD` opens in **0.2 s instead of 0.4**. That is
-  the deliberate friction §1.5 spends a page defending, at half price. It is a defect in merged
-  code, it changes how sprint feels, and it is **not this story's to fix** — but the feel gate
-  above should be judged with it in mind, or re-run after it is fixed.
+- **No fix for the double-sampled input** — it got its own change, and is **closed**. Found
+  while wiring the readout: `InputSampler.sample()` ran twice per physics frame, so `SprintGate`
+  counted at double rate and `TUN-SPEED-SPRINT-HOLD` opened in 0.2 s instead of 0.4 — the
+  deliberate friction §1.5 spends a page defending, at half price. Fixed in
+  [#44](https://github.com/Slimexsan/project-sottovoce/pull/44) by making `LocalPawnDriver` the
+  only caller of `sample()` and moving `command_sampled` onto it. Re-measured after the fix:
+  **24 emissions to open a gate specified at 24 ticks.** The checklist above is safe to run as
+  written; sprint arms at the speed it is meant to.
