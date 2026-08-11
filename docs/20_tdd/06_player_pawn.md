@@ -498,9 +498,9 @@ func PawnContext.apply_authoritative(state: PredictedState) -> void
 | `scripts/net/protocol/input_bits.gd` | Button bitfield constants |
 | `scripts/net/protocol/input_actions.gd` | The action table: `INPUT-` ID → bit, kind, bindings |
 | `scripts/net/client/input_history.gd` | The reconciliation buffer (§3), client only |
-| `scripts/presentation/input_sampler.gd` | The only file that touches `Input` |
+| `scripts/presentation/input_sampler.gd` | The only file that touches `Input`. **No loop of its own** — `sample()` is called, never self-driven |
 | `scripts/presentation/input_rebinder.gd` | The only file that writes `InputMap` |
-| `scripts/presentation/local_pawn_driver.gd` | Drives `step()` at 60 Hz from sampled input |
+| `scripts/presentation/local_pawn_driver.gd` | Drives `step()` at 60 Hz from sampled input. **The only caller of `sample()`**, and the owner of `command_sampled` |
 
 ---
 
@@ -531,6 +531,8 @@ func PawnContext.apply_authoritative(state: PredictedState) -> void
 | `test_pawn_input_buffer.gd` | The action buffer arms, decays, expires and is consumed exactly once — at the **step** rate |
 | `test_step_counters_use_step_ticks.gd` | Nothing under `scripts/pawn/` compares a 60 Hz counter against the 30 Hz conversion |
 | `test_client_boot_walks.gd` | **A key press moves the pawn**, through the real scene and the real bindings |
+| `test_input_sampled_once.gd` | One command per physics frame, and `TUN-SPEED-SPRINT-HOLD` opens on the tick it specifies — it read **13 of 24** while input was sampled twice |
+| `test_input_sampled_by_one_caller.gd` | `sample()` has exactly one caller and `InputSampler` declares no `_physics_process` |
 | `test_probes_mask_world_only.gd` | Probe masks exclude `PAWN` and `NPC` layers |
 | `test_probe_layout.gd` | Origins, reach, facing and the gap march are the tunables |
 | `test_probe_result.gd` | A cleared result reads as *unknown*, never as a vaultable kerb |

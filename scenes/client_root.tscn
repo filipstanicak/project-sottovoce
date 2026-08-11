@@ -14,6 +14,11 @@
 ;
 ; US-0021 replaced DebugFollowCamera with the real SYS-CAMERA rig. The FOV
 ; ladder is US-0022 and crowd-scan is US-0023, so the rig holds a fixed FOV.
+;
+; THE RIG LISTENS TO THE DRIVER, NOT THE SAMPLER. InputSampler has no loop of its
+; own — the driver calls sample() once a frame and emits what it got. When both
+; nodes sampled, input ran at 120 Hz and TUN-SPEED-SPRINT-HOLD opened in half its
+; 0.4 s. This is also why node ORDER here decides nothing.
 
 [node name="ClientRoot" type="Node"]
 
@@ -38,4 +43,3 @@ sampler_path = NodePath("../InputSampler")
 [node name="CameraRig" type="Camera3D" parent="World"]
 script = ExtResource("5_camera")
 driver_path = NodePath("../../LocalPawnDriver")
-sampler_path = NodePath("../../InputSampler")

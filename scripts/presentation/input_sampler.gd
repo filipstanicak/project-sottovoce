@@ -5,10 +5,19 @@
 ## a gamepad, which is what lets `step()` be replayed identically on a headless
 ## server that has neither.
 ##
-## Sampled at 60 Hz in `_physics_process`, matching `TUN-NET-CLIENT-INPUT-RATE`
-## and the pawn's integration rate. Not `_process`: a command per *rendered*
+## **THIS NODE HAS NO LOOP OF ITS OWN.** `LocalPawnDriver` calls `sample()` once
+## per physics frame, which is TDD-03 §1.2's client diagram: one
+## `_physics_process` that samples, sends, predicts and buffers, at
+## `TUN-NET-CLIENT-INPUT-RATE`. Not `_process` either: a command per *rendered*
 ## frame would produce a different number of them on a 144 Hz monitor, and the
 ## simulation would depend on the display.
+##
+## It used to drive itself as well, emitting from its own `_physics_process`
+## while the driver took a second sample — two calls a frame, 120 Hz, and every
+## counter downstream running at twice its tunable. `SprintGate` was the one that
+## showed: `TUN-SPEED-SPRINT-HOLD` opened in 0.21 s instead of 0.4. The signal
+## therefore lives on the driver now, next to the call that produces it, so there
+## is exactly one place a command can come from. `test_input_sampled_once.gd`.
 ##
 ## The rules this file applies — hold versus toggle, the sprint gate, the
 ## deadzone — all live in pure classes it delegates to (`InputLatch`,
@@ -16,10 +25,6 @@
 ## assembly, which is the part a unit test cannot reach anyway.
 class_name InputSampler
 extends Node
-
-## Emitted after each sample. The pawn driver and the net client listen; nothing
-## reads the sampler's fields directly.
-signal command_sampled(command: InputCommand)
 
 ## Look sensitivity, radians per pixel of mouse motion.
 ##
@@ -71,12 +76,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		_mouse_delta += motion.relative
 
 
-func _physics_process(delta: float) -> void:
-	command_sampled.emit(sample(delta))
-
-
 ## Build this frame's command. Reuses one object; anything keeping a command
 ## past the frame must call `duplicate_command()` — `InputHistory` does.
+##
+## **CALL THIS EXACTLY ONCE PER PHYSICS FRAME.** It is not a getter: it advances
+## `_seq`, ticks `SprintGate`'s hold and double-tap counters, and resolves every
+## hold/toggle latch. A second call in the same frame charges all of them twice.
 func sample(delta: float) -> InputCommand:
 	_seq += 1
 	_command.seq = _seq

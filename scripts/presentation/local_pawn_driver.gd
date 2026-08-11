@@ -21,6 +21,18 @@ extends Node
 ## that already happened, not a request.
 signal pawn_stepped(ctx: PawnContext)
 
+## Emitted once per physics frame with the command this loop just took, before it
+## is stepped on. The camera listens; the net client will.
+##
+## **IT IS DECLARED HERE, NOT ON `InputSampler`, BECAUSE THIS IS THE ONLY CALLER
+## OF `sample()`.** It used to be the sampler's, emitted from a `_physics_process`
+## the sampler ran alongside this one — so input was sampled twice a frame and
+## every counter behind it ran at 120 Hz. `SprintGate` is what showed it:
+## `TUN-SPEED-SPRINT-HOLD` is 0.4 s of deliberate friction (GDD-02 §1.5) and it
+## was opening in 0.21. A signal whose emitter is not the thing that produced the
+## value is an invitation to produce it somewhere else too.
+signal command_sampled(command: InputCommand)
+
 @export var pawn_path: NodePath
 @export var sampler_path: NodePath
 
@@ -79,12 +91,17 @@ func _attach_feel_readout() -> void:
 	const PATH := "res://scripts/debug/feel_readout.gd"
 	if not OS.has_feature("debug") or not ResourceLoader.exists(PATH):
 		return
-	(load(PATH) as GDScript).attach(self, self, _sampler)
+	(load(PATH) as GDScript).attach(self, self)
 
 
 func _physics_process(delta: float) -> void:
+	# THE ONLY CALL TO sample() IN THE PROJECT. See the signal below it.
 	var command := _sampler.sample(delta)
 	_history.push(command)
+	# Announced before step(), which is where the sampler used to announce it from
+	# its own loop — so the camera still reads the look on the same side of the
+	# state machine it always did.
+	command_sampled.emit(command)
 	# BEFORE step(), once per physics frame. Raycasts are only valid in the
 	# physics step, and a state casting its own would cast again on every
 	# reconciliation replay — the same query against a world that has moved on.
