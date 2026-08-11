@@ -107,16 +107,16 @@ and exports** — and does nothing else.
 **Exit:** one player can walk / blend / jog / sprint / climb / vault with camera and the full
 state machine, locally.
 
-| Delivers | Status 2026-08-07 |
+| Delivers | Status 2026-08-11 |
 |---|---|
 | All 15 `PawnState` classes + centralised transition table | ADR-0008. **Partial by design** — 15 declared and all 121 edges asserted, but `Respawning`, `StunAnim` and `Dead` belong to `SYS-SPAWN` and `SYS-COMBAT` and are M4. Twelve implemented |
 | The speed ladder, wired to `MovementTuning` | Done, US-0015 |
 | Input map, `InputCommand`, dual input buffering | Done, US-0016 |
 | Traversal probes + the 7-case resolver + forgiveness windows | Done, US-0017–0020 |
-| Camera rig: spring arm, FOV ladder, occlusion, crowd-scan | Done, US-0021–0023. Crowd-scan's audio duck is **not** done — `Audio` is a stub until US-0075 |
+| Camera rig: spring arm, FOV ladder, occlusion, crowd-scan | Done, US-0021–0023 — but it shipped with the **vertical inverted** through all three, fixed in #48 only when somebody played it. Crowd-scan's audio duck is still **not** done: `Audio` is a stub until US-0075 |
 | `test_feel_latency.gd` measuring input→animation | **Built, and it cannot reach the animation.** US-0024 measures three of five stages; `ANIMATE` has no clip and `PRESENT` no display. A tripwire fails the day a clip lands |
 
-> **Status 2026-08-07 — 11 of 12, and the twelfth is not code.** US-0013 to
+> **Status 2026-08-11 — 11 of 12, and the twelfth is not code.** US-0013 to
 > US-0023 are done and US-0024 is `in-progress` with everything buildable built.
 > Fifteen states declared, twelve implemented, 121 edges asserted against the §3
 > diagram in both directions.
@@ -150,6 +150,14 @@ state machine, locally.
 > player into BlendWalk, whose suspicion decays. A button that launders suspicion
 > is the mechanical advantage §4.3 exists to refuse. The audio half is blocked on
 > there being any audio at all (US-0075).
+>
+> **THE FIRST ATTEMPT TO RUN THE FEEL GATE FOUND TWO DEFECTS**, both fixed in
+> #48 and neither reachable by any test: the camera's vertical had been inverted
+> since US-0021, and nothing in the project captured the mouse, so the cursor
+> stayed free and the camera stopped turning at the window edge. Three stories of
+> camera work passed a green suite with the vertical the wrong way round. That is
+> the argument for a subjective gate existing at all, and it is worth remembering
+> the next time one looks like a formality.
 >
 > **The feel gate below is judgeable and has not been judged**, and that is now
 > the only thing between M1 and its exit. Three of its four lines need a human at

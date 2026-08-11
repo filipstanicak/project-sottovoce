@@ -53,7 +53,7 @@ depends_on: [DOC-GLOSSARY, TUN-INDEX, GDD-01-VISION]
 | **Crowd-scan** | `INPUT-SCAN` | `Middle Mouse` | Hold | `TUN-CAM-CROWDSCAN-SPEED` 0.45×, `TUN-CAM-CROWDSCAN-FOV` 48°. |
 | **Shoulder swap** | `INPUT-SHOULDER` | `X` | Press | |
 | Scoreboard | `INPUT-SCORE` | `Tab` | Hold | |
-| Menu | `INPUT-MENU` | `Escape` | Press | |
+| Menu | `INPUT-MENU` | `Escape` | Press | Also **releases the mouse**. It is captured on launch, and a click takes it back — without capture the cursor stops at the window edge and the camera stops turning with it. |
 | Push-to-talk | — | — | — | Not in MVP (`SCOPE_FENCE` OUT #5). |
 
 ### 1.3 Gamepad

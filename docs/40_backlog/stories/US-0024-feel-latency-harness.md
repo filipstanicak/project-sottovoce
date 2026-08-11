@@ -4,7 +4,7 @@ title: Feel latency measurement harness
 version: 1.0.0
 status: in-progress
 owner: Technical Director
-last_updated: 2026-08-07
+last_updated: 2026-08-11
 depends_on: [GDD-02-PLAYER, BIBLE-TEST-PLAN]
 ---
 
@@ -132,8 +132,17 @@ godot --headless -- --server --port 27015 --max-players 6
 godot -- --connect 127.0.0.1:27015
 ```
 
+**One command, and no server.** `boot.gd` loads `client_root.tscn` with or without `--connect`;
+the "client, menu" log line names a menu that does not exist. The two-terminal recipe elsewhere in
+this corpus is for testing the network topology, not for playing.
+
 Controls: **WASD** move · **Left Ctrl** blend-walk · **Left Shift** run (hold ~0.35 s for Run) ·
 **double-tap Shift** sprint · **Space** traverse · **Middle mouse** crowd-scan.
+
+The mouse is **captured on launch**. **Escape** releases it so the window can be left; **click**
+takes it back. Both arrived in #48, along with the fix for a vertical axis that had been inverted
+since US-0021 — the first attempt to run this checklist is what found them, which is the argument
+for the checklist existing at all.
 
 A readout appears top-left in any debug build (`scripts/debug/feel_readout.gd`, attached at
 runtime by `LocalPawnDriver` — never by a scene, because the release presets strip that folder):

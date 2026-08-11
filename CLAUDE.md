@@ -234,6 +234,21 @@ three are blocked, each by something real:
 
 **M1's remaining work is not code.** It is one human sitting down with the game.
 
+**THE FIRST ATTEMPT TO RUN THE GATE FOUND TWO DEFECTS, BOTH FIXED (#48).** The
+vertical was inverted from US-0021 — positive pitch raised the arm, and a raised
+arm looking *at* the pivot looks down. And nothing in the project set
+`Input.mouse_mode`, so the cursor stayed free, the camera stopped turning at the
+window edge, and a visible arrow slid over the game. Neither was reachable by any
+test: the suites have no window and inject motion directly.
+
+**The gate is genuinely runnable now.** One command, no server — `boot.gd` loads
+`client_root.tscn` with or without `--connect`, so the "client, menu" log line
+names a menu that does not exist:
+
+```bash
+godot --path . 
+```
+
 **THE DOUBLE-SAMPLE FOUND ON 2026-08-08 IS FIXED**, as of 2026-08-11.
 `InputSampler.sample()` ran twice per physics frame and `TUN-SPEED-SPRINT-HOLD`
 opened sprint in 0.21 s instead of 0.4 — half the friction GDD-02 §1.5 defends.
@@ -266,7 +281,7 @@ US-0024 measures it against clips that do not exist.
 | | |
 |---|---|
 | CI | 7 jobs. **Running again as of 2026-08-07 after a two-day outage** — run `31200490320`, all seven green. The seven commits merged during the outage were never through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | 98 architecture guards + 359 unit + 86 integration, all three counted in CI |
+| Tests | 100 architecture guards + 361 unit + 90 integration, all three counted in CI |
 | Tuning | 282 tunables across 14 resource classes; all 22 cross-field invariants assert |
 | Autoloads | All eight. `Tuning` precomputes 89 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |
@@ -274,8 +289,8 @@ US-0024 measures it against clips that do not exist.
 | Map | `MAP-VETRAIO` greybox, 120 × 120 m. Client loads 28 meshes, server loads none |
 | Pawn | 15 states declared, 121 transition edges asserted against the normative diagram. **Twelve implemented**: six locomotion + `Vault`, `Climb`, `Drop`, `KillAnim`, `Stunned`, `Blended`. `Respawning`, `StunAnim` and `Dead` are M4 |
 | Traversal | **Complete.** Probes cast, all seven §7.2 cases resolve from real geometry, both forgiveness windows open, and vault, mantle, climb, drop and gap jump all perform |
-| Camera | Real spring arm: 2.6 m, shoulder swap, occlusion that pulls **in** and never sideways, `WORLD`-masked so a crowd cannot push it. The FOV ladder is bound to the **state**, never to `ctx.velocity`: the rung is a consequence of the decision, not of the physics that follows it. Crowd-scan narrows to 48° and grants nothing |
-| Input | 21 `InputMap` actions from 15 `INPUT-` IDs, KBM + pad. Chain GDD-02 → `Ids` → `InputActions` → `project.godot`, guarded on every hop, both directions. **Sampled once per physics frame by `LocalPawnDriver`, the only caller** — see trap 12 |
+| Camera | Real spring arm: 2.6 m, shoulder swap, occlusion that pulls **in** and never sideways, `WORLD`-masked so a crowd cannot push it. The FOV ladder is bound to the **state**, never to `ctx.velocity`: the rung is a consequence of the decision, not of the physics that follows it. Crowd-scan narrows to 48° and grants nothing. **Positive pitch LOWERS the arm** — the rig looks *at* the pivot, so a raised arm looks down; it shipped inverted from US-0021 until somebody played it |
+| Input | 21 `InputMap` actions from 15 `INPUT-` IDs, KBM + pad. Chain GDD-02 → `Ids` → `InputActions` → `project.godot`, guarded on every hop, both directions. **Sampled once per physics frame by `LocalPawnDriver`, the only caller** — see trap 12. The mouse is **captured** on boot; `INPUT-MENU` releases, a click takes it back |
 
 **Ten criteria are deliberately unticked**, each blocked by something real. A
 prose count of these has now drifted three times, so they are a table — and the
@@ -317,6 +332,13 @@ that is not true makes the whole backlog unreadable as a status view.
    twice: `change_scene_to_file` from `_ready()` failed with 92 tests green, and
    spawning through `transition()` into an unimplemented state failed with 222.
    **Run the game after touching anything scene-related.**
+   **AND ASSERT THE SHAPE OF A RESULT, NOT ITS MAGNITUDE.** "The pawn moved more
+   than half a metre" was true of a pawn falling through the world. Its most
+   expensive instance so far: `test_looking_up_raises_the_camera` asserted that
+   pitching up lifts the arm — true, and not the question. The rig looks *at* the
+   pivot, so a lifted arm looks DOWN, and the vertical shipped inverted through
+   three stories behind that green test. Nobody found it until the owner played
+   the game.
 5. **OPENING THE GODOT EDITOR REWRITES `project.godot`** and deletes every key
    whose value matches an engine default, plus every comment. It did this once
    already, removing `rendering_method` and `physics_ticks_per_second`.
