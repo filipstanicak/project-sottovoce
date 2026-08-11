@@ -42,6 +42,7 @@ var _sprint := SprintGate.new()
 var _command := InputCommand.new()
 var _seq: int = 0
 var _mouse_delta: Vector2 = Vector2.ZERO
+var _want_mouse: bool = false
 
 ## id -> InputLatch.Mode, for the five holdable actions. Individually
 ## configurable per GDD-02 §9.3; the pad default for `INPUT-SLOW` is TOGGLE
@@ -54,6 +55,37 @@ func _ready() -> void:
 	for id: StringName in InputActions.ids():
 		if InputActions.is_toggleable(id):
 			_modes[id] = InputLatch.Mode.HOLD
+	_capture_mouse(true)
+
+
+## **THE MOUSE IS CAPTURED, OR THERE IS NO MOUSE LOOK.** An uncaptured cursor
+## stops at the window edge and stops generating relative motion with it, so the
+## camera reaches a wall and will not turn further — and the player is left
+## dragging a visible arrow across their own game.
+##
+## Here rather than in `CameraRig`, because `Input.mouse_mode` is `Input`, and
+## this file is the only place in the project that touches it.
+##
+## `INPUT-MENU` releases so the window can be left; a click takes it back. There
+## is no options screen to release into yet (US-0079), which is exactly why the
+## escape hatch has to exist now.
+func _capture_mouse(captured: bool) -> void:
+	_want_mouse = captured
+	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED if captured else Input.MOUSE_MODE_VISIBLE
+	if not captured:
+		_mouse_delta = Vector2.ZERO
+
+
+## Whether the sampler believes it holds the mouse — the flag it set, NOT a
+## read-back of `Input.mouse_mode`.
+##
+## Headless has no display server to honour the request, so the mode never
+## becomes `CAPTURED` there and reading it back would make every mouse-look test
+## silently measure nothing. That is how this was found: the crowd-scan pan test
+## started reporting a look delta of zero, which is a pass shape away from a
+## test that quietly checks nothing at all.
+func mouse_captured() -> bool:
+	return _want_mouse
 
 
 ## Change one action between hold and toggle. GDD-02 §9.3: every hold input has
@@ -69,6 +101,16 @@ func mode_of(id: StringName) -> InputLatch.Mode:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed(InputActions.action_names(Ids.INPUT_MENU)[0]):
+		_capture_mouse(false)
+		return
+	if not mouse_captured():
+		# A click takes the window back. Motion is dropped while the cursor is
+		# free, so the camera does not lurch by however far the mouse travelled
+		# across the desktop in between.
+		if event is InputEventMouseButton and (event as InputEventMouseButton).pressed:
+			_capture_mouse(true)
+		return
 	# Accumulated rather than applied, because motion arrives at the OS event rate
 	# and applying it here would turn look speed into a function of frame time.
 	var motion := event as InputEventMouseMotion

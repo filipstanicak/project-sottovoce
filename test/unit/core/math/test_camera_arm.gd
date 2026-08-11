@@ -65,12 +65,39 @@ func test_the_two_shoulders_are_mirror_images() -> void:
 	)
 
 
-func test_looking_up_raises_the_camera() -> void:
-	assert_gt(
-		CameraArm.offset_direction(0.0, 0.5, 0.0).y,
-		CameraArm.offset_direction(0.0, 0.0, 0.0).y,
-		"pitching up did not lift the arm"
-	)
+func test_looking_up_points_the_view_up() -> void:
+	# **THIS TEST USED TO ASSERT THE OPPOSITE, AND THE OPPOSITE WAS THE BUG.**
+	# It checked that pitching up raised the arm — true, and not the question.
+	# The rig looks AT the pivot, so an arm raised above it looks *down*. The
+	# vertical shipped inverted from US-0021 until somebody played the game.
+	#
+	# So the assertion is on the VIEW direction now: pivot minus camera, which is
+	# exactly what `look_at` will use. Where the arm sits is a consequence.
+	var pivot := CameraArm.pivot(FEET)
+	for pitch: float in [0.2, 0.6, 1.0]:
+		var view := (pivot - CameraArm.ideal_position(FEET, 0.0, pitch, 0.0)).normalized()
+		assert_gt(view.y, 0.0, "pitch %.1f pointed the view downward" % pitch)
+	for pitch: float in [-0.2, -0.6, -1.0]:
+		var view := (pivot - CameraArm.ideal_position(FEET, 0.0, pitch, 0.0)).normalized()
+		assert_lt(view.y, 0.0, "pitch %.1f pointed the view upward" % pitch)
+
+
+func test_a_level_look_is_level() -> void:
+	var pivot := CameraArm.pivot(FEET)
+	var view := (pivot - CameraArm.ideal_position(FEET, 0.0, 0.0, 0.0)).normalized()
+	assert_almost_eq(view.y, 0.0, 0.001, "a zero pitch was not level")
+
+
+func test_the_mouse_and_the_stick_agree_about_up() -> void:
+	# The sampler's convention, asserted against the arm's. Mouse up gives a
+	# NEGATIVE `relative.y`, which `InputSampler` subtracts — so up increases
+	# pitch. `LOOK_SUFFIXES` puts `_down` before `_up` so a stick pushed up also
+	# gives positive y. Both must mean the same thing to the arm, or the pad and
+	# the mouse invert against each other.
+	var pivot := CameraArm.pivot(FEET)
+	var mouse_moved_up := -(-1.0) * 0.0022  # `look_pitch -= relative.y * sens`
+	var view := (pivot - CameraArm.ideal_position(FEET, 0.0, mouse_moved_up, 0.0)).normalized()
+	assert_gt(view.y, 0.0, "moving the mouse up pointed the view down")
 
 
 func test_the_arm_follows_the_pawn() -> void:

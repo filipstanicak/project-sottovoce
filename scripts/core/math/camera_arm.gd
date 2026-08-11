@@ -47,9 +47,19 @@ static func right(yaw: float) -> Vector3:
 ## occlusion clamp shortens along this exact vector. That is what keeps §4.4's
 ## rule true: the direction never changes, so the camera can never be nudged
 ## somewhere with a better view than the pawn has.
+##
+## **POSITIVE PITCH LOWERS THE ARM, BECAUSE THE RIG LOOKS AT THE PIVOT.** Pitch
+## is the direction the PLAYER is looking, and to look up over the pawn's
+## shoulder the camera has to drop behind it — a camera raised above the pivot
+## and pointed at it is looking *down*.
+##
+## It shipped the other way round from US-0021 until the owner played it and
+## reported the vertical inverted. `test_camera_arm.gd` had asserted that
+## pitching up raised the arm, which is true and is not the question: the
+## question is where the resulting VIEW points, and the test never asked.
 static func offset_direction(yaw: float, pitch: float, shoulder_blend: float) -> Vector3:
 	var behind := -forward(yaw) * cos(pitch) * Tuning.camera.arm_length
-	var lift := Vector3.UP * sin(pitch) * Tuning.camera.arm_length
+	var lift := Vector3.DOWN * sin(pitch) * Tuning.camera.arm_length
 	var lateral := right(yaw) * Tuning.camera.shoulder_offset * clampf(shoulder_blend, -1.0, 1.0)
 	return behind + lift + lateral
 
