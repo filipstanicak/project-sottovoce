@@ -26,7 +26,7 @@ Every bonus condition, evaluated at kill INITIATION, plus the two windows that n
 
 - [ ] All twelve implemented: Contract, Silent, Patient, Masked, Focus, From Above, Blended, Poisoned, Long Hunt, Vendetta, Variety, Reckless. Plus Stun.
 - [ ] All evaluated at initiation, not at resolution.
-- [ ] Patient uses a 300-tick speed-history ring — one tick above jog anywhere in the window denies it.
+- [ ] Patient uses a 300-tick speed-history ring — one tick above `TUN-SCORE-PATIENT-SPEED` anywhere in the window denies it.
 - [ ] Focus tolerates a 0.4 s LOS lapse without resetting the streak.
 - [ ] Long Hunt measures from contract assignment OR first lock, whichever is later.
 - [ ] Variety counts types earned for the first time this life, excluding itself, Contract and Reckless.

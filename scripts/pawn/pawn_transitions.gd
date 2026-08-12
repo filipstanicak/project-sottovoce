@@ -29,18 +29,16 @@ const LOCO_EXITS: Array[StringName] = [
 ]
 
 ## Edges *within* the locomotion group. Escalation UPWARD is strict — there is no
-## Idle -> Jog, because taking speed one rung at a time is what makes it a
+## Idle -> Run, because taking speed one rung at a time is what makes it a
 ## decision. Coming DOWN is not: every state reaches BlendWalk and Idle directly
 ## (ADR-0012), because slowing is the escape hatch the whole speed economy
 ## depends on and a gated escape hatch is not one.
 const LOCO_INTERNAL: Dictionary = {
 	PawnStateId.IDLE: [PawnStateId.BLEND_WALK, PawnStateId.STROLL],
 	PawnStateId.BLEND_WALK: [PawnStateId.IDLE, PawnStateId.STROLL],
-	PawnStateId.STROLL: [PawnStateId.BLEND_WALK, PawnStateId.IDLE, PawnStateId.JOG],
-	PawnStateId.JOG:
-	[PawnStateId.STROLL, PawnStateId.RUN, PawnStateId.BLEND_WALK, PawnStateId.IDLE],
+	PawnStateId.STROLL: [PawnStateId.BLEND_WALK, PawnStateId.IDLE, PawnStateId.RUN],
 	PawnStateId.RUN:
-	[PawnStateId.JOG, PawnStateId.SPRINT, PawnStateId.BLEND_WALK, PawnStateId.IDLE],
+	[PawnStateId.STROLL, PawnStateId.SPRINT, PawnStateId.BLEND_WALK, PawnStateId.IDLE],
 	PawnStateId.SPRINT: [PawnStateId.RUN, PawnStateId.BLEND_WALK, PawnStateId.IDLE],
 }
 

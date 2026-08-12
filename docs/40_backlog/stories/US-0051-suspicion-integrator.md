@@ -28,7 +28,7 @@ The highest-value unit-test target in the project after the contract cycle.
 
 - [ ] Pure Core function of state, tuning and dt.
 - [ ] Gain and decay are MUTUALLY EXCLUSIVE — no concurrent decay above stroll speed.
-- [ ] Continuous sources sum additively: jog, run, sprint, climb, roof, open-ground.
+- [ ] Continuous sources sum additively: run, sprint, climb, roof, open-ground.
 - [ ] Decay applies only at or below stroll speed AND after the 0.6 s post-gain delay.
 - [ ] Stillness passive multiplies decay while stationary.
 - [ ] Blending overrides both with a linear crush toward zero.
@@ -45,7 +45,7 @@ metre than continuous running.
 
 ## Notes
 
-Mutual exclusion is not a micro-optimisation: with concurrent decay, jog at +4/s against -8/s
+Mutual exclusion is not a micro-optimisation: with concurrent decay, a cheap gain against -8/s
 would be net NEGATIVE and the entire speed ladder would invert.
 
 Without the decay delay, tap-sprinting at 4 Hz nets +8.5/s while averaging 4.2 m/s — better than

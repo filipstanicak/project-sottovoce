@@ -1,8 +1,11 @@
 ## The FOV ladder. GDD-02 §4.2.
 ##
 ## **THIS IS A WARNING SYSTEM, NOT A STYLE CHOICE.** 55° blend-walk → 60° stroll
-## → 65° jog → 69° run → 72° sprint. The widening lens produces peripheral
-## distortion and a sense of loss of control that tells the player they are doing
+## → 69° run → 72° sprint. Four rungs since the Jog rung was deprecated, and the
+## nine-degree step from stroll to run is the ladder's cliff made visible.
+##
+## The widening lens produces peripheral distortion and a sense of loss of
+## control that tells the player they are doing
 ## something conspicuous *before* they read the tier indicator — the cheapest
 ## possible reinforcement of design law 1, speed is spent anonymity.
 ##

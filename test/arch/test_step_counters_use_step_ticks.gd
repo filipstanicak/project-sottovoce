@@ -16,7 +16,7 @@
 ##
 ## It shipped that way from US-0013 to US-0016: the stun freeze ran 1.0 s instead
 ## of 2.0 — halving the one mechanic design law 5 forbids weakening — the kill
-## animation 0.7 s instead of 1.4, and Jog escalated to Run in 0.18 s instead of
+## animation 0.7 s instead of 1.4, and the run window resolved in half its time
 ## 0.35. Three merged defects of one shape, which is what a guard is for.
 extends GutTest
 

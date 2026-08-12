@@ -15,8 +15,8 @@ extends Resource
 ## TUN-SCORE-SILENT
 @export_range(75.0, 150.0, 0.1) var silent: float = 100.0
 
-## Never exceeded TUN-SPEED-JOG in the 10 s before initiation. The most valuable single bonus,
-## because it is the thesis.
+## Never exceeded TUN-SCORE-PATIENT-SPEED in the 10 s before initiation. The most valuable single
+## bonus, because it is the thesis.
 ## TUN-SCORE-PATIENT
 @export_range(100.0, 200.0, 0.1) var patient: float = 150.0
 
@@ -24,6 +24,15 @@ extends Resource
 ## the last moment.
 ## TUN-SCORE-PATIENT-WINDOW
 @export_range(8.0, 15.0, 0.1) var patient_window: float = 10.0
+
+## The speed SCORE-PATIENT requires you never to have exceeded. This was TUN-SPEED-JOG until the
+## ladder lost that rung, and the number is deliberately unchanged — patience means exactly what
+## it meant before, but it is a scoring threshold now rather than a speed anything travels at. It
+## sits above TUN-SPEED-STROLL and below TUN-SPEED-RUN (invariant §17.23), which is what makes it
+## a real line: a patient player may drift above their cruising speed while accelerating or being
+## shoved by a crowd, and may not run.
+## TUN-SCORE-PATIENT-SPEED
+@export_range(2.6, 4.4, 0.1) var patient_speed: float = 3.4
 
 ## ABIL-SECONDFACE active at initiation. Equal to Patient: disguise is a different route to the
 ## same virtue.

@@ -121,10 +121,12 @@ func test_no_edge_points_at_an_unknown_state() -> void:
 func test_the_speed_ladder_cannot_be_skipped() -> void:
 	# Escalation is a decision taken one rung at a time. A direct Idle -> Sprint
 	# would make speed free, which inverts the design thesis outright.
-	assert_false(PawnTransitions.allows(PawnStateId.IDLE, PawnStateId.JOG), "Idle -> Jog")
+	assert_false(PawnTransitions.allows(PawnStateId.IDLE, PawnStateId.RUN), "Idle -> Run")
 	assert_false(PawnTransitions.allows(PawnStateId.IDLE, PawnStateId.SPRINT), "Idle -> Sprint")
-	assert_false(PawnTransitions.allows(PawnStateId.STROLL, PawnStateId.RUN), "Stroll -> Run")
-	assert_true(PawnTransitions.allows(PawnStateId.STROLL, PawnStateId.JOG), "Stroll -> Jog")
+	assert_false(PawnTransitions.allows(PawnStateId.STROLL, PawnStateId.SPRINT), "Stroll -> Sprint")
+	# Legal since the Jog rung was deprecated, and the one edge that changed:
+	# Stroll is the rung below Run now.
+	assert_true(PawnTransitions.allows(PawnStateId.STROLL, PawnStateId.RUN), "Stroll -> Run")
 	assert_true(PawnTransitions.allows(PawnStateId.RUN, PawnStateId.SPRINT), "Run -> Sprint")
 
 

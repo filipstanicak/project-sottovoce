@@ -92,7 +92,7 @@ func test_the_fov_invariants_are_live() -> void:
 	# name — the lens would tell a sprinting player they were calm — so the check
 	# has to be proven to fire, not merely to exist.
 	var p := _profile()
-	p.camera.fov_jog = p.camera.fov_stroll - 1.0
+	p.camera.fov_run = p.camera.fov_stroll - 1.0
 	var inverted := false
 	for e: String in p.validate():
 		if e.begins_with("21."):

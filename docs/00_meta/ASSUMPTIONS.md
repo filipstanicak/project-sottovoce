@@ -92,6 +92,13 @@ you disagree with one, the cost of changing it is stated in the row.
 
 ### ASM-0007 — Jog and run generate suspicion at 4/s and 14/s
 
+> **PARTLY SUPERSEDED 2026-08-12.** The Jog rung was removed from the ladder, so
+> `TUN-SUSPICION-GAIN-JOG` is deprecated and only the run half of this assumption is live.
+> The record below is left as written: it is why 14/s was chosen, and that reasoning still
+> holds. What changed is that there is no longer a cheap rung between stroll and run — the
+> ladder steps from free to 14/s, and `SCORE-PATIENT` keeps 3.4 m/s as
+> `TUN-SCORE-PATIENT-SPEED`.
+
 | Field | Value |
 |---|---|
 | **Status** | active |

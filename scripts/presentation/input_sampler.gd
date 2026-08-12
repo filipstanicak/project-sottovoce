@@ -14,14 +14,15 @@
 ##
 ## It used to drive itself as well, emitting from its own `_physics_process`
 ## while the driver took a second sample — two calls a frame, 120 Hz, and every
-## counter downstream running at twice its tunable. `SprintGate` was the one that
-## showed: `TUN-SPEED-SPRINT-HOLD` opened in 0.21 s instead of 0.4. The signal
+## counter downstream running at twice its tunable. The sprint gate of the day
+## is what showed it: the deprecated `TUN-SPEED-SPRINT-HOLD` opened in 0.21 s
+## against a 0.4 s value, half the friction §1.5 defends. The signal
 ## therefore lives on the driver now, next to the call that produces it, so there
 ## is exactly one place a command can come from. `test_input_sampled_once.gd`.
 ##
 ## The rules this file applies — hold versus toggle, the sprint gate, the
 ## deadzone — all live in pure classes it delegates to (`InputLatch`,
-## `SprintGate`, `InputActions`). What is left here is the engine call and the
+## `SpeedGate`, `InputActions`). What is left here is the engine call and the
 ## assembly, which is the part a unit test cannot reach anyway.
 class_name InputSampler
 extends Node
@@ -38,7 +39,7 @@ extends Node
 @export var pad_look_speed: float = 3.2
 
 var _latch := InputLatch.new()
-var _sprint := SprintGate.new()
+var _speed := SpeedGate.new()
 var _command := InputCommand.new()
 var _seq: int = 0
 var _mouse_delta: Vector2 = Vector2.ZERO
@@ -158,7 +159,7 @@ func _unhandled_input(event: InputEvent) -> void:
 ## past the frame must call `duplicate_command()` — `InputHistory` does.
 ##
 ## **CALL THIS EXACTLY ONCE PER PHYSICS FRAME.** It is not a getter: it advances
-## `_seq`, ticks `SprintGate`'s hold and double-tap counters, and resolves every
+## `_seq`, ticks `SpeedGate`'s resolve window, and resolves every
 ## hold/toggle latch. A second call in the same frame charges all of them twice.
 func sample(delta: float) -> InputCommand:
 	_seq += 1
@@ -216,46 +217,55 @@ func _sample_buttons() -> void:
 			active = _latch.resolve(id, active, mode_of(id))
 		_command.buttons = InputBits.with(_command.buttons, InputActions.bit_of(id), active)
 
-	_sample_run()
-	_sample_sprint()
+	_sample_speed()
 	_apply_pad_blend_walk()
 
 
 ## `INPUT-RUN` is analogue on a trigger. Any pull runs; a pull past
-## `TUN-SPEED-TRIGGER-RUN` runs *fully*, which is the only thing that escalates
-## Jog -> Run. A key press reads 1.0, so the keyboard is always full.
-func _sample_run() -> void:
-	var name := InputActions.action_names(Ids.INPUT_RUN)[0]
-	var strength := Input.get_action_strength(name)
-	var held := strength > Tuning.movement.stick_deadzone
-	if mode_of(Ids.INPUT_RUN) == InputLatch.Mode.TOGGLE:
-		held = _latch.resolve(Ids.INPUT_RUN, held, InputLatch.Mode.TOGGLE)
-		strength = 1.0 if held else 0.0
-	_command.buttons = InputBits.with(_command.buttons, InputBits.RUN, held)
-	var full: bool = held and strength >= Tuning.movement.trigger_run
-	_command.buttons = InputBits.with(_command.buttons, InputBits.RUN_FULL, full)
-
-
-## The friction. `SprintGate` owns the rule; toggle mode still has to pay it,
-## because a toggle that skipped the double-tap would be an accessibility option
-## that removed the design's only deliberate cost.
+## `TUN-SPEED-TRIGGER-RUN` is the pull at which the trigger reads as held at all.
+## It used to split partial (Jog) from full (Run); with the Jog rung deprecated a
+## partial pull has nothing to mean, so below the threshold the trigger simply
+## does not run. A key press reads 1.0 and is always through it.
 ##
-## The gamepad has a second route: full trigger plus traverse, GDD-02 §1.3's
+## **ONE KEY DECIDES BOTH SPEEDS**, so both bits are written here. `INPUT-RUN`
+## and `INPUT-SPRINT` are the same key on the keyboard by default, and on a pad
+## either of them feeds the same gate — holding resolves to Run, double-tapping
+## to Sprint. `SpeedGate` owns the rule; a toggle mode still pays it, because a
+## toggle that skipped the double-tap would be an accessibility option that
+## removed the design's only deliberate cost.
+##
+## The gamepad keeps its second route: full trigger plus traverse, GDD-02 §1.3's
 ## "L2 full + A". That one is NOT gated, because it is already two simultaneous
 ## inputs — the pad's version of the same awkwardness. §9.3 requires a
-## single-input alternative to exist, and the gated button is it.
-func _sample_sprint() -> void:
+## single-input alternative to exist, and the gated key is it.
+func _sample_speed() -> void:
+	var pressed := _run_pressed() or _sprint_pressed()
+	var want := _speed.update(pressed)
+	if pressed and _pad_sprint_combo():
+		want = SpeedGate.Want.SPRINT
+	_command.buttons = InputBits.with(_command.buttons, InputBits.RUN, want != SpeedGate.Want.NONE)
+	_command.buttons = InputBits.with(
+		_command.buttons, InputBits.SPRINT, want == SpeedGate.Want.SPRINT
+	)
+
+
+func _run_pressed() -> bool:
+	var name := InputActions.action_names(Ids.INPUT_RUN)[0]
+	var held := Input.get_action_strength(name) >= Tuning.movement.trigger_run
+	if mode_of(Ids.INPUT_RUN) == InputLatch.Mode.TOGGLE:
+		held = _latch.resolve(Ids.INPUT_RUN, held, InputLatch.Mode.TOGGLE)
+	return held
+
+
+func _sprint_pressed() -> bool:
 	var name := InputActions.action_names(Ids.INPUT_SPRINT)[0]
-	var pressed := Input.is_action_pressed(name)
+	var held := Input.is_action_pressed(name)
 	if mode_of(Ids.INPUT_SPRINT) == InputLatch.Mode.TOGGLE:
-		pressed = _latch.resolve(Ids.INPUT_SPRINT, pressed, InputLatch.Mode.TOGGLE)
-	var open: bool = _sprint.update(pressed) or _pad_sprint_combo()
-	_command.buttons = InputBits.with(_command.buttons, InputBits.SPRINT, open)
+		held = _latch.resolve(Ids.INPUT_SPRINT, held, InputLatch.Mode.TOGGLE)
+	return held
 
 
 func _pad_sprint_combo() -> bool:
-	if not InputBits.is_set(_command.buttons, InputBits.RUN_FULL):
-		return false
 	return Input.is_action_pressed(InputActions.action_names(Ids.INPUT_TRAVERSE)[0])
 
 
@@ -273,5 +283,5 @@ func _apply_pad_blend_walk() -> void:
 ## survived a death would have the player blend-walking out of their own spawn.
 func reset() -> void:
 	_latch.release_all()
-	_sprint.reset()
+	_speed.reset()
 	_mouse_delta = Vector2.ZERO

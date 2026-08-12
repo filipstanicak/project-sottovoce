@@ -5,7 +5,7 @@
 ##
 ## TDD-03 §1.2's client diagram has one box that samples, run from one
 ## `_physics_process` at `TUN-NET-CLIENT-INPUT-RATE`. `sample()` is not a getter:
-## it advances `_seq`, resolves every hold/toggle latch, and ticks `SprintGate`'s
+## it advances `_seq`, resolves every hold/toggle latch, and ticks `SpeedGate`'s
 ## hold and double-tap counters. Calling it twice in a frame runs all of that at
 ## 120 Hz.
 ##

@@ -63,7 +63,7 @@ depends_on: [DOC-GLOSSARY, TUN-INDEX, GDD-01-VISION]
 | Move | Left stick | Stick magnitude maps continuously to the speed ladder — the analogue advantage. |
 | Look | Right stick | |
 | Blend-walk | `L3` (click) toggle **or** stick magnitude ≤ `TUN-SPEED-STICK-BLENDWALK-MAX` | Toggle by default on pad, because holding a click is uncomfortable. |
-| Run | `L2` / `LT` (analogue) | Partial pull = jog; past `TUN-SPEED-TRIGGER-RUN` = run. |
+| Run | `L2` / `LT` (analogue) | Held past `TUN-SPEED-TRIGGER-RUN`; below that the trigger does not run at all. There is no partial band since the Jog rung was deprecated. |
 | Sprint | `L2` full + `A` / cross | Two-input, matching the KBM awkwardness. |
 | Traverse | `A` / cross | |
 | Kill | `R2` / `RT` | |
@@ -153,12 +153,15 @@ the pawn moved, never whether it moved where the camera was pointing.
 | Idle | 0 | −8.0 (decay) | 55° | never | ✅ |
 | **Blend-walk** | `TUN-SPEED-BLENDWALK` 1.4 | −8.0 (decay) | `TUN-CAM-FOV-BLEND` 55° | never | ✅ |
 | **Stroll** | `TUN-SPEED-STROLL` 2.2 | −8.0 (decay) | `TUN-CAM-FOV-STROLL` 60° | never | ✅ |
-| **Jog** | `TUN-SPEED-JOG` 3.4 | +4.0 | `TUN-CAM-FOV-JOG` 65° | 7.5 s | ❌ |
 | **Run** | `TUN-SPEED-RUN` 4.5 | +14.0 | `TUN-CAM-FOV-RUN` 69° | 2.1 s | ❌ |
 | **Sprint** | `TUN-SPEED-SPRINT` 6.2 | +25.0 | `TUN-CAM-FOV-SPRINT` 72° | 1.2 s | ❌ |
 | Climb | `TUN-SPEED-CLIMB` 2.8 | +12.0 | 62° | 2.5 s | ❌ |
 
-**The cliff is between Stroll and Jog.** `TUN-SUSPICION-DECAY-SPEED-CEILING` equals
+**The cliff is between Stroll and Run**, and since 2026-08-12 there is nothing in between.
+The ladder had a Jog rung at 3.4 m/s for +4.0/s; it was removed because `INPUT-RUN` producing
+a speed the player did not ask for costs more than the cheap rung was buying. **The number
+survives as `TUN-SCORE-PATIENT-SPEED`**, so `SCORE-PATIENT` still means what it meant.
+ `TUN-SUSPICION-DECAY-SPEED-CEILING` equals
 `TUN-SPEED-STROLL` exactly (ASM-0008): at or below 2.2 m/s you *recover*; above it you
 *spend*, with no decay running concurrently. That single threshold is the design thesis
 expressed as one conditional, and invariant §17.3 in TUNABLES asserts it.
@@ -169,9 +172,8 @@ expressed as one conditional, and invariant §17.3 in TUNABLES asserts it.
 |---|---|---|
 | Idle → Blend-walk | `INPUT-MOVE` magnitude > 0 with `INPUT-SLOW` held | |
 | Idle → Stroll | `INPUT-MOVE` magnitude > 0, no modifier | Default movement is Stroll, not Blend-walk. Blend-walk is a deliberate act. |
-| Stroll → Jog | `INPUT-RUN` held | |
-| Jog → Run | `INPUT-RUN` held ≥ `TUN-SPEED-RUN-HOLD` | Continuous ramp; the discrete names are for tuning and telemetry, the acceleration is smooth. |
-| Run → Sprint | `INPUT-SPRINT` satisfied (§1.5) | |
+| Stroll → Run | `INPUT-RUN` still held when `TUN-SPEED-RUN-RESOLVE` expires | The window is what tells a hold from the first half of a double-tap. Continuous ramp; the discrete names are for tuning and telemetry, the acceleration is smooth. |
+| Run → Sprint | `INPUT-SPRINT` satisfied (§1.5) | Reached through Run, one tick after it — there is no Stroll → Sprint edge, and 33 ms is not a rung the player can read. |
 | Any → Blend-walk | `INPUT-SLOW` pressed | **Always available and instant.** Slowing down is never gated, never delayed, never refused. |
 | Any → Idle | `INPUT-MOVE` released | Deceleration at `TUN-SPEED-DECEL` 24 m/s², faster than acceleration — see below. |
 | Sprint → * | `ABIL-SECONDFACE` active | Sprinting breaks Second Face (`TUN-SECONDFACE-BREAK-SPEED`). The HUD warns before the break, not after. |
@@ -187,12 +189,15 @@ into the acceleration curve.
 ## 3. The player state machine
 
 > **Amended by [ADR-0012](../00_meta/adr/ADR-0012-slow-is-always-available.md), 2026-08-05.**
-> Six edges were added: `Jog`/`Run`/`Sprint` → `BlendWalk` and → `Idle`. §2.2 declares
+> Six edges were added: `Jog`/`Run`/`Sprint` → `BlendWalk` and → `Idle` (the Jog pair went
+> with the rung on 2026-08-12). §2.2 declares
 > `Any → Blend-walk` "always available and instant" and `Any → Idle` on move-release, but
 > Mermaid has no notation for a wildcard edge, so neither row had ever been drawn — which
 > made `Sprint → BlendWalk` illegal in the asserted table and the M1 feel gate unmeetable.
 
-Fifteen states. This diagram is **normative**: the transition table in
+Fourteen states — fifteen were declared until the Jog rung was deprecated, and `Jog` is
+retained as a retired ID that nothing reaches ([`../30_bible/NAMING_AND_IDS.md`](../30_bible/NAMING_AND_IDS.md)
+§2.3). This diagram is **normative**: the transition table in
 `PawnStateMachine.TRANSITIONS` is asserted against it by `test_pawn_transitions.gd`
 (ADR-0008). If the code and this diagram disagree, the diagram is right until an ADR says
 otherwise.
@@ -211,17 +216,13 @@ stateDiagram-v2
         BlendWalk --> Stroll: release INPUT-SLOW
         Stroll --> BlendWalk: INPUT-SLOW
         Stroll --> Idle: no move
-        Stroll --> Jog: INPUT-RUN
-        Jog --> Stroll: release INPUT-RUN
-        Jog --> Run: INPUT-RUN held 0.35 s
-        Run --> Jog: release INPUT-RUN
+        Stroll --> Run: INPUT-RUN held past TUN-SPEED-RUN-RESOLVE
+        Run --> Stroll: release INPUT-RUN
         Run --> Sprint: INPUT-SPRINT
         Sprint --> Run: release INPUT-SPRINT
 
-        Jog --> BlendWalk: INPUT-SLOW
         Run --> BlendWalk: INPUT-SLOW
         Sprint --> BlendWalk: INPUT-SLOW
-        Jog --> Idle: no move
         Run --> Idle: no move
         Sprint --> Idle: no move
     }
@@ -273,7 +274,6 @@ requested at priority *P* may interrupt a state whose `is_interruptible()` is fa
 | **Idle** | No move input, grounded | Any move input | Yes | NORMAL | decay |
 | **BlendWalk** | Move + `INPUT-SLOW` | Input change | Yes | NORMAL | decay |
 | **Stroll** | Move, no modifier | Input change | Yes | NORMAL | decay |
-| **Jog** | `INPUT-RUN` | Release / escalate | Yes | NORMAL | +4.0/s |
 | **Run** | `INPUT-RUN` ≥ 0.35 s | Release / escalate | Yes | NORMAL | +14.0/s |
 | **Sprint** | `INPUT-SPRINT` | Release | Yes | NORMAL | +25.0/s |
 | **Climb** | Traverse + chest probe on climbable ≤ 9 m | Top / release / stun | Yes (to COMBAT+) | NORMAL | +12.0/s, and +18.0/s on arrival if the destination is the roof stratum |
@@ -328,7 +328,7 @@ requested at priority *P* may interrupt a state whose `is_interruptible()` is fa
 FOV is bound to speed state, transitioning at `TUN-CAM-FOV-BLEND-RATE` (90°/s):
 
 ```
-55° blend-walk → 60° stroll → 65° jog → 69° run → 72° sprint
+55° blend-walk → 60° stroll → 69° run → 72° sprint
                                       ↑ the cliff is here (suspicion begins)
 48° crowd-scan (narrowest — leaning in)
 ```
@@ -401,7 +401,6 @@ Startle (`TUN-CROWD-STARTLE-RADIUS-SPRINT` 5 m).
 |---|---|---|---|---|---|
 | Blend-walk 10 m | 7.14 s | −8/s (recovering) | 4 m | No | The default. Slow, free, invisible. |
 | Stroll 10 m | 4.55 s | −8/s (recovering) | 6 m | No | The travel speed. Still recovering. |
-| Jog 10 m | 2.94 s | +11.8 total | 10 m | No | Cheap. Reaches 12/100 — well inside Anonymous. |
 | Run 10 m | 2.22 s | +31.1 total | 14 m | Yes (marginal) | Crosses into **Noticed** in one street's length. |
 | Sprint 10 m | 1.61 s | +40.3 total | 18 m | **Yes** | Noticed, loud, and leaves a Startle trail marking your path. |
 | **Vault** (≤ 1.1 m) | 0.55 s | **0** | 5 m | No | *Free.* A civilian hops a low wall. The only athletic move that costs nothing — and therefore the backbone of ground-level route-finding. |
@@ -522,7 +521,7 @@ is an **anonymity leak** and is a release-blocking bug.
 | Idle, blend-walk, stroll | **Yes, identical** | The states a player spends most of their life in. |
 | Idle variations (look around, shift weight) | **Yes, identical set** | A player idling with a variation their clones lack is uniquely identifiable while doing the safest thing in the game. |
 | Sit on bench, lean on stall, join walking group | **Yes** | These *are* clone behaviours; the player is imitating them. |
-| Jog, run | No | Already **Noticed** — anonymity is already spent. |
+| Run | No | Already **Noticed** — anonymity is already spent. |
 | Sprint, climb, vault, mantle, drop | No | Same. |
 | Kill, stun, ability casts | No | Explicitly non-civilian; the tell is the point. |
 

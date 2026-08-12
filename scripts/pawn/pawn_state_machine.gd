@@ -29,7 +29,6 @@ const REGISTERED: Array[GDScript] = [
 	preload("res://scripts/pawn/states/idle_state.gd"),
 	preload("res://scripts/pawn/states/blend_walk_state.gd"),
 	preload("res://scripts/pawn/states/stroll_state.gd"),
-	preload("res://scripts/pawn/states/jog_state.gd"),
 	preload("res://scripts/pawn/states/run_state.gd"),
 	preload("res://scripts/pawn/states/sprint_state.gd"),
 	preload("res://scripts/pawn/states/vault_state.gd"),

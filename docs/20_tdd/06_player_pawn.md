@@ -11,7 +11,7 @@ depends_on: [TDD-01-ARCHITECTURE, TDD-03-TICK, TDD-04-NET, GDD-02-PLAYER, ADR-00
 # TDD Chapter 6 — Player Pawn
 
 > **Context restated.** Project Sottovoce is a 4–6 player social-stealth game. The pawn moves on
-> a speed ladder — blend-walk 1.4, stroll 2.2, jog 3.4, run 4.5, sprint 6.2 m/s — where anything
+> a speed ladder — blend-walk 1.4, stroll 2.2, run 4.5, sprint 6.2 m/s — where anything
 > above stroll accrues **suspicion**, and the decay cliff sits exactly at stroll. Traversal is
 > *assisted, not simulated*: one contextual input resolves to vault, mantle, climb, drop or gap
 > jump, with ~0.45 s of combined forgiveness, because the player's attention belongs on the
@@ -531,7 +531,7 @@ func PawnContext.apply_authoritative(state: PredictedState) -> void
 | `test_pawn_input_buffer.gd` | The action buffer arms, decays, expires and is consumed exactly once — at the **step** rate |
 | `test_step_counters_use_step_ticks.gd` | Nothing under `scripts/pawn/` compares a 60 Hz counter against the 30 Hz conversion |
 | `test_client_boot_walks.gd` | **A key press moves the pawn**, through the real scene and the real bindings |
-| `test_input_sampled_once.gd` | One command per physics frame, and `TUN-SPEED-SPRINT-HOLD` opens on the tick it specifies — it read **13 of 24** while input was sampled twice |
+| `test_input_sampled_once.gd` | One command per physics frame, and `TUN-SPEED-RUN-RESOLVE` closes on the tick it specifies. It measured the deprecated `TUN-SPEED-SPRINT-HOLD` when it was written, and read **13 of 24** while input was sampled twice |
 | `test_input_sampled_by_one_caller.gd` | `sample()` has exactly one caller and `InputSampler` declares no `_physics_process` |
 | `test_probes_mask_world_only.gd` | Probe masks exclude `PAWN` and `NPC` layers |
 | `test_probe_layout.gd` | Origins, reach, facing and the gap march are the tunables |

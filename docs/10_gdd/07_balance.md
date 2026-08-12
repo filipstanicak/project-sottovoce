@@ -122,7 +122,7 @@ account** and is therefore fixed by definition rather than tuned.
 |---|---|---|---|---|
 | **Contract Fulfilled** `SCORE-CONTRACT` | 100 | 1.0 | Any valid kill on your contract | The unit. Everything else is priced against it. |
 | **Silent** `SCORE-SILENT` | +100 | 1.0 | Suspicion ≤ 29 (Anonymous) at initiation | **Doubles the kill.** Priced at exactly one base kill because it is the difference between playing the game and not playing it — it is achieved by simply never sprinting. It is the *floor* of competence, so it is worth exactly one unit. |
-| **Patient** `SCORE-PATIENT` | +150 | 1.5 | Never exceeded `TUN-SPEED-JOG` in the 10 s before initiation | Higher than Silent because Silent is a *state at one instant* while Patient is *sustained discipline over 10 seconds*. Sustained conditions are harder to hold and easier to lose accidentally, so they price higher. This is the thesis bonus. |
+| **Patient** `SCORE-PATIENT` | +150 | 1.5 | Never exceeded `TUN-SCORE-PATIENT-SPEED` in the 10 s before initiation | Higher than Silent because Silent is a *state at one instant* while Patient is *sustained discipline over 10 seconds*. Sustained conditions are harder to hold and easier to lose accidentally, so they price higher. This is the thesis bonus. |
 | **Masked** `SCORE-MASKED` | +150 | 1.5 | `ABIL-SECONDFACE` active at initiation | Set **equal to Patient** deliberately: disguise is a different route to the same virtue (being unreadable), and equal pricing says the game does not prefer one route. |
 | **Focus** `SCORE-FOCUS` | +100 | 1.0 | Unbroken LOS on the contract for `TUN-SCORE-FOCUS-WINDOW` 6 s | Pays for the hardest *perceptual* skill in the game — tracking one person in a moving crowd. Priced at 1.0 rather than 1.5 because it is a single skill rather than sustained restraint, and because it is partially subsumed by the approach a patient player makes anyway. |
 | **From Above** `SCORE-FROMABOVE` | +100 | 1.0 | Initiated from ≥ `TUN-SCORE-FROMABOVE-HEIGHT` 3 m above the target | **Derived from the roof's cost.** A roof approach forfeits Silent (−100) and usually Patient (−150) because of `TUN-SUSPICION-GAIN-ROOF` +18/s. +100 does *not* make the roof break even — it reduces the penalty from −250 to −150. That is intentional: the roof route should be a deliberate ~150-point investment in speed and position, not a free alternative. |
@@ -238,7 +238,7 @@ The 96 s decomposes plausibly for a patient player:
 
 | | **Patient (P)** | **Opportunist (O)** | **Aggressor (A)** |
 |---|---|---|---|
-| Behaviour | Never exceeds jog. Blends pre-emptively. Waits for the target to come to them. | Strolls to acquire, commits hard inside 10 m, uses Lunge. | Sprints on the bearing. Uses roofs. Forces engagements. |
+| Behaviour | Never exceeds `TUN-SCORE-PATIENT-SPEED`. Blends pre-emptively. Waits for the target to come to them. | Strolls to acquire, commits hard inside 10 m, uses Lunge. | Sprints on the bearing. Uses roofs. Forces engagements. |
 | Own hunt duration **T** | 96 s | 70 s | 86 s (fast attempts, high failure rate) |
 | Pursuer's hunt on them **T′** | 96 s | 78 s | 55 s (Exposed often — easy to find) |
 | Kills / match | 4.6 | 5.6 | 5.0 |

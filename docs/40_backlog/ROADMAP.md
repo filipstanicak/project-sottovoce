@@ -43,7 +43,7 @@ gantt
 | Milestone | Exit criterion — must be **demonstrable**, not believed | Stories | Risk first measurable |
 |---|---|---|---|
 | **M0** Foundation | Project scaffolded, CI green, event bus + tuning resources in place, greybox map loads | US-0001–0012 | — |
-| **M1** Pawn | One player can walk / blend / jog / sprint / climb / vault with camera and full state machine, locally | US-0013–0024 | — |
+| **M1** Pawn | One player can walk / blend / run / sprint / climb / vault with camera and full state machine, locally | US-0013–0024 | — |
 | **M2** Net | 3 clients + headless server, replicated movement, prediction & interpolation, join/leave stable | US-0025–0038 | `RISK-NETCODE`, `RISK-BANDWIDTH` |
 | **M3** Crowd | 80 NPCs with clones, blend groups, startle/gawk, ≤ 2 ms/frame | US-0039–0048 | `RISK-CROWD-PERF`, `RISK-ANONYMITY-LEAK`, `RISK-ANIM-SCOPE` |
 | **M4** The Loop | Contracts, compass, suspicion, kill, stun, respawn — **the game is playable end-to-end** | US-0049–0063 | `RISK-NOT-FUN-SOLO` |
@@ -104,7 +104,7 @@ and exports** — and does nothing else.
 
 ## 3. M1 — Pawn
 
-**Exit:** one player can walk / blend / jog / sprint / climb / vault with camera and the full
+**Exit:** one player can walk / blend / run / sprint / climb / vault with camera and the full
 state machine, locally.
 
 | Delivers | Status 2026-08-11 |

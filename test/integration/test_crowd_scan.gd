@@ -109,7 +109,7 @@ func test_scanning_caps_the_pace_without_changing_the_rung() -> void:
 	assert_lte(
 		Vector3(_driver.ctx.velocity.x, 0.0, _driver.ctx.velocity.z).length(),
 		Tuning.movement.blend_walk + 0.05,
-		"a scanning jogger outran the cap"
+		"a scanning runner outran the cap"
 	)
 
 

@@ -200,7 +200,7 @@ rigs, minimum**.
 
 **Mitigations.** The parity boundary is precise and *bounded* — parity is required only for
 animations reachable while Anonymous, which is exactly the suspicion cliff at stroll speed.
-Everything above it (jog, sprint, climb, combat) needs no clone equivalent. Four personas, not
+Everything above it (run, sprint, climb, combat) needs no clone equivalent. Four personas, not
 six. Greybox primitives are sufficient to playtest the entire anonymity system.
 
 **Response.** Reduce idle variations from four to two (halves the most expensive part of the

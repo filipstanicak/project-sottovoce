@@ -116,7 +116,7 @@ NET-S2C-SNAPSHOT — per client, per tick
 ├── own_gameplay                    NEVER predicted
 │   ├── suspicion          u8       0..100
 │   ├── tier               u2
-│   ├── active_sources     u8       SPRINT ROOF CLIMB OPEN JOG RUN — drives the HUD source list
+│   ├── active_sources     u8       SPRINT ROOF CLIMB OPEN RUN — drives the HUD source list
 │   ├── cooldown_a_tick    u16
 │   ├── cooldown_b_tick    u16
 │   ├── blend_state        u4

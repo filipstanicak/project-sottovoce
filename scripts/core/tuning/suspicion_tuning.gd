@@ -41,11 +41,6 @@ extends Resource
 ## TUN-SUSPICION-GAIN-RUN
 @export_range(10.0, 18.0, 0.1) var gain_run: float = 14.0
 
-## Noticed in 7.5 s. Deliberately cheap: SCORE-PATIENT permits jog, so a patient player must be
-## able to jog meaningfully without becoming visible. (ASM-0007)
-## TUN-SUSPICION-GAIN-JOG
-@export_range(2.0, 7.0, 0.1) var gain_jog: float = 4.0
-
 ## World height at or above which a pawn counts as being on the rooftop stratum, and so pays TUN-
 ## SUSPICION-GAIN-ROOF. Sits between MAP-VETRAIO's balcony (3.5 m) and roof (8.5 m) strata, so a
 ## balcony is free and a roof is not. Absolute, and that only works while the street stratum is

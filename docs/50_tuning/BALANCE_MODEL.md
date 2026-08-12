@@ -193,7 +193,7 @@ Every bonus is priced as a multiple of `TUN-SCORE-CONTRACT` = 100, the unit of a
 | Bonus | Patient | Opportunist | Aggressor | Reasoning |
 |---|---|---|---|---|
 | Silent | 0.92 | 0.55 | 0.08 | Patient players are Anonymous at initiation almost always; Aggressors almost never. |
-| Patient | 0.85 | 0.35 | 0.05 | Requires no jog-plus for 10 s. |
+| Patient | 0.85 | 0.35 | 0.05 | Requires staying under `TUN-SCORE-PATIENT-SPEED` for 10 s. |
 | Focus | 0.45 | 0.30 | 0.20 | 6 s unbroken LOS is hard in a crowd for everyone. |
 | Blended | 0.35 | 0.10 | 0.03 | Requires pre-positioning. |
 | From Above | 0.05 | 0.15 | 0.20 | Aggressors use roofs. |

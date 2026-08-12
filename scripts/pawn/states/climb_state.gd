@@ -43,8 +43,12 @@ func suspicion_rate(_ctx: PawnContext) -> float:
 	return Tuning.suspicion.gain_climb
 
 
+## GDD-02 §2.1 frames a climb at 62°, between stroll and run. It borrowed the
+## Jog rung's 65° until that rung was deprecated; `TUN-CAM-FOV-CLIMB` promotes
+## the documented number to an ID of its own rather than reaching for whichever
+## neighbouring rung is closest.
 func camera_fov(_ctx: PawnContext) -> float:
-	return Tuning.camera.fov_jog
+	return Tuning.camera.fov_climb
 
 
 func enter(ctx: PawnContext) -> void:

@@ -14,9 +14,8 @@ extends GutTest
 
 const CLIENT_ROOT := "res://scenes/client_root.tscn"
 
-## Long enough for the slowest rung to be reached — Sprint needs
-## `TUN-SPEED-RUN-HOLD` then `TUN-SPEED-SPRINT-HOLD`, 0.75 s of held keys — plus
-## the lens's own 0.19 s sweep, with margin.
+## Long enough for the slowest rung to be reached — Run needs
+## `TUN-SPEED-RUN-RESOLVE` — plus the lens's own 0.19 s sweep, with margin.
 const FRAMES := 90
 
 var _root: Node
@@ -53,6 +52,19 @@ func _hold(actions: Array[StringName], frames: int = FRAMES) -> void:
 		await get_tree().process_frame
 
 
+## Tap `action`, release, press again inside `TUN-SPEED-RUN-RESOLVE`, and hold.
+## Frame-counted rather than timed, because the gate counts ticks.
+func _double_tap(action: StringName) -> void:
+	# Two frames a phase, not one: the sampler runs inside a `_physics_process`
+	# and a press released on the very next frame boundary can be sampled once or
+	# not at all, depending on node order.
+	Input.action_press(action)
+	await _hold([], 2)
+	Input.action_release(action)
+	await _hold([], 2)
+	await _hold([action])
+
+
 # ------------------------------------------------------ the five steady rungs --
 
 
@@ -74,13 +86,7 @@ func test_strolling_holds_the_default() -> void:
 	assert_almost_eq(_rig.fov, Tuning.camera.fov_stroll, 1.0)
 
 
-func test_jogging_widens_it() -> void:
-	await _hold([&"input_move_forward", &"input_run"], 20)
-	assert_eq(_driver.ctx.state_id, PawnStateId.JOG, "run+forward did not jog")
-	assert_almost_eq(_rig.fov, Tuning.camera.fov_jog, 1.0)
-
-
-func test_running_widens_it_further() -> void:
+func test_running_widens_it() -> void:
 	await _hold([&"input_move_forward", &"input_run"])
 	assert_eq(_driver.ctx.state_id, PawnStateId.RUN, "a held run never escalated")
 	assert_almost_eq(_rig.fov, Tuning.camera.fov_run, 1.0)
@@ -88,9 +94,11 @@ func test_running_widens_it_further() -> void:
 
 func test_sprinting_is_the_widest() -> void:
 	# The loudest thing a player can do, and the lens says so before the tier
-	# indicator does. Reached by the sustained hold rather than the double-tap —
-	# `SprintGate` covers both, and a hold is what a test can express honestly.
-	await _hold([&"input_move_forward", &"input_run", &"input_sprint"])
+	# indicator does. **Reached by a double-tap, because that is now the only
+	# route** — a sustained hold means Run and keeps meaning Run, which is the
+	# whole point of `TUN-SPEED-RUN-RESOLVE`.
+	Input.action_press(&"input_move_forward")
+	await _double_tap(&"input_run")
 	assert_eq(_driver.ctx.state_id, PawnStateId.SPRINT, "a held sprint never opened the gate")
 	assert_almost_eq(_rig.fov, Tuning.camera.fov_sprint, 1.0)
 
@@ -102,7 +110,8 @@ func test_the_lens_returns_when_the_player_slows_down() -> void:
 	# **THE WARNING HAS TO BE REVERSIBLE**, or it is a punishment rather than a
 	# channel. Sprint, then release everything and let go: the lens must come
 	# back, and come back to the civilian rung rather than to wherever it was.
-	await _hold([&"input_move_forward", &"input_run", &"input_sprint"])
+	Input.action_press(&"input_move_forward")
+	await _double_tap(&"input_run")
 	var wide := _rig.fov
 	_release_everything()
 	await _hold([], 40)
@@ -122,7 +131,8 @@ func test_motion_reduction_holds_one_lens_at_every_speed() -> void:
 	# channel for a persistent speed indicator on the HUD — is US-0084's to
 	# complete; what US-0022 owes is that the lock actually locks.
 	_rig.motion_reduction = true
-	await _hold([&"input_move_forward", &"input_run", &"input_sprint"])
+	Input.action_press(&"input_move_forward")
+	await _double_tap(&"input_run")
 	assert_eq(_driver.ctx.state_id, PawnStateId.SPRINT, "the pawn did not reach the widest rung")
 	assert_almost_eq(
 		_rig.fov, Tuning.camera.fov_motion_reduced, 1.0, "motion reduction did not hold the lens"

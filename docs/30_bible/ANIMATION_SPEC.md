@@ -36,7 +36,7 @@ The boundary is precise, and it is **not** "clones must do everything players do
 | Stroll | **Yes, identical** | The travel speed |
 | Turn in place | **Yes, identical** | Happens constantly while scanning |
 | All four blend-action idles | **Yes, identical** | These *are* clone behaviours; the player is imitating them |
-| Jog, run, sprint | No | Already Noticed — anonymity is spent |
+| Run, sprint | No | Already Noticed — anonymity is spent |
 | Climb, vault, mantle, drop | No | Same |
 | Kill, stun, ability casts | No | Explicitly non-civilian; the tell is the point |
 | Death, respawn | No | |
@@ -123,7 +123,6 @@ Beyond the parity set. These are player-only and need no clone equivalent.
 
 | Clip | Duration | Loop | State | Root motion |
 |---|---|---|---|---|
-| `ANIM-JOG-LOOP` | 0.62 s | ✅ | Jog | ❌ |
 | `ANIM-RUN-LOOP` | 0.54 s | ✅ | Run | ❌ |
 | `ANIM-SPRINT-LOOP` | 0.44 s | ✅ | Sprint | ❌ |
 | `ANIM-BACKPEDAL-LOOP` | 0.95 s | ✅ | any, moving backward | ❌ |
@@ -177,7 +176,7 @@ player is visually committed but mechanically free — which reads as the game b
 
 | Category | Root motion | Reason |
 |---|---|---|
-| Locomotion (walk, stroll, jog, run, sprint) | **❌ Never** | Speed comes from `MovementTuning`, and prediction replays that integration. Root motion would make the *animation* authoritative over position, which would diverge between server and client |
+| Locomotion (walk, stroll, run, sprint) | **❌ Never** | Speed comes from `MovementTuning`, and prediction replays that integration. Root motion would make the *animation* authoritative over position, which would diverge between server and client |
 | Traversal (vault, mantle, climb mount/top, ledge grab) | **✅ Yes, for placement** | These are fixed-displacement manoeuvres against static geometry. Root motion gives exact foot and hand placement *within* a displacement the simulation decides — see §4.2 |
 | Combat (kill, stun, abilities) | **❌ Never** | The killer must remain exactly where the server says. A kill animation that moved the killer would need lag-compensated reconciliation of the animation itself |
 | Death | ❌ | Corpse position is server-authoritative |
@@ -228,8 +227,7 @@ stateDiagram-v2
         [*] --> IdleSet
         IdleSet --> BlendWalk: speed > 0.1
         BlendWalk --> Stroll: speed > 1.7
-        Stroll --> Jog: speed > 2.8
-        Jog --> Run: speed > 4.0
+        Stroll --> Run: speed > 2.8
         Run --> Sprint: speed > 5.4
         Sprint --> Run: speed < 5.4
         BlendWalk --> IdleSet: speed < 0.1
@@ -366,7 +364,20 @@ not be rough** — it is the one animation property with no acceptable MVP-quali
 
 ---
 
-## 10. Open questions
+## 10. Retired clips
+
+Retired IDs are kept and never reused ([`NAMING_AND_IDS.md`](NAMING_AND_IDS.md) §2.3).
+
+### ANIM-JOG-LOOP — DEPRECATED 2026-08-12, no successor
+
+0.62 s, mirrored, no root motion. It animated the `Jog` speed rung, which US-0090 removed from
+the ladder: `INPUT-RUN` resolves to Run now and there is nothing between stroll and run to
+animate. No clip was ever authored, so nothing was thrown away — but the ID was merged, and a
+merged ID outlives the thing it named.
+
+---
+
+## 11. Open questions
 
 | # | Question | Position | Needed by |
 |---|---|---|---|

@@ -62,14 +62,6 @@ var run: bool:
 	set(value):
 		buttons = InputBits.with(buttons, InputBits.RUN, value)
 
-## `INPUT-RUN` at full pull. Only this escalates Jog -> Run; a half-pulled
-## trigger holds the pad at jog, which is GDD-02 §1.3's analogue advantage.
-var run_full: bool:
-	get:
-		return InputBits.is_set(buttons, InputBits.RUN_FULL)
-	set(value):
-		buttons = InputBits.with(buttons, InputBits.RUN_FULL, value)
-
 var sprint: bool:
 	get:
 		return InputBits.is_set(buttons, InputBits.SPRINT)

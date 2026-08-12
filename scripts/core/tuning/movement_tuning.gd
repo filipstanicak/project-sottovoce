@@ -16,13 +16,10 @@ extends Resource
 ## TUN-SPEED-STROLL
 @export_range(1.8, 2.6, 0.1) var stroll: float = 2.2
 
-## The first speed that costs anonymity. Priced so a short jog is a real option, not a mistake —
-## a player must be able to reposition under mild pressure without falling out of SCORE-PATIENT.
-## TUN-SPEED-JOG
-@export_range(3.0, 3.8, 0.1) var jog: float = 3.4
-
-## The commitment speed. 32 % faster than jog, and 3.5× the suspicion cost — the ratio is
-## deliberately unfavourable so that running is a decision, not a default.
+## The commitment speed, and the first that costs anonymity — the ladder has no rung between it
+## and Stroll. Twice TUN-SPEED-STROLL for 14/s where stroll pays nothing, a ratio deliberately
+## unfavourable so that running is a decision, not a default. The old Jog rung sat at 3.4 and is
+## deprecated; a player who needs to reposition cheaply now does it at stroll, which is free.
 ## TUN-SPEED-RUN
 @export_range(4.0, 5.0, 0.1) var run: float = 4.5
 
@@ -50,23 +47,15 @@ extends Resource
 ## TUN-SPEED-TURN-RATE-GROUND
 @export_range(360.0, 720.0, 0.1) var turn_rate_ground: float = 540.0
 
-## How long INPUT-RUN must be held before Jog escalates to Run. Promoted from prose in
-## 02_player_controller.md §2.2; the escalation is a gameplay timing and belongs here like every
-## other.
-## TUN-SPEED-RUN-HOLD
-@export_range(0.2, 0.6, 0.01) var run_hold: float = 0.35
-
-## Sustained-hold threshold for INPUT-SPRINT, the alternative to a double-tap. Deliberately
-## awkward (§1.5): sprinting must be a decision, not a lean on the stick. Promoted from prose.
-## TUN-SPEED-SPRINT-HOLD
-@export_range(0.3, 0.6, 0.1) var sprint_hold: float = 0.4
-
-## Maximum gap between the two INPUT-SPRINT presses of a double-tap. The other half of §1.5's
-## deliberate friction, and the half that had no number: the GDD says "double-tap" and never said
-## how fast. Short enough that a nervous re-press does not sprint you; long enough to be
-## reachable under pressure.
-## TUN-SPEED-SPRINT-DOUBLETAP
-@export_range(0.15, 0.4, 0.01) var sprint_doubletap: float = 0.25
+## The window in which INPUT-RUN means neither Run nor Sprint yet. A second press inside it is a
+## double-tap and opens Sprint; still held when it expires means Run. One window, not two. With a
+## separate double-tap window the pawn reaches Run first and escalates out of it a moment later,
+## which is the "it runs a little bit before it sprints" this replaced — so this single number is
+## both the delay before Run and the gap a double-tap must beat. Shorter is a snappier Run and a
+## tighter double-tap, and that trade is the whole tunable. Replaces TUN-SPEED-RUN-HOLD, TUN-
+## SPEED-SPRINT-HOLD and TUN-SPEED-SPRINT-DOUBLETAP.
+## TUN-SPEED-RUN-RESOLVE
+@export_range(0.08, 0.35, 0.01) var run_resolve: float = 0.15
 
 ## Below this, the left stick reads as no input at all. Not cosmetic: wants_movement() decides →
 ## Idle, so a drifting stick would hold a pawn out of the one state where suspicion decays
@@ -80,9 +69,10 @@ extends Resource
 ## TUN-SPEED-STICK-BLENDWALK-MAX
 @export_range(0.2, 0.45, 0.01) var stick_blendwalk_max: float = 0.3
 
-## Analogue trigger pull above which INPUT-RUN reads as full rather than partial — GDD-02 §1.3's
-## "partial pull = jog, full pull = run". Below it the pad is held at jog, which is the rung a
-## player can afford.
+## Analogue trigger pull at or above which INPUT-RUN reads as held at all. It used to split
+## partial (jog) from full (run); with the Jog rung deprecated there is nothing for a partial
+## pull to mean, so below this the trigger simply does not run. A pad player who wants a cheap
+## speed uses the stick's blend-walk band, which is the analogue advantage §1.3 actually defends.
 ## TUN-SPEED-TRIGGER-RUN
 @export_range(0.5, 0.95, 0.01) var trigger_run: float = 0.75
 
