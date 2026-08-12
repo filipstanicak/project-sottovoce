@@ -236,7 +236,7 @@ three are blocked, each by something real:
 
 **M1's remaining work is not code.** It is one human sitting down with the game.
 
-**ATTEMPTING THE GATE HAS FOUND THREE DEFECTS, ALL FIXED, NONE REACHABLE BY ANY
+**ATTEMPTING THE GATE HAS FOUND FOUR DEFECTS, ALL FIXED, NONE REACHABLE BY ANY
 TEST.** The suites have no window, no display and no input devices, so all three
 lived in exactly the gap a subjective gate exists to cover:
 
@@ -255,6 +255,16 @@ lived in exactly the gap a subjective gate exists to cover:
   helped: a deadzone rejects drift, and this was full scale from a device working
   perfectly. Measured before and after with the pedals attached — 11 m of drift
   in six seconds, then zero.
+- **A AND D WERE SWAPPED, AND MOVEMENT NEVER FOLLOWED THE CAMERA AT ALL.**
+  `LocomotionState` built its world direction as `Vector3(move.x, 0, move.y)`,
+  spending the stick on fixed world axes: W walked north whatever the camera was
+  doing, and A walked west — which at yaw 0, the heading everything spawns at, is
+  the pawn's RIGHT. `move` is an intention in the CAMERA's frame and is now
+  rotated onto `look_yaw`. It survived nine stories because the code agreed with
+  itself — `ProbeLayout.forward` cited `InputCommand.move` as the reason yaw 0
+  faces +Z — and because every test asked whether the pawn moved, never whether
+  it moved where the camera pointed. **An assertion written as a world axis is
+  true of both frames**, which is trap 4 in its purest form.
 
 **The gate is genuinely runnable now.** One command, no server — `boot.gd` loads
 `client_root.tscn` with or without `--connect`, so the "client, menu" log line
@@ -296,7 +306,7 @@ US-0024 measures it against clips that do not exist.
 | | |
 |---|---|
 | CI | 7 jobs. **Running again as of 2026-08-07 after a two-day outage** — run `31200490320`, all seven green. The seven commits merged during the outage were never through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | 103 architecture guards + 376 unit + 90 integration, all three counted in CI |
+| Tests | 103 architecture guards + 386 unit + 93 integration, all three counted in CI |
 | Tuning | 282 tunables across 14 resource classes; all 22 cross-field invariants assert |
 | Autoloads | All eight. `Tuning` precomputes 89 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |

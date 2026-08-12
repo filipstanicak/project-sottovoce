@@ -132,6 +132,20 @@ response. Sprint is for *planned* speed; Lunge is for *unplanned* speed.
 
 ## 2. Speed states and transition rules
 
+#### The frame the stick is read in
+
+**MOVEMENT IS CAMERA-RELATIVE, AND THE PAWN FACES THE CAMERA.** `InputCommand.move` is an
+intention — forward, back, left, right *as the player sees it* — and the world direction is that
+intention rotated onto the look yaw. The body's facing is the camera's every tick, so the pawn
+**strafes** rather than turning to face its own travel; `TUN-SPEED-BACKPEDAL-MULT` exists because
+of that, and is what prices walking backwards.
+
+Read as a world vector instead — which is how it shipped from US-0015 until the owner played it —
+W walks north whatever the camera is doing, and A walks *west*, which at yaw 0 is the pawn's
+right. So A and D were swapped on the heading everything spawns at and simply wrong on every
+other. It survived nine stories because the code agreed with itself and every test asked whether
+the pawn moved, never whether it moved where the camera was pointing.
+
 ### 2.1 The ladder
 
 | State | Speed | Suspicion/s | Camera FOV | Time to **Noticed** (30) from 0 | Suspicion-free? |

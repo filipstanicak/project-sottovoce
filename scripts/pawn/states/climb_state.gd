@@ -84,13 +84,17 @@ static func duration_ticks(ctx: PawnContext) -> int:
 	return maxi(int(round(rise / speed * Tuning.net.client_input_rate)), 1)
 
 
-## Pulling away from the wall. Backwards input, in the pawn's own frame — the
+## Pulling away from the wall. Backwards input, in the stick's own frame — the
 ## same test `LocomotionState` uses to decide a backpedal.
-static func _is_letting_go(ctx: PawnContext, input: InputCommand) -> bool:
+##
+## It compared the stick against `ctx.yaw` until the stick stopped being a world
+## vector; on a wall faced from the south that made "back" mean *north*, so a
+## player climbing east let go by pressing D. `move` is the player's intention
+## now, and back is S at every heading.
+static func _is_letting_go(_ctx: PawnContext, input: InputCommand) -> bool:
 	if not input.wants_movement():
 		return false
-	var facing := Vector2(sin(ctx.yaw), cos(ctx.yaw))
-	return input.move.normalized().dot(facing) < -0.5
+	return input.move.normalized().y < -0.5
 
 
 ## Turn the abandoned climb into a fall back to where the climb began.
