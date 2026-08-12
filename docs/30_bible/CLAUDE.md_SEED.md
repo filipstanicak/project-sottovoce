@@ -172,7 +172,9 @@ godot --headless -- --server --port 27015 --max-players 6
 # Run a client that joins immediately
 godot -- --connect 127.0.0.1:27015
 
-# One-click 3-client local playtest: run tools/local_playtest.gd from the editor
+# What the input layer reports with nobody touching the controls.
+# NEVER --headless: there is no windowing layer there to see a device. Trap 13.
+godot --path . -s res://tools/input_probe.gd
 ```
 
 ---

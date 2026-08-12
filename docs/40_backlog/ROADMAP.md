@@ -151,13 +151,18 @@ state machine, locally.
 > is the mechanical advantage §4.3 exists to refuse. The audio half is blocked on
 > there being any audio at all (US-0075).
 >
-> **THE FIRST ATTEMPT TO RUN THE FEEL GATE FOUND TWO DEFECTS**, both fixed in
-> #48 and neither reachable by any test: the camera's vertical had been inverted
-> since US-0021, and nothing in the project captured the mouse, so the cursor
-> stayed free and the camera stopped turning at the window edge. Three stories of
-> camera work passed a green suite with the vertical the wrong way round. That is
-> the argument for a subjective gate existing at all, and it is worth remembering
-> the next time one looks like a formality.
+> **ATTEMPTING THE FEEL GATE HAS FOUND THREE DEFECTS**, none reachable by any
+> test. The camera's vertical had been inverted since US-0021, and nothing in the
+> project captured the mouse, so the cursor stayed free and the camera stopped
+> turning at the window edge (both #48). Then a pair of sim pedals turned out to
+> be playing the game: Windows presents any HID device with axes as a joypad, the
+> shipped bindings answer every device, and pedals rest their axes at full
+> deflection — so the pawn walked and the camera spun with nobody at the
+> controls. Three stories of camera work passed a green suite with the vertical
+> the wrong way round, and no suite anywhere has a window, a display or an input
+> device to find the other two with. That is the argument for a subjective gate
+> existing at all, and it is worth remembering the next time one looks like a
+> formality.
 >
 > **The feel gate below is judgeable and has not been judged**, and that is now
 > the only thing between M1 and its exit. Three of its four lines need a human at

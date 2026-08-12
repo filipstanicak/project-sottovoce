@@ -139,7 +139,9 @@ godot --headless -- --server --port 27015 --max-players 6
 # Run a client that joins immediately
 godot -- --connect 127.0.0.1:27015
 
-# One-click 3-client local playtest: run tools/local_playtest.gd from the editor
+# What the input layer reports with nobody touching the controls.
+# NEVER --headless: there is no windowing layer there to see a device. Trap 13.
+godot --path . -s res://tools/input_probe.gd
 ```
 
 ---
@@ -234,12 +236,25 @@ three are blocked, each by something real:
 
 **M1's remaining work is not code.** It is one human sitting down with the game.
 
-**THE FIRST ATTEMPT TO RUN THE GATE FOUND TWO DEFECTS, BOTH FIXED (#48).** The
-vertical was inverted from US-0021 — positive pitch raised the arm, and a raised
-arm looking *at* the pivot looks down. And nothing in the project set
-`Input.mouse_mode`, so the cursor stayed free, the camera stopped turning at the
-window edge, and a visible arrow slid over the game. Neither was reachable by any
-test: the suites have no window and inject motion directly.
+**ATTEMPTING THE GATE HAS FOUND THREE DEFECTS, ALL FIXED, NONE REACHABLE BY ANY
+TEST.** The suites have no window, no display and no input devices, so all three
+lived in exactly the gap a subjective gate exists to cover:
+
+- **The vertical was inverted from US-0021** (#48) — positive pitch raised the
+  arm, and a raised arm looking *at* the pivot looks down.
+- **Nothing set `Input.mouse_mode`** (#48), so the cursor stayed free, the camera
+  stopped turning at the window edge, and a visible arrow slid over the game.
+- **A set of sim pedals was playing the game.** Windows presents any HID device
+  with axes as a joypad; `project.godot` binds the sticks with `device: -1`,
+  meaning *every* device; and the pedals rest their axes at −1.0. So
+  `input_move_left`, `input_move_forward` and `input_look_left` all read 1.00
+  forever — the pawn walked forward-left at stroll (2.20 m/s) and the camera
+  turned without stopping. `PadSelection` now restricts every joypad binding to
+  the lowest-numbered device the engine has a **gamepad mapping** for, and to no
+  device at all when there is none. `TUN-SPEED-STICK-DEADZONE` could never have
+  helped: a deadzone rejects drift, and this was full scale from a device working
+  perfectly. Measured before and after with the pedals attached — 11 m of drift
+  in six seconds, then zero.
 
 **The gate is genuinely runnable now.** One command, no server — `boot.gd` loads
 `client_root.tscn` with or without `--connect`, so the "client, menu" log line
@@ -281,7 +296,7 @@ US-0024 measures it against clips that do not exist.
 | | |
 |---|---|
 | CI | 7 jobs. **Running again as of 2026-08-07 after a two-day outage** — run `31200490320`, all seven green. The seven commits merged during the outage were never through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | 100 architecture guards + 361 unit + 90 integration, all three counted in CI |
+| Tests | 103 architecture guards + 376 unit + 90 integration, all three counted in CI |
 | Tuning | 282 tunables across 14 resource classes; all 22 cross-field invariants assert |
 | Autoloads | All eight. `Tuning` precomputes 89 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |
@@ -290,7 +305,7 @@ US-0024 measures it against clips that do not exist.
 | Pawn | 15 states declared, 121 transition edges asserted against the normative diagram. **Twelve implemented**: six locomotion + `Vault`, `Climb`, `Drop`, `KillAnim`, `Stunned`, `Blended`. `Respawning`, `StunAnim` and `Dead` are M4 |
 | Traversal | **Complete.** Probes cast, all seven §7.2 cases resolve from real geometry, both forgiveness windows open, and vault, mantle, climb, drop and gap jump all perform |
 | Camera | Real spring arm: 2.6 m, shoulder swap, occlusion that pulls **in** and never sideways, `WORLD`-masked so a crowd cannot push it. The FOV ladder is bound to the **state**, never to `ctx.velocity`: the rung is a consequence of the decision, not of the physics that follows it. Crowd-scan narrows to 48° and grants nothing. **Positive pitch LOWERS the arm** — the rig looks *at* the pivot, so a raised arm looks down; it shipped inverted from US-0021 until somebody played it |
-| Input | 21 `InputMap` actions from 15 `INPUT-` IDs, KBM + pad. Chain GDD-02 → `Ids` → `InputActions` → `project.godot`, guarded on every hop, both directions. **Sampled once per physics frame by `LocalPawnDriver`, the only caller** — see trap 12. The mouse is **captured** on boot; `INPUT-MENU` releases, a click takes it back |
+| Input | 21 `InputMap` actions from 15 `INPUT-` IDs, KBM + pad. Chain GDD-02 → `Ids` → `InputActions` → `project.godot`, guarded on every hop, both directions. **Sampled once per physics frame by `LocalPawnDriver`, the only caller** — see trap 12. The mouse is **captured** on boot; `INPUT-MENU` releases, a click takes it back. **Only a mapped gamepad holds the joypad bindings** — `PadSelection`, applied through the one `InputMap` writer, because a set of sim pedals was steering |
 
 **Ten criteria are deliberately unticked**, each blocked by something real. A
 prose count of these has now drifted three times, so they are a table — and the
@@ -308,7 +323,7 @@ The navmesh **bake** is likewise owed and recorded in US-0012. **Nothing here is
 forgotten and nothing is half-ticked** — a story marked done over a criterion
 that is not true makes the whole backlog unreadable as a status view.
 
-### Twelve things that will cost you an hour if you do not know them
+### Thirteen things that will cost you an hour if you do not know them
 
 1. **Two things are GENERATED.** `scripts/core/ids.gd`, `scripts/core/tuning/*.gd`
    and `tuning_index.gd` come from `tools/tuning_codegen/run_all.py`; the map
@@ -402,6 +417,17 @@ that is not true makes the whole backlog unreadable as a status view.
     is now declared on the **driver**, beside the only call that produces it —
     if you need a command, listen to that. `test_input_sampled_by_one_caller.gd`
     names the cause; `test_input_sampled_once.gd` measures the consequence.
+13. **`--headless` CANNOT SEE AN INPUT DEVICE, SO A HEADLESS DIAGNOSTIC PROVES
+    NOTHING ABOUT ONE.** There is no windowing layer to poll a pad or deliver
+    mouse motion, so every reading is a zero — and a zero from a probe that
+    cannot see is indistinguishable from a zero from a quiet machine. A tool
+    written to find the spinning camera reported "connected joypads: 0 — a
+    spinning camera is NOT coming from a stick" under `--headless`, on a machine
+    where a pair of sim pedals was holding three actions at full deflection. It
+    was believed for a day. `tools/input_probe.gd` refuses to run headless, and
+    polls for twelve seconds because a pad's **resting axis values arrive about a
+    second after it enumerates** — a single glance at frame zero reads 0.00 even
+    with a window. Trap 3's family: a check that reports clean over nothing.
 
 ### Local environment
 
