@@ -15,7 +15,7 @@ depends_on: [TDD-01-ARCHITECTURE, TDD-03-TICK, TDD-04-NET, GDD-02-PLAYER, ADR-00
 > above stroll accrues **suspicion**, and the decay cliff sits exactly at stroll. Traversal is
 > *assisted, not simulated*: one contextual input resolves to vault, mantle, climb, drop or gap
 > jump, with ~0.45 s of combined forgiveness, because the player's attention belongs on the
-> crowd rather than on their own footwork. The pawn has fifteen states.
+> crowd rather than on their own footwork. The pawn has fourteen states — fifteen until US-0090 retired `Jog`.
 >
 > **The hard constraint:** this code runs **identically on the server and in client
 > prediction**. Any nondeterminism here is a prediction divergence, which surfaces as the game
@@ -83,7 +83,7 @@ would resolve differently on the two machines and produce a different traversal
 
 ### 2.1 Pattern: state objects, not `enum` + `match`
 
-Per ADR-0008. Fifteen states, each with its own movement integration, camera FOV target,
+Per ADR-0008. Fourteen states since US-0090 retired `Jog`, each with its own movement integration, camera FOV target,
 suspicion contribution, animation and legal transitions. An `enum`-and-`match` implementation
 would be ~700 lines in one file with one 400-line function — a direct violation of the 400-line
 file and 40-line function limits, and the classic shape of an unmaintainable controller.

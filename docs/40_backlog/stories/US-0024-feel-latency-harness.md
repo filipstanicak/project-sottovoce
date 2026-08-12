@@ -4,7 +4,7 @@ title: Feel latency measurement harness
 version: 1.0.0
 status: in-progress
 owner: Technical Director
-last_updated: 2026-08-11
+last_updated: 2026-08-12
 depends_on: [GDD-02-PLAYER, BIBLE-TEST-PLAN]
 ---
 
@@ -164,8 +164,15 @@ godot --path . -s res://tools/input_probe.gd
 the camera's frame, so W walked north whatever the camera was doing and A walked toward the
 pawn's right. Fixed; the stick is an intention rotated onto the look yaw now.
 
-Four defects, all found by one person sitting down with the game, none reachable by any test.
-That is the whole case for a subjective gate, and it is now made four times over.
+**AND THERE IS SOMETHING TO LOOK AT NOW.** US-0091 gave the pawn a greybox body and the scene a
+key light — before that the camera framed an empty space in a near-black district, which is worth
+knowing if you tried this checklist earlier and could not tell what you were judging. US-0092
+centred the pawn: the shoulder offset never changed the framing, so your own body sits on the
+centre line and hides what is directly ahead at close range. **That is a deliberate cost** and
+judging whether it is acceptable belongs on this page too.
+
+Six defects, all found by one person looking at the game, none reachable by any test. That is the
+whole case for a subjective gate, and it is now made six times over.
 
 A readout appears top-left in any debug build (`scripts/debug/feel_readout.gd`, attached at
 runtime by `LocalPawnDriver` — never by a scene, because the release presets strip that folder):

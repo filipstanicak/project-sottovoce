@@ -107,19 +107,26 @@ and exports** — and does nothing else.
 **Exit:** one player can walk / blend / run / sprint / climb / vault with camera and the full
 state machine, locally.
 
-| Delivers | Status 2026-08-11 |
+| Delivers | Status 2026-08-12 |
 |---|---|
-| All 15 `PawnState` classes + centralised transition table | ADR-0008. **Partial by design** — 15 declared and all 121 edges asserted, but `Respawning`, `StunAnim` and `Dead` belong to `SYS-SPAWN` and `SYS-COMBAT` and are M4. Twelve implemented |
-| The speed ladder, wired to `MovementTuning` | Done, US-0015 |
+| All `PawnState` classes + centralised transition table | ADR-0008. **Partial by design, and one rung shorter** — 14 declared since US-0090 retired `Jog`, every edge asserted against the §3 diagram, but `Respawning`, `StunAnim` and `Dead` belong to `SYS-SPAWN` and `SYS-COMBAT` and are M4. Eleven implemented |
+| The speed ladder, wired to `MovementTuning` | Done, US-0015. **Four rungs since US-0090** — blend-walk, stroll, run, sprint. `INPUT-RUN` held past `TUN-SPEED-RUN-RESOLVE` is Run; a double-tap is Sprint; a sustained hold no longer sprints |
 | Input map, `InputCommand`, dual input buffering | Done, US-0016 |
 | Traversal probes + the 7-case resolver + forgiveness windows | Done, US-0017–0020 |
-| Camera rig: spring arm, FOV ladder, occlusion, crowd-scan | Done, US-0021–0023 — but it shipped with the **vertical inverted** through all three, fixed in #48 only when somebody played it. Crowd-scan's audio duck is still **not** done: `Audio` is a stub until US-0075 |
+| Camera rig: spring arm, FOV ladder, occlusion, crowd-scan | Done, US-0021–0023 — but it shipped with the **vertical inverted** through all three (#48) and framing **nothing at all**, because the pawn did not render until US-0091. The shoulder offset was retired in US-0092. Crowd-scan's audio duck is still **not** done: `Audio` is a stub until US-0075 |
 | `test_feel_latency.gd` measuring input→animation | **Built, and it cannot reach the animation.** US-0024 measures three of five stages; `ANIMATE` has no clip and `PRESENT` no display. A tripwire fails the day a clip lands |
+| A body on screen, and light on it | Done, US-0091. **Neither existed before 2026-08-12** — `PersonaVisuals` was empty and the project had no light or environment at all |
 
-> **Status 2026-08-11 — 11 of 12, and the twelfth is not code.** US-0013 to
+> **Status 2026-08-12 — 11 of 12, and the twelfth is not code.** US-0013 to
 > US-0023 are done and US-0024 is `in-progress` with everything buildable built.
-> Fifteen states declared, twelve implemented, 121 edges asserted against the §3
+> Fourteen states declared, eleven implemented, every edge asserted against the §3
 > diagram in both directions.
+>
+> **Three further M1 stories were added and finished on 2026-08-12**, all from the
+> owner playing the game: US-0090 (the ladder loses its Jog rung and `INPUT-RUN`
+> resolves into Run or Sprint — **judged good at the controls**), US-0091 (a
+> greybox body and a light), US-0092 (the pawn is centred). None of them changes
+> what blocks the gate.
 >
 > **The pawn walks and traverses.** A key press reaches the speed ladder through
 > the real input map; the probes see the district; all seven §7.2 cases resolve
@@ -152,7 +159,7 @@ state machine, locally.
 > is the mechanical advantage §4.3 exists to refuse. The audio half is blocked on
 > there being any audio at all (US-0075).
 >
-> **ATTEMPTING THE FEEL GATE HAS FOUND FOUR DEFECTS**, none reachable by any
+> **PLAYING THE GAME HAS FOUND SIX DEFECTS**, none reachable by any
 > test. The camera's vertical had been inverted since US-0021, and nothing in the
 > project captured the mouse, so the cursor stayed free and the camera stopped
 > turning at the window edge (both #48). Then a pair of sim pedals turned out to
@@ -165,9 +172,20 @@ state machine, locally.
 > fixed world axes rather than in the camera's frame, so A and D were swapped at
 > the spawn heading and travel never followed the camera at all — through nine
 > stories, behind tests that asked whether the pawn moved and never whether it
-> moved where the player was looking. That is the argument for a subjective gate
-> existing at all, and it is worth remembering the next time one looks like a
-> formality.
+> moved where the player was looking.
+>
+> The last two came from a different direction — the owner asking to *see* the
+> character. **The pawn had never rendered and nothing had ever been lit**, so the
+> spring arm, the FOV ladder and crowd-scan were all built around an invisible
+> capsule with every suite green. And once there was a body, one screenshot showed
+> that `TUN-CAM-SHOULDER-OFFSET` had never changed the framing at all: the rig
+> aimed at the pawn's own axis, so the pawn re-centred however far the camera
+> slid.
+>
+> That is the argument for a subjective gate existing at all, and it is worth
+> remembering the next time one looks like a formality. **Six defects, no test
+> could reach any of them, and every one was found by a person looking at the
+> game.**
 >
 > **The feel gate below is judgeable and has not been judged**, and that is now
 > the only thing between M1 and its exit. Three of its four lines need a human at
