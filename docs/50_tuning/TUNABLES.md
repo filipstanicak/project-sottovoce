@@ -84,19 +84,16 @@ and kicking makes that diagnosis harder.
 |---|---|---|---|---|
 | `TUN-SPEED-BLENDWALK` | 1.4 | m/s | 1.2–1.6 | Must equal `TUN-CROWD-NPC-SPEED-STROLL` exactly. If a player at blend-walk moves at a different speed from the NPCs around them, they are readable from motion alone and anonymity is dead. |
 | `TUN-SPEED-STROLL` | 2.2 | m/s | 1.8–2.6 | The "purposeful civilian" speed. Fast enough that crossing the map is not tedious (120 m ≈ 55 s), slow enough to remain suspicion-free. This is the speed a good player travels at. |
-| `TUN-SPEED-JOG` | 3.4 | m/s | 3.0–3.8 | The first speed that costs anonymity. Priced so a short jog is a real option, not a mistake — a player must be able to reposition under mild pressure without falling out of `SCORE-PATIENT`. |
-| `TUN-SPEED-RUN` | 4.5 | m/s | 4.0–5.0 | The commitment speed. 32 % faster than jog, and 3.5× the suspicion cost — the ratio is deliberately unfavourable so that running is a decision, not a default. |
+| `TUN-SPEED-RUN` | 4.5 | m/s | 4.0–5.0 | The commitment speed, and the first that costs anonymity — the ladder has no rung between it and Stroll. Twice `TUN-SPEED-STROLL` for 14/s where stroll pays nothing, a ratio deliberately unfavourable so that running is a decision, not a default. The old Jog rung sat at 3.4 and is deprecated; a player who needs to reposition cheaply now does it at stroll, which is free. |
 | `TUN-SPEED-SPRINT` | 6.2 | m/s | 5.6–6.8 | 4.4× blend-walk. Fast enough to catch a fleeing target across a plaza, expensive enough (`TUN-SUSPICION-GAIN-SPRINT`) that you reach **Exposed** in 2.8 s. Sprinting is a countdown, not a state. |
 | `TUN-SPEED-CLIMB` | 2.8 | m/s | 2.4–3.2 | Faster than stroll, so the roofs really are a highway. Combined with `TUN-SUSPICION-GAIN-CLIMB` this is the "roofs are fast but cost anonymity" trade the level design exists to exploit. |
 | `TUN-SPEED-ACCEL` | 18.0 | m/s² | 12–26 | Reaches sprint in 0.34 s. High, because input latency must not feel like sluggishness; the *cost* of sprinting is suspicion, not acceleration. |
 | `TUN-SPEED-DECEL` | 24.0 | m/s² | 16–34 | Stopping is faster than starting, so that "stop and blend" is instantly available. This asymmetry is the thesis in the acceleration curve. |
 | `TUN-SPEED-TURN-RATE-GROUND` | 540 | deg/s | 360–720 | Turning is not throttled by speed state — a player must always be able to look. |
-| `TUN-SPEED-RUN-HOLD` | 0.35 | s | 0.2–0.6 | How long `INPUT-RUN` must be held before Jog escalates to Run. Promoted from prose in 02_player_controller.md §2.2; the escalation is a gameplay timing and belongs here like every other. |
-| `TUN-SPEED-SPRINT-HOLD` | 0.4 | s | 0.3–0.6 | Sustained-hold threshold for `INPUT-SPRINT`, the alternative to a double-tap. Deliberately awkward (§1.5): sprinting must be a decision, not a lean on the stick. Promoted from prose. |
-| `TUN-SPEED-SPRINT-DOUBLETAP` | 0.25 | s | 0.15–0.4 | Maximum gap between the two `INPUT-SPRINT` presses of a double-tap. The other half of §1.5's deliberate friction, and the half that had no number: the GDD says "double-tap" and never said how fast. Short enough that a nervous re-press does not sprint you; long enough to be reachable under pressure. |
+| `TUN-SPEED-RUN-RESOLVE` | 0.15 | s | 0.08–0.35 | **The window in which `INPUT-RUN` means neither Run nor Sprint yet.** A second press inside it is a double-tap and opens Sprint; still held when it expires means Run. **One window, not two.** With a separate double-tap window the pawn reaches Run first and escalates out of it a moment later, which is the "it runs a little bit before it sprints" this replaced — so this single number is both the delay before Run and the gap a double-tap must beat. Shorter is a snappier Run and a tighter double-tap, and that trade is the whole tunable. Replaces `TUN-SPEED-RUN-HOLD`, `TUN-SPEED-SPRINT-HOLD` and `TUN-SPEED-SPRINT-DOUBLETAP`. |
 | `TUN-SPEED-STICK-DEADZONE` | 0.15 | × | 0.05–0.25 | Below this, the left stick reads as no input at all. Not cosmetic: `wants_movement()` decides `→ Idle`, so a drifting stick would hold a pawn out of the one state where suspicion decays fastest. |
 | `TUN-SPEED-STICK-BLENDWALK-MAX` | 0.3 | × | 0.2–0.45 | Left-stick magnitude at or below which a gamepad walks at blend-walk without holding the modifier (§1.3). Promoted from prose; it is the pad's half of the most important key in the game. |
-| `TUN-SPEED-TRIGGER-RUN` | 0.75 | × | 0.5–0.95 | Analogue trigger pull above which `INPUT-RUN` reads as *full* rather than partial — GDD-02 §1.3's "partial pull = jog, full pull = run". Below it the pad is held at jog, which is the rung a player can afford. |
+| `TUN-SPEED-TRIGGER-RUN` | 0.75 | × | 0.5–0.95 | Analogue trigger pull at or above which `INPUT-RUN` reads as held at all. It used to split partial (jog) from full (run); with the Jog rung deprecated there is nothing for a partial pull to mean, so below this the trigger simply does not run. A pad player who wants a cheap speed uses the stick's blend-walk band, which is the analogue advantage §1.3 actually defends. |
 | `TUN-SPEED-BACKPEDAL-MULT` | 0.55 | × | 0.4–0.8 | Backing away from a hunter is possible but slow; the correct defensive answer is to blend, not to retreat. |
 
 ### 2.2 Traversal
@@ -154,7 +151,6 @@ Applied per tick while the condition holds. Additive (ASM-0018).
 |---|---|---|---|---|
 | `TUN-SUSPICION-GAIN-SPRINT` | 25.0 | /s | 20–32 | **Noticed** in 1.2 s, **Exposed** in 2.8 s. Sprinting is a 3-second budget, not a movement mode. This is the single most important number in the game. |
 | `TUN-SUSPICION-GAIN-RUN` | 14.0 | /s | 10–18 | **Noticed** in 2.1 s. Run is the "I need to be somewhere" speed: usable for a street's length, not a plaza's. (ASM-0007) |
-| `TUN-SUSPICION-GAIN-JOG` | 4.0 | /s | 2–7 | **Noticed** in 7.5 s. Deliberately cheap: `SCORE-PATIENT` permits jog, so a patient player must be able to jog meaningfully without becoming visible. (ASM-0007) |
 | `TUN-SUSPICION-ROOF-HEIGHT` | 6.0 | m | 4.0–8.0 | World height at or above which a pawn counts as being on the rooftop stratum, and so pays `TUN-SUSPICION-GAIN-ROOF`. Sits between MAP-VETRAIO's balcony (3.5 m) and roof (8.5 m) strata, so a balcony is free and a roof is not. **Absolute, and that only works while the street stratum is flat at y = 0** — a map with varying ground level needs real stratum data in `MapData` instead. |
 | `TUN-SUSPICION-GAIN-ROOF` | 18.0 | /s | 14–24 | Being on the rooftop stratum at all, regardless of speed. **Noticed** in 1.7 s — which is 30/18, the toll *alone*: decay does not run up there, or the same figure would be 3.0 s. A roof is not somewhere you recover slowly, it is somewhere you do not recover. Roofs are fast and empty; a civilian is never up there. This is what stops the roofs from being strictly better. |
 | `TUN-SUSPICION-GAIN-CLIMB` | 12.0 | /s | 8–16 | While actively climbing. Lower than roof-presence because a climb is brief and sometimes necessary; the roof you arrive at is what really costs. |
@@ -472,8 +468,9 @@ events timestamped within the final phase. Derivations are in
 |---|---|---|---|---|---|
 | `TUN-SCORE-CONTRACT` | `SCORE-CONTRACT` | 100 | pts | 100–100 | Any valid kill on your contract. **The unit of account** — every other value is expressed as a multiple of this, so it is fixed by definition, not tuned. |
 | `TUN-SCORE-SILENT` | `SCORE-SILENT` | +100 | pts | 75–150 | Suspicion ≤ 29 (Anonymous) at initiation. Doubles the kill. The floor of good play. |
-| `TUN-SCORE-PATIENT` | `SCORE-PATIENT` | +150 | pts | 100–200 | Never exceeded `TUN-SPEED-JOG` in the 10 s before initiation. The most valuable single bonus, because it is the thesis. |
+| `TUN-SCORE-PATIENT` | `SCORE-PATIENT` | +150 | pts | 100–200 | Never exceeded `TUN-SCORE-PATIENT-SPEED` in the 10 s before initiation. The most valuable single bonus, because it is the thesis. |
 | `TUN-SCORE-PATIENT-WINDOW` | — | 10.0 | s | 8–15 | The lookback window for `SCORE-PATIENT`. Long enough that it cannot be gamed by decelerating at the last moment. |
+| `TUN-SCORE-PATIENT-SPEED` | — | 3.4 | m/s | 2.6–4.4 | The speed `SCORE-PATIENT` requires you never to have exceeded. **This was `TUN-SPEED-JOG` until the ladder lost that rung, and the number is deliberately unchanged** — patience means exactly what it meant before, but it is a scoring threshold now rather than a speed anything travels at. It sits above `TUN-SPEED-STROLL` and below `TUN-SPEED-RUN` (invariant §17.23), which is what makes it a real line: a patient player may drift above their cruising speed while accelerating or being shoved by a crowd, and may not run. |
 | `TUN-SCORE-MASKED` | `SCORE-MASKED` | +150 | pts | 100–200 | `ABIL-SECONDFACE` active at initiation. Equal to Patient: disguise is a *different* route to the same virtue. |
 | `TUN-SCORE-FOCUS` | `SCORE-FOCUS` | +100 | pts | 75–150 | Unbroken line of sight on the contract for the last 6 s. Pays for the hardest thing in the game: standing still and watching one person in a moving crowd. |
 | `TUN-SCORE-FOCUS-WINDOW` | — | 6.0 | s | 4–10 | The required unbroken-LOS duration. |
@@ -525,11 +522,11 @@ the ordered lever list are in [`../10_gdd/07_balance.md`](../10_gdd/07_balance.m
 |---|---|---|---|---|
 | `TUN-CAM-FOV-BLEND` | 55.0 | deg | 50–60 | Narrow FOV at blend-walk. Compresses the scene and makes faces readable at 20 m — you are *looking at people*. |
 | `TUN-CAM-FOV-STROLL` | 60.0 | deg | 55–65 | " |
-| `TUN-CAM-FOV-JOG` | 65.0 | deg | 60–70 | " |
 | `TUN-CAM-FOV-RUN` | 69.0 | deg | 64–74 | " |
+| `TUN-CAM-FOV-CLIMB` | 62.0 | deg | 55–70 | The lens while climbing. Promoted from prose — GDD-02 §2.1's state table has framed a climb at 62° since it was written, without an ID, and `ClimbState` borrowed the deprecated Jog rung's 65° instead. Between stroll and run, because a climb is faster than a stroll and is not a commitment to speed. |
 | `TUN-CAM-FOV-SPRINT` | 72.0 | deg | 68–80 | Wide FOV at sprint. Speed lines and peripheral distortion. The camera itself tells you that you are doing something conspicuous. |
 | `TUN-CAM-FOV-BLEND-RATE` | 90.0 | deg/s | 60–140 | FOV transition speed between states. Fast enough to track a speed change, slow enough not to snap. |
-| `TUN-CAM-FOV-MOTION-REDUCED` | 62.0 | deg | 55–70 | The single FOV motion-reduction mode locks to, replacing the whole ladder. Sits between stroll and jog so no speed is framed unusually — the mode removes a warning channel and must not add a framing bias on top. Promoted from prose — [`../10_gdd/02_player_controller.md`](../10_gdd/02_player_controller.md) §9.4 gives the value without an ID. The compensating speed indicator it trades for is `SYS-UI`'s, in US-0084. |
+| `TUN-CAM-FOV-MOTION-REDUCED` | 62.0 | deg | 55–70 | The single FOV motion-reduction mode locks to, replacing the whole ladder. Sits between stroll and run so no speed is framed unusually — the mode removes a warning channel and must not add a framing bias on top. Promoted from prose — [`../10_gdd/02_player_controller.md`](../10_gdd/02_player_controller.md) §9.4 gives the value without an ID. The compensating speed indicator it trades for is `SYS-UI`'s, in US-0084. |
 | `TUN-CAM-ARM-LENGTH` | 2.6 | m | 2.2–3.2 | Spring-arm length. Far enough to see your own silhouette (you must be able to judge how you look), close enough to keep the crowd legible. |
 | `TUN-CAM-ARM-HEIGHT` | 1.55 | m | 1.4–1.8 | Pivot height — roughly shoulder height on the tallest persona. |
 | `TUN-CAM-SHOULDER-OFFSET` | 0.45 | m | 0.3–0.7 | Lateral offset. |
@@ -628,7 +625,7 @@ Beyond each row's own Range, these cross-field invariants are asserted at load:
 | # | Invariant | Why |
 |---|---|---|
 | 1 | `TUN-SPEED-BLENDWALK == TUN-CROWD-NPC-SPEED-STROLL` | A player at blend-walk must be indistinguishable from an NPC by motion. The single most important invariant in the file. |
-| 2 | `TUN-SPEED-BLENDWALK < STROLL < JOG < RUN < SPRINT` | The ladder must be monotonic. |
+| 2 | `TUN-SPEED-BLENDWALK < STROLL < RUN < SPRINT` | The ladder must be monotonic. Four rungs since the Jog rung was deprecated. |
 | 3 | `TUN-SUSPICION-DECAY-SPEED-CEILING == TUN-SPEED-STROLL` | The decay cliff sits exactly at the top civilian speed. |
 | 4 | `TUN-SUSPICION-TIER-NOTICED < TUN-SUSPICION-TIER-EXPOSED` | — |
 | 5 | `TUN-SUSPICION-HYSTERESIS < TUN-SUSPICION-TIER-NOTICED` | Hysteresis cannot exceed the first tier or a player can never leave it. |
@@ -647,7 +644,8 @@ Beyond each row's own Range, these cross-field invariants are asserted at load:
 | 18 | `TUN-SCORE-BLENDED > TUN-SCORE-PATIENT > TUN-SCORE-SILENT` | The bonus hierarchy encodes the design thesis. If a tuning change inverts it, the tuning change is wrong. |
 | 19 | `TUN-SCORE-STUN == TUN-SCORE-CONTRACT` | Defence pays like offence. |
 | 20 | `sum(TUN-PERF-*-BUDGET for client) <= TUN-PERF-FRAME-BUDGET` | The budget must actually add up. Currently 15.5 / 16.6 ms, leaving 1.1 ms of margin. |
-| 21 | `TUN-CAM-FOV-BLEND < STROLL < JOG < RUN < SPRINT` | The FOV ladder is a warning channel ([`../10_gdd/02_player_controller.md`](../10_gdd/02_player_controller.md) §4.2), and it only warns while it runs the same direction as the speed ladder it mirrors. Inverted, speed would read as calm and slowing down would read as alarm — the thesis, backwards, in the one channel that reaches the player pre-consciously. |
+| 21 | `TUN-CAM-FOV-BLEND < STROLL < RUN < SPRINT` | The FOV ladder is a warning channel ([`../10_gdd/02_player_controller.md`](../10_gdd/02_player_controller.md) §4.2), and it only warns while it runs the same direction as the speed ladder it mirrors. Inverted, speed would read as calm and slowing down would read as alarm — the thesis, backwards, in the one channel that reaches the player pre-consciously. |
+| 23 | `TUN-SPEED-STROLL < TUN-SCORE-PATIENT-SPEED < TUN-SPEED-RUN` | Patience has to be a line you can cross. Below stroll it would be unearnable — a player travelling at their cruising speed would already have lost it — and at or above run it would be unlosable without committing, which is the one thing it is meant to price. |
 | 22 | `TUN-CAM-FOV-BLEND <= TUN-CAM-FOV-MOTION-REDUCED <= TUN-CAM-FOV-SPRINT` | Motion-reduction replaces the ladder with one value. Outside the ladder's own span that value would frame *every* speed unusually, which is a second cost on top of the warning channel the mode already gives up. |
 
 ---
@@ -660,3 +658,54 @@ Beyond each row's own Range, these cross-field invariants are asserted at load:
 | 2 | `TUN-COMPASS-RANGE-MAX` scaling by player count (§16) assumes the map soft-bounds at 4 players. If the soft-bound is cut, this scaling must be cut too. | No | M5 |
 | 3 | `TUN-SCORE-DEATH-PENALTY = 0` is a strong design position. If playtests show players suiciding to reroll a bad contract, a small penalty or a respawn-delay escalation is the first lever. | No | M6 |
 | 4 | Whether `TUN-NET-SNAPSHOT-RATE` can be halved to 15 Hz for distant NPCs. Would buy ~30 % of the bandwidth budget. Untested. | No | M3 |
+
+---
+
+## 19. Deprecated tunables
+
+Retired IDs are kept here forever and **never reused**
+([`../30_bible/NAMING_AND_IDS.md`](../30_bible/NAMING_AND_IDS.md) §2.3). They are written as
+prose rather than as table rows on purpose: the codegen parses every row of every table in this
+file, so a deprecated row would go on generating a field.
+
+All five below were retired together, when the speed ladder lost its Jog rung and `INPUT-RUN`
+stopped meaning two different things.
+
+### TUN-SPEED-JOG — DEPRECATED 2026-08-12, superseded by TUN-SCORE-PATIENT-SPEED
+
+3.4 m/s. The Jog rung was removed from the ladder: `INPUT-RUN` now means Run, and the ladder is
+blend-walk → stroll → run → sprint. **The number survives as `TUN-SCORE-PATIENT-SPEED`**, so
+`SCORE-PATIENT` is unchanged in every respect except which ID names its threshold.
+
+### TUN-SUSPICION-GAIN-JOG — DEPRECATED 2026-08-12, no successor
+
+4.0/s. There is no Jog state to charge. The cheap-speed role it played is now filled by Stroll,
+which is not cheap but *free*, and the cliff between free and 14/s is the ladder's whole shape.
+
+### TUN-CAM-FOV-JOG — DEPRECATED 2026-08-12, no successor
+
+65°. The FOV ladder mirrors the speed ladder (invariant §17.21) and has four rungs now: 55 → 60
+→ 69 → 72.
+
+### TUN-SPEED-RUN-HOLD — DEPRECATED 2026-08-12, superseded by TUN-SPEED-RUN-RESOLVE
+
+0.35 s. It measured how long `INPUT-RUN` had to be held before Jog escalated to Run. With no Jog
+to escalate from there is nothing for it to time.
+
+### TUN-SPEED-SPRINT-HOLD — DEPRECATED 2026-08-12, no successor
+
+0.4 s. **This one is a design change, not a rename.** Sprint had two routes: a double-tap, or a
+sustained hold past 0.4 s. Holding `INPUT-RUN` now means Run and keeps meaning Run for as long as
+it is held, so a sustained hold cannot also mean Sprint — the two readings are the same gesture.
+Sprint is the double-tap, and on a pad the full trigger plus traverse (GDD-02 §1.3).
+
+The friction §1.5 defends is not weakened by this: it moves entirely into the double-tap, which
+is still an input you cannot enter by leaning on a key. What is lost is a second route to the
+same place, and what is gained is a Run you can hold.
+
+### TUN-SPEED-SPRINT-DOUBLETAP — DEPRECATED 2026-08-12, superseded by TUN-SPEED-RUN-RESOLVE
+
+0.25 s. Kept as a separate window it would fight the new one: Run would engage at 0.15 s and
+Sprint would take it away at 0.20, which is exactly the "runs a little bit first" the resolve
+window exists to remove. One window decides both.
+

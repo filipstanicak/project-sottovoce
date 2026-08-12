@@ -16,12 +16,15 @@ extends Resource
 @export_range(55.0, 65.0, 0.1) var fov_stroll: float = 60.0
 
 ## "
-## TUN-CAM-FOV-JOG
-@export_range(60.0, 70.0, 0.1) var fov_jog: float = 65.0
-
-## "
 ## TUN-CAM-FOV-RUN
 @export_range(64.0, 74.0, 0.1) var fov_run: float = 69.0
+
+## The lens while climbing. Promoted from prose — GDD-02 §2.1's state table has framed a climb at
+## 62° since it was written, without an ID, and ClimbState borrowed the deprecated Jog rung's 65°
+## instead. Between stroll and run, because a climb is faster than a stroll and is not a
+## commitment to speed.
+## TUN-CAM-FOV-CLIMB
+@export_range(55.0, 70.0, 0.1) var fov_climb: float = 62.0
 
 ## Wide FOV at sprint. Speed lines and peripheral distortion. The camera itself tells you that
 ## you are doing something conspicuous.
@@ -34,7 +37,7 @@ extends Resource
 @export_range(60.0, 140.0, 0.1) var fov_blend_rate: float = 90.0
 
 ## The single FOV motion-reduction mode locks to, replacing the whole ladder. Sits between stroll
-## and jog so no speed is framed unusually — the mode removes a warning channel and must not add
+## and run so no speed is framed unusually — the mode removes a warning channel and must not add
 ## a framing bias on top. Promoted from prose — ../10_gdd/02_player_controller.md §9.4 gives the
 ## value without an ID. The compensating speed indicator it trades for is SYS-UI's, in US-0084.
 ## TUN-CAM-FOV-MOTION-REDUCED

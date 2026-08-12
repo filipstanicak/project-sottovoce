@@ -285,7 +285,7 @@ var move: Vector2            ## Quantised to 8 bits per axis.
 var look_yaw: float          ## Quantised to TUN-NET-QUANT-YAW (1 deg).
 var look_pitch: float
 ## Bitfield: SLOW RUN SPRINT TRAVERSE KILL STUN BLEND ABILITY1 ABILITY2 SCAN
-## then RUN_FULL, appended in US-0016. GDD-02 §1.3 requires "partial pull = jog,
+## then RUN_FULL, appended in US-0016 and DEPRECATED 2026-08-12 with the Jog rung. GDD-02 §1.3 required "partial pull = jog,
 ## full pull = run", and the ten above cannot express it: the ladder escalates on
 ## a sustained RUN, so a half-pulled trigger would be dragged up to Run against
 ## the player's intent. A key press has strength 1.0 and is always full.

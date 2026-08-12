@@ -34,7 +34,6 @@ func test_every_view_reads_and_writes_its_own_bit() -> void:
 	var views := {
 		"slow": InputBits.SLOW,
 		"run": InputBits.RUN,
-		"run_full": InputBits.RUN_FULL,
 		"sprint": InputBits.SPRINT,
 		"traverse": InputBits.TRAVERSE,
 		"kill": InputBits.KILL,

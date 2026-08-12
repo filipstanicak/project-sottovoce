@@ -76,7 +76,7 @@ project after the contract cycle.
 ## Pure. Advances one player's suspicion by one tick.
 ## Gain and decay are MUTUALLY EXCLUSIVE (ASM-0008): above stroll speed there
 ## is no concurrent decay, so the ladder's costs are the full costs, not
-## net-of-decay ones. Without this, jog at +4/s against -8/s decay would be
+## net-of-decay ones. Without this, a cheap gain against -8/s decay would be
 ## NEGATIVE and the entire speed ladder would invert.
 class_name SuspicionMath
 extends RefCounted
@@ -89,7 +89,6 @@ static func integrate(s: SuspicionState, t: SuspicionTuning, dt: float) -> float
 
     var gain := 0.0
     match s.speed_state:
-        SpeedState.JOG:    gain += t.gain_jog        #  4.0
         SpeedState.RUN:    gain += t.gain_run        # 14.0
         SpeedState.SPRINT: gain += t.gain_sprint     # 25.0
         SpeedState.CLIMB:  gain += t.gain_climb      # 12.0
@@ -136,7 +135,7 @@ deterministic regardless of the order events fired.
 ```gdscript
 ## Tier is entered at its threshold and exited TUN-SUSPICION-HYSTERESIS (5.0) below it.
 ## Without this, a player hovering at exactly 30.0 — which happens constantly,
-## because 30.0 is where jog's slow climb crosses — flickers at 30 Hz. The visible
+## because 30.0 is where a slow climb crosses — flickers at 30 Hz. The visible
 ## result is a strobing tint; the ACTUAL result is that the tint stops being
 ## trustworthy information, and this game is an information economy. An unreliable
 ## channel is worse than a missing one.

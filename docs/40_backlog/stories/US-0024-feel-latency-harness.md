@@ -136,8 +136,13 @@ godot -- --connect 127.0.0.1:27015
 the "client, menu" log line names a menu that does not exist. The two-terminal recipe elsewhere in
 this corpus is for testing the network topology, not for playing.
 
-Controls: **WASD** move · **Left Ctrl** blend-walk · **Left Shift** run (hold ~0.35 s for Run) ·
+Controls: **WASD** move · **Left Ctrl** blend-walk · **Left Shift** held ~0.15 s run ·
 **double-tap Shift** sprint · **Space** traverse · **Middle mouse** crowd-scan.
+
+**The ladder has four rungs as of 2026-08-12** — the Jog rung was removed and a held Shift
+resolves straight to Run after `TUN-SPEED-RUN-RESOLVE`. Sprint is the double-tap only; a
+sustained hold no longer sprints. Judging that window is the most valuable thing on this page:
+shorter is a snappier Run and a tighter double-tap, and the number is `TUN-SPEED-RUN-RESOLVE`.
 
 The mouse is **captured on launch**. **Escape** releases it so the window can be left; **click**
 takes it back. Both arrived in #48, along with the fix for a vertical axis that had been inverted
@@ -191,8 +196,7 @@ already no.
 |---|---|---|
 | stand still | Idle | |
 | W | Stroll | |
-| W + Shift, tap | Jog | |
-| W + Shift, held past 0.35 s | Run | |
+| W + Shift, held | Run | |
 | W + Shift + double-tap Shift | Sprint | |
 | Space at a low wall, press Ctrl mid-vault | Vault | (expected: **not** until it ends — 0.55 s) |
 | Space at a tall façade, press back mid-climb | Climb | (expected: lets go into a drop) |
@@ -207,7 +211,7 @@ Space each time. Count how many produce a vault rather than nothing.
 
 ### 3. The FOV ladder is perceptible without being nauseating
 
-Accelerate stroll → jog → run → sprint and back down, several times, then hold **middle mouse**
+Accelerate stroll → run → sprint and back down, several times, then hold **middle mouse**
 to crowd-scan. Two questions, both required:
 
 - Can you feel the lens widening *before* you would have read a number? (It must be perceptible.)

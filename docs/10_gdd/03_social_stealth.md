@@ -190,7 +190,6 @@ replicated to the owning client (as a value) and to the relevant observers (as a
 |---|---|---|---|---|---|
 | Idle / blend-walk / stroll | decay | −8.0 /s | `TUN-SUSPICION-DECAY-BASE` | — | — |
 | …with `PASV-STILLNESS` while stationary | decay | −11.2 /s | `TUN-PASV-STILLNESS-MULT` 1.40× | — | — |
-| **Jog** | gain | +4.0 /s | `TUN-SUSPICION-GAIN-JOG` | 7.5 s | 17.5 s |
 | **Run** | gain | +14.0 /s | `TUN-SUSPICION-GAIN-RUN` | 2.1 s | 5.0 s |
 | **Sprint** | gain | +25.0 /s | `TUN-SUSPICION-GAIN-SPRINT` | 1.2 s | 2.8 s |
 | **On the roof stratum** (any speed, incl. standing) | gain | +18.0 /s | `TUN-SUSPICION-GAIN-ROOF` | 1.7 s | 3.9 s |
@@ -212,7 +211,6 @@ replicated to the owning client (as a value) and to the relevant observers (as a
 # Evaluated once per server tick, dt = 1/30 s.
 
 gain_rate = 0
-if speed_state == JOG:      gain_rate += TUN-SUSPICION-GAIN-JOG        # 4.0
 if speed_state == RUN:      gain_rate += TUN-SUSPICION-GAIN-RUN        # 14.0
 if speed_state == SPRINT:   gain_rate += TUN-SUSPICION-GAIN-SPRINT     # 25.0
 if speed_state == CLIMB:    gain_rate += TUN-SUSPICION-GAIN-CLIMB      # 12.0
@@ -241,7 +239,7 @@ suspicion = clamp(suspicion + impulse, 0.0, 100.0)
 
 1. **Gain and decay are mutually exclusive** (ASM-0008). Above stroll speed there is no
    concurrent decay, so the ladder's costs are the *full* costs shown in §3.2, not net-of-decay
-   ones. Without this, jog at +4/s against −8/s decay would be *negative* and the ladder would
+   ones. Without this, a cheap gain against −8/s decay would be *negative* and the ladder would
    invert.
 2. **`TUN-SUSPICION-DECAY-DELAY` (0.6 s) closes the tap-sprint exploit.** Without it, a player
    alternating sprint and stroll at 4 Hz would gain 25/s for half the time and lose 8/s for
@@ -264,7 +262,7 @@ Tiers are entered at their threshold and exited `TUN-SUSPICION-HYSTERESIS` (5.0)
 | Exposed → Noticed | suspicion < 65.0 |
 
 **Why this is not a polish detail.** Without hysteresis, a player hovering at exactly 30.0 —
-which happens constantly, because 30.0 is where jog's slow climb crosses — flickers between
+which happens constantly, because 30.0 is where a slow climb in suspicion crosses — flickers between
 tiers at 30 Hz. The visible result is a strobing silhouette tint. The *actual* result is that
 the tint stops being trustworthy information, and this entire game is an information economy
 (§11). An unreliable channel is worse than a missing one, because players spend attention on

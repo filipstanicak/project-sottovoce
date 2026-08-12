@@ -32,7 +32,7 @@ func test_the_table_scan_found_the_rows() -> void:
 
 
 func test_there_are_fifteen_states() -> void:
-	assert_eq(PawnStateId.ALL.size(), 15, "GDD-02 §3.1 lists fifteen states")
+	assert_eq(PawnStateId.ALL.size(), 14, "GDD-02 §3.1 lists fourteen states")
 
 
 func test_code_and_the_normative_table_agree() -> void:

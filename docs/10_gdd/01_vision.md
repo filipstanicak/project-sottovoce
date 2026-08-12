@@ -42,7 +42,7 @@ never cost anything is not a law.
 
 *Any increase in velocity must cost something the player values, immediately and legibly.*
 
-The suspicion ladder (`TUN-SUSPICION-GAIN-JOG` 4/s → `TUN-SUSPICION-GAIN-SPRINT` 25/s) exists
+The suspicion ladder (`TUN-SUSPICION-GAIN-RUN` 14/s → `TUN-SUSPICION-GAIN-SPRINT` 25/s) exists
 so that the movement input is also an economic decision. There is no free fast.
 
 > **Rejected: a stamina bar.** Stamina was proposed to limit sprinting. It was rejected
@@ -101,7 +101,7 @@ NPCs across 9 m. There are no invisible instant-wins.
 
 This is the law most games in this space fail. `TUN-SCORE-BLENDED` (+200) is the largest
 bonus in the game. A full patient blend kill is worth 650 points against a sprinting tackle's
-50. A player who never exceeds `TUN-SPEED-JOG` must be able to top the scoreboard, and the
+50. A player who never exceeds `TUN-SCORE-PATIENT-SPEED` must be able to top the scoreboard, and the
 balance model (`50_tuning/BALANCE_MODEL.md`) targets a patient player winning ~60 % of even
 matches.
 
@@ -259,7 +259,7 @@ This is what the player's hands and eyes are doing continuously.
 flowchart LR
     A[Compass pulse<br/>tells you distance] --> B{Is the pulse<br/>accelerating?}
     B -->|No| C[Scan the crowd<br/>crowd-scan input<br/>TUN-CAM-CROWDSCAN-FOV]
-    B -->|Yes| D[Choose a speed<br/>blend-walk / stroll / jog]
+    B -->|Yes| D[Choose a speed<br/>blend-walk / stroll]
     C --> E{See a persona<br/>matching the cone?}
     E -->|No| F[Reposition toward<br/>the cone at stroll]
     E -->|Yes| G[Hold facing<br/>lock arc fills<br/>TUN-COMPASS-LOCK-FILL-TIME]

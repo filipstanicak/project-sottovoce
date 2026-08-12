@@ -96,7 +96,6 @@ Values, units and rationales are in TUNABLES.md at the section noted. Reproduced
 |---|---|---|---|
 | `blend_walk` | float | 1.2–1.6 | 1.4 |
 | `stroll` | float | 1.8–2.6 | 2.2 |
-| `jog` | float | 3.0–3.8 | 3.4 |
 | `run` | float | 4.0–5.0 | 4.5 |
 | `sprint` | float | 5.6–6.8 | 6.2 |
 | `climb` | float | 2.4–3.2 | 2.8 |

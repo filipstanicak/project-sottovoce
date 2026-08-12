@@ -120,7 +120,7 @@ relevant.
 |---|---|---|
 | `SCORE-CONTRACT` | Kill validated | `KillSystem` |
 | `SCORE-SILENT` | `suspicion <= 29` at initiation | `SuspicionSystem` |
-| `SCORE-PATIENT` | Speed history ring: max speed over the last 300 ticks (10 s) ≤ `TUN-SPEED-JOG` | `PawnContext.speed_history` |
+| `SCORE-PATIENT` | Speed history ring: max speed over the last 300 ticks (10 s) ≤ `TUN-SCORE-PATIENT-SPEED` | `PawnContext.speed_history` |
 | `SCORE-MASKED` | `AbilitySystem.is_effect_active(peer, ABIL-SECONDFACE)` | `AbilitySystem` |
 | `SCORE-FOCUS` | `los_unbroken_ticks >= 180` (6 s), with `TUN-SCORE-FOCUS-BREAK-GRACE` 0.4 s of tolerance | `DetectionSystem` |
 | `SCORE-FROMABOVE` | `killer.y - victim.y >= 3.0` at initiation | Geometry |
@@ -350,7 +350,7 @@ func lockout_remaining_ticks(hunter: int, target: int) -> int
 | `test_score_fold_pure.gd` | `fold()` references no autoload, scene or clock |
 | `test_multiplier_frozen.gd` | A kill initiated pre-boundary and landing post-boundary scores at 1.0× |
 | `test_results_matches_scoreboard.gd` | `breakdown()` totals equal `fold()` totals for 100 random logs |
-| `test_patient_window.gd` | One tick above jog anywhere in the 10 s window denies the bonus |
+| `test_patient_window.gd` | One tick above `TUN-SCORE-PATIENT-SPEED` anywhere in the 10 s window denies the bonus |
 | `test_focus_grace.gd` | LOS lapsing 0.3 s preserves the streak; 0.5 s resets it |
 | `test_kill_contract_only.gd` | A kill on a non-contract player is rejected with +30 suspicion and a whiff — **never silence** |
 | `test_kill_facing_cone.gd` | The victim's facing is irrelevant; killing a target facing away succeeds |

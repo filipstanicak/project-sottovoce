@@ -400,7 +400,6 @@ Audible radius, from `TUN-AUDIO-FOOTSTEP-RADIUS-*`:
 |---|---|---|
 | Blend-walk | 4 m | 1.0× |
 | Stroll | 6 m | 1.5× |
-| Jog | 10 m | 2.5× |
 | Run | 14 m | 3.5× |
 | Sprint | **18 m** | **4.5×** |
 

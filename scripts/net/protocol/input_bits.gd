@@ -38,6 +38,11 @@ const SCAN: int = 1 << 9
 ## A keyboard press has strength 1.0, so KBM sets this whenever it sets `RUN` and
 ## behaves precisely as before. Appending is safe by construction; reordering is
 ## not (see above).
+## **DEPRECATED 2026-08-12, and the bit is retired rather than reused.** It
+## qualified `RUN` as a full trigger pull, which is what escalated Jog to Run.
+## With the Jog rung gone `TUN-SPEED-TRIGGER-RUN` decides whether the trigger is
+## held at all, and there is no second grade of held. Absent from `ALL`, so it
+## reaches no wire and no state.
 const RUN_FULL: int = 1 << 10
 
 ## The highest bit the wire format can carry. `buttons` is a `u16`.
@@ -46,16 +51,13 @@ const MAX_BIT: int = 15
 ## Every declared bit, in wire order. Used by the guards; nothing on the hot path
 ## reads this.
 ##
-## FIFTEEN ACTIONS EXIST AND TEN ARE HERE (plus `RUN_FULL`, which qualifies one
-## of them rather than being its own). `INPUT-SHOULDER`, `INPUT-SCORE` and
+## FIFTEEN ACTIONS EXIST AND TEN ARE HERE. `INPUT-SHOULDER`, `INPUT-SCORE` and
 ## `INPUT-MENU` are bound and rebindable like the rest, but they change the
 ## camera, the scoreboard and the pause menu — nothing the server simulates;
 ## `INPUT-MOVE` and `INPUT-LOOK` are axes and travel in their own fields. An
 ## action reaches the wire only if it changes `step()`, because every bit here is
 ## bandwidth spent 60 times a second per client, forever.
-const ALL: Array[int] = [
-	SLOW, RUN, SPRINT, TRAVERSE, KILL, STUN, BLEND, ABILITY_1, ABILITY_2, SCAN, RUN_FULL
-]
+const ALL: Array[int] = [SLOW, RUN, SPRINT, TRAVERSE, KILL, STUN, BLEND, ABILITY_1, ABILITY_2, SCAN]
 
 
 ## Bits set in `buttons` that are not held in `previous` — the presses that began

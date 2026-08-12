@@ -39,16 +39,15 @@ func _ctx(state: StringName) -> PawnContext:
 
 ## Walking forward, plus whatever holds the pawn on the rung it starts on.
 ##
-## `run_full` is deliberately FALSE: it is what escalates Jog to Run
-## (`TUN-SPEED-RUN-HOLD`), and a pawn that climbed the ladder mid-test would make
-## every assertion below about a state it was no longer in.
+## The bits are set from the rung the pawn starts on, so nothing climbs the
+## ladder mid-test — an escalation would make every assertion below about a state
+## the pawn was no longer in.
 func _walk_command(scanning: bool, hold: StringName = &"") -> InputCommand:
 	var command := InputCommand.empty(1)
 	command.move = Vector2(0.0, 1.0)
 	command.scan = scanning
-	command.run = hold == PawnStateId.JOG or hold == PawnStateId.RUN
+	command.run = hold == PawnStateId.RUN or hold == PawnStateId.SPRINT
 	command.sprint = hold == PawnStateId.SPRINT
-	command.run_full = command.sprint
 	return command
 
 
@@ -78,9 +77,7 @@ func test_the_cap_binds_from_every_rung_of_the_ladder() -> void:
 	# Including sprint, which is 4.4x the cap. A scan that only capped the slow
 	# states would let a sprinting player read the crowd, which is the whole
 	# thing the tension is built on.
-	for state: StringName in [
-		PawnStateId.STROLL, PawnStateId.JOG, PawnStateId.RUN, PawnStateId.SPRINT
-	]:
+	for state: StringName in [PawnStateId.STROLL, PawnStateId.RUN, PawnStateId.SPRINT]:
 		var ctx := _drive(state, true, 90)
 		assert_eq(ctx.state_id, state, "%s did not hold its rung for the test" % state)
 		assert_lte(
@@ -97,19 +94,19 @@ func test_it_caps_the_speed_and_never_the_state() -> void:
 	# **THE TRAP THIS STORY IS BUILT AROUND.** Routing the cap through the slow
 	# path would drop a scanning player into BlendWalk — whose suspicion DECAYS.
 	# A button that launders suspicion is a mechanical advantage, and a large one.
-	var scanning := _drive(PawnStateId.JOG, true, 60)
-	assert_eq(scanning.state_id, PawnStateId.JOG, "scanning changed the state")
+	var scanning := _drive(PawnStateId.RUN, true, 60)
+	assert_eq(scanning.state_id, PawnStateId.RUN, "scanning changed the state")
 
 
 func test_it_does_not_discount_the_rung_the_player_chose() -> void:
-	# Jog charges TUN-SUSPICION-GAIN-JOG whether or not you are scanning. Moving
-	# at a civilian's pace while paying a jogger's price is the correct answer:
+	# Run charges TUN-SUSPICION-GAIN-RUN whether or not you are scanning. Moving
+	# at a civilian's pace while paying a runner's price is the correct answer:
 	# scanning is a cost, never a refund.
-	var jog := _machine.state_for(PawnStateId.JOG)
-	var scanning := _drive(PawnStateId.JOG, true, 60)
-	var plain := _drive(PawnStateId.JOG, false, 60)
-	assert_eq(jog.suspicion_rate(scanning), jog.suspicion_rate(plain))
-	assert_gt(jog.suspicion_rate(scanning), 0.0, "jogging stopped costing anything at all")
+	var run := _machine.state_for(PawnStateId.RUN)
+	var scanning := _drive(PawnStateId.RUN, true, 60)
+	var plain := _drive(PawnStateId.RUN, false, 60)
+	assert_eq(run.suspicion_rate(scanning), run.suspicion_rate(plain))
+	assert_gt(run.suspicion_rate(scanning), 0.0, "running stopped costing anything at all")
 
 
 func test_two_pawns_differing_only_in_the_scan_bit_end_up_the_same() -> void:

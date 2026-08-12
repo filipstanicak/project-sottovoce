@@ -22,7 +22,6 @@ func before_each() -> void:
 	_machine.register(IdleState.new())
 	_machine.register(BlendWalkState.new())
 	_machine.register(StrollState.new())
-	_machine.register(JogState.new())
 	_machine.register(RunState.new())
 	_machine.register(SprintState.new())
 
@@ -52,7 +51,6 @@ func _speeds() -> Array[float]:
 		0.0,
 		Tuning.movement.blend_walk,
 		Tuning.movement.stroll,
-		Tuning.movement.jog,
 		Tuning.movement.run,
 		Tuning.movement.sprint,
 	]

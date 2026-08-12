@@ -29,26 +29,27 @@ func _fov(id: StringName) -> float:
 	return _machine.camera_fov(_ctx)
 
 
-## The five values §4.2 names. A state answering with anything else has either
-## hardcoded a number or reached for a tunable that is not part of the ladder.
+## Every value a state is allowed to answer with. The four rungs §4.2 names, plus
+## `TUN-CAM-FOV-CLIMB` — climbing is not a speed rung and §2.1 frames it at 62°
+## of its own. A state answering with anything else has either hardcoded a number
+## or reached for a tunable that is not a lens at all.
 func _ladder() -> Array[float]:
 	return [
 		Tuning.camera.fov_blend,
 		Tuning.camera.fov_stroll,
-		Tuning.camera.fov_jog,
+		Tuning.camera.fov_climb,
 		Tuning.camera.fov_run,
 		Tuning.camera.fov_sprint,
 	]
 
 
-# ------------------------------------------------------ the six speed rungs --
+# ----------------------------------------------------- the five speed rungs --
 
 
 func test_the_speed_states_return_their_documented_rungs() -> void:
 	assert_almost_eq(_fov(PawnStateId.BLEND_WALK), Tuning.camera.fov_blend, 0.001)
 	assert_almost_eq(_fov(PawnStateId.IDLE), Tuning.camera.fov_stroll, 0.001)
 	assert_almost_eq(_fov(PawnStateId.STROLL), Tuning.camera.fov_stroll, 0.001)
-	assert_almost_eq(_fov(PawnStateId.JOG), Tuning.camera.fov_jog, 0.001)
 	assert_almost_eq(_fov(PawnStateId.RUN), Tuning.camera.fov_run, 0.001)
 	assert_almost_eq(_fov(PawnStateId.SPRINT), Tuning.camera.fov_sprint, 0.001)
 
@@ -56,12 +57,11 @@ func test_the_speed_states_return_their_documented_rungs() -> void:
 func test_climbing_the_ladder_only_ever_widens() -> void:
 	# The ordering asserted through the STATES rather than through the tunables,
 	# which is a different claim: invariant 21 says the numbers are monotonic,
-	# this says the states are wired to them in the right order. A jog returning
+	# this says the states are wired to them in the right order. A stroll returning
 	# the run rung would satisfy the invariant and still be wrong.
 	var rungs: Array[StringName] = [
 		PawnStateId.BLEND_WALK,
 		PawnStateId.STROLL,
-		PawnStateId.JOG,
 		PawnStateId.RUN,
 		PawnStateId.SPRINT,
 	]

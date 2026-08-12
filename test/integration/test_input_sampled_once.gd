@@ -18,7 +18,7 @@
 ## checked, arriving as a plausible integer rather than as an error.
 ##
 ## Deliberately end-to-end through `client_root.tscn`: a unit test on
-## `SprintGate` cannot see how often anything calls it.
+## `SpeedGate` cannot see how often anything calls it.
 extends GutTest
 
 const CLIENT_ROOT := "res://scenes/client_root.tscn"
@@ -98,33 +98,35 @@ func test_the_sequence_number_advances_once_per_frame() -> void:
 # ------------------------------------------------------- what the rate bought us --
 
 
-func test_sprint_opens_on_the_hold_the_design_asked_for() -> void:
-	# **THE ASSERTION THE FILE IS FOR.** Read 13 before the fix; TUN-SPEED-SPRINT-HOLD
-	# is 24 step-ticks. Design law 1 says speed is spent anonymity, and §1.5 prices
-	# the entry — a gate that opens in half the time is a price nobody agreed to.
-	Input.action_press(&"input_sprint")
+func test_run_opens_on_the_window_the_design_asked_for() -> void:
+	# **THE ASSERTION THE FILE IS FOR.** It used to measure the sustained-hold
+	# sprint gate, which read 13 ticks against a 24-tick tunable before the
+	# double-sample was fixed; that gate is deprecated and the resolve window
+	# replaced it, so the measurement moved rather than going away. A window
+	# counted twice per frame is half the friction §1.5 prices.
+	Input.action_press(&"input_run")
 	await _run(FRAMES)
 	assert_eq(
-		_frames_until_sprint(),
-		Tuning.step_ticks(&"TUN-SPEED-SPRINT-HOLD"),
-		"the sustained-hold gate did not open on the tick TUN-SPEED-SPRINT-HOLD specifies"
+		_frames_until_run(),
+		Tuning.step_ticks(&"TUN-SPEED-RUN-RESOLVE") + 1,
+		"the resolve window did not close on the tick TUN-SPEED-RUN-RESOLVE specifies"
 	)
 
 
-func test_the_hold_gate_is_still_shut_one_frame_early() -> void:
+func test_the_window_is_still_open_one_frame_early() -> void:
 	# The other side of the same edge, so the test above cannot be satisfied by a
-	# gate that opens early and a count that happens to land.
-	Input.action_press(&"input_sprint")
+	# gate that resolves early and a count that happens to land.
+	Input.action_press(&"input_run")
 	await _run(FRAMES)
-	var opened := _frames_until_sprint()
-	assert_gt(opened, 1, "sprint never opened")
-	assert_false(_commands[opened - 2].sprint, "sprint was already open the frame before")
+	var opened := _frames_until_run()
+	assert_gt(opened, 1, "run never opened")
+	assert_false(_commands[opened - 2].run, "run was already open the frame before")
 
 
 ## How many commands were emitted up to and including the first one asking to
-## sprint. 0 if none ever did.
-func _frames_until_sprint() -> int:
+## run. 0 if none ever did.
+func _frames_until_run() -> int:
 	for i: int in _commands.size():
-		if _commands[i].sprint:
+		if _commands[i].run:
 			return i + 1
 	return 0

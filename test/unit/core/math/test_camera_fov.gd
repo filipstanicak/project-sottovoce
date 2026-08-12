@@ -17,7 +17,6 @@ extends GutTest
 func test_the_ladder_is_the_documented_five_rungs() -> void:
 	assert_almost_eq(Tuning.camera.fov_blend, 55.0, 0.001)
 	assert_almost_eq(Tuning.camera.fov_stroll, 60.0, 0.001)
-	assert_almost_eq(Tuning.camera.fov_jog, 65.0, 0.001)
 	assert_almost_eq(Tuning.camera.fov_run, 69.0, 0.001)
 	assert_almost_eq(Tuning.camera.fov_sprint, 72.0, 0.001)
 
@@ -28,7 +27,6 @@ func test_it_widens_with_speed() -> void:
 	var rungs: Array[float] = [
 		Tuning.camera.fov_blend,
 		Tuning.camera.fov_stroll,
-		Tuning.camera.fov_jog,
 		Tuning.camera.fov_run,
 		Tuning.camera.fov_sprint,
 	]

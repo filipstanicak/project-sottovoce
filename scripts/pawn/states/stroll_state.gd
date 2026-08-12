@@ -32,4 +32,4 @@ func step(ctx: PawnContext, input: InputCommand, delta: float) -> StringName:
 	var slowed := _slow_or_stop(input)
 	if slowed != STAY:
 		return slowed
-	return PawnStateId.JOG if input.run else STAY
+	return PawnStateId.RUN if input.run else STAY

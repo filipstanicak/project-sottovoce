@@ -1,4 +1,4 @@
-## The 22 cross-field invariants from TUNABLES.md §17.
+## The 23 cross-field invariants from TUNABLES.md §17.
 ##
 ## A value can be inside its own documented range and still be wrong, because
 ## what matters is its relationship to another value. Invariant 1 is the clearest
@@ -46,7 +46,6 @@ static func _speed_ladder(p: TuningProfile) -> Array[String]:
 	var ladder: Array[Array] = [
 		["blend_walk", p.movement.blend_walk],
 		["stroll", p.movement.stroll],
-		["jog", p.movement.jog],
 		["run", p.movement.run],
 		["sprint", p.movement.sprint],
 	]
@@ -69,7 +68,6 @@ static func _fov_ladder(p: TuningProfile) -> Array[String]:
 	var ladder: Array[Array] = [
 		["fov_blend", p.camera.fov_blend],
 		["fov_stroll", p.camera.fov_stroll],
-		["fov_jog", p.camera.fov_jog],
 		["fov_run", p.camera.fov_run],
 		["fov_sprint", p.camera.fov_sprint],
 	]
@@ -299,6 +297,23 @@ static func _scoring(p: TuningProfile) -> Array[String]:
 				% [p.scoring.stun, p.scoring.contract]
 			)
 		)
+	e.append_array(_patience(p))
+	return e
+
+
+## 23. PATIENCE MUST BE A LINE YOU CAN CROSS. At or below stroll it is
+## unearnable — a player at their cruising speed has already lost it — and at or
+## above run it is unlosable without committing, which is the one thing it exists
+## to price. It inherited 3.4 m/s from the deprecated Jog rung, which is why the
+## threshold outlived the state.
+static func _patience(p: TuningProfile) -> Array[String]:
+	var e: Array[String] = []
+	var low := p.movement.stroll
+	var high := p.movement.run
+	var speed := p.scoring.patient_speed
+	if not (low < speed and speed < high):
+		var text := "23. scoring.patient_speed (%.2f) must sit strictly between "
+		e.append((text + "stroll (%.2f) and run (%.2f)") % [speed, low, high])
 	return e
 
 

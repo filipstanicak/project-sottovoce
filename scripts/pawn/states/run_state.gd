@@ -1,9 +1,14 @@
-## Run. GDD-02 §3.1: `INPUT-RUN` held past `TUN-SPEED-RUN-HOLD`.
+## Run. GDD-02 §3.1: `INPUT-RUN` held past `TUN-SPEED-RUN-RESOLVE`.
 ##
-## **THE COMMITMENT SPEED.** 32 % faster than jog and 3.5x the suspicion cost.
-## The ratio is deliberately unfavourable so that running is a decision rather
-## than a default — if the cost scaled with the speed, the ladder would be a
-## slider and there would be nothing to decide.
+## **THE COMMITMENT SPEED, AND THE FIRST RUNG THAT COSTS ANYTHING.** Twice
+## stroll's speed for 14/s where stroll pays nothing — the ladder steps straight
+## from free to expensive, with no cheap rung in between. That cliff is the whole
+## economy: if the cost scaled smoothly with the speed the ladder would be a
+## slider, and there would be nothing to decide.
+##
+## The Jog rung used to sit here at 3.4 m/s for 4/s. It was removed because
+## `INPUT-RUN` producing a speed the player did not ask for is a worse cost than
+## the one it was buying — the cheap way to reposition is Stroll, which is free.
 class_name RunState
 extends LocomotionState
 
@@ -35,5 +40,5 @@ func step(ctx: PawnContext, input: InputCommand, delta: float) -> StringName:
 	if input.sprint:
 		return PawnStateId.SPRINT
 	if not input.run:
-		return PawnStateId.JOG
+		return PawnStateId.STROLL
 	return STAY

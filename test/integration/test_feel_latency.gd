@@ -141,8 +141,12 @@ func test_it_responds_from_every_rung_of_the_ladder() -> void:
 	# a sprint too, where the pawn is already moving and the *change* is what the
 	# player is watching for.
 	Input.action_press(&"input_move_forward")
+	# A double-tap, because a sustained hold means Run now.
 	Input.action_press(&"input_run")
-	Input.action_press(&"input_sprint")
+	await _settle(2)
+	Input.action_release(&"input_run")
+	await _settle(2)
+	Input.action_press(&"input_run")
 	await _settle(50)
 	assert_eq(_driver.ctx.state_id, PawnStateId.SPRINT, "the pawn never reached Sprint")
 

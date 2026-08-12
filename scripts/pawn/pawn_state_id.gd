@@ -12,7 +12,14 @@ const RESPAWNING := &"Respawning"
 const IDLE := &"Idle"
 const BLEND_WALK := &"BlendWalk"
 const STROLL := &"Stroll"
+
+## **DEPRECATED 2026-08-12.** The ladder lost its Jog rung: `INPUT-RUN` means Run
+## now, and nothing transitions here. Retained and never reused, per
+## NAMING_AND_IDS §2.3 — a retired ID that vanishes is one a future reader can
+## rediscover and give a second meaning to. It is deliberately absent from `ALL`
+## and `LOCOMOTION`, so no machine can register or reach it.
 const JOG := &"Jog"
+
 const RUN := &"Run"
 const SPRINT := &"Sprint"
 const CLIMB := &"Climb"
@@ -30,7 +37,6 @@ const ALL: Array[StringName] = [
 	IDLE,
 	BLEND_WALK,
 	STROLL,
-	JOG,
 	RUN,
 	SPRINT,
 	CLIMB,
@@ -45,7 +51,7 @@ const ALL: Array[StringName] = [
 
 ## The locomotion sub-machine. GDD-02 §3 draws these inside `state "Locomotion"`,
 ## and several transitions are declared against the group rather than its members.
-const LOCOMOTION: Array[StringName] = [IDLE, BLEND_WALK, STROLL, JOG, RUN, SPRINT]
+const LOCOMOTION: Array[StringName] = [IDLE, BLEND_WALK, STROLL, RUN, SPRINT]
 
 
 static func is_locomotion(id: StringName) -> bool:

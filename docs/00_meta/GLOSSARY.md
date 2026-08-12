@@ -292,7 +292,7 @@ A permanently-active loadout slot with no input. MVP set: **Stillness**, **Cold 
 **Second Wind**. One equipped.
 
 ### Patient
-**SCORE-PATIENT.** A bonus: you never exceeded jog speed in the 10 s before the kill. The
+**SCORE-PATIENT.** A bonus: you never exceeded `TUN-SCORE-PATIENT-SPEED` (3.4 m/s) in the 10 s before the kill. That was the Jog rung's speed until the rung was deprecated on 2026-08-12; the threshold outlived the state. The
 single most important bonus in the game — it is the thesis, priced.
 
 ### Persona
