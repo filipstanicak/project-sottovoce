@@ -217,7 +217,7 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 
 ## Where the work is right now
 
-*Updated 2026-08-05. Keep this section current — it is the first thing a fresh
+*Updated 2026-08-12. Keep this section current — it is the first thing a fresh
 session reads, and a stale one is worse than none.*
 
 **M0 IS COMPLETE. M1 IS 11 OF 12 AND CANNOT CLOSE YET.** US-0013 to US-0023 are
@@ -236,9 +236,24 @@ three are blocked, each by something real:
 
 **M1's remaining work is not code.** It is one human sitting down with the game.
 
-**ATTEMPTING THE GATE HAS FOUND FOUR DEFECTS, ALL FIXED, NONE REACHABLE BY ANY
-TEST.** The suites have no window, no display and no input devices, so all three
-lived in exactly the gap a subjective gate exists to cover:
+**THREE MORE M1 STORIES WERE ADDED AND FINISHED ON 2026-08-12, ALL FROM THE OWNER
+AT THE CONTROLS.** They are not part of the original US-0013–0024 span and they do
+not change what blocks the gate:
+
+- **US-0090** — the ladder lost its Jog rung and `INPUT-RUN` resolves into Run or
+  Sprint after `TUN-SPEED-RUN-RESOLVE`. **The owner has judged this one: "top
+  notch, exactly how I wanted it."** Sprint is the double-tap only now;
+  `TUN-SPEED-SPRINT-HOLD` is deprecated because a held key means Run.
+- **US-0091** — a greybox body and the light to see it by. `PersonaVisuals` had
+  been empty since the scene was written, and nothing in the project had ever
+  created a light or an environment.
+- **US-0092** — the pawn is centred; the shoulder offset, its swap and
+  `INPUT-SHOULDER` are retired.
+
+**PLAYING THE GAME HAS FOUND SIX DEFECTS, ALL FIXED, NONE REACHABLE BY ANY TEST.**
+The suites have no window, no display and no input devices, so every one of them
+lived in exactly the gap a subjective gate exists to cover. Four came from
+attempting the gate:
 
 - **The vertical was inverted from US-0021** (#48) — positive pitch raised the
   arm, and a raised arm looking *at* the pivot looks down.
@@ -265,6 +280,25 @@ lived in exactly the gap a subjective gate exists to cover:
   faces +Z — and because every test asked whether the pawn moved, never whether
   it moved where the camera pointed. **An assertion written as a world axis is
   true of both frames**, which is trap 4 in its purest form.
+
+Two more came from the owner asking to *see* the character, which is the same
+lesson from a different direction:
+
+- **THE PAWN DID NOT RENDER, AND NOTHING WAS LIT** (US-0091). `PersonaVisuals` was
+  an empty `Node3D` in both pawn scenes, and no light or environment existed
+  anywhere, so the district drew near-black. **US-0021, 0022 and 0023 built a
+  spring arm, an FOV ladder and crowd-scan around a pawn that did not render, and
+  every suite passed** — they assert positions, distances and lens values, all of
+  which a camera behind an invisible capsule satisfies.
+- **`TUN-CAM-SHOULDER-OFFSET` NEVER CHANGED THE FRAMING** (US-0092). The rig slid
+  the camera 0.45 m sideways and then aimed at the pivot — the pawn's own axis —
+  so the pawn re-centred in view regardless. A tunable that changed only the
+  viewing angle. Found in one glance at the first screenshot of a rendered body,
+  and unobservable before it. The owner chose centred framing; the offset, its
+  swap and `INPUT-SHOULDER` are retired.
+
+**Both were found by taking a screenshot of the running game**, which no suite
+here can do and which took one throwaway script. Do that after any visual change.
 
 **The gate is genuinely runnable now.** One command, no server — `boot.gd` loads
 `client_root.tscn` with or without `--connect`, so the "client, menu" log line
@@ -343,6 +377,11 @@ that is not true makes the whole backlog unreadable as a status view.
    scenes and `MapData` come from `tools/generate_map_vetraio.gd`, whose single
    source is `scripts/core/vetraio_layout.gd`. Hand-edits to any of them are
    silently reverted on the next run. **Change the layout table, not the scene.**
+   **`Ids` IS HARVESTED FROM `docs/`**, which has a consequence worth knowing
+   before you need it: an ID cannot be removed by deleting its table row. The
+   harvest finds it again, `Ids` declares it, and the guard that every documented
+   action has a row fails. A retired ID is *declared dead* instead —
+   `InputActions.DEPRECATED` is the pattern, US-0092.
 2. **`duplicate(true)` does not deep-copy a `TuningProfile`.** The sections are
    *external* resources, and Godot's deep duplicate only copies embedded ones.
    Use `TuningProfile.clone()`. Getting this wrong writes to the live profile.
@@ -411,7 +450,10 @@ that is not true makes the whole backlog unreadable as a status view.
     nothing failed, on the other hand nothing did anything"*. It is the same
     silent-skip family as trap 3 and as the cache bug in `.ci/run_gut.sh`'s
     header. **Use `.ci/run_gut.sh`**, which counts the scripts on disk and
-    refuses to pass over a short run.
+    refuses to pass over a short run. **It has now caught three silent skips**,
+    the last on 2026-08-12: deleting `CameraArm.Shoulder` broke three test
+    scripts, which failed to parse and were skipped, and both suites reported
+    green while running three fewer scripts than exist on disk.
 11. **THE FUNCTION-LENGTH GUARD MEASURES `func` TO `func`**, so a function is
     charged for the docstring of the one AFTER it. Adding a seven-line docstring
     to a new function pushed its *neighbour* over 40 lines in US-0022. The

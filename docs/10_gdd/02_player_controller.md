@@ -610,7 +610,7 @@ channels that commonly fail: colour, sound, and sustained visual attention.
 
 - [ ] Every action in §1.2 and §1.3 is bound, rebindable, and present in the input map resource.
 - [ ] `INPUT-KILL` and `INPUT-STUN` cannot be bound to the same control; the binding UI refuses it.
-- [ ] All fifteen states in §3 exist as separate `PawnState` subclasses (ADR-0008).
+- [ ] All fourteen states in §3 exist as separate `PawnState` subclasses (ADR-0008). `Jog` was retired in US-0090 and is not among them.
 - [ ] `PawnStateMachine.TRANSITIONS` matches the §3 diagram edge for edge, asserted by `test_pawn_transitions.gd`.
 - [ ] `Any → BlendWalk` succeeds from every locomotion state within one tick, from any speed.
 - [ ] Measured input-to-animation latency ≤ `TUN-FEEL-INPUT-TO-ANIM-MAX` (80 ms) at 60 fps with prediction active.

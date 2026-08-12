@@ -4,7 +4,7 @@ title: Camera rig and occlusion
 version: 1.0.0
 status: done
 owner: Lead Game Designer
-last_updated: 2026-08-06
+last_updated: 2026-08-12
 depends_on: [GDD-02-PLAYER, TUN-INDEX]
 ---
 
