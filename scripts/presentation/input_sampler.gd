@@ -50,12 +50,48 @@ var _want_mouse: bool = false
 ## builds the options screen, not here.
 var _modes: Dictionary = {}
 
+var _rebinder: InputRebinder
+
 
 func _ready() -> void:
 	for id: StringName in InputActions.ids():
 		if InputActions.is_toggleable(id):
 			_modes[id] = InputLatch.Mode.HOLD
+	_rebinder = InputRebinder.new()
+	_choose_pad()
+	Input.joy_connection_changed.connect(_on_joy_connection_changed)
 	_capture_mouse(true)
+
+
+## **BEFORE THE FIRST AXIS EVENT ARRIVES, AND THAT IS THE WHOLE POINT.** A pad's
+## resting values reach the engine about a second after it enumerates, so a
+## restriction applied at boot is applied in time; one applied lazily, on the
+## first command, would already have a stuck action to undo.
+func _choose_pad() -> void:
+	var pads := _connected_pads()
+	_rebinder.restrict_pad_device(PadSelection.chosen(pads))
+	Log.info(PadSelection.describe(pads), &"input")
+
+
+func _on_joy_connection_changed(_device: int, _connected: bool) -> void:
+	_choose_pad()
+
+
+## What is plugged in, as `PadSelection` wants it. `is_joy_known` is the
+## discriminator: it is true only for a device the engine has a gamepad mapping
+## for, which is exactly the question "is this a controller or is it pedals".
+func _connected_pads() -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for id: int in Input.get_connected_joypads():
+		out.append({"id": id, "known": Input.is_joy_known(id), "name": Input.get_joy_name(id)})
+	return out
+
+
+## The rebinder the options screen must use (US-0079). One instance, because two
+## would each hold their own idea of the shipped defaults and of which device is
+## the pad, and the second one to write would win.
+func rebinder() -> InputRebinder:
+	return _rebinder
 
 
 ## **THE MOUSE IS CAPTURED, OR THERE IS NO MOUSE LOOK.** An uncaptured cursor

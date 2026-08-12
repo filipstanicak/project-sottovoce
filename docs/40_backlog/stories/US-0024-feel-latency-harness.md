@@ -144,6 +144,20 @@ takes it back. Both arrived in #48, along with the fix for a vertical axis that 
 since US-0021 — the first attempt to run this checklist is what found them, which is the argument
 for the checklist existing at all.
 
+**A THIRD DEFECT SURFACED ON THE SECOND ATTEMPT, AND IT WAS NOT IN THE GAME'S HANDS EITHER.** A
+pair of sim pedals enumerated as joypad 0 and rested its axes at −1.0; the shipped bindings
+answer *every* device, so the pawn walked at stroll and the camera turned without stopping.
+`PadSelection` now restricts the joypad bindings to a device the engine has a gamepad mapping
+for. If anything on this checklist still moves without you, run the probe before doubting your
+judgement — it names any device that is holding an action down:
+
+```bash
+godot --path . -s res://tools/input_probe.gd
+```
+
+Three defects, all found by one person sitting down with the game, none reachable by any test.
+That is the whole case for a subjective gate, and it is now made three times over.
+
 A readout appears top-left in any debug build (`scripts/debug/feel_readout.gd`, attached at
 runtime by `LocalPawnDriver` — never by a scene, because the release presets strip that folder):
 

@@ -5,6 +5,11 @@
 ## they are in `InputActions`, pure, where a unit test can exercise them without
 ## an engine. This file is the seam, and a seam should be too thin to hide a bug.
 ##
+## It also applies `PadSelection` — which physical device the joypad bindings
+## answer to. That is here rather than in `InputSampler` for one reason: it is a
+## write to `InputMap`, and a second file writing that map is how the two
+## disagree. The *policy* is pure and lives elsewhere; this is still only a seam.
+##
 ## Rebinds do NOT persist across sessions in MVP. They are stored through
 ## `IProfileStore`, which is a no-op stub (ASM-0026), and this is a known,
 ## accepted limitation — the first thing a real profile store fixes. What
@@ -16,6 +21,11 @@ extends RefCounted
 ## action name -> the events `project.godot` shipped. Captured once; the engine's
 ## map is mutable and cannot be its own baseline.
 var _defaults: Dictionary = {}
+
+## Which physical device the joypad bindings are restricted to. `PadSelection`
+## decides; this file only applies it, and remembers it so a `reset()` cannot
+## quietly restore the shipped `device: -1` and let a pedal set drive again.
+var _pad_device := PadSelection.NO_DEVICE
 
 
 func _init() -> void:
@@ -53,7 +63,38 @@ func conflicts_for(id: StringName, event: InputEvent) -> Array:
 	return InputActions.forbidden_conflicts(id, binding_key(event), _holders())
 
 
-## Restore one action to what `project.godot` shipped.
+## Point every joypad binding at one device, so no other device can reach an
+## action. `PadSelection` explains why this exists at all.
+##
+## The events are DUPLICATED rather than edited in place: `_defaults` holds the
+## same object references the map does, and mutating one would rewrite the
+## baseline `reset()` restores to.
+func restrict_pad_device(device: int) -> void:
+	_pad_device = device
+	for name: StringName in InputActions.all_action_names():
+		_apply_pad_device(name)
+
+
+func pad_device() -> int:
+	return _pad_device
+
+
+func _apply_pad_device(name: StringName) -> void:
+	if not InputMap.has_action(name):
+		return
+	for event: InputEvent in InputMap.action_get_events(name):
+		if not (event is InputEventJoypadMotion or event is InputEventJoypadButton):
+			continue
+		if event.device == _pad_device:
+			continue
+		var moved := event.duplicate()
+		moved.device = _pad_device
+		InputMap.action_erase_event(name, event)
+		InputMap.action_add_event(name, moved)
+
+
+## Restore one action to what `project.godot` shipped — then re-apply the device
+## restriction, because what it shipped is `device: -1` and that is the bug.
 func reset(id: StringName) -> void:
 	for name: StringName in InputActions.action_names(id):
 		if not _defaults.has(name):
@@ -61,6 +102,7 @@ func reset(id: StringName) -> void:
 		InputMap.action_erase_events(name)
 		for event: InputEvent in _defaults[name]:
 			InputMap.action_add_event(name, event)
+		_apply_pad_device(name)
 
 
 func reset_all() -> void:

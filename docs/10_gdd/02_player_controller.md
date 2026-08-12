@@ -75,6 +75,16 @@ depends_on: [DOC-GLOSSARY, TUN-INDEX, GDD-01-VISION]
 | Shoulder swap | D-pad right | |
 | Scoreboard | `Back` / `View` | |
 
+**ONLY ONE DEVICE DRIVES THESE BINDINGS, AND IT MUST BE A MAPPED GAMEPAD.** Windows presents
+every HID device with axes as a joypad, and the shipped bindings answer *any* device. A pair of
+sim pedals enumerating as joypad 0 rests its axes at −1.0, which reads as full left stick on
+three actions forever: the pawn walks at stroll and the camera turns without stopping, with the
+player's hands nowhere near it. So `PadSelection` picks the lowest-numbered device the engine has
+a gamepad mapping for and points every joypad binding at that one; an unmapped device drives
+nothing. **`TUN-SPEED-STICK-DEADZONE` cannot help here** — a deadzone rejects drift, a small
+nonzero, and this is a full-scale reading from a device working perfectly. Found by the owner
+trying to run the M1 feel gate, which is the second thing that checklist has paid for.
+
 **The analogue stick is a genuine advantage on gamepad**, because the speed ladder is
 continuous rather than stepped. This is accepted rather than corrected: the advantage is in
 *fine speed control*, which rewards the same virtue the game rewards everywhere else. It is
@@ -91,6 +101,7 @@ This is a known, accepted MVP limitation and is the first thing a real profile s
 | Conflict handling | A duplicate binding is permitted with a warning, except between `INPUT-KILL` and `INPUT-STUN`, which may never share a binding. |
 | Modifier bindings | Supported (`Shift+E`). |
 | Gamepad/KBM independence | Separate binding sets; hot-swap on input detected. |
+| Device selection | §1.3: only a mapped gamepad may hold the joypad bindings. A reset restores the shipped bindings *and* re-applies that restriction — the shipped `device: -1` is the bug. |
 | Reset | Per-action and global reset available. |
 
 ### 1.5 Why sprint is deliberately awkward
