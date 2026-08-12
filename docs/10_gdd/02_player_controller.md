@@ -51,7 +51,7 @@ depends_on: [DOC-GLOSSARY, TUN-INDEX, GDD-01-VISION]
 | **Ability 1** | `INPUT-ABILITY-1` | `Q` | Press | |
 | **Ability 2** | `INPUT-ABILITY-2` | `F` | Press | |
 | **Crowd-scan** | `INPUT-SCAN` | `Middle Mouse` | Hold | `TUN-CAM-CROWDSCAN-SPEED` 0.45×, `TUN-CAM-CROWDSCAN-FOV` 48°. |
-| **Shoulder swap** | `INPUT-SHOULDER` | `X` | Press | |
+| ~~Shoulder swap~~ | `INPUT-SHOULDER` | — | — | **DEPRECATED 2026-08-12.** The camera has no lateral offset to swap; see §4.1. The ID is retained and never reused, and it is bound to nothing. |
 | Scoreboard | `INPUT-SCORE` | `Tab` | Hold | |
 | Menu | `INPUT-MENU` | `Escape` | Press | Also **releases the mouse**. It is captured on launch, and a click takes it back — without capture the cursor stops at the window edge and the camera stops turning with it. |
 | Push-to-talk | — | — | — | Not in MVP (`SCOPE_FENCE` OUT #5). |
@@ -72,7 +72,7 @@ depends_on: [DOC-GLOSSARY, TUN-INDEX, GDD-01-VISION]
 | Ability 1 | `L1` / `LB` | |
 | Ability 2 | `Y` / triangle | |
 | Crowd-scan | `R3` (click) hold | |
-| Shoulder swap | D-pad right | |
+| ~~Shoulder swap~~ | — | **DEPRECATED 2026-08-12**, with the offset it moved. |
 | Scoreboard | `Back` / `View` | |
 
 **ONLY ONE DEVICE DRIVES THESE BINDINGS, AND IT MUST BE A MAPPED GAMEPAD.** Windows presents
@@ -318,10 +318,31 @@ requested at priority *P* may interrupt a state whose `is_interruptible()` is fa
 | Type | — | Third-person spring arm | The player must be able to see their own silhouette. Judging "how do I look right now?" is a core skill, and a first-person camera makes it impossible. |
 | Arm length | `TUN-CAM-ARM-LENGTH` | 2.6 m | Far enough to show your own body, close enough to keep faces legible at 20 m. |
 | Pivot height | `TUN-CAM-ARM-HEIGHT` | 1.55 m | Roughly shoulder height on the tallest persona (Lucerna). |
-| Shoulder offset | `TUN-CAM-SHOULDER-OFFSET` | 0.45 m | |
-| Shoulder swap time | `TUN-CAM-SHOULDER-SWAP-TIME` | 0.25 s | |
+| Framing | — | **Centred** | The pawn sits on the centre line. See below. |
 | Occlusion pull-in | `TUN-CAM-OCCLUSION-PULL-RATE` | 12 m/s | Fast. A camera stuck in a wall, in a game about looking at people, is a critical failure. |
 | Occlusion restore | `TUN-CAM-OCCLUSION-RESTORE-RATE` | 4 m/s | Slower than pull-in, to prevent oscillation in doorways. |
+
+#### The pawn is centred, and that is a decision
+
+**THE CAMERA HAS NO LATERAL OFFSET.** The pawn stands on the centre line of the shot, and the
+`TUN-CAM-SHOULDER-OFFSET` / `TUN-CAM-SHOULDER-SWAP-TIME` pair that used to move it off is
+deprecated along with `INPUT-SHOULDER`.
+
+Two reasons, and the second is the one that matters:
+
+1. **The offset never did anything.** The rig slid the camera 0.45 m sideways and then aimed at
+   the pivot — the pawn's own axis — so the pawn re-centred in view however far the camera moved.
+   It changed the viewing *angle* and never the composition. Nobody could see that while the
+   pawn was invisible (US-0091); the first screenshot of a rendered body made it obvious.
+2. **A centred model is the right shot for this game.** It is the established framing for
+   third-person social stealth, and it is the framing this design needs: the pawn's silhouette is
+   the thing the player is *reading* — how do I look right now, am I moving like the crowd — and a
+   silhouette pushed into a corner of the screen is a silhouette you stop checking. An
+   over-the-shoulder offset exists to clear a firing line, and this game has no firing line.
+
+The cost is honest and accepted: your own body occupies the middle of the screen and hides what
+is directly ahead at close range. That is what `TUN-CAM-ARM-LENGTH` and the FOV ladder are for,
+and it is a cost every game with this camera pays.
 
 ### 4.2 FOV as an information channel
 

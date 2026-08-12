@@ -271,8 +271,8 @@ Values, units and rationales are in TUNABLES.md at the section noted. Reproduced
 ### 3.9 `CameraTuning` — TUNABLES §12
 
 `fov_blend` 55 · `fov_stroll` 60 · `fov_jog` 65 · `fov_run` 69 · `fov_sprint` 72 ·
-`fov_blend_rate` 90 · `arm_length` 2.6 · `arm_height` 1.55 · `shoulder_offset` 0.45 ·
-`shoulder_swap_time` 0.25 · `occlusion_pull_rate` 12.0 · `occlusion_restore_rate` 4.0 ·
+`fov_blend_rate` 90 · `arm_length` 2.6 · `arm_height` 1.55 ·
+`occlusion_pull_rate` 12.0 · `occlusion_restore_rate` 4.0 ·
 `crowdscan_speed` 0.45 · `crowdscan_fov` 48.
 
 ### 3.10 `NetTuning` — TUNABLES §13

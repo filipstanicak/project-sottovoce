@@ -14,9 +14,16 @@
 class_name CameraArm
 extends RefCounted
 
-## Which shoulder the camera sits over. The sign multiplies
-## `TUN-CAM-SHOULDER-OFFSET`.
-enum Shoulder { RIGHT = 1, LEFT = -1 }
+## **THE PAWN IS CENTRED. THERE IS NO LATERAL OFFSET.** GDD-02 §4.1.
+##
+## There was one, and it did nothing: the rig slid the camera 0.45 m sideways and
+## then aimed at the pivot — the pawn's own axis — so the pawn re-centred in view
+## however far the camera moved. The offset changed the viewing *angle* and never
+## the composition, and nobody could see that while the pawn was invisible.
+##
+## It is gone rather than fixed, deliberately. A centred model is the right shot
+## for a game whose player is reading their own silhouette; an over-the-shoulder
+## offset exists to clear a firing line, and this game has none.
 
 
 ## Where the arm pivots: above the pawn's feet by `TUN-CAM-ARM-HEIGHT`, roughly
@@ -38,63 +45,40 @@ static func right(yaw: float) -> Vector3:
 
 
 ## The offset from pivot to camera. **BEHIND** the pawn, raised or lowered by
-## pitch, and displaced to one shoulder.
+## pitch, on the centre line.
 ##
-## `shoulder_blend` runs −1 (left) to +1 (right) and is interpolated during a
-## swap, so the camera slides across rather than teleporting.
-##
-## Its LENGTH is the arm distance including the lateral component, and the
-## occlusion clamp shortens along this exact vector. That is what keeps §4.4's
-## rule true: the direction never changes, so the camera can never be nudged
-## somewhere with a better view than the pawn has.
+## Its LENGTH is the arm distance, and the occlusion clamp shortens along this
+## exact vector. That is what keeps §4.4's rule true: the direction never changes,
+## so the camera can never be nudged somewhere with a better view than the pawn
+## has.
 ##
 ## **POSITIVE PITCH LOWERS THE ARM, BECAUSE THE RIG LOOKS AT THE PIVOT.** Pitch
-## is the direction the PLAYER is looking, and to look up over the pawn's
-## shoulder the camera has to drop behind it — a camera raised above the pivot
-## and pointed at it is looking *down*.
+## is the direction the PLAYER is looking, and to look up over the pawn the camera
+## has to drop behind it — a camera raised above the pivot and pointed at it is
+## looking *down*.
 ##
 ## It shipped the other way round from US-0021 until the owner played it and
-## reported the vertical inverted. `test_camera_arm.gd` had asserted that
-## pitching up raised the arm, which is true and is not the question: the
-## question is where the resulting VIEW points, and the test never asked.
-static func offset_direction(yaw: float, pitch: float, shoulder_blend: float) -> Vector3:
+## reported the vertical inverted. `test_camera_arm.gd` had asserted that pitching
+## up raised the arm, which is true and is not the question: the question is where
+## the resulting VIEW points, and the test never asked.
+static func offset_direction(yaw: float, pitch: float) -> Vector3:
 	var behind := -forward(yaw) * cos(pitch) * Tuning.camera.arm_length
 	var lift := Vector3.DOWN * sin(pitch) * Tuning.camera.arm_length
-	var lateral := right(yaw) * Tuning.camera.shoulder_offset * clampf(shoulder_blend, -1.0, 1.0)
-	return behind + lift + lateral
+	return behind + lift
 
 
 ## Where the camera would sit with nothing in the way.
-static func ideal_position(
-	feet: Vector3, yaw: float, pitch: float, shoulder_blend: float
-) -> Vector3:
-	return pivot(feet) + offset_direction(yaw, pitch, shoulder_blend)
+static func ideal_position(feet: Vector3, yaw: float, pitch: float) -> Vector3:
+	return pivot(feet) + offset_direction(yaw, pitch)
 
 
 ## Where the camera actually sits, `distance` metres along the ideal direction.
-static func position_at(
-	feet: Vector3, yaw: float, pitch: float, shoulder_blend: float, distance: float
-) -> Vector3:
-	var offset := offset_direction(yaw, pitch, shoulder_blend)
+static func position_at(feet: Vector3, yaw: float, pitch: float, distance: float) -> Vector3:
+	var offset := offset_direction(yaw, pitch)
 	var length := offset.length()
 	if length <= 0.0:
 		return pivot(feet)
 	return pivot(feet) + offset / length * distance
-
-
-## How far the shoulder blend moves in `delta`, given `TUN-CAM-SHOULDER-SWAP-TIME`.
-##
-## The blend spans 2.0 — right to left is +1 to −1 — so the rate is 2 / the time,
-## and a swap takes exactly the tunable however far through a previous one it was
-## interrupted.
-static func shoulder_step(delta: float) -> float:
-	var seconds := maxf(Tuning.camera.shoulder_swap_time, 0.001)
-	return delta * 2.0 / seconds
-
-
-## Advance a shoulder blend toward `target`, which is +1 or −1.
-static func blend_shoulder(current: float, target: float, delta: float) -> float:
-	return move_toward(current, clampf(target, -1.0, 1.0), shoulder_step(delta))
 
 
 ## **THE FAIRNESS RULE.** GDD-02 §4.4: the arm never passes through a wall to a

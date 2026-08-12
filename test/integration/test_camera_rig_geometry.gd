@@ -118,8 +118,13 @@ func test_the_arm_restores_when_the_wall_is_gone() -> void:
 	assert_gt(_rig.arm_distance(), pulled, "the arm never came back out")
 
 
-func test_swapping_shoulders_moves_the_camera_across() -> void:
-	var before := _rig.shoulder_blend()
-	_rig.swap_shoulder()
-	await _settle(40)
-	assert_ne(signf(_rig.shoulder_blend()), signf(before), "the shoulder never swapped")
+func test_the_camera_stays_on_the_pawns_centre_line() -> void:
+	# US-0092: the pawn is centred and there is no shoulder to swap. This replaces
+	# a test that swapped one, and it asserts the thing that actually matters —
+	# the camera never acquires a sideways displacement the pawn does not have.
+	await _settle(30)
+	var ctx: PawnContext = _driver.ctx
+	var lateral := (_rig.global_position - CameraArm.pivot(ctx.position)).dot(
+		CameraArm.right(ctx.yaw)
+	)
+	assert_almost_eq(lateral, 0.0, 0.01, "the camera sat off the pawn's centre line")

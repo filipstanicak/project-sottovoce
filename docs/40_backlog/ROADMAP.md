@@ -133,9 +133,10 @@ state machine, locally.
 > that the pawn had *travelled*. The probes noticed: they reported no floor under
 > a pawn standing in the middle of Vetraio.
 >
-> **The camera is real as of US-0021** — spring arm, shoulder offset and swap,
-> occlusion that pulls in rather than sideways, and NPCs that do not push it.
-> `DebugFollowCamera` is deleted.
+> **The camera is real as of US-0021** — spring arm, occlusion that pulls in
+> rather than sideways, and NPCs that do not push it. `DebugFollowCamera` is
+> deleted. **The pawn is centred as of US-0092**: the lateral offset never
+> changed the composition, because the rig aimed at the pawn's own axis.
 >
 > **The lens is a channel as of US-0022.** FOV is bound to the speed STATE, not
 > to velocity — the rung is a consequence of the decision, and a rig deriving it
