@@ -1,10 +1,24 @@
-[gd_scene load_steps=6 format=3 uid="uid://bs0ttovclientroot"]
+[gd_scene load_steps=8 format=3 uid="uid://bs0ttovclientroot"]
 
 [ext_resource type="PackedScene" path="res://scenes/map/map_vetraio.tscn" id="1_map"]
 [ext_resource type="PackedScene" path="res://scenes/pawn/pawn_local.tscn" id="2_pawn"]
 [ext_resource type="Script" path="res://scripts/presentation/input_sampler.gd" id="3_sampler"]
 [ext_resource type="Script" path="res://scripts/presentation/local_pawn_driver.gd" id="4_driver"]
 [ext_resource type="Script" path="res://scripts/presentation/camera/camera_rig.gd" id="5_camera"]
+
+[sub_resource type="ProceduralSkyMaterial" id="Sky_greybox"]
+sky_horizon_color = Color(0.65, 0.65, 0.67, 1)
+ground_horizon_color = Color(0.65, 0.65, 0.67, 1)
+
+[sub_resource type="Sky" id="SkyRes_greybox"]
+sky_material = SubResource("Sky_greybox")
+
+[sub_resource type="Environment" id="Env_greybox"]
+background_mode = 2
+sky = SubResource("SkyRes_greybox")
+ambient_light_source = 3
+ambient_light_energy = 0.6
+tonemap_mode = 2
 
 ; Client topology: mirrors of replicated state, the local pawn, and the HUD.
 ; Carries no GameSystem — systems exist only server-side (TDD-01 §1.2).
@@ -15,6 +29,18 @@
 ; US-0021 replaced DebugFollowCamera with the real SYS-CAMERA rig. The FOV
 ; ladder is US-0022 and crowd-scan is US-0023, so the rig holds a fixed FOV.
 ;
+; US-0091 added the greybox body and the light to see it by. THERE WAS NEITHER
+; UNTIL SOMEBODY LOOKED AT THE GAME: the pawn was an empty PersonaVisuals node,
+; and nothing in the project had ever created a light or an environment, so the
+; district rendered near-black under Godot's default ambient. A third-person
+; camera exists to show you your own silhouette (GDD-02 §4.1) and there was no
+; silhouette and no light on it.
+;
+; THIS IS GREYBOX LIGHTING, NOT THE ART PASS. GDD-05 §9 makes lighting zones step
+; 9 of the level-design pipeline and this is not that: one key light and a flat
+; sky, chosen so value contrast exists at all. ART_BIBLE §3.1's "value over hue"
+; is the rule it has to serve — readability comes from light and dark.
+;
 ; THE RIG LISTENS TO THE DRIVER, NOT THE SAMPLER. InputSampler has no loop of its
 ; own — the driver calls sample() once a frame and emits what it got. When both
 ; nodes sampled, input ran at 120 Hz and TUN-SPEED-SPRINT-HOLD opened in half its
@@ -23,6 +49,17 @@
 [node name="ClientRoot" type="Node"]
 
 [node name="World" type="Node3D" parent="."]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="World"]
+environment = SubResource("Env_greybox")
+
+; Roughly mid-afternoon, high enough that streets are lit and low enough that
+; façades and roof edges cast a readable shadow. Shadows are on because a
+; shadowless greybox has no depth at all and every wall reads as a flat panel.
+[node name="Sun" type="DirectionalLight3D" parent="World"]
+transform = Transform3D(0.866, -0.404, 0.295, 0, 0.590, 0.807, -0.5, -0.699, 0.511, 0, 30, 0)
+light_energy = 1.2
+shadow_enabled = true
 
 [node name="Mirrors" type="Node" parent="."]
 

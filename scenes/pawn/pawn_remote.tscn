@@ -1,4 +1,6 @@
-[gd_scene format=3]
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/presentation/pawn_visuals/greybox_body.gd" id="1_body"]
 
 ; CLIENT — interpolated only. TDD-06 §1 rule 2.
 ;
@@ -8,7 +10,13 @@
 
 [node name="PawnRemote" type="Node3D"]
 
+; The same placeholder body the local pawn wears. **The same script, not a
+; copy**: a remote pawn that looked different from a local one would be a
+; discriminator, and this game is built on players being indistinguishable.
+; It has no CollisionShape3D to measure, so it falls back to the shipped
+; capsule — which is the same number, from the same document.
 [node name="PersonaVisuals" type="Node3D" parent="."]
+script = ExtResource("1_body")
 
 [node name="InterpolationTarget" type="Node3D" parent="."]
 

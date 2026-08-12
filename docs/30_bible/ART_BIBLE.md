@@ -218,6 +218,13 @@ to playtest the entire anonymity system:
 | Lucerna | Capsule, 1.89 m, ×0.8 width, **cylinder pole 0.9 m above head** |
 | Pesatore | Capsule, 1.75 m, uniform, box under arm |
 
+> **NONE OF THE FOUR IS BUILT YET, AND THE M1 PLACEHOLDER IS NOT ONE OF THEM.**
+> `GreyboxBody` (US-0091) draws a deliberately generic figure — a capsule the size of the
+> collider, a head and a chest marker so facing can be read. It makes no silhouette claim,
+> because each row below *is* a claim that has to survive §1.2 at 40 m in solid black, and
+> asserting one untested would quietly start `PERSONA-*` work that belongs to US-0039 along with
+> its clone-parity rules.
+
 **These four greybox shapes pass the §1.2 silhouette test.** That is the point: if the greybox
 fails it, no amount of art will fix it, and if it passes, art is polish rather than rescue.
 
@@ -230,6 +237,7 @@ fails it, no amount of art will fix it, and if it passes, art is polish rather t
 | `MAT-CLIMB` | **Desaturated blue** | Every climbable façade |
 | `MAT-VAULT` | **Desaturated yellow** | Every 0.9 m vaultable surface |
 | `MAT-BLEND` | **Desaturated green** | Blend props and pocket markers |
+| `MAT-GREY-PAWN` | Desaturated plaster | The placeholder body, and one value off `MAT-GREY-WALL` so a pawn against a façade is still a separate shape |
 | `MAT-VOID` | Magenta | Out of bounds / error — **must never appear in a playtest build** |
 
 Greybox uses **desaturated** hues deliberately, avoiding the saturated identity hues reserved by
