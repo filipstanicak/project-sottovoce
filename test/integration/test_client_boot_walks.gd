@@ -133,6 +133,35 @@ func test_walking_forward_moves_horizontally_and_not_downward() -> void:
 	assert_lt(absf(moved.y), 0.5, "the pawn's travel was mostly vertical")
 
 
+## **THE KEY THAT MOVES YOU RIGHT MUST MOVE YOU RIGHT.** Through the real
+## `InputMap`, because the unit tests build an `InputCommand` by hand and cannot
+## see a binding that reaches the wrong axis.
+##
+## `ProbeLayout.right(ctx.yaw)`, never a literal `+X`. The pawn spawns at yaw 0
+## and the two are the same number there, which is exactly how a swapped pair
+## hides: an assertion written as a world axis is true of both frames.
+func _assert_travel(action: StringName, wanted: Vector3, what: String) -> void:
+	var start := _driver.ctx.position
+	Input.action_press(action)
+	await _run(FRAMES)
+	var moved := _driver.ctx.position - start
+	var flat := Vector3(moved.x, 0.0, moved.z)
+	assert_gt(flat.length(), 0.5, "%s moved the pawn nowhere" % what)
+	assert_gt(flat.normalized().dot(wanted.normalized()), 0.98, "%s went the wrong way" % what)
+
+
+func test_d_walks_to_the_pawns_right() -> void:
+	await _assert_travel(&"input_move_right", ProbeLayout.right(_driver.ctx.yaw), "D")
+
+
+func test_a_walks_to_the_pawns_left() -> void:
+	await _assert_travel(&"input_move_left", -ProbeLayout.right(_driver.ctx.yaw), "A")
+
+
+func test_w_walks_where_the_pawn_faces() -> void:
+	await _assert_travel(&"input_move_forward", ProbeLayout.forward(_driver.ctx.yaw), "W")
+
+
 func test_the_probes_run_against_the_real_map() -> void:
 	# `test_traversal_probes_geometry.gd` proves the casts work against boxes this
 	# suite built. This proves they are wired into the driver and pointed at

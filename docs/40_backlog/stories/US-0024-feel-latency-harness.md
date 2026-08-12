@@ -155,8 +155,12 @@ judgement — it names any device that is holding an action down:
 godot --path . -s res://tools/input_probe.gd
 ```
 
-Three defects, all found by one person sitting down with the game, none reachable by any test.
-That is the whole case for a subjective gate, and it is now made three times over.
+**AND A FOURTH: A AND D WERE SWAPPED.** Movement was computed on fixed world axes instead of in
+the camera's frame, so W walked north whatever the camera was doing and A walked toward the
+pawn's right. Fixed; the stick is an intention rotated onto the look yaw now.
+
+Four defects, all found by one person sitting down with the game, none reachable by any test.
+That is the whole case for a subjective gate, and it is now made four times over.
 
 A readout appears top-left in any debug build (`scripts/debug/feel_readout.gd`, attached at
 runtime by `LocalPawnDriver` — never by a scene, because the release presets strip that folder):

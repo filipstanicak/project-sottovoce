@@ -19,8 +19,13 @@ extends RefCounted
 ## reconciliation, and it is what orders a client's own inputs — not time.
 var seq: int = 0
 
-## Desired movement on the ground plane, length <= 1. Quantised to 8 bits per
-## axis on the wire.
+## Desired movement, length <= 1. Quantised to 8 bits per axis on the wire.
+##
+## **IN THE CAMERA'S FRAME, NOT THE WORLD'S.** `+y` is forward and `+x` is right
+## *as the player sees it*; the world direction is this rotated onto `look_yaw`,
+## which `LocomotionState._world_direction` does and nothing else may. Read as a
+## world vector — which is how it shipped from US-0015 — W walks north whatever
+## the camera is doing, and A walks west, which at yaw 0 is the pawn's right.
 var move: Vector2 = Vector2.ZERO
 
 ## Facing, radians. Quantised to `TUN-NET-QUANT-YAW` on the wire.

@@ -35,7 +35,12 @@ const TOP_SAMPLE_FRACTIONS: Array[float] = [0.25, 0.5, 1.0]
 
 
 ## Unit vector the pawn is facing, on the ground plane. Yaw 0 faces +Z, matching
-## `LocomotionState._is_backpedalling` and `InputCommand.move`.
+## `CameraArm.forward` — the camera and the probes must agree about forward or
+## the player aims one thing and probes another.
+##
+## It used to cite `InputCommand.move` as well, and that was the shape of a bug:
+## `move` is a 2D intention in the CAMERA's frame and has no world axes to agree
+## with. Reading it as though it did put A and D on the wrong sides.
 static func forward(yaw: float) -> Vector3:
 	return Vector3(sin(yaw), 0.0, cos(yaw))
 
