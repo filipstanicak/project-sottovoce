@@ -22,6 +22,12 @@ depends_on: [GDD-02-PLAYER, TUN-INDEX]
 
 Third-person spring arm with shoulder offset, swap and occlusion handling.
 
+> **PARTLY SUPERSEDED BY US-0092, 2026-08-12.** The shoulder offset and swap are deprecated: the
+> pawn is centred. The criteria below are left ticked as written, because they were true — the
+> arm did carry a 0.45 m offset and the swap did take 0.25 s. What none of it did was change the
+> *framing*, since the rig aimed at the pawn's own axis and the pawn re-centred in view
+> regardless. Nobody could see that until there was a body to see (US-0091).
+
 Third-person rather than first because the player must be able to see their own silhouette —
 judging how you look right now is a core skill, and a first-person camera makes it impossible.
 

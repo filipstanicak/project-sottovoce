@@ -166,12 +166,6 @@ input_scan={
 , Object(InputEventJoypadButton,"device":-1,"button_index":8,"pressed":false)
 ]
 }
-input_shoulder={
-"deadzone": 0.05,
-"events": [Object(InputEventKey,"device":-1,"physical_keycode":88,"pressed":false)
-, Object(InputEventJoypadButton,"device":-1,"button_index":14,"pressed":false)
-]
-}
 input_score={
 "deadzone": 0.05,
 "events": [Object(InputEventKey,"device":-1,"physical_keycode":4194306,"pressed":false)

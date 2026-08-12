@@ -14,6 +14,12 @@
 ##    surface hands a player pressed against a corner a free look down the street
 ##    beyond it. Camera position must never be an information channel.
 ##
+## **THE PAWN IS CENTRED** since US-0092, and `TUN-CAM-SHOULDER-OFFSET` is
+## deprecated. It slid the camera sideways and then aimed at the pivot, which is
+## the pawn's own axis — so the pawn re-centred in view regardless and the offset
+## changed nothing but the angle. GDD-02 §4.1 records why centred is also the shot
+## this game wants.
+##
 ## The lens is the third thing here, and the only one that is a *message* rather
 ## than a framing decision: `CameraFov` widens with the speed state, which is
 ## §4.2's warning channel, and narrows to 48° while `INPUT-SCAN` is held.
@@ -42,7 +48,7 @@ extends Camera3D
 ## GDD-02 §9.4's accessibility mode, as far as the camera is concerned: the FOV
 ## ladder stops moving and locks to `TUN-CAM-FOV-MOTION-REDUCED`.
 ##
-## **NOTHING SETS THIS YET**, the same way nothing calls `swap_shoulder()`. The
+## **NOTHING SETS THIS YET.** The
 ## options screen, the bob and speed-line halves of the mode, and — crucially —
 ## the persistent speed indicator that compensates for the channel this removes
 ## are all US-0084. Exported rather than hidden so the mode is drivable from the
@@ -58,8 +64,6 @@ extends Camera3D
 var _driver: LocalPawnDriver
 var _yaw: float = 0.0
 var _pitch: float = 0.0
-var _shoulder: float = float(CameraArm.Shoulder.RIGHT)
-var _shoulder_target: float = float(CameraArm.Shoulder.RIGHT)
 var _distance: float = 0.0
 var _scanning: bool = false
 var _query := PhysicsRayQueryParameters3D.new()
@@ -90,16 +94,6 @@ func _on_command_sampled(command: InputCommand) -> void:
 	_pitch = clampf(command.look_pitch, -_pitch_limit(), _pitch_limit())
 
 
-## Swap shoulders. Called by whoever handles `INPUT-SHOULDER`; the swap itself
-## takes `TUN-CAM-SHOULDER-SWAP-TIME` and is interruptible half-way.
-func swap_shoulder() -> void:
-	_shoulder_target = -_shoulder_target
-
-
-func shoulder_blend() -> float:
-	return _shoulder
-
-
 func arm_distance() -> float:
 	return _distance
 
@@ -122,11 +116,10 @@ func _process(delta: float) -> void:
 		# looking, and the look is exactly what a stun takes away.
 		_scanning = false
 
-	_shoulder = CameraArm.blend_shoulder(_shoulder, _shoulder_target, delta)
 	_distance = CameraArm.step_distance(_distance, _wanted_distance(ctx), delta)
 	fov = CameraFov.step(fov, _wanted_fov(), delta)
 
-	global_position = CameraArm.position_at(ctx.position, _yaw, _pitch, _shoulder, _distance)
+	global_position = CameraArm.position_at(ctx.position, _yaw, _pitch, _distance)
 	look_at(CameraArm.pivot(ctx.position), Vector3.UP)
 
 
@@ -154,7 +147,7 @@ func _pitch_limit() -> float:
 ## How long the arm may be this frame: the full length, or short of whatever the
 ## world put in the way.
 func _wanted_distance(ctx: PawnContext) -> float:
-	var offset := CameraArm.offset_direction(_yaw, _pitch, _shoulder)
+	var offset := CameraArm.offset_direction(_yaw, _pitch)
 	var ideal := offset.length()
 	if ideal <= 0.0:
 		return 0.0

@@ -29,10 +29,15 @@ func test_the_corpus_actually_yielded_actions() -> void:
 	assert_gt(_documented_ids().size(), 10, "no INPUT- ids were harvested from the corpus")
 
 
+## **A RETIRED ID IS EXCUSED, AND NOTHING ELSE IS.** `Ids` is harvested from the
+## documents and NAMING_AND_IDS §2.3 keeps a retired ID documented forever, so an
+## action cannot be made to disappear by deleting its table row — it can only be
+## declared dead. `InputActions.DEPRECATED` is that declaration, and this is the
+## one place a missing row is allowed.
 func test_every_documented_action_has_a_row() -> void:
 	var missing: PackedStringArray = []
 	for id: StringName in _documented_ids():
-		if not InputActions.exists(id):
+		if not InputActions.exists(id) and not InputActions.is_deprecated(id):
 			missing.append(String(id))
 	missing.sort()
 	assert_eq(
@@ -92,7 +97,7 @@ func test_forward_is_positive_y() -> void:
 func test_only_actions_the_server_simulates_reach_the_wire() -> void:
 	# Every bit is bandwidth spent 60 times a second per client, forever. The
 	# camera, the scoreboard and the pause menu change nothing the server rules on.
-	for id: StringName in [Ids.INPUT_SHOULDER, Ids.INPUT_SCORE, Ids.INPUT_MENU]:
+	for id: StringName in [Ids.INPUT_SCORE, Ids.INPUT_MENU]:
 		assert_eq(InputActions.bit_of(id), InputBits.NONE, "%s should not be on the wire" % id)
 	for id: StringName in [Ids.INPUT_SLOW, Ids.INPUT_KILL, Ids.INPUT_STUN]:
 		assert_ne(InputActions.bit_of(id), InputBits.NONE, "%s must reach the server" % id)
@@ -144,3 +149,22 @@ func test_the_pause_menu_can_never_be_rebound() -> void:
 		if id != Ids.INPUT_MENU and not InputActions.is_rebindable(id):
 			stuck.append(String(id))
 	assert_eq(stuck.size(), 0, "these should be rebindable: " + ", ".join(stuck))
+
+
+# ------------------------------------------------------------- retired ids --
+
+
+func test_a_deprecated_action_is_declared_nowhere() -> void:
+	# It keeps its ID and loses everything else: no row, no binding, no way for a
+	# player to press it. A retired action that stayed bound would be a key that
+	# does nothing, which is worse than one that was never there.
+	for id: StringName in InputActions.DEPRECATED:
+		assert_false(InputActions.exists(id), "%s is retired and still declared" % id)
+
+
+func test_the_corpus_still_remembers_a_deprecated_id() -> void:
+	# The other half of §2.3. If a retired ID vanished from the documents, a future
+	# reader could reintroduce it with a second meaning — which is the one thing
+	# the immutability rule exists to prevent.
+	for id: StringName in InputActions.DEPRECATED:
+		assert_true(id in _documented_ids(), "%s was deleted rather than retired" % id)

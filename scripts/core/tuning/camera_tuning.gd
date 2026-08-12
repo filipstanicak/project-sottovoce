@@ -52,14 +52,6 @@ extends Resource
 ## TUN-CAM-ARM-HEIGHT
 @export_range(1.4, 1.8, 0.01) var arm_height: float = 1.55
 
-## Lateral offset.
-## TUN-CAM-SHOULDER-OFFSET
-@export_range(0.3, 0.7, 0.01) var shoulder_offset: float = 0.45
-
-## Time to swap shoulders.
-## TUN-CAM-SHOULDER-SWAP-TIME
-@export_range(0.15, 0.4, 0.01) var shoulder_swap_time: float = 0.25
-
 ## How far short of an occluder the arm stops. Below it the near plane clips into geometry and
 ## the player sees through the wall; above it the camera reads as detached from the surface it is
 ## avoiding. Promoted from prose — GDD-02 §4.4 describes the pull-in without saying where it

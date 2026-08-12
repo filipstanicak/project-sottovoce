@@ -66,8 +66,6 @@ const ACTIONS: Dictionary = {
 	{"kind": Kind.PRESS, "bit": InputBits.ABILITY_2, "toggleable": false, "rebindable": true},
 	Ids.INPUT_SCAN:
 	{"kind": Kind.HOLD, "bit": InputBits.SCAN, "toggleable": true, "rebindable": true},
-	Ids.INPUT_SHOULDER:
-	{"kind": Kind.PRESS, "bit": InputBits.NONE, "toggleable": false, "rebindable": true},
 	Ids.INPUT_SCORE:
 	# The one action that is never rebindable. A player who has rebound their way
 	{"kind": Kind.HOLD, "bit": InputBits.NONE, "toggleable": true, "rebindable": true},
@@ -84,6 +82,24 @@ const ACTIONS: Dictionary = {
 ## you. Bound together, every stun would also be a kill attempt against whoever
 ## happened to be in front, and a mis-stun already costs a stagger.
 const EXCLUSIVE_PAIRS: Array = [[Ids.INPUT_KILL, Ids.INPUT_STUN]]
+
+## Retired IDs. **They stay in `Ids` and in the corpus forever** — NAMING_AND_IDS
+## §2.3, and `Ids` is harvested from the documents, so an ID cannot be made to
+## disappear by deleting a table row. What this list does is keep them out of
+## `ACTIONS`: a retired action is declared nowhere, bound to nothing, and reaches
+## no `InputMap`.
+##
+## `INPUT-SHOULDER` swapped the camera between two lateral offsets. US-0092
+## deleted the offset — the pawn is centred, GDD-02 §4.1 — so the action had
+## nothing left to move. It had never been wired to anything, which is the only
+## reason removing it costs nothing.
+const DEPRECATED: Array[StringName] = [Ids.INPUT_SHOULDER]
+
+
+## Whether `id` is a retired action. Guards use this to excuse an ID that `Ids`
+## still declares from having to be bound.
+static func is_deprecated(id: StringName) -> bool:
+	return DEPRECATED.has(id)
 
 
 static func ids() -> Array:

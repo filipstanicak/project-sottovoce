@@ -529,8 +529,6 @@ the ordered lever list are in [`../10_gdd/07_balance.md`](../10_gdd/07_balance.m
 | `TUN-CAM-FOV-MOTION-REDUCED` | 62.0 | deg | 55–70 | The single FOV motion-reduction mode locks to, replacing the whole ladder. Sits between stroll and run so no speed is framed unusually — the mode removes a warning channel and must not add a framing bias on top. Promoted from prose — [`../10_gdd/02_player_controller.md`](../10_gdd/02_player_controller.md) §9.4 gives the value without an ID. The compensating speed indicator it trades for is `SYS-UI`'s, in US-0084. |
 | `TUN-CAM-ARM-LENGTH` | 2.6 | m | 2.2–3.2 | Spring-arm length. Far enough to see your own silhouette (you must be able to judge how you look), close enough to keep the crowd legible. |
 | `TUN-CAM-ARM-HEIGHT` | 1.55 | m | 1.4–1.8 | Pivot height — roughly shoulder height on the tallest persona. |
-| `TUN-CAM-SHOULDER-OFFSET` | 0.45 | m | 0.3–0.7 | Lateral offset. |
-| `TUN-CAM-SHOULDER-SWAP-TIME` | 0.25 | s | 0.15–0.4 | Time to swap shoulders. |
 | `TUN-CAM-OCCLUSION-MARGIN` | 0.2 | m | 0.1–0.5 | How far short of an occluder the arm stops. Below it the near plane clips into geometry and the player sees through the wall; above it the camera reads as detached from the surface it is avoiding. Promoted from prose — GDD-02 §4.4 describes the pull-in without saying where it stops. |
 | `TUN-CAM-OCCLUSION-PULL-RATE` | 12.0 | m/s | 8–20 | Speed at which the arm pulls in on collision. Fast, because a camera stuck in a wall in a game about looking at people is a critical failure. |
 | `TUN-CAM-OCCLUSION-RESTORE-RATE` | 4.0 | m/s | 2–8 | Speed of restoration. Slower than pull-in, to avoid oscillation in doorways. |
@@ -668,8 +666,8 @@ Retired IDs are kept here forever and **never reused**
 prose rather than as table rows on purpose: the codegen parses every row of every table in this
 file, so a deprecated row would go on generating a field.
 
-All five below were retired together, when the speed ladder lost its Jog rung and `INPUT-RUN`
-stopped meaning two different things.
+The first six were retired together, when the speed ladder lost its Jog rung and `INPUT-RUN`
+stopped meaning two different things. The two camera entries went with the shoulder offset.
 
 ### TUN-SPEED-JOG — DEPRECATED 2026-08-12, superseded by TUN-SCORE-PATIENT-SPEED
 
@@ -702,6 +700,22 @@ Sprint is the double-tap, and on a pad the full trigger plus traverse (GDD-02 §
 The friction §1.5 defends is not weakened by this: it moves entirely into the double-tap, which
 is still an input you cannot enter by leaning on a key. What is lost is a second route to the
 same place, and what is gained is a Run you can hold.
+
+### TUN-CAM-SHOULDER-OFFSET — DEPRECATED 2026-08-12, no successor
+
+0.45 m. **The camera has no lateral offset: the pawn is centred, and GDD-02 §4.1 now says so.**
+Two reasons, in the order they were found. It never worked — `CameraRig` slid the camera sideways
+and then aimed at the pivot, which is the pawn's own axis, so the pawn re-centred in view however
+far the camera moved; the offset changed the viewing angle and never the composition. And a
+centred model is the right shot for a game where the player is *reading their own silhouette*: an
+over-the-shoulder offset exists to clear a firing line, and there is no firing line here.
+
+It was invisible for three stories because the pawn was invisible (US-0091).
+
+### TUN-CAM-SHOULDER-SWAP-TIME — DEPRECATED 2026-08-12, no successor
+
+0.25 s. It timed a blend between two offsets that no longer exist. `INPUT-SHOULDER` is deprecated
+with it — retained as an ID, bound to nothing.
 
 ### TUN-SPEED-SPRINT-DOUBLETAP — DEPRECATED 2026-08-12, superseded by TUN-SPEED-RUN-RESOLVE
 

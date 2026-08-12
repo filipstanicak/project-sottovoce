@@ -112,7 +112,7 @@ early or 0.25 s late resolves, and probes mask `WORLD` only.
 
 ## 7. `EPIC-CAMERA` — M1
 
-Spring arm, FOV ladder, occlusion, shoulder swap, crowd-scan.
+Spring arm, FOV ladder, occlusion, crowd-scan. The shoulder swap was deprecated in US-0092 with the offset it moved — the pawn is centred.
 
 **Why it closes M1:** the camera is what makes the pawn *feel* like anything. The M1 gate is
 subjective, and it cannot be judged without it.

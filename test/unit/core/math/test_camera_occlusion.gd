@@ -16,7 +16,6 @@
 extends GutTest
 
 const FEET := Vector3(10.0, 0.0, -4.0)
-const RIGHT := float(CameraArm.Shoulder.RIGHT)
 
 
 func test_a_clear_line_leaves_the_arm_at_full_length() -> void:
@@ -45,8 +44,8 @@ func test_pulling_in_never_changes_the_direction() -> void:
 	# **THE RULE.** §4.4: the arm pulls IN rather than sideways, so a player
 	# pressed against a corner never gets a free look down the street beyond it.
 	# Sliding is what an ordinary spring arm does; this asserts we do not.
-	var full := CameraArm.position_at(FEET, 1.0, 0.2, RIGHT, 2.6)
-	var pulled := CameraArm.position_at(FEET, 1.0, 0.2, RIGHT, 0.8)
+	var full := CameraArm.position_at(FEET, 1.0, 0.2, 2.6)
+	var pulled := CameraArm.position_at(FEET, 1.0, 0.2, 0.8)
 	var pivot := CameraArm.pivot(FEET)
 	assert_almost_eq(
 		(full - pivot).normalized().distance_to((pulled - pivot).normalized()),
@@ -57,18 +56,17 @@ func test_pulling_in_never_changes_the_direction() -> void:
 	assert_almost_eq((pulled - pivot).length(), 0.8, 0.001)
 
 
-func test_the_shoulder_is_part_of_the_line_it_pulls_along() -> void:
-	# The lateral offset is inside the direction, not applied after it. Applying
-	# it after would let a pulled-in camera keep the full sideways displacement —
-	# which is precisely the peek the rule forbids.
+func test_the_arm_never_acquires_a_sideways_component() -> void:
+	# **THE PEEK THE RULE FORBIDS**, asserted at every pull-in distance rather than
+	# at one. The offset that used to be inside this line is gone (US-0092, the
+	# pawn is centred), so the claim is now the stronger one: there is no lateral
+	# displacement to keep, at any distance, at any pitch.
 	var pivot := CameraArm.pivot(FEET)
-	var pulled := CameraArm.position_at(FEET, 0.0, 0.0, RIGHT, 0.5)
-	var lateral := (pulled - pivot).dot(CameraArm.right(0.0))
-	assert_lt(
-		absf(lateral),
-		Tuning.camera.shoulder_offset,
-		"a pulled-in camera kept its full shoulder offset"
-	)
+	for distance: float in [0.2, 0.5, 1.4, 2.6]:
+		for pitch: float in [-0.6, 0.0, 0.6]:
+			var pulled := CameraArm.position_at(FEET, 0.0, pitch, distance)
+			var lateral := (pulled - pivot).dot(CameraArm.right(0.0))
+			assert_almost_eq(lateral, 0.0, 0.001, "the arm slid sideways at %.1f m" % distance)
 
 
 # ------------------------------------------------------------- the two rates --
