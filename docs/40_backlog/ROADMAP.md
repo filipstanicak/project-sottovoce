@@ -288,7 +288,7 @@ join/leave stable.
 | Delivers | |
 |---|---|
 | `Net` autoload, ENet peer lifecycle, three channels | **Done, US-0025** |
-| `RpcRouter` with authority checks on **every** C2S message | |
+| `RpcRouter` with authority checks on **every** C2S message | **Done, US-0026.** Plus the two §12 guards that had been promised since M0 and never written |
 | `MatchDirector` net tick — 30 Hz from the 60 Hz physics clock | |
 | Server-side pawn simulation; the **same** state machine as M1 | |
 | Snapshot format, `SnapshotBuilder` (cull + quantise + delta) | |

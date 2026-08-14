@@ -285,7 +285,41 @@ broken yet because nothing is hand-serialised, but US-0029 cannot pack that into
 a byte. Either the server maps peers onto small slot numbers for the wire, or
 the schema is wrong. Recorded in US-0025, not decided.
 
-**Next is US-0026, the RPC router and the authority chokepoint.**
+**US-0026 IS BUILT: THE AUTHORITY CHOKEPOINT EXISTS.** Every inbound client
+message arrives at `RpcRouter`, is authorised there, and reaches a system only
+as a signal — so the router does not know `SYS-COMBAT` exists and does not
+change when one is added. The decisions are pure again: `Authority` holds §6.1's
+authority column as a table, `SequenceGate` holds one `u16` per peer.
+
+- **Warmup is not playing.** Input is legal in ACTIVE and FINAL only. A pawn
+  exists in warmup, so only the phase stands between an input and the
+  simulation — which is why phase is checked rather than inferred from the pawn.
+- **The `u16` sequence wraps every ~18 minutes, inside a match.** A gate written
+  as `seq > last` passes every test anyone would think to write and then rejects
+  *every input for eighteen minutes*, on a server logging nothing. `is_newer()`
+  compares the signed distance in modular arithmetic, and both edges of the
+  window are asserted.
+- **The router keeps its own roster.** Asking `Net.has_player()` made three
+  tests true for the wrong reason — every assertion collapsed to "not a player",
+  which stays true with pawn tracking deleted. State the router owns is state a
+  test can set.
+
+**TWO GUARDS TDD-04 PROMISED IN M0 WERE FINALLY WRITTEN**, and the first one
+found zero handlers and passed. `SourceScanner.code_lines()` strips string
+literals so a guard is never tripped by its own documentation — and the thing
+being matched *is* a literal, the `"any_peer"` inside the annotation. **A guard
+that scans the wrong way is vacuously green forever**; trap 3's family, third
+instance. Both are falsified against planted violations now:
+`test_no_client_authority.gd` (a handler with no `_authorise`, and a handler
+that acts before authorising) and `test_client_cannot_assert_outcome.gd`
+(`damage:u8` added to a C2S row in the catalogue).
+
+**AND `.ci/run_gut.sh` CAUGHT ITS FOURTH SILENT SKIP** — 48 scripts ran, 51 exist
+on disk, because three new test files had never been imported. Run
+`godot --headless --editor --quit-after 150` after adding a test file.
+
+**Next is US-0027, the net tick director — 30 Hz out of the 60 Hz physics
+clock.**
 
 **TWO STORIES WERE WRITTEN AND HELD BEHIND THE GATE**, both for the same reason:
 they change what `INPUT-TRAVERSE` does, and the gate's second line *counts
@@ -451,7 +485,7 @@ US-0024 measures it against clips that do not exist.
 | | |
 |---|---|
 | CI | 7 jobs. **Running again as of 2026-08-07 after a two-day outage** — run `31200490320`, all seven green. The seven commits merged during the outage were never through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | 103 architecture guards + 429 unit + 118 integration, all three counted in CI |
+| Tests | 111 architecture guards + 458 unit + 118 integration, all three counted in CI |
 | Tuning | 280 tunables across 14 resource classes; all 26 cross-field invariants assert. **Eight IDs are deprecated** and recorded in TUNABLES §19 — never reused |
 | Autoloads | All eight. `Tuning` precomputes 86 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |
