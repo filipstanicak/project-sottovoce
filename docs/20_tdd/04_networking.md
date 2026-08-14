@@ -354,6 +354,27 @@ Against `TUN-NET-BANDWIDTH-BUDGET-DOWN` **96 kbit/s** and `-UP` **16 kbit/s** pe
 **87 % of budget. 13 % headroom.** Thin, which is why the ADR-0007 fallback (replicate near
 NPCs, seed-derive far ones) is designed and documented but unbuilt.
 
+> **THE TABLE ABOVE IS WRONG, AND THE FORMAT IS NOT THE PART THAT IS WRONG.** US-0029 built §4's
+> payload and measured it. The per-record sizes this table budgets against **cannot be reached
+> from the fields §4 declares**: an NPC's index and position alone are 7 bytes, before its yaw and
+> animation, and the row above budgets the whole record at 7. Measured, from
+> `Snapshot.serialise()`:
+>
+> | Record | Budgeted here | Measured |
+> |---|---|---|
+> | NPC | 7 B | **10 B** |
+> | Remote pawn | 14 B | **10 B** |
+> | Own + gameplay + compass + match + counts | 18 B | **46 B** (`own_pawn` alone is 28 by §4) |
+>
+> Re-running this worst case on the measured sizes gives **13 535 B/s ≈ 108.3 kbit/s** — **113 %
+> of `TUN-NET-BANDWIDTH-BUDGET-DOWN`**, not 87 %. There is no headroom; there is a deficit.
+>
+> Nothing is fixable by editing the serialiser — the encoding is as tight as the declared fields
+> allow. The options are the ones §14 open question 1 already raises: **build ADR-0007's fallback**,
+> **shrink the payload**, or **re-derive the budget**. `test_snapshot_size.gd` measures it every
+> run and marks the projection *pending* rather than failing, because a red suite over a number
+> nobody can fix in that file trains people to ignore it.
+
 ### 7.2 The four mechanisms that make it fit
 
 | # | Mechanism | Saving | Detail |
@@ -534,6 +555,7 @@ func sample(entity_id: int, render_time_ms: float) -> EntityState
 | `scripts/net/client/interpolator.gd` | Timestamp-based interpolation |
 | `scripts/net/protocol/input_command.gd` | `InputCommand` |
 | `scripts/net/protocol/snapshot.gd` | Snapshot serialise / deserialise |
+| `scripts/net/protocol/slot_table.gd` | peer id -> `u8` slot. **The engine's 32-bit peer ids never reach the wire** (US-0029) |
 | `scripts/net/protocol/messages.gd` | `NET-` ID constants, the channel each message travels on, and the messages §6.4 forbids |
 | `scripts/net/protocol/handshake.gd` | Pure. Admit, reject or correct — the `NET-C2S-HELLO` decision with no socket |
 | `scripts/net/rtt_table.gd` | Pure. The **client's** smoothed RTT. The server reads ENet's own statistic instead |
