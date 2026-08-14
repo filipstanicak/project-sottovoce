@@ -238,6 +238,13 @@ func _sample_buttons() -> void:
 ## "L2 full + A". That one is NOT gated, because it is already two simultaneous
 ## inputs — the pad's version of the same awkwardness. §9.3 requires a
 ## single-input alternative to exist, and the gated key is it.
+##
+## **AND IT IS THE PAD'S ROUTE ONLY.** `INPUT-TRAVERSE` is `Space` on a keyboard,
+## so a combo that asked only "is traverse held" made **Shift + Space sprint** —
+## found by the owner running at a wall and arriving in a sprint they had not
+## asked for. It predates US-0090 and got easier to hit when Shift started
+## meaning Run. `PadSelection` already knows whether a mapped pad holds the
+## bindings; without one, this route does not exist.
 func _sample_speed() -> void:
 	var pressed := _run_pressed() or _sprint_pressed()
 	var want := _speed.update(pressed)
@@ -266,6 +273,8 @@ func _sprint_pressed() -> bool:
 
 
 func _pad_sprint_combo() -> bool:
+	if _rebinder == null or _rebinder.pad_device() == PadSelection.NO_DEVICE:
+		return false
 	return Input.is_action_pressed(InputActions.action_names(Ids.INPUT_TRAVERSE)[0])
 
 

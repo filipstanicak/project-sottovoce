@@ -198,7 +198,7 @@ size = Vector3(1.6, 0.9, 1.6)
 [node name="Geometry" type="Node3D" parent="."]
 
 [node name="PiazzaDelVetro" type="StaticBody3D" parent="Geometry"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 60, 0, 15)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 60, -0.1, 15)
 
 [node name="Mesh" type="MeshInstance3D" parent="Geometry/PiazzaDelVetro"]
 material_override = SubResource("StandardMaterial3D_t3vyr")
@@ -208,7 +208,7 @@ mesh = SubResource("BoxMesh_o8ldl")
 shape = SubResource("BoxShape3D_ithri")
 
 [node name="ViaDelleLampe" type="StaticBody3D" parent="Geometry"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 15, 0, 48)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 15, -0.1, 48)
 
 [node name="Mesh" type="MeshInstance3D" parent="Geometry/ViaDelleLampe"]
 material_override = SubResource("StandardMaterial3D_t3vyr")
@@ -218,7 +218,7 @@ mesh = SubResource("BoxMesh_aooju")
 shape = SubResource("BoxShape3D_gtmem")
 
 [node name="Loggia" type="StaticBody3D" parent="Geometry"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 75, 0, 45)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 75, -0.1, 45)
 
 [node name="Mesh" type="MeshInstance3D" parent="Geometry/Loggia"]
 material_override = SubResource("StandardMaterial3D_t3vyr")
@@ -228,7 +228,7 @@ mesh = SubResource("BoxMesh_p7u4h")
 shape = SubResource("BoxShape3D_gih4m")
 
 [node name="PiazzaSecca" type="StaticBody3D" parent="Geometry"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 62, 0, 75)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 62, -0.1, 75)
 
 [node name="Mesh" type="MeshInstance3D" parent="Geometry/PiazzaSecca"]
 material_override = SubResource("StandardMaterial3D_t3vyr")
@@ -238,7 +238,7 @@ mesh = SubResource("BoxMesh_t4g3d")
 shape = SubResource("BoxShape3D_qxnob")
 
 [node name="MercatoPiccolo" type="StaticBody3D" parent="Geometry"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 105, 0, 81)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 105, -0.1, 81)
 
 [node name="Mesh" type="MeshInstance3D" parent="Geometry/MercatoPiccolo"]
 material_override = SubResource("StandardMaterial3D_t3vyr")
@@ -248,7 +248,7 @@ mesh = SubResource("BoxMesh_cpnwo")
 shape = SubResource("BoxShape3D_d7nk6")
 
 [node name="VicoloStretto" type="StaticBody3D" parent="Geometry"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 23, 0, 78)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 23, -0.1, 78)
 
 [node name="Mesh" type="MeshInstance3D" parent="Geometry/VicoloStretto"]
 material_override = SubResource("StandardMaterial3D_t3vyr")
@@ -258,7 +258,7 @@ mesh = SubResource("BoxMesh_v2djy")
 shape = SubResource("BoxShape3D_3snmk")
 
 [node name="PonteCorto" type="StaticBody3D" parent="Geometry"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 47.2, 0, 94.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 47.2, -0.1, 94.5)
 
 [node name="Mesh" type="MeshInstance3D" parent="Geometry/PonteCorto"]
 material_override = SubResource("StandardMaterial3D_t3vyr")
@@ -268,7 +268,7 @@ mesh = SubResource("BoxMesh_7o13r")
 shape = SubResource("BoxShape3D_yhfjw")
 
 [node name="FondacoStreet" type="StaticBody3D" parent="Geometry"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 60, 0, 97.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 60, -0.1, 97.5)
 
 [node name="Mesh" type="MeshInstance3D" parent="Geometry/FondacoStreet"]
 material_override = SubResource("StandardMaterial3D_t3vyr")
@@ -278,7 +278,7 @@ mesh = SubResource("BoxMesh_f8lj7")
 shape = SubResource("BoxShape3D_hm430")
 
 [node name="EastStreet" type="StaticBody3D" parent="Geometry"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 105, 0, 33)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 105, -0.1, 33)
 
 [node name="Mesh" type="MeshInstance3D" parent="Geometry/EastStreet"]
 material_override = SubResource("StandardMaterial3D_t3vyr")
@@ -288,7 +288,7 @@ mesh = SubResource("BoxMesh_qqrff")
 shape = SubResource("BoxShape3D_adnkr")
 
 [node name="LoggiaBalcony" type="StaticBody3D" parent="Geometry"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 75, 3.5, 38)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 75, 3.3999999, 38)
 
 [node name="Mesh" type="MeshInstance3D" parent="Geometry/LoggiaBalcony"]
 material_override = SubResource("StandardMaterial3D_t3vyr")

@@ -89,61 +89,61 @@ size = Vector3(1.6, 0.9, 1.6)
 [node name="Geometry" type="Node3D" parent="."]
 
 [node name="PiazzaDelVetro" type="StaticBody3D" parent="Geometry"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 60, 0, 15)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 60, -0.1, 15)
 
 [node name="Collision" type="CollisionShape3D" parent="Geometry/PiazzaDelVetro"]
 shape = SubResource("BoxShape3D_801ok")
 
 [node name="ViaDelleLampe" type="StaticBody3D" parent="Geometry"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 15, 0, 48)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 15, -0.1, 48)
 
 [node name="Collision" type="CollisionShape3D" parent="Geometry/ViaDelleLampe"]
 shape = SubResource("BoxShape3D_qn27m")
 
 [node name="Loggia" type="StaticBody3D" parent="Geometry"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 75, 0, 45)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 75, -0.1, 45)
 
 [node name="Collision" type="CollisionShape3D" parent="Geometry/Loggia"]
 shape = SubResource("BoxShape3D_30af5")
 
 [node name="PiazzaSecca" type="StaticBody3D" parent="Geometry"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 62, 0, 75)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 62, -0.1, 75)
 
 [node name="Collision" type="CollisionShape3D" parent="Geometry/PiazzaSecca"]
 shape = SubResource("BoxShape3D_62o1s")
 
 [node name="MercatoPiccolo" type="StaticBody3D" parent="Geometry"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 105, 0, 81)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 105, -0.1, 81)
 
 [node name="Collision" type="CollisionShape3D" parent="Geometry/MercatoPiccolo"]
 shape = SubResource("BoxShape3D_ix2vh")
 
 [node name="VicoloStretto" type="StaticBody3D" parent="Geometry"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 23, 0, 78)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 23, -0.1, 78)
 
 [node name="Collision" type="CollisionShape3D" parent="Geometry/VicoloStretto"]
 shape = SubResource("BoxShape3D_1brm0")
 
 [node name="PonteCorto" type="StaticBody3D" parent="Geometry"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 47.2, 0, 94.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 47.2, -0.1, 94.5)
 
 [node name="Collision" type="CollisionShape3D" parent="Geometry/PonteCorto"]
 shape = SubResource("BoxShape3D_u6jh1")
 
 [node name="FondacoStreet" type="StaticBody3D" parent="Geometry"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 60, 0, 97.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 60, -0.1, 97.5)
 
 [node name="Collision" type="CollisionShape3D" parent="Geometry/FondacoStreet"]
 shape = SubResource("BoxShape3D_24nwt")
 
 [node name="EastStreet" type="StaticBody3D" parent="Geometry"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 105, 0, 33)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 105, -0.1, 33)
 
 [node name="Collision" type="CollisionShape3D" parent="Geometry/EastStreet"]
 shape = SubResource("BoxShape3D_iyakq")
 
 [node name="LoggiaBalcony" type="StaticBody3D" parent="Geometry"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 75, 3.5, 38)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 75, 3.3999999, 38)
 
 [node name="Collision" type="CollisionShape3D" parent="Geometry/LoggiaBalcony"]
 shape = SubResource("BoxShape3D_va8c5")

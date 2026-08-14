@@ -18,6 +18,11 @@ const SCENE_OUT := "res://scenes/map/map_vetraio.tscn"
 const COLLISION_OUT := "res://scenes/map/map_vetraio_collision.tscn"
 const DATA_OUT := "res://data/maps/map_vetraio.tres"
 
+## How far a walkable slab hangs below the surface it declares. Thick enough that
+## nothing falls through it, and entirely beneath `FLOORS`' y so the surface is
+## exactly the number the layout table gives.
+const FLOOR_THICKNESS := 0.2
+
 ## Desaturated greybox palette, GDD-05 §7.4. Deliberately avoids the saturated
 ## identity hues the colour-language law reserves for personas and tells.
 ## MAT-VOID is absent: it must never appear in a playtest build.
@@ -142,9 +147,21 @@ func _build_scene(with_meshes: bool = true) -> Node3D:
 ## guard caps a function at 40 lines, and four loops in one function was four
 ## things.
 func _add_geometry(geometry: Node3D, root: Node3D) -> void:
+	# **A FLOOR HANGS BELOW ITS SURFACE, IT DOES NOT STRADDLE IT.** `FLOORS` gives
+	# the height of the walkable SURFACE — STREET_Y 0.0, BALCONY_Y 3.5 — and the
+	# slab has to end there. Centring it on that height instead put every walkable
+	# top 0.1 m high, which is one of those errors that is invisible until it is
+	# not: the pawn stood at y = 0.10 while the 0.9 m stall counters stayed at
+	# 0.90, so they were only 0.80 m above its feet, the 0.85 m waist probe passed
+	# over them, and pressing traverse at a market stall did nothing at all.
 	for f: Array in VetraioLayout.FLOORS:
 		_add_box(
-			geometry, root, f[0], Vector3(f[1], f[5] - 0.1, f[2]), Vector3(f[3], 0.2, f[4]), f[6]
+			geometry,
+			root,
+			f[0],
+			Vector3(f[1], f[5] - FLOOR_THICKNESS, f[2]),
+			Vector3(f[3], FLOOR_THICKNESS, f[4]),
+			f[6]
 		)
 	for b: Array in VetraioLayout.BLOCKS:
 		_add_box(geometry, root, b[0], Vector3(b[1], 0.0, b[2]), Vector3(b[3], b[5], b[4]), b[6])
