@@ -159,26 +159,38 @@ func _install(peer: ENetMultiplayerPeer, as_server: bool) -> void:
 	multiplayer.multiplayer_peer = peer
 
 
-## `TUN-NET-TIMEOUT` on one ENet connection — per peer, because that is the only
-## place ENet exposes it. The three arguments are a retransmission limit and a
-## floor and ceiling in milliseconds; pinning floor and ceiling to the same value
-## is what makes the tunable mean what TUNABLES says, rather than a number ENet
-## is free to back off from.
-func _apply_timeout(peer_id: int) -> void:
-	if _peer == null:
-		return
-	var enet := _peer.get_peer(peer_id)
-	if enet == null:
+## `TUN-NET-TIMEOUT` on every connection this host currently holds.
+##
+## Per connection, because that is the only place ENet exposes it. The three
+## arguments are a retransmission limit and a floor and ceiling in milliseconds;
+## pinning floor and ceiling to the same value is what makes the tunable mean
+## what TUNABLES says rather than a number ENet is free to back off from.
+##
+## **THROUGH THE HOST, NOT THROUGH `get_peer(id)`.** This used to look the peer
+## up by id, which works on a server — where `peers` is keyed by unique id — and
+## **never worked on a client at all**: a client's map is empty, `get_peer(1)`
+## fails its own `ERR_FAIL_COND`, and every client logged
+## `Condition "!peers.has(p_id)" is true` on connect. The early return meant
+## nothing broke, so the only symptom was **the client silently using ENet's
+## default timeout instead of the tunable**. Measured: on a connected client
+## `get_peers()` is empty while `host.get_peers()` holds one peer in state
+## `CONNECTED`.
+##
+## Applying to all of them is idempotent, and it removes the id lookup that was
+## the wrong idea in the first place.
+func _apply_timeout() -> void:
+	if _peer == null or _peer.host == null:
 		return
 	var ms := int(Tuning.net.timeout * 1000.0)
-	enet.set_timeout(ms, ms, ms)
+	for connection: ENetPacketPeer in _peer.host.get_peers():
+		connection.set_timeout(ms, ms, ms)
 
 
 # ----------------------------------------------------------------- transport --
 
 
 func _on_peer_connected(id: int) -> void:
-	_apply_timeout(id)
+	_apply_timeout()
 	if is_server:
 		# The client speaks first; until it has, this is a socket, not a player.
 		Log.info("Net: peer %d connected, awaiting hello" % id, &"net")
@@ -189,7 +201,7 @@ func _on_peer_disconnected(id: int) -> void:
 
 
 func _on_connected_to_server() -> void:
-	_apply_timeout(MultiplayerPeer.TARGET_PEER_SERVER)
+	_apply_timeout()
 	_hello.rpc_id(
 		MultiplayerPeer.TARGET_PEER_SERVER,
 		Messages.PROTOCOL_VERSION,

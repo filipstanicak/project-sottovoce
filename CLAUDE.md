@@ -465,13 +465,22 @@ answers *what is T*.
 requires the file to name `InputSampler` too. A guard that fails on unrelated
 files gets loosened, and the loosening is what actually costs you.
 
-**KNOWN, RECORDED, NOT YET FIXED: `TUN-NET-TIMEOUT` IS NEVER APPLIED ON THE
-CLIENT.** `Net._on_connected_to_server()` calls `_apply_timeout()` for peer 1
-before ENet has that peer in its map, so `get_peer()` returns null and pushes
-`Condition "!peers.has(p_id)" is true` into every client's log. The early return
-handles it, which is why nothing broke — but the client falls back to ENet's
-default timeout rather than the tunable. From US-0025; found in the log of a
-two-process run, 2026-08-14.
+**`TUN-NET-TIMEOUT` WAS NEVER APPLIED ON THE CLIENT, AND IS NOW** (#74).
+`_apply_timeout()` looked the connection up with `get_peer(id)`, which works on a
+**server** — where `peers` is keyed by unique id — and never worked on a client
+at all: that map is empty, the call fails its own `ERR_FAIL_COND`, and every
+client logged `Condition "!peers.has(p_id)" is true` on connect. The early return
+meant nothing broke, so the only real symptom was **the client silently falling
+back to ENet's default timeout instead of the tunable**. It applies to every
+connection the host holds now, which removes the id lookup that was the wrong
+idea. Client logs are clean.
+
+**AND THE FIRST PROBE WRITTEN TO DIAGNOSE IT LIED.** It called
+`ENetMultiplayerPeer.get_peers()` behind a `has_method` guard — the method does
+not exist — so it printed an empty list that read exactly like evidence.
+`host.get_peers()` is the real route and holds one peer in state `CONNECTED`.
+**A probe that cannot see reports the same thing as a quiet machine**, which is
+trap 13 in a new costume.
 
 **Next is US-0031 (delta encoding), US-0032/0033 (prediction and
 reconciliation), or US-0036 (the two-process harness).** US-0030's culling
