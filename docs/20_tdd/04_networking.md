@@ -554,7 +554,8 @@ func sample(entity_id: int, render_time_ms: float) -> EntityState
 | `scripts/net/client/input_sender.gd` | 60 Hz sampling and send |
 | `scripts/net/client/predictor.gd` | Local prediction |
 | `scripts/net/client/reconciler.gd` | The §4.2 loop |
-| `scripts/net/client/interpolator.gd` | Timestamp-based interpolation |
+| `scripts/net/client/snapshot_interpolator.gd` | Timestamp-based interpolation. **Named for its class**, not for the chapter's shorthand — `test_file_naming.gd` requires the two to match (US-0034) |
+| `scripts/net/client/render_clock.gd` | The client's view of server time; forward-only, never smoothed (US-0034) |
 | `scripts/net/protocol/input_command.gd` | `InputCommand` |
 | `scripts/net/protocol/snapshot.gd` | Snapshot serialise / deserialise |
 | `scripts/net/protocol/slot_table.gd` | peer id -> `u8` slot. **The engine's 32-bit peer ids never reach the wire** (US-0029) |
