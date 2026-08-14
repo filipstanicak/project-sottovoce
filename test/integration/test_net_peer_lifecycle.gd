@@ -95,6 +95,45 @@ func test_the_channels_are_opened_on_both_ends() -> void:
 	assert_eq(_client.get_connection_status(), MultiplayerPeer.CONNECTION_CONNECTED)
 
 
+func test_a_client_reaches_its_connection_through_the_host() -> void:
+	# **THE ENGINE BEHAVIOUR THE TIMEOUT CODE ASSUMED WRONGLY**, pinned so it
+	# cannot be assumed again. `ENetMultiplayerPeer.peers` is keyed by unique id
+	# and is populated on a SERVER; on a client it is empty, so `get_peer(1)`
+	# fails its own ERR_FAIL_COND and returns null. The connection is reachable
+	# only through the host.
+	#
+	# The consequence was silent: `TUN-NET-TIMEOUT` was never applied on the
+	# client, which fell back to ENet's default, and the only visible trace was
+	# `Condition "!peers.has(p_id)" is true` in every client's log.
+	assert_true(Net.start_server(PORT, 6))
+	_client = ENetMultiplayerPeer.new()
+	_client.create_client("127.0.0.1", PORT, Messages.CHANNEL_COUNT)
+	await _pump(40)
+	assert_eq(_client.get_connection_status(), MultiplayerPeer.CONNECTION_CONNECTED)
+
+	# `get_peer(1)` is NOT asserted here: it fails its own ERR_FAIL_COND and pushes
+	# an engine error, which GUT would report as a failure of this test rather
+	# than as the behaviour being pinned. What is asserted is the route that works.
+	assert_not_null(_client.host, "the client has no host to reach its connection through")
+	var connections: Array = _client.host.get_peers()
+	assert_eq(connections.size(), 1, "the server connection is not reachable through the host")
+	assert_eq(
+		(connections[0] as ENetPacketPeer).get_state(),
+		ENetPacketPeer.STATE_CONNECTED,
+		"the connection the timeout is applied to is not established"
+	)
+
+
+func test_the_server_reaches_its_peers_by_id() -> void:
+	# The other half, and why the old code looked right: a SERVER's map is keyed
+	# by unique id, so `get_peer(id)` works there and only there.
+	assert_true(Net.start_server(PORT, 6))
+	_client = ENetMultiplayerPeer.new()
+	_client.create_client("127.0.0.1", PORT, Messages.CHANNEL_COUNT)
+	await _pump(40)
+	assert_gt(Net.rtt_ms(_client.get_unique_id()), -1.0, "the server cannot measure its peer")
+
+
 func test_stopping_releases_everything() -> void:
 	# Not tidiness: a suite that leaves a port bound fails the NEXT test with a
 	# message about the next test.
