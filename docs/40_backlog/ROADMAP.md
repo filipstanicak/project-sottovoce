@@ -293,7 +293,8 @@ join/leave stable.
 | Server-side pawn simulation; the **same** state machine as M1 | **Done, US-0028** — and the same `PawnMotion`, extracted because stepping the machine is only half a tick |
 | Snapshot format, `SnapshotBuilder` (cull + quantise + delta) | **Format done, US-0029.** It measured the downstream budget at **113 %**, not the 87 % §7.1 concluded — the sizes that table budgeted against were unreachable from §4's own field list. **The crowd record was shrunk from 10 B to 8 B in answer and it now projects to 93.0 kbit/s, 97 % of budget** |
 | `Predictor`, `Reconciler`, `SnapshotInterpolator` | **All three done, US-0032 to US-0034.** Remote entities render 100 ms in the past between stamped samples; the local pawn predicts and **the simulation snaps while the visual blends**, converging at four latency profiles |
-| `LagCompHistory` (recording only — no consumers until M4) | |
+| `LagCompHistory` (recording only — no consumers until M4) | Open, US-0035 |
+| Join / leave stability under churn | **Done, US-0037.** 120 joins and 120 departures return five counters to baseline; two criteria unticked — a real timeout needs two processes, and match-end below minimum players is `SYS-MATCH`'s in M4 |
 | The integration harness + four-profile latency matrix | **Done, US-0036.** Three real clients and a real server in one process, at LAN/GOOD/TYPICAL/POOR; 87.7 s against a 180 s budget. Only the wire is synthetic. `test_frame_rate_independence.gd` cannot exist headless and is recorded rather than rounded up |
 
 ### 4.1 The M2 gate
