@@ -15,6 +15,7 @@ const MAP := "res://data/maps/map_vetraio.tres"
 @onready var router: RpcRouter = $NetServer/RpcRouter
 @onready var pawns: PawnHost = $World/Pawns
 @onready var snapshots: SnapshotBuilder = $NetServer/SnapshotBuilder
+@onready var lag_comp: LagCompRecorder = $NetServer/LagCompRecorder
 
 
 func _ready() -> void:
@@ -37,14 +38,27 @@ func _ready() -> void:
 	router.input_received.connect(director.enqueue_input)
 	director.input_applied.connect(pawns.apply_input)
 
-	# LAST in the tick, so every record carries the position this tick ended at.
-	snapshots.setup(director.ctx, pawns, router)
-	director.net_ticked.connect(snapshots.send_all)
+	_wire_end_of_tick()
 
 	# A pawn on join, and the router told so it can authorise that peer's input.
 	Net.peer_joined.connect(_on_peer_joined)
 	Net.peer_left.connect(_on_peer_left)
 	Log.info("server topology wired: net -> router -> director -> pawns -> snapshots", &"net")
+
+
+## **EVERYTHING THAT ANSWERS "WHERE WAS THE WORLD AT TICK N".** Both consumers
+## hang off `tick_completed`, and they must hang off the **same** signal or a
+## rewind and the snapshot it resolves against describe different moments.
+##
+## It was `net_ticked` until US-0035, while this file claimed "last in the tick".
+## Full account on `MatchDirector.tick_completed`.
+func _wire_end_of_tick() -> void:
+	snapshots.setup(director.ctx, pawns, router)
+	director.tick_completed.connect(snapshots.send_all)
+
+	# Recording only. Nothing reads the history until kill and stun exist in M4.
+	lag_comp.setup(director.ctx, pawns)
+	director.tick_completed.connect(lag_comp.record)
 
 
 func _on_peer_joined(peer: int) -> void:

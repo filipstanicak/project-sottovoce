@@ -58,6 +58,28 @@ pull request**.
       all three suites together.
 - [x] Runs headless in CI on pull requests.
 
+## `disagreement()` measured the wrong thing, and three tests believed it
+
+**Found in US-0035, 2026-08-15.** The harness's headline API returned the distance between the
+client's live position and the server's live position, and three tests compared it against
+`TUN-NET-RECONCILE-THRESHOLD`.
+
+**In a predicting architecture that distance is never zero and is not an error.** The client
+simulates input the instant it is pressed; the server has not seen it yet. What was being measured
+is the **prediction lead** — a healthy one is non-zero, and it grows with speed.
+
+Measured: **0.0733 m at stroll and 0.1500 m at run — exactly 2.00 commands at both** — against a
+threshold of 0.10 m, while the reconciler's own error over 120 samples was **0.00000 m**. So the
+assertions passed only because the harness never drove faster than a walk, and were one speed rung
+away from failing over a defect that did not exist.
+
+Renamed to `prediction_lead()`, with `reconciliation_error()` added beside it reading
+`Reconciler.last_error` — the comparison in which both sides describe the same moment. All three
+call sites repointed.
+
+**Trap 4, in the harness written to catch trap 4**: the assertion was true, and it was not the
+question.
+
 ## What building it found
 
 **The first version added every node twice.** The harness parented its nodes to the test and

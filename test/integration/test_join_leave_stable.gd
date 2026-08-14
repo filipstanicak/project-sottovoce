@@ -115,7 +115,7 @@ func test_the_others_keep_agreeing_while_someone_joins() -> void:
 	await _harness.advance(20)
 	for peer: int in PEERS:
 		assert_lt(
-			_harness.disagreement(peer),
+			_harness.reconciliation_error(peer),
 			Tuning.net.reconcile_threshold,
 			"peer %d was disturbed by the churn" % peer
 		)
@@ -167,7 +167,7 @@ func test_a_survivor_still_agrees_after_the_churn() -> void:
 	await _harness.advance(20)
 	assert_true(_harness.has_client(1), "the survivor was removed by somebody else's churn")
 	assert_lt(
-		_harness.disagreement(1),
+		_harness.reconciliation_error(1),
 		Tuning.net.reconcile_threshold,
 		"the survivor drifted from the server across the churn"
 	)

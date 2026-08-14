@@ -33,9 +33,17 @@ func setup(ctx: MatchContext, pawns: PawnHost, router: RpcRouter) -> void:
 	_router = router
 
 
-## Build and send one tick's worth. Connected to `MatchDirector.net_ticked`,
+## Build and send one tick's worth. Connected to `MatchDirector.tick_completed`,
 ## which is the `snapshot` stage of `SystemOrder` — **last**, so every record
 ## carries the positions this tick ended at rather than the ones it started with.
+##
+## **IT WAS CONNECTED TO `net_ticked` UNTIL US-0035, AND THAT SENTENCE WAS FALSE.**
+## `net_ticked` fires before the stage loop, so a snapshot stamped tick N carried
+## the world from the end of N-1. It was internally consistent — position and
+## `last_acked_seq` agreed, and the measured reconciliation error was 0.00000 m —
+## so the only symptom was that remote pawns rendered one tick staler than
+## `TUN-NET-INTERP-BUFFER` promises. Found by probing the emission order while
+## deciding where the lag-comp history should be stamped.
 func send_all(_ctx_in: MatchContext, _dt: float) -> void:
 	if _ctx == null or _pawns == null:
 		return

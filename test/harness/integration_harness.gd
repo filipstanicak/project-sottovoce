@@ -221,19 +221,44 @@ func drive(action: StringName, frames: int) -> void:
 	Input.action_release(action)
 
 
-## **THE ASSERTION THE HARNESS EXISTS FOR.** How far each client's own predicted
-## position is from the server's authoritative one, worst case.
-##
-## Returns the largest disagreement in metres, so a caller can compare it against
-## `TUN-NET-RECONCILE-THRESHOLD` and say which peer failed.
-func worst_disagreement() -> float:
+## **THE ASSERTION THE HARNESS EXISTS FOR.** The largest reconciliation error any
+## client has been asked to absorb, in metres — comparable against
+## `TUN-NET-RECONCILE-THRESHOLD`.
+func worst_reconciliation_error() -> float:
 	var worst := 0.0
 	for peer: int in _clients:
-		worst = maxf(worst, disagreement(peer))
+		worst = maxf(worst, reconciliation_error(peer))
 	return worst
 
 
-func disagreement(peer: int) -> float:
+## How far the server's answer was from what this client had predicted **for the
+## same command**. Zero means the two peers agree exactly.
+##
+## **THIS IS THE NUMBER, AND `prediction_lead` IS NOT.** Read from the
+## reconciler, which compares the snapshot against the client's own stored state
+## at `last_acked_seq` — the only comparison in which both sides describe the same
+## moment.
+func reconciliation_error(peer: int) -> float:
+	if not _clients.has(peer):
+		return INF
+	return (_clients[peer]["reconciler"] as Reconciler).last_error
+
+
+## **HOW FAR AHEAD THE CLIENT HAS PREDICTED. NOT AN ERROR.** The distance between
+## the client's live position and the server's live position.
+##
+## In a predicting architecture the client is *always* ahead — it simulates input
+## the instant it is pressed and the server has not seen it yet — so this is a
+## measure of the lead, and a healthy one is non-zero.
+##
+## **IT WAS CALLED `disagreement()` AND COMPARED AGAINST
+## `TUN-NET-RECONCILE-THRESHOLD` IN THREE TESTS**, which is a category error that
+## passed only because the pawn walked. Measured: **0.0733 m at stroll and
+## 0.1500 m at run — exactly 2.00 commands at both**, against a 0.10 m threshold,
+## while the reconciler's own error was **0.00000 m over 120 samples**. So the
+## assertions were one speed rung away from failing over a defect that did not
+## exist. Trap 4 again, in the harness written to catch trap 4.
+func prediction_lead(peer: int) -> float:
 	var server := host.context_for(peer)
 	if server == null:
 		return INF

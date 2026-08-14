@@ -24,8 +24,34 @@
 class_name MatchDirector
 extends Node
 
-## One server tick has begun. `ctx.tick` has already advanced.
+## One server tick has **begun**. `ctx.tick` has already advanced, and nothing
+## has simulated yet — anything listening here sees the world as the tick found
+## it.
 signal net_ticked(ctx: MatchContext, dt: float)
+
+## One server tick has **ended**: every stage has run and the world is at rest.
+##
+## **THE DISTINCTION IS NOT COSMETIC, AND IT WAS WRONG FOR THREE STORIES.** The
+## snapshot builder and the lag-comp history both answer "where was everything at
+## tick N", and both were — or would have been — connected to `net_ticked`, which
+## fires *before* the pawn substep. A snapshot stamped N then carried the world
+## from the end of N-1, and `server_root.gd` and `snapshot_builder.gd` each
+## carried a comment claiming the opposite.
+##
+## Measured before it was changed: the client's own reconciliation error was
+## **0.00000 m**, because the snapshot was internally consistent — its position
+## and its `last_acked_seq` described the same moment. Nothing was broken. What
+## was wrong was the *label*: `RemotePawns` derives `server_time` from
+## `snapshot.server_tick`, so every remote entity was drawn one tick further into
+## the past than `TUN-NET-INTERP-BUFFER` declares — an effective 133 ms against a
+## documented 100.
+##
+## Lag compensation is why it had to be fixed rather than documented. It rewinds
+## to a tick the client observed, and §8.1's ceiling exists to cap how far into
+## the past a player may reach. A history stamped on a different timeline from the
+## snapshots would have added a silent tick to *every* rewind, past that ceiling,
+## and nothing would have failed until M4.
+signal tick_completed(ctx: MatchContext, dt: float)
 
 ## An authorised input is to be applied to `peer`'s pawn, at the input rate.
 ## US-0028 connects the server pawn simulation to this.
@@ -142,9 +168,14 @@ func _net_tick() -> void:
 	if not MatchPhase.is_simulating(ctx.phase):
 		# The clock still advances — a monotonic tick that stopped in the lobby
 		# would restart every match at a different number — but nothing simulates.
+		# **AND NOTHING RECORDS.** `tick_completed` is not emitted here: a lag-comp
+		# history filled with identical lobby frames would answer a rewind with a
+		# world that never happened, and a snapshot of a match that has not started
+		# describes nothing.
 		return
 	for stage: StringName in SystemOrder.STAGES:
 		_run_stage(stage)
+	tick_completed.emit(ctx, MatchContext.net_dt())
 
 
 func _run_stage(stage: StringName) -> void:

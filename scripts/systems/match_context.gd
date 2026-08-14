@@ -9,9 +9,10 @@
 ##
 ## **THE FIELDS ARRIVE WITH THEIR SYSTEMS.** TDD-01 §5 lists `crowd`, `cycle`,
 ## `score_log` and `lag_comp` too. Declaring them now as nulls of types that do
-## not exist would be four fields nobody can use and one compile error each time
+## not exist would be fields nobody can use and one compile error each time
 ## someone renames a class that has not been written. They land in M3 and M4 with
-## the systems that own them.
+## the systems that own them — `lag_comp` arrived first, in US-0035, because
+## ADR-0010 records the ring at M2 and consumes it at M4.
 ##
 ## In `scripts/systems/` rather than `scripts/core/`, where TDD-01 §6's file
 ## table puts it. Core is pure by law — `test_core_is_pure.gd` — and a context
@@ -44,6 +45,13 @@ var map: MapData = null
 ## slot", which stays true whatever the code does. If it is not on
 ## `MatchContext`, a system cannot reach it.
 var slots := SlotTable.new()
+
+## **500 MS OF PAST TRANSFORMS.** Recorded every tick from US-0035; **read by
+## nothing until M4**, when kill and stun validate against a rewound world.
+##
+## Built at M2 on purpose (ADR-0010): the ring is proven before anything depends
+## on it, so the M4 work is validation logic rather than infrastructure.
+var lag_comp := LagCompHistory.new()
 
 ## The seeded RNG. **THE ONLY SOURCE OF GAMEPLAY RANDOMNESS**, server-side —
 ## `randf` and `randi` are banned outside `scripts/presentation/`, because a

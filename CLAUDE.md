@@ -220,12 +220,11 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 *Updated 2026-08-15. Keep this section current — it is the first thing a fresh
 session reads, and a stale one is worse than none.*
 
-**PICK UP HERE.** M1 is complete and its gate is passed. **M2 is eleven stories
-built of fourteen**; what is left is **US-0035** (lag-comp history, recording
-only), **US-0031** (delta encoding) and **US-0038** (the M2 gate). Take US-0035
-first: it is self-contained, it has no consumers until M4, and it is the last
-non-gate story that adds machinery M4 will need. The rest of this section is why
-each of those sentences is true, and what has already cost somebody an hour.
+**PICK UP HERE.** M1 is complete and its gate is passed. **M2 is twelve stories
+built of fourteen**; what is left is **US-0031** (delta encoding) and **US-0038**
+(the M2 gate). Take US-0031 first — the gate should judge a finished milestone.
+The rest of this section is why each of those sentences is true, and what has
+already cost somebody an hour.
 
 **M0 IS COMPLETE. M1'S EXIT CRITERION IS MET AND ITS FEEL GATE IS PASSED**, judged
 at the controls on 2026-08-13: slowing instant from every state, the FOV ladder
@@ -582,10 +581,51 @@ somebody else in every message that names anybody.
   physics frames would outlast the 180 s the integration suite is allowed;
   nothing here accumulates with time rather than with cycles.
 
-**M2 IS ELEVEN OF FOURTEEN.** US-0025 to US-0030, US-0032 to US-0034, US-0036
-and US-0037 are built. What is left: **US-0035** (lag-comp history), **US-0031**
-(delta encoding) and **US-0038** (the M2 gate). US-0030's culling criteria stay
-unticked — there is no crowd to cull until M3.
+**US-0035 IS BUILT, AND IT FOUND THE SNAPSHOT ON THE WRONG SIGNAL.** A 500 ms
+ring records every pawn transform each tick; **nothing reads it until M4**, which
+is ADR-0010's point — the buffer is proven before anything depends on it.
+
+**THE STORY'S ONE REAL CORRECTNESS PROPERTY IS WHICH TICK A FRAME BELONGS TO.** A
+rewind resolves against a tick a client saw *in a snapshot*, so the history and
+the snapshot must share a timeline. Checking that found they did not:
+`MatchDirector` emitted one `net_ticked` at the **top** of `_net_tick()`, before
+the stage loop, and the snapshot builder was connected to it — so a snapshot
+stamped tick N carried the world from the end of N−1, while `server_root.gd` and
+`snapshot_builder.gd` **both** carried a comment saying "last in the tick".
+
+- **Nothing was broken, which is why it lasted.** Measured over 120 samples at
+  run speed, the client's reconciliation error was **0.00000 m** — the snapshot
+  was internally *consistent*, its position and its `last_acked_seq` describing
+  the same moment. The only symptom was the **label**: `RemotePawns` derives
+  `server_time` from `server_tick`, so every remote drew one tick staler than
+  `TUN-NET-INTERP-BUFFER` declares — **133 ms against a documented 100**.
+- **There are two signals now.** `net_ticked` before the stages,
+  `tick_completed` after them; the builder and the recorder both use the second,
+  and `test_tick_completed_is_last.gd` asserts the emission order. It was
+  reasoned about twice and written into two comments, and was wrong in both.
+- **The ring is pure and the recorder is not.** `LagCompHistory` takes plain
+  arrays; `LagCompRecorder` walks the world. Same lesson as US-0026: a buffer
+  whose contents arrive through a global cannot be *asked a question* in a test.
+- **It keys by peer, never by wire slot.** Slots are reused the moment somebody
+  leaves, so a rewind resolving a kill against slot 3 could name the player who
+  inherited it. US-0037's lesson, applied before it could bite.
+- **Two criteria stay unticked.** NPC transforms need a crowd (M3), and the
+  memory came in at **28.1 KB against §8.3's 23** — 20 B per record, not 16,
+  because the entity id is stored rather than implied. §8.3 is amended with the
+  measured figure rather than the criterion reworded.
+
+**`IntegrationHarness.disagreement()` MEASURED THE PREDICTION LEAD AND CALLED IT
+AN ERROR**, and three tests compared it against `TUN-NET-RECONCILE-THRESHOLD`. In
+a predicting architecture the client is *always* ahead of the server — that is
+what prediction is — so the number is never zero and grows with speed: **0.0733 m
+at stroll, 0.1500 m at run, exactly 2.00 commands at both**, against a 0.10 m
+threshold. The assertions passed only because the harness never drove faster than
+a walk. It is `prediction_lead()` now, with `reconciliation_error()` beside it
+reading `Reconciler.last_error`. **Trap 4, in the harness written to catch trap 4.**
+
+**M2 IS TWELVE OF FOURTEEN.** US-0025 to US-0030 and US-0032 to US-0037 are
+built. What is left: **US-0031** (delta encoding) and **US-0038** (the M2 gate).
+US-0030's culling criteria stay unticked — there is no crowd to cull until M3.
 
 **WHAT IS RUNNABLE AND WHAT IS NOT.** Three clients and a headless server hold a
 match: peers join, the server simulates their pawns, snapshots come back, each
@@ -789,7 +829,7 @@ US-0024 measures it against clips that do not exist.
 | Camera | Real spring arm: 2.6 m, **pawn centred** (US-0092 — the 0.45 m offset never changed the composition, because the rig aims at the pawn's own axis; `INPUT-SHOULDER` retired with it), occlusion that pulls **in** and never sideways, `WORLD`-masked so a crowd cannot push it. The FOV ladder is bound to the **state**, never to `ctx.velocity`: the rung is a consequence of the decision, not of the physics that follows it. Crowd-scan narrows to 48° and grants nothing. **Positive pitch LOWERS the arm** — the rig looks *at* the pivot, so a raised arm looks down; it shipped inverted from US-0021 until somebody played it |
 | Input | 20 `InputMap` actions from 14 live `INPUT-` IDs — `INPUT-SHOULDER` is retired via `InputActions.DEPRECATED`, still in the corpus and bound to nothing, KBM + pad. Chain GDD-02 → `Ids` → `InputActions` → `project.godot`, guarded on every hop, both directions. **Sampled once per physics frame by `LocalPawnDriver`, the only caller** — see trap 12. The mouse is **captured** on boot; `INPUT-MENU` releases, a click takes it back. **Only a mapped gamepad holds the joypad bindings** — `PadSelection`, applied through the one `InputMap` writer, because a set of sim pedals was steering |
 
-**Eighteen criteria are deliberately unticked**, each blocked by something real. A
+**Twenty criteria are deliberately unticked**, each blocked by something real. A
 prose count of these has now drifted three times, so they are a table — and the
 story files are the source of truth, not this. Regenerate the count rather than
 editing it:
@@ -810,6 +850,7 @@ grep -c '^- \[ \]' docs/40_backlog/stories/*.md
 | US-0030 | three culling criteria, plus `render_state` per observer | there is no crowd to cull until M3, and no `SYS-DETECTION` to compute a state until M3 |
 | US-0036 | "every netcode test runs at all four profiles" | true only of the harness's own agreement test; the rest are pure and have no wire to give a latency to |
 | US-0037 | timeout ≡ clean disconnect; match end below minimum players | a real timeout needs two processes; match end is `SYS-MATCH`'s, in M4 |
+| US-0035 | NPC transforms recorded; memory "around 23 KB" | there is no crowd until M3. Memory measured at **28.1 KB** — 20 B per record, not §8.3's 16, because the entity id is stored rather than implied by slot. TDD-04 §8.3 amended |
 
 Two more things are owed and are **not** acceptance criteria, so they are not in
 the count: the navmesh **bake** (recorded in US-0012) and

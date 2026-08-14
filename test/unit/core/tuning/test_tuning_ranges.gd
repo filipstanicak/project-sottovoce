@@ -58,10 +58,10 @@ func test_every_value_is_inside_its_export_range() -> void:
 
 
 func test_all_cross_field_invariants_hold() -> void:
-	# All 22 now assert for real. Invariants 11 and 12 were pending until
+	# All 26 now assert for real. Invariants 11 and 12 were pending until
 	# AbilityData existed, and reported "cannot check" rather than passing over
 	# the gap — if either ever regresses to that, this fails loudly rather than
-	# quietly going green on 18 of 20.
+	# quietly going green on 24 of 26.
 	var errors: Array[String] = _profile().validate()
 	assert_eq(errors.size(), 0, "Cross-field invariant violated.\n" + "\n".join(errors))
 	for e: String in errors:
@@ -106,6 +106,25 @@ func test_the_fov_invariants_are_live() -> void:
 		if e.begins_with("22."):
 			outside = true
 	assert_true(outside, "a locked FOV outside the ladder produced no error — 22 is inert")
+
+
+func test_the_lagcomp_invariant_is_live() -> void:
+	# **INVARIANT 16 — US-0035's fifth criterion.** `LagCompHistory` sizes its ring
+	# from `lagcomp_history`, so this is what keeps the buffer from becoming the
+	# binding constraint on how far §8.1 may rewind.
+	#
+	# Falsified rather than trusted, because the shipped values satisfy it and
+	# `test_all_cross_field_invariants_hold` would pass identically if the check
+	# had never been written. A rewind ceiling raised past the ring would not
+	# error — it would silently return the oldest frame held, which is a *shorter*
+	# rewind than asked for, and nobody would notice until a kill felt wrong.
+	var p := _profile()
+	p.net.lagcomp_max = p.net.lagcomp_history / 2.0 + 1.0
+	var hit := false
+	for e: String in p.validate():
+		if e.begins_with("16."):
+			hit = true
+	assert_true(hit, "a rewind ceiling past half the ring produced no error — 16 is inert")
 
 
 func test_the_invariant_checker_actually_fires() -> void:
