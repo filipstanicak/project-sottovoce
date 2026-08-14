@@ -381,8 +381,36 @@ that file was **falling** — and "the pawn moved more than half a metre" was
 passing on it. The file loads the map's collision now, asserts the travel
 horizontally, and asserts the pawn is still grounded at the end.
 
-**Next is US-0029, the snapshot format — where `peer_id:u8` meets Godot's
-32-bit peer ids.**
+**US-0029 IS BUILT AND ITS THIRD CRITERION IS DELIBERATELY UNTICKED.** The
+wire format serialises, deserialises and round-trips; the information rules live
+in the format rather than in a widget, so a hunter's snapshot has **no field** for
+their contract's persona, position, elevation or tier — asserted structurally,
+because a rule that lives in a widget can be broken by a different widget.
+
+**PEER IDS NEVER REACH THE WIRE.** Godot hands out random 32-bit ids and the
+catalogue declares `peer_id:u8` in seven places. The catalogue is right: six
+players fit in three bits, and the byte is what the bandwidth budget was written
+against. `SlotTable` maps one to the other and **slot 0 is reserved to mean
+nobody**, so a record never filled in decodes as absent rather than as player
+one.
+
+**THE BANDWIDTH BUDGET DOES NOT CLOSE, AND THE FORMAT IS NOT THE PART THAT IS
+WRONG.** TDD-04 §7.1 budgets 7 bytes per NPC and 14 per remote pawn. **An NPC's
+index and position alone are seven**, before its yaw and animation. Measured
+from `Snapshot.serialise()`: NPC **10 B**, remote pawn **10 B**, fixed part
+**53 B** against a budgeted 25. Re-running §7.1's own worst case on the measured
+sizes gives **108.3 kbit/s against a 96 budget — 113 %**, where the document
+concluded 87 % with 13 % headroom.
+
+Nothing is fixable by editing the serialiser: the encoding is as tight as §4's
+declared fields allow. The options are §14 open question 1's — build ADR-0007's
+fallback, shrink the payload, or re-derive the budget. **This is the owner's
+call.** `test_snapshot_size.gd` measures it every run and marks the projection
+**pending** rather than failing, because a red suite over a number nobody can fix
+in that file trains people to ignore it.
+
+**Next is US-0030, the snapshot builder — cull, delta, quantise — which is where
+the budget question stops being theoretical.**
 
 **TWO STORIES WERE WRITTEN AND HELD BEHIND THE GATE**, both for the same reason:
 they change what `INPUT-TRAVERSE` does, and the gate's second line *counts
@@ -548,7 +576,7 @@ US-0024 measures it against clips that do not exist.
 | | |
 |---|---|
 | CI | 7 jobs. **Running again as of 2026-08-07 after a two-day outage** — run `31200490320`, all seven green. The seven commits merged during the outage were never through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | 119 architecture guards + 479 unit + 132 integration, all three counted in CI |
+| Tests | 119 architecture guards + 515 unit + 132 integration, all three counted in CI |
 | Tuning | 280 tunables across 14 resource classes; all 26 cross-field invariants assert. **Eight IDs are deprecated** and recorded in TUNABLES §19 — never reused |
 | Autoloads | All eight. `Tuning` precomputes 86 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |
