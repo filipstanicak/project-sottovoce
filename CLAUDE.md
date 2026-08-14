@@ -236,6 +236,23 @@ three are blocked, each by something real:
 
 **M1's remaining work is not code.** It is one human sitting down with the game.
 
+**TWO STORIES ARE WRITTEN AND DELIBERATELY NOT BUILT**, both queued behind the
+gate for the same reason: they change what `INPUT-TRAVERSE` does, and the gate's
+second line *counts traverse presses*. Once Space always produces something,
+"nothing happened" stops being observable and the vault tally stops meaning what
+the checklist says.
+
+- **US-0093** — a speed-scaled hop on §7.2's no-match case. An impulse rather
+  than a fifteenth state, so the resolver stays the only owner of Space. **Open
+  question: does a hop cost anonymity?** Raised, never ruled on, recorded rather
+  than invented.
+- **US-0094** — the steered wall cling. **It reverses GDD-02 §7's "assisted, not
+  simulated" and §1.1's "the player never chooses which manoeuvre"**, so its
+  first acceptance criterion is the owner's sign-off in the GDD before any code.
+  It also costs things nobody would look for: the level-design contract sized
+  MAP-VETRAIO around five verbs, and a cling you can hang on for free is a
+  hiding place on a façade.
+
 **THREE MORE M1 STORIES WERE ADDED AND FINISHED ON 2026-08-12, ALL FROM THE OWNER
 AT THE CONTROLS.** They are not part of the original US-0013–0024 span and they do
 not change what blocks the gate:

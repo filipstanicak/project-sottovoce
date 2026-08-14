@@ -187,6 +187,12 @@ state machine, locally.
 > could reach any of them, and every one was found by a person looking at the
 > game.**
 >
+> **Two traversal stories are written and unbuilt** — US-0093 (a speed-scaled hop
+> on the no-match case) and US-0094 (a steered wall cling, which reverses §7's
+> "assisted, not simulated" and needs the owner's sign-off first). Both change
+> what `INPUT-TRAVERSE` does, which is what the gate's second line counts, so
+> both wait for it. Neither is an M1 exit criterion.
+>
 > **The feel gate below is judgeable and has not been judged**, and that is now
 > the only thing between M1 and its exit. Three of its four lines need a human at
 > the controls; US-0024 carries the procedure. **The fourth cannot be judged at
