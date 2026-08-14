@@ -122,3 +122,22 @@ All ticked. Built 2026-08-14, after the gate.
       case it still governs — a traverse that genuinely fails.
 - [x] The suspicion decision above is recorded in TUNABLES, whichever way it goes. **No cost of
       its own; deferred to M3**, when there is a crowd to observe rather than an argument to have.
+
+## What its first day at the controls found — and it was not the hop
+
+*"if i jump of a edge from a vautlable height, it slows me down mid air"*, 2026-08-14. Fixed in
+#63, and **nothing about the hop was wrong**.
+
+`PawnInputBuffer.tick()` had armed the action buffer from `InputCommand.buttons`, which is *held*
+state, since US-0016 — so a finger resting on Space re-armed it every physics frame, and
+`TraversalResolver.resolve()` spends whatever is armed. One press bought sixty traverses a
+second. That was invisible for nine stories because the extra resolves had nothing to do.
+
+This story gave them something. The hop lifts the pawn ~0.22 m, which is enough for the lip it
+just left to measure deeper than `TUN-TRAVERSE-DROP-MIN-HEIGHT` — so the *second* resolve
+classifies the same edge as a gap jump, plans an interpolation, and zeroes the velocity.
+
+Worth keeping for the shape of it: **a latent defect became reachable the moment a new input
+outcome existed**, and the story that exposed it was correct in every criterion above. The
+buffer arms on the press now, via `InputBits.newly_pressed` — which existed, documents itself as
+how edges are derived rather than transmitted, and had never been called.
