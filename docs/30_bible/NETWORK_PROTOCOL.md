@@ -15,7 +15,23 @@ depends_on: [TDD-04-NET, ADR-0002, ADR-0007, ADR-0010]
 > constantly and a lookup that requires reading a chapter is a lookup nobody does.
 >
 > The TDD chapter owns the *reasoning*. This document owns the *reference*. If they disagree,
-> the TDD wins and this file is a bug — `test_protocol_docs_sync.gd` asserts they match.
+> the TDD wins and this file is a bug — `test_protocol_docs_sync.gd` asserts they declare the
+> same messages.
+>
+> **That guard was claimed here from M0 and only written on 2026-08-15.** For two milestones this
+> note told every reader the two documents were checked against each other when nothing checked
+> them. No drift had accumulated, which was luck. It compares message **IDs**, not payload
+> columns — the two tables carry different columns on purpose, so a row-equality test would fail
+> on formatting and be deleted within a week.
+
+---
+
+## 0. `peer_id` on the wire is a slot
+
+**Every `peer_id:u8` in this document is a slot number, not the engine's peer id.** Godot hands
+out random 32-bit peer ids; `scripts/net/protocol/slot_table.gd` maps one onto the other, and
+**slot 0 is reserved to mean nobody** so an unfilled record decodes as absent rather than as
+player one. See TDD-04 §6 for why the byte was kept rather than the schema widened.
 
 ---
 
