@@ -2,7 +2,7 @@
 id: US-0029
 title: Snapshot format and serialisation
 version: 1.0.0
-status: in-progress
+status: done
 owner: Technical Director
 last_updated: 2026-08-14
 depends_on: [TDD-04-NET, BIBLE-NET-PROTOCOL]
@@ -54,8 +54,9 @@ would not be.
       than wrapped: a pawn past the edge should pin there, because that is debuggable and the
       opposite corner is not.
 - [ ] **Remote pawn record is 14 bytes; NPC record is 7 bytes including index.** Measured at
-      **10 and 10**. Not achievable from §4's own field list — see below. Left unticked rather
-      than reworded.
+      **10 and 8**. Neither number was reachable from §4's own field list, and §4 and §7.1 were
+      both amended rather than this criterion reworded — the amendment is recorded below and in
+      TDD-04 §7.1 itself. The criterion is left unticked because it is not true as written.
 - [x] Round-trip serialise then deserialise is lossless within quantisation. A **truncated**
       buffer decodes to `null` rather than to a half-filled object: a partial decode moves remote
       pawns to plausible wrong places, which is worse than a frame with no update.
@@ -66,35 +67,44 @@ would not be.
       anywhere global: the same player at the same suspicion is `PLAIN` to four observers and
       `HARD` to one.
 
-## The record sizes in §7.1 are not reachable from the fields in §4
+## The record sizes in §7.1 were not reachable from the fields in §4 — and were re-derived
 
-**This is the story's finding, and it is a design question rather than a defect.**
+**This was the story's finding, and it has been answered.**
 
-§4 declares, per NPC: an index `u8`, a position `3×i16`, a yaw `u8`, and an animation `u4 + u6`.
-The index and the position **alone** are seven bytes; §7.1 budgets the whole record at seven. The
-remote-pawn record is quoted at 14 and its declared fields come to ten. The own block is budgeted
-with compass and match at 18 bytes; `own_pawn` alone is 28 by §4's own list.
+§4 declared, per NPC: an index `u8`, a position `3×i16`, a yaw `u8`, and an animation `u4 + u6`.
+The index and the position **alone** were seven bytes; §7.1 budgeted the whole record at seven.
+The own block was budgeted with compass and match at 18; `own_pawn` alone is 28 by §4's own list.
 
-Measured from `Snapshot.serialise()`:
+Measured from `Snapshot.serialise()` as first built:
 
-| Record | §7.1 quotes | Measured |
-|---|---|---|
-| NPC | 7 B | **10 B** |
-| Remote pawn | 14 B | **10 B** |
-| Fixed part (header + own + compass + match + counts) | 25 B | **53 B** |
+| Record | §7.1 quoted | Measured | After the amendment |
+|---|---|---|---|
+| NPC | 7 B | 10 B | **8 B** |
+| Remote pawn | 14 B | 10 B | 10 B |
+| Fixed part (header + own + compass + match + counts) | 25 B | 53 B | 53 B |
 
-Re-running §7.1's worst case on the measured sizes gives **13 535 B/s ≈ 108.3 kbit/s** against
-`TUN-NET-BANDWIDTH-BUDGET-DOWN` 96 — **113 % of budget**, where the document concluded 87 %.
+At ten bytes per NPC the district's worst case projected to **108.3 kbit/s against a 96 budget —
+113 %**, where the document concluded 87 % with 13 % headroom.
 
-**Nothing here is fixable by editing the serialiser.** The encoding is as tight as the declared
-fields allow. The options are the document's own: ADR-0007's fallback (replicate near NPCs,
-seed-derive far ones), a smaller payload, or a re-derived budget. TDD-04 §14 open question 1
-already asks whether 13 % headroom is enough; the answer is that there is none.
+**The crowd record was shrunk rather than the budget moved.** The crowd is 90 of the ~96
+replicated entities, so it is the only place the money is:
 
-`test_snapshot_size.gd` reports the measurement and marks the projection **pending** rather than
-failing — a red suite over a number nobody can fix by editing that file would train people to
-ignore it. `test_the_declared_record_sizes_are_not_the_documented_ones` fails the day somebody
-reconciles the two, which is exactly when this section should be read again.
+- **`y` became a byte at 5 cm** rather than an `i16` at 1 cm. Nothing reads a crowd member's
+  height — the suspicion radius is horizontal, the compass is a bearing, and the strata are 3.5 m
+  apart.
+- **The animation became `u3 + u5`** in one byte rather than `u4 + u6` in two. Eight states is
+  more than the crowd declares, and 32 phase steps is finer than a walk cycle can be read at the
+  45–70 m these records are sent from.
+
+Ten bytes to eight, and the projection closes at **93.0 kbit/s — 97 % of budget**. Thin, and
+thinner than the 13 % headroom §7.1 claimed before it was measured, which is the honest number.
+`test_snapshot_size.gd` recomputes it on every run.
+
+**The lesson is the arithmetic, not the bytes.** A budget table whose per-record sizes were never
+measured against the format they describe reports whatever its author expected. Both protocol
+documents and §7.1 now carry the measured numbers, and
+`test_the_npc_record_is_the_one_the_budget_was_re_derived_against` fails the moment a record
+grows.
 
 ## Test notes
 

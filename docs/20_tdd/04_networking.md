@@ -305,9 +305,10 @@ NET-S2C-SNAPSHOT (per client, per tick)
 │   └── render_state       u2       # PLAIN | TINTED | HARD — COMPUTED PER OBSERVER
 └── npcs[]                           # delta + culled + LOD (§7)
     ├── index              u8
-    ├── position           3×i16
+    ├── position_xz        2×i16     # 1 cm, map-local
+    ├── height             u8        # 5 cm — nothing reads a crowd member's y
     ├── yaw                u8
-    └── anim_state         u4 + phase u6
+    └── anim_state         u3 + phase u5    # 8 bytes per NPC, measured (US-0029)
 ```
 
 ### 6.4 What the protocol deliberately does not carry
@@ -340,47 +341,47 @@ Against `TUN-NET-BANDWIDTH-BUDGET-DOWN` **96 kbit/s** and `-UP` **16 kbit/s** pe
 
 ### 7.1 Downstream, worst case (6 players, 90 NPCs, all moving)
 
+**Every size below is MEASURED from `Snapshot.serialise()`, not estimated.**
+`test_snapshot_size.gd` recomputes this table on every run and fails if a record grows.
+
 | Component | Calculation | Bytes/s |
 |---|---|---|
-| Near NPCs (≤ 45 m; ~45 visible, 30 Hz, 55 % changed) | 45 × 0.55 × 7 B × 30 | 5 197 |
-| Far NPCs (45–70 m; ~30 visible, 10 Hz, 70 % changed) | 30 × 0.70 × 7 B × 10 | 1 470 |
-| Remote pawns (5 × 14 B × 30 Hz) | | 2 100 |
-| Own pawn authoritative + gameplay + compass + match (18 B × 30 Hz) | | 540 |
-| Snapshot headers (7 B × 30 Hz) | | 210 |
+| Near NPCs (≤ 45 m; ~45 visible, 30 Hz, 55 % changed) | 45 × 0.55 × **8 B** × 30 | 5 940 |
+| Far NPCs (45–70 m; ~30 visible, 10 Hz, 70 % changed) | 30 × 0.70 × **8 B** × 10 | 1 680 |
+| Remote pawns (5 × **10 B** × 30 Hz) | | 1 500 |
+| Header + own pawn + gameplay + compass + match + counts (**53 B** × 30 Hz) | | 1 590 |
 | Reliable events (score, kill, stun, ability — est. 2/s × 40 B) | | 80 |
 | ENet + UDP/IP overhead (~28 B × 30 packets/s) | | 840 |
-| **Total** | | **10 437 B/s ≈ 83.5 kbit/s** |
+| **Total** | | **11 630 B/s ≈ 93.0 kbit/s** |
 
-**87 % of budget. 13 % headroom.** Thin, which is why the ADR-0007 fallback (replicate near
-NPCs, seed-derive far ones) is designed and documented but unbuilt.
+**97 % of budget. 3 % headroom.** Thin — thinner than the 13 % this section claimed before the
+format was built and measured — which is why the ADR-0007 fallback (replicate near NPCs,
+seed-derive far ones) remains designed, documented and unbuilt.
 
-> **THE TABLE ABOVE IS WRONG, AND THE FORMAT IS NOT THE PART THAT IS WRONG.** US-0029 built §4's
-> payload and measured it. The per-record sizes this table budgets against **cannot be reached
-> from the fields §4 declares**: an NPC's index and position alone are 7 bytes, before its yaw and
-> animation, and the row above budgets the whole record at 7. Measured, from
-> `Snapshot.serialise()`:
+> **THIS TABLE WAS RE-DERIVED IN US-0029, AND THE FIRST VERSION OF IT DID NOT SURVIVE
+> MEASUREMENT.** It budgeted 7 bytes per NPC against a §4 record whose index and position alone
+> were seven, and 18 bytes for a header block that came to 53. Built and measured, the district's
+> worst case projected to **108.3 kbit/s against a 96 budget — 113 %**, where this section
+> concluded 87 %.
 >
-> | Record | Budgeted here | Measured |
-> |---|---|---|
-> | NPC | 7 B | **10 B** |
-> | Remote pawn | 14 B | **10 B** |
-> | Own + gameplay + compass + match + counts | 18 B | **46 B** (`own_pawn` alone is 28 by §4) |
+> The answer was to shrink the crowd record rather than to move the budget: the crowd is 90 of the
+> ~96 replicated entities, so it is the only place the money is. An NPC's `y` became a 5 cm byte
+> and its animation `u3 + u5`, taking the record from 10 bytes to 8 — see §6.3. Nothing a player
+> can perceive changed: nothing reads a crowd member's height, and 32 animation phase steps are
+> finer than a walk cycle can be read at 45–70 m.
 >
-> Re-running this worst case on the measured sizes gives **13 535 B/s ≈ 108.3 kbit/s** — **113 %
-> of `TUN-NET-BANDWIDTH-BUDGET-DOWN`**, not 87 %. There is no headroom; there is a deficit.
->
-> Nothing is fixable by editing the serialiser — the encoding is as tight as the declared fields
-> allow. The options are the ones §14 open question 1 already raises: **build ADR-0007's fallback**,
-> **shrink the payload**, or **re-derive the budget**. `test_snapshot_size.gd` measures it every
-> run and marks the projection *pending* rather than failing, because a red suite over a number
-> nobody can fix in that file trains people to ignore it.
+> **The lesson is the arithmetic, not the bytes.** A budget table whose per-record sizes were
+> never measured against the format they describe is a budget that reports whatever its author
+> expected. `test_snapshot_size.gd` now measures every record and recomputes this total on every
+> run, and `test_the_npc_record_is_the_one_the_budget_was_re_derived_against` fails the moment a
+> record grows.
 
 ### 7.2 The four mechanisms that make it fit
 
 | # | Mechanism | Saving | Detail |
 |---|---|---|---|
 | 1 | **Distance culling** | 0–50 % | NPCs beyond `TUN-NET-NPC-CULL-RADIUS` 70 m are not sent. 70 m > `TUN-COMPASS-RANGE-MAX` 60 m, so a culled NPC can never affect anything the client can perceive (invariant §17.17) |
-| 2 | **Quantisation** | ~60 % vs. floats | Position 3×i16 at 1 cm; yaw u8 at 1°; anim 4+6 bits. **7 bytes per NPC** including index |
+| 2 | **Quantisation** | ~60 % vs. floats | Player position 3×i16 at 1 cm; **NPC position 2×i16 plus a 5 cm height byte**; yaw u8 at 1°; NPC anim 3+5 bits. **8 bytes per NPC** including index, measured |
 | 3 | **Delta encoding** | ~40 % | Only NPCs whose quantised state changed since the client's last ack. A standing idle NPC costs nothing, and 40–60 % of the crowd is idle at any moment |
 | 4 | **Rate LOD** | ~20 % | NPCs beyond 45 m at 10 Hz. Interpolation error at walking speed is < 15 cm — far below every gameplay radius, and those NPCs are outside all of them anyway |
 

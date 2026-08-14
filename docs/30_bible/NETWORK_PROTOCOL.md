@@ -141,10 +141,26 @@ NET-S2C-SNAPSHOT — per client, per tick
 │   └── render_state       u2       PLAIN | TINTED | HARD — COMPUTED PER OBSERVER
 └── npcs[]                          delta + culled + rate-LOD
     ├── index              u8
-    ├── position           3×i16
-    ├── yaw                u8
-    └── anim_state         u4 + phase u6      == 7 bytes per NPC including index
+    ├── position_xz        2×i16    1 cm, map-local
+    ├── height             u8       5 cm  — see below
+    ├── yaw                u8       1 deg
+    └── anim_state         u3 + phase u5      == 8 bytes per NPC including index
 ```
+
+**THE CROWD RECORD IS COARSER THAN THE PLAYER RECORD, AND THAT IS WHERE THE BUDGET LIVES.**
+Ninety NPCs against six players: a byte saved on an NPC is worth fifteen saved on a remote pawn.
+
+`x` and `z` keep their centimetre, because the crowd's horizontal position is read by the
+suspicion radius and by the compass. **`y` is a byte at 5 cm** because nothing reads a crowd
+member's height at all — the suspicion radius is horizontal, the compass is a bearing, and the
+strata are 3.5 m apart. The animation is `u3` state and `u5` phase in one byte: eight states is
+more than the crowd declares, and 32 phase steps is finer than a walk cycle can be read at the
+45–70 m these records are sent from.
+
+This record was **10 bytes** as first specified, and §7.1 budgeted it at 7 — the index and a
+`3×i16` position alone are seven. US-0029 built the format, measured it, and projected the
+district's worst case at **108.3 kbit/s against a 96 budget**. At 8 bytes it projects to
+**93.0 kbit/s**. `test_snapshot_size.gd` measures it on every run.
 
 ---
 

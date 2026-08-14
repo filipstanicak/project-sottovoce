@@ -291,7 +291,7 @@ join/leave stable.
 | `RpcRouter` with authority checks on **every** C2S message | **Done, US-0026.** Plus the two §12 guards that had been promised since M0 and never written |
 | `MatchDirector` net tick — 30 Hz from the 60 Hz physics clock | **Done, US-0027.** Derived by counting frames, not by accumulating time; the order is parsed from §4's diagram |
 | Server-side pawn simulation; the **same** state machine as M1 | **Done, US-0028** — and the same `PawnMotion`, extracted because stepping the machine is only half a tick |
-| Snapshot format, `SnapshotBuilder` (cull + quantise + delta) | **Format done, US-0029** — and it measured the downstream budget at **113 %**, not the 87 % TDD-04 §7.1 concluded. The per-record sizes that table budgets against are unreachable from §4's own field list |
+| Snapshot format, `SnapshotBuilder` (cull + quantise + delta) | **Format done, US-0029.** It measured the downstream budget at **113 %**, not the 87 % §7.1 concluded — the sizes that table budgeted against were unreachable from §4's own field list. **The crowd record was shrunk from 10 B to 8 B in answer and it now projects to 93.0 kbit/s, 97 % of budget** |
 | `Predictor`, `Reconciler`, `SnapshotInterpolator` | |
 | `LagCompHistory` (recording only — no consumers until M4) | |
 | The integration harness + four-profile latency matrix | |
