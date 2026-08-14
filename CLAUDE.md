@@ -231,8 +231,14 @@ three are blocked, each by something real:
   has no display in headless CI. **The number is a lower bound and says so.**
   `test_feel_chain.gd` holds a tripwire that goes red the day a clip lands.
 - **"With prediction active" needs prediction**, which is US-0032, in M2.
-- **The feel-gate checklist is the owner's.** Three runnable lines, a procedure
-  in the story file, and no test may tick it.
+- **The feel-gate checklist is the owner's, and TWO OF ITS THREE LINES ARE NOW
+  JUDGED.** On 2026-08-13 the owner logged *slowing is instant* and *the FOV
+  ladder is perceptible without discomfort*, and settled
+  `TUN-SPEED-RUN-RESOLVE` at 0.15 s — the one number in US-0090 chosen rather
+  than derived. **The vault count is the only line left.** Ten sloppy vaults,
+  tallied by the readout, and the criterion says *run and logged*, so it stays
+  unticked until that number exists. The centred framing from US-0092 was judged
+  with the lens and accepted.
 
 **M1's remaining work is not code.** It is one human sitting down with the game.
 

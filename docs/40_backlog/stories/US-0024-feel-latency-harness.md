@@ -4,7 +4,7 @@ title: Feel latency measurement harness
 version: 1.0.0
 status: in-progress
 owner: Technical Director
-last_updated: 2026-08-12
+last_updated: 2026-08-13
 depends_on: [GDD-02-PLAYER, BIBLE-TEST-PLAN]
 ---
 
@@ -38,8 +38,10 @@ Automated measurement of input-to-visible-animation latency, plus the M1 feel-ga
 - [x] No animation except KillAnim reaches the 1.4 s commitment ceiling.
 - [ ] The M1 feel-gate checklist is run and logged: instant slowdown from every state, ten sloppy
       vaults all resolve, FOV ladder perceptible without nausea.
-      **Runnable now — see the checklist below. It needs the owner at the controls, and no test
-      may tick it.**
+      **Two of the three lines are judged and logged (2026-08-13): slowing is instant, and the
+      FOV ladder is perceptible without discomfort. The vault count is still outstanding**, so
+      this stays unticked — the criterion says the checklist is run *and logged*, and a third of
+      it is neither.
 
 ## Test notes
 
@@ -201,12 +203,17 @@ already no.
 
 | Reach it by | State | Instant? |
 |---|---|---|
-| stand still | Idle | |
-| W | Stroll | |
-| W + Shift, held | Run | |
-| W + Shift + double-tap Shift | Sprint | |
-| Space at a low wall, press Ctrl mid-vault | Vault | (expected: **not** until it ends — 0.55 s) |
-| Space at a tall façade, press back mid-climb | Climb | (expected: lets go into a drop) |
+| stand still | Idle | ✅ 2026-08-13 |
+| W | Stroll | ✅ 2026-08-13 |
+| W + Shift, held | Run | ✅ 2026-08-13 |
+| W + Shift + double-tap Shift | Sprint | ✅ 2026-08-13 |
+| Space at a low wall, press Ctrl mid-vault | Vault | **not separately reported** (expected: **not** until it ends — 0.55 s) |
+| Space at a tall façade, press back mid-climb | Climb | **not separately reported** (expected: lets go into a drop) |
+
+**Judged 2026-08-13: "the slowing is instant".** The four locomotion rows are ticked on that.
+The last two are **not** ticked, because they are not "is it instant" questions — they ask
+whether a committed traversal *correctly refuses* to slow, and a general statement about slowing
+does not answer them. They belong with the vault run in §2, where the player is already at a wall.
 
 ### 2. Ten deliberately sloppy vaults all resolve
 
@@ -224,6 +231,14 @@ to crowd-scan. Two questions, both required:
 - Can you feel the lens widening *before* you would have read a number? (It must be perceptible.)
 - Does repeated up-and-down cause any discomfort? (It must not.)
 
+**Judged 2026-08-13: "the FOV feels nice… the angle is fine".** Perceptible, and no discomfort
+reported over repeated acceleration and deceleration. `TUN-CAM-FOV-BLEND-RATE` stays at 90 °/s.
+
+**And the framing was judged with it: "I like the center position of the figure".** US-0092
+removed the lateral offset and §4.1 records the cost honestly — your own body occupies the middle
+of the screen and hides what is directly ahead at close range. **That cost is accepted at the
+controls**, which is the only place it could be. The decision is closed.
+
 If the second answer is yes, the lever is `TUN-CAM-FOV-BLEND-RATE` (90 °/s), and
 motion-reduction must be discoverable *before* someone feels ill — GDD-02 §9.4 failure mode 6.
 
@@ -231,10 +246,14 @@ motion-reduction must be discoverable *before* someone feels ill — GDD-02 §9.
 
 | Line | Verdict | Date | Note |
 |---|---|---|---|
-| Slowing is instant from every state | | | |
-| Ten sloppy vaults resolve | | | |
-| FOV ladder perceptible, not nauseating | | | |
+| Slowing is instant from every state | **pass, locomotion only** | 2026-08-13 | Idle, Stroll, Run, Sprint. The Vault and Climb rows were not separately reported |
+| Ten sloppy vaults resolve | **not run** | — | The only line still outstanding. Criterion 4 cannot be ticked without it |
+| FOV ladder perceptible, not nauseating | **pass** | 2026-08-13 | Perceptible, no discomfort. Framing judged with it and accepted |
 | Input → animation ≤ 80 ms | **cannot be judged** | — | no animation exists |
+
+**Also judged, outside the checklist:** `TUN-SPEED-RUN-RESOLVE` at 0.15 s — *"I love the new run
+and double tap"*, 2026-08-13. That was the one number in US-0090 chosen rather than derived, and
+it is now settled at the controls rather than in a document.
 
 ---
 
