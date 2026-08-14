@@ -551,9 +551,17 @@ built. What is left: **US-0031** (delta encoding), **US-0035** (lag-comp
 history), **US-0037** (join/leave stability) and **US-0038** (the M2 gate).
 US-0030's culling criteria stay unticked — there is no crowd to cull until M3.
 
-**US-0024's "≤ 80 ms with prediction active" IS NOW UNBLOCKED** and has not been
-measured. It was one of the two criteria M1 left open; prediction exists now, so
-the measurement is possible for the first time.
+**US-0024's "≤ 80 ms with prediction active" IS MEASURED — AND STAYS UNTICKED.**
+With a real server, a real snapshot stream and reconciliation live, the response
+is **two ticks, 33.3 ms, at LAN, GOOD, TYPICAL and POOR alike** — identical to
+the local-only reading. That is the whole point of prediction: the client
+simulates its own input immediately, and the network decides when it is
+*corrected*, never when it *responds*. A number that grew with latency would have
+meant the local pawn was waiting on the wire.
+
+It stays unticked because the number is still a **lower bound on a five-stage
+chain measured across three** — `ANIMATE` has no clip, `PRESENT` has no display.
+One of its two blockers is gone; the other is US-0039's.
 
 **TWO STORIES WERE WRITTEN AND HELD BEHIND THE GATE**, both for the same reason:
 they change what `INPUT-TRAVERSE` does, and the gate's second line *counts
@@ -741,7 +749,7 @@ story files are the source of truth, not this:
 | US-0019 | root motion for hand and foot placement | there are no animation clips |
 | US-0022 | motion-reduction's compensating indicator | the FOV **lock** is done and tested; the persistent speed indicator belongs to the HUD, US-0084 |
 | US-0023 | ambience ducked, footsteps sharpened | `Audio.play()` is an empty stub until US-0075 |
-| US-0024 | input→animation measured; ≤ 80 ms with prediction; the feel-gate checklist | no clips; prediction is US-0032 (M2); the checklist is the owner's to run |
+| US-0024 | input→animation measured; ≤ 80 ms with prediction | no clips. **The prediction half is now measured** — 33.3 ms at every latency profile — but the chain is still three stages of five, so the number is a lower bound. The feel-gate checklist is DONE (2026-08-13) |
 
 The navmesh **bake** is likewise owed and recorded in US-0012. **Nothing here is
 forgotten and nothing is half-ticked** — a story marked done over a criterion
