@@ -43,7 +43,7 @@ depends_on: [DOC-GLOSSARY, TUN-INDEX, GDD-01-VISION]
 | Look | `INPUT-LOOK` | Mouse | Axis (2D) | |
 | **Blend-walk** | `INPUT-SLOW` | `Left Ctrl` | Hold | Forces `TUN-SPEED-BLENDWALK`. The most important key in the game. |
 | **Run** | `INPUT-RUN` | `Left Shift` | Hold | Raises the ceiling to `TUN-SPEED-RUN`. |
-| **Sprint** | `INPUT-SPRINT` | `Left Shift` (double-tap within `TUN-SPEED-SPRINT-DOUBLETAP`, or hold past `TUN-SPEED-SPRINT-HOLD`) | Hold | Deliberately *awkward* — see §1.5. |
+| **Sprint** | `INPUT-SPRINT` | `Left Shift`, **double-tap within `TUN-SPEED-RUN-RESOLVE`** | Hold | Deliberately *awkward* — see §1.5. A sustained hold means Run and no longer sprints (US-0090); `TUN-SPEED-SPRINT-DOUBLETAP` and `TUN-SPEED-SPRINT-HOLD` are deprecated. |
 | **Traverse** | `INPUT-TRAVERSE` | `Space` | Press | Context-resolved (§7). |
 | **Kill** | `INPUT-KILL` | `Left Mouse` | Press | Validity conditions in [`03_social_stealth.md`](03_social_stealth.md) §10. |
 | **Stun** | `INPUT-STUN` | `Right Mouse` | Press | Only valid against your pursuer. Misuse is punished (`TUN-STUN-INVALID-STAGGER`). |
@@ -106,8 +106,9 @@ This is a known, accepted MVP limitation and is the first thing a real profile s
 
 ### 1.5 Why sprint is deliberately awkward
 
-`INPUT-SPRINT` requires a double-tap within `TUN-SPEED-SPRINT-DOUBLETAP`, or a sustained hold past
-`TUN-SPEED-SPRINT-HOLD`, on both KBM and pad.
+`INPUT-SPRINT` requires a double-tap within `TUN-SPEED-RUN-RESOLVE`, on both KBM and pad. **The
+sustained-hold route was deprecated in US-0090**: a held key means Run and keeps meaning Run, so it
+cannot also mean Sprint. The friction did not weaken — it stopped having two doors.
 This is intentional friction, and it is the only intentional friction in the input scheme.
 
 **The friction is resolved client-side**, in the input sampler, and reaches the pawn as a single
@@ -488,12 +489,12 @@ Evaluated in this order. **First match wins.** This ordering is normative and is
 | # | Condition | Resolves to | Why this priority |
 |---|---|---|---|
 | 1 | Airborne and a ledge is within `TUN-TRAVERSE-MAGNET-RADIUS` 0.6 m | **Ledge grab** | Catching a ledge you are falling past must always beat anything else. It is the forgiveness case, and forgiveness goes first. |
-| 2 | `FOOT` clear, no ground ahead, gap ≤ `TUN-TRAVERSE-GAP-MAX` 3.2 m | **Gap jump** | Crossing a gap you are running at is unambiguous intent. |
+| 2 | `FOOT` clear, no ground ahead, gap ≤ `TUN-TRAVERSE-GAP-MAX` 3.2 m, **and the landing is not more than `TUN-TRAVERSE-DROP-SAFE-HEIGHT` below** | **Gap jump** | Crossing a gap you are running at is unambiguous intent. The depth clause is what keeps a roof edge out of this row: the street below you is horizontally *near*, so the gap test passes on it, and a fall is not a jump. |
 | 3 | `FOOT` clear, no ground ahead, no landing within range | **Drop** (or drop-swing if a lower ledge exists within 2 m) | |
 | 4 | `WAIST` hit, obstacle top ≤ `TUN-TRAVERSE-VAULT-MAX-HEIGHT` 1.1 m, clear space beyond | **Vault** | Before mantle, because a low wall you can go *over* should not become a wall you climb *onto*. |
 | 5 | `WAIST` hit, obstacle top 1.1–`TUN-TRAVERSE-MANTLE-MAX-HEIGHT` 2.3 m | **Mantle** | |
 | 6 | `CHEST` hit on a climbable surface, height ≤ `TUN-TRAVERSE-CLIMB-MAX-HEIGHT` 9 m | **Climb** | Last, because climbing is the most expensive option and should never be selected when a cheaper one applies. |
-| 7 | No match | **Nothing** — input consumed, no animation | Silence, not a flail. A failed traverse must never look like a bug. |
+| 7 | No match, **or a lip less than `TUN-TRAVERSE-DROP-MIN-HEIGHT` high with the ground resuming beside it** | **Nothing** — input consumed, no animation | Silence, not a flail. A failed traverse must never look like a bug. **And a step is not a manoeuvre:** every traversal is a planned interpolation that discards the pawn's momentum for a fixed arc, so paying it to cross one metre off a 0.9 m market counter is a worse trade than walking off. Found at the controls, 2026-08-13. |
 
 ### 7.3 Forgiveness windows
 

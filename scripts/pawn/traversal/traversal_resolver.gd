@@ -54,9 +54,7 @@ static func classify(ctx: PawnContext) -> Case:
 	if _is_ledge_grab(ctx, probe):
 		return Case.LEDGE_GRAB
 	if probe.at_edge():
-		return (
-			Case.GAP_JUMP if probe.gap_is_crossable(Tuning.movement.traverse_gap_max) else Case.DROP
-		)
+		return _over_the_edge(probe)
 	if probe.waist_hit:
 		var vault := _vault_or_mantle(probe)
 		if vault != Case.NONE:
@@ -64,6 +62,63 @@ static func classify(ctx: PawnContext) -> Case:
 	if _is_climb(probe):
 		return Case.CLIMB
 	return Case.NONE
+
+
+## Cases 2 and 3, plus the two answers that are neither.
+##
+## **A LIP IS NOT A MANOEUVRE.** Below `TUN-TRAVERSE-DROP-MIN-HEIGHT` the edge is
+## a step: traverse resolves to nothing and the player walks off under gravity
+## with the speed they had. Every traversal is a *planned interpolation* — it
+## discards the pawn's momentum for a fixed arc — and paying that to cross one
+## metre off a 0.9 m market stall is a worse trade than simply walking. Found at
+## the controls: "he makes a small jump of the edge and slows down".
+##
+## **AND A FALL THE PROBES CANNOT MEASURE IS NOT PLANNED AT ALL.** `drop_height`
+## comes back `INF` when nothing was found inside `TUN-TRAVERSE-GAP-PROBE-DEPTH`,
+## and this used to substitute the probe depth for the missing number — which set
+## the pawn down in mid-air at exactly that depth and handed the remainder to
+## gravity, reading as a slow climb down the wall. TUNABLES calls finding nothing
+## "the game refusing to answer"; refusing means silence, not a guess.
+static func _over_the_edge(probe: ProbeResult) -> Case:
+	if _is_a_step(probe):
+		return Case.NONE
+	if probe.gap_is_crossable(Tuning.movement.traverse_gap_max) and not _is_a_fall(probe):
+		return Case.GAP_JUMP
+	return Case.DROP
+
+
+## A landing further below than `TUN-TRAVERSE-DROP-SAFE-HEIGHT` is a descent, not
+## a gap — however close it is horizontally.
+##
+## **THIS GUARD IS WHAT MAKES A DEEPER PROBE SAFE.** Case 2 keys on
+## `gap_distance` alone, and from a roof edge the street is directly below and
+## therefore *near*: once the probes could see 10 m instead of 5, every roof lip
+## started classifying as a crossable gap. The depth was raised because the
+## roof-to-street drop was the one fall the probes could not measure; this is the
+## other half of that change.
+##
+## An INF drop is **not** disqualifying. It means unmeasured, and §7.2 case 2
+## already resolves on the gap alone — treating "we did not measure" as "it is
+## far" would turn every level gap into a fall.
+static func _is_a_fall(probe: ProbeResult) -> bool:
+	if probe.drop_height == INF:
+		return false
+	return probe.drop_height > Tuning.movement.traverse_drop_safe_height
+
+
+## A lip you could walk off: the ground resumes at the first probe or the one
+## after it, and it is less than `TUN-TRAVERSE-DROP-MIN-HEIGHT` below.
+##
+## **BOTH HALVES ARE LOAD-BEARING.** The height alone would swallow real gap
+## jumps, whose far side is level and therefore has a drop near zero. The
+## distance alone would swallow a short fall onto a ledge, which is a drop worth
+## planning. What makes a market stall a step is that it is *low* and the street
+## starts immediately: the probes march out from `TUN-TRAVERSE-GAP-PROBE-AHEAD`
+## in `TUN-TRAVERSE-GAP-PROBE-STEP` increments, and the stall's landing comes
+## back on the second sample.
+static func _is_a_step(probe: ProbeResult) -> bool:
+	var adjacent := Tuning.movement.gap_probe_ahead + Tuning.movement.gap_probe_step
+	return probe.drop_height < Tuning.movement.drop_min_height and probe.gap_distance <= adjacent
 
 
 ## Case 1. Airborne, a ledge within `TUN-TRAVERSE-MAGNET-RADIUS` laterally, and

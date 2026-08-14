@@ -24,6 +24,7 @@ static func check(p: TuningProfile) -> Array[String]:
 	e.append_array(_net(p))
 	e.append_array(_scoring(p))
 	e.append_array(_perf(p))
+	e.append_array(_traversal_reach(p))
 	return e
 
 
@@ -298,6 +299,30 @@ static func _scoring(p: TuningProfile) -> Array[String]:
 			)
 		)
 	e.append_array(_patience(p))
+	return e
+
+
+## 24, 25. **ANYTHING YOU CAN CLIMB UP, YOU CAN FALL DOWN.** A probe shallower
+## than the tallest single climb cannot measure the drop back down it, and an
+## unmeasured drop is one the planner must refuse rather than guess at — it used
+## to substitute the probe depth and set the pawn down in mid-air. And a lip you
+## cannot vault up must not be dismissed as a step down.
+static func _traversal_reach(p: TuningProfile) -> Array[String]:
+	var e: Array[String] = []
+	if p.movement.gap_probe_depth < p.movement.traverse_climb_max_height:
+		e.append(
+			(
+				"24. movement.gap_probe_depth (%.1f) must be >= traverse_climb_max_height (%.1f)"
+				% [p.movement.gap_probe_depth, p.movement.traverse_climb_max_height]
+			)
+		)
+	if p.movement.drop_min_height > p.movement.traverse_vault_max_height:
+		e.append(
+			(
+				"25. movement.drop_min_height (%.2f) must be <= traverse_vault_max_height (%.2f)"
+				% [p.movement.drop_min_height, p.movement.traverse_vault_max_height]
+			)
+		)
 	return e
 
 

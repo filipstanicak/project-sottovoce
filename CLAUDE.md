@@ -385,8 +385,8 @@ US-0024 measures it against clips that do not exist.
 | | |
 |---|---|
 | CI | 7 jobs. **Running again as of 2026-08-07 after a two-day outage** — run `31200490320`, all seven green. The seven commits merged during the outage were never through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | 103 architecture guards + 387 unit + 108 integration, all three counted in CI |
-| Tuning | 277 tunables across 14 resource classes; all 23 cross-field invariants assert. **Eight IDs are deprecated** and recorded in TUNABLES §19 — never reused |
+| Tests | 103 architecture guards + 394 unit + 108 integration, all three counted in CI |
+| Tuning | 278 tunables across 14 resource classes; all 25 cross-field invariants assert. **Eight IDs are deprecated** and recorded in TUNABLES §19 — never reused |
 | Autoloads | All eight. `Tuning` precomputes 86 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |
 | Boot | Branches on `--server`; 7 CLI flags parsed in pure Core; 5 export presets |

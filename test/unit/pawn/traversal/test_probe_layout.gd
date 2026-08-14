@@ -115,7 +115,17 @@ func test_the_gap_probe_starts_at_foot_height_and_looks_down() -> void:
 	assert_almost_eq(from.y, Tuning.movement.probe_height_foot, 0.001)
 	assert_almost_eq(from.z, 1.0, 0.001)
 	assert_almost_eq(ProbeLayout.gap_depth(), Tuning.movement.gap_probe_depth, 0.001)
-	assert_almost_eq(ProbeLayout.gap_depth(), 5.0, 0.001, "US-0017 specifies a 5 m deep probe")
+	# **10.0 SINCE 2026-08-13, AND THE OLD 5.0 WAS THE BUG.** MAP-VETRAIO's façades
+	# are 8.5 m, so a 5 m probe could not see the street from any roof: the drop
+	# came back unmeasured and the planner substituted the probe depth, setting the
+	# pawn down in mid-air. Invariant §17.24 ties the depth to
+	# `TUN-TRAVERSE-CLIMB-MAX-HEIGHT` now — anything you can climb up, you can fall
+	# down — which is a rule rather than a number somebody has to remember.
+	assert_gte(
+		ProbeLayout.gap_depth(),
+		Tuning.movement.traverse_climb_max_height,
+		"the probes cannot see the bottom of the tallest climb"
+	)
 
 
 func test_the_down_probe_reaches_past_a_safe_drop() -> void:
