@@ -43,11 +43,17 @@ signal command_sampled(command: InputCommand)
 
 var ctx := PawnContext.new()
 
+## The unacked command ring, and the pieces the reconciler must replay through.
+##
+## **EXPOSED, NOT PRIVATE.** `Reconciler` re-runs buffered commands through the
+## *same* machine, probes and body this loop predicted with — a second set would
+## be a second answer, which is the one thing reconciliation cannot tolerate.
+var history := InputHistory.new()
+var machine: PawnStateMachine
+var probes: TraversalProbes
+
 var _body: CharacterBody3D
-var _machine: PawnStateMachine
-var _probes: TraversalProbes
 var _sampler: InputSampler
-var _history := InputHistory.new()
 
 
 func _ready() -> void:
@@ -57,13 +63,13 @@ func _ready() -> void:
 		Log.error("LocalPawnDriver is not wired to a pawn and a sampler", &"pawn")
 		set_physics_process(false)
 		return
-	_machine = _body.get_node_or_null("PawnStateMachine") as PawnStateMachine
-	if _machine == null:
+	machine = _body.get_node_or_null("PawnStateMachine") as PawnStateMachine
+	if machine == null:
 		Log.error("the local pawn has no PawnStateMachine", &"pawn")
 		set_physics_process(false)
 		return
-	_probes = _body.get_node_or_null("TraversalProbes") as TraversalProbes
-	if _probes == null:
+	probes = _body.get_node_or_null("TraversalProbes") as TraversalProbes
+	if probes == null:
 		Log.error("the local pawn has no TraversalProbes", &"pawn")
 		set_physics_process(false)
 		return
@@ -73,7 +79,7 @@ func _ready() -> void:
 	# PLACED, not transitioned. `PawnContext` starts in `Respawning`, which is
 	# SYS-SPAWN's state and does not exist until US-0062 — and a pawn being put
 	# into the world has no state to come *from* anyway.
-	if not _machine.spawn_into(ctx, PawnStateId.IDLE):
+	if not machine.spawn_into(ctx, PawnStateId.IDLE):
 		set_physics_process(false)
 	_body.global_position = ctx.position
 	_attach_feel_readout()
@@ -97,14 +103,17 @@ func _attach_feel_readout() -> void:
 func _physics_process(delta: float) -> void:
 	# THE ONLY CALL TO sample() IN THE PROJECT. See the signal below it.
 	var command := _sampler.sample(delta)
-	_history.push(command)
 	# Announced before step(), which is where the sampler used to announce it from
 	# its own loop — so the camera still reads the look on the same side of the
 	# state machine it always did.
 	command_sampled.emit(command)
 	# **THE SAME CODE THE SERVER RUNS**, not a copy of it — ADR-0008 requires the
 	# state machine to match, and stepping it is only half of a tick. US-0028.
-	PawnMotion.advance(ctx, _machine, _probes, _body, command, delta)
+	PawnMotion.advance(ctx, machine, probes, _body, command, delta)
+	# **BUFFERED AFTER THE STEP, WITH WHAT THE STEP PRODUCED.** The history's job
+	# is to answer "what did we think was true once the server had this command",
+	# and the answer does not exist until the command has been applied.
+	history.push(command, PredictedState.capture(ctx))
 	pawn_stepped.emit(ctx)
 
 
@@ -118,7 +127,7 @@ func _spawn_position() -> Vector3:
 ## Whether the player may aim the camera right now. `CameraRig` asks; the answer
 ## belongs to the pawn's current state, which is where GDD-02 §4 puts it.
 func camera_controlled() -> bool:
-	return _machine == null or _machine.camera_controlled(ctx)
+	return machine == null or machine.camera_controlled(ctx)
 
 
 ## The FOV rung the pawn is on. Asked for by `CameraRig` and answered by the
@@ -126,9 +135,4 @@ func camera_controlled() -> bool:
 ## the lens to the SPEED STATE, and a rig deciding it from `ctx.velocity` would
 ## drift from the state table on every acceleration ramp.
 func camera_fov() -> float:
-	return CameraFov.default_fov() if _machine == null else _machine.camera_fov(ctx)
-
-
-## Unacknowledged commands, for the reconciliation US-0033 will perform.
-func history() -> InputHistory:
-	return _history
+	return CameraFov.default_fov() if machine == null else machine.camera_fov(ctx)

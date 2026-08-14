@@ -272,7 +272,7 @@ func test_the_reconciliation_buffer_fills_as_the_pawn_is_driven() -> void:
 	# replays from it, because a buffer whose first use is also its first test is
 	# a buffer nobody has tested.
 	await _run(4)
-	assert_gt(_driver.history().size(), 0, "no input reached the reconciliation buffer")
+	assert_gt(_driver.history.size(), 0, "no input reached the reconciliation buffer")
 	assert_true(
-		_driver.history().size() <= _driver.history().capacity(), "the buffer grew past its bound"
+		_driver.history.size() <= _driver.history.capacity(), "the buffer grew past its bound"
 	)

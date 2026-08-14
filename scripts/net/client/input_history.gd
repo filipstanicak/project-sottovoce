@@ -28,6 +28,11 @@ var overflowed: int = 0
 ## against a budget measured in thousands.
 var _pending: Array[InputCommand] = []
 
+## The predicted state after each pending command, by index. Kept beside the
+## commands rather than inside them: an `InputCommand` is what the wire carries,
+## and a field the server never sees does not belong in it.
+var _states: Array = []
+
 
 func capacity() -> int:
 	return Tuning.net.input_buffer_size
@@ -44,18 +49,29 @@ func is_empty() -> bool:
 ## Store a command that has been sent but not acknowledged. Stores a COPY: the
 ## sampler reuses its command object, and a history holding live references would
 ## rewrite its own past every frame.
-func push(command: InputCommand) -> void:
+func push(command: InputCommand, state: PredictedState = null) -> void:
 	_pending.append(command.duplicate_command())
+	_states.append(state)
 	while _pending.size() > capacity():
 		_pending.pop_front()
+		_states.pop_front()
 		overflowed += 1
 
 
 ## Drop everything at or before `acked_seq`. The server acks the last command it
 ## processed, so that command is authoritative and no longer needs replaying.
+##
+## **COMPARED ACROSS THE WRAP, NOT WITH `<=`.** `seq` is a `u16` sent 60 times a
+## second, so it rolls over about every 18 minutes — inside a match. A plain
+## comparison stops discarding at the wrap and the buffer fills with commands the
+## server answered long ago; the replay then re-runs eighteen minutes of input
+## every snapshot. `SequenceGate.is_newer()` is the same arithmetic the server's
+## gate uses, which is the point: both ends must agree on what "already answered"
+## means.
 func ack(acked_seq: int) -> void:
-	while not _pending.is_empty() and _pending[0].seq <= acked_seq:
+	while not _pending.is_empty() and not SequenceGate.is_newer(_pending[0].seq, acked_seq):
 		_pending.pop_front()
+		_states.pop_front()
 
 
 ## Everything still awaiting an answer, oldest first — the replay order.
@@ -72,7 +88,21 @@ func newest_seq() -> int:
 	return -1 if _pending.is_empty() else _pending[-1].seq
 
 
+## What the client predicted after the command with this sequence, or null.
+##
+## Null is the ordinary answer, not an error: the buffer only holds what is still
+## unacked, so a snapshot acking something already discarded — or something never
+## sent — has nothing to compare against, and the caller must smooth rather than
+## guess.
+func state_at(seq: int) -> PredictedState:
+	for i: int in _pending.size():
+		if _pending[i].seq == seq:
+			return _states[i] as PredictedState
+	return null
+
+
 ## Discard everything. Called on a hard reset — a respawn or a rejoin — where the
 ## authoritative state is unrelated to anything the client predicted.
 func clear() -> void:
 	_pending.clear()
+	_states.clear()

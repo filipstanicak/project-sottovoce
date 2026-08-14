@@ -292,7 +292,7 @@ join/leave stable.
 | `MatchDirector` net tick — 30 Hz from the 60 Hz physics clock | **Done, US-0027.** Derived by counting frames, not by accumulating time; the order is parsed from §4's diagram |
 | Server-side pawn simulation; the **same** state machine as M1 | **Done, US-0028** — and the same `PawnMotion`, extracted because stepping the machine is only half a tick |
 | Snapshot format, `SnapshotBuilder` (cull + quantise + delta) | **Format done, US-0029.** It measured the downstream budget at **113 %**, not the 87 % §7.1 concluded — the sizes that table budgeted against were unreachable from §4's own field list. **The crowd record was shrunk from 10 B to 8 B in answer and it now projects to 93.0 kbit/s, 97 % of budget** |
-| `Predictor`, `Reconciler`, `SnapshotInterpolator` | **`SnapshotInterpolator` done, US-0034** — remote entities render 100 ms in the past between stamped samples, forward-only clock, no extrapolation. `Predictor` and `Reconciler` are still open |
+| `Predictor`, `Reconciler`, `SnapshotInterpolator` | **All three done, US-0032 to US-0034.** Remote entities render 100 ms in the past between stamped samples; the local pawn predicts and **the simulation snaps while the visual blends**, converging at four latency profiles |
 | `LagCompHistory` (recording only — no consumers until M4) | |
 | The integration harness + four-profile latency matrix | |
 
