@@ -257,6 +257,14 @@ respawn is always satisfiable.
 | `S5` | Mercato Piccolo, north | Street | `CIRC-B` (6 m) | 34 m (S4) |
 | `S6` | Campanile base | Street | — (19 m) | 44 m (S5) |
 
+> **THREE OF THE SIX STOOD OVER NOTHING UNTIL 2026-08-13.** `VetraioLayout.SPAWNS` had S3 and
+> S4 at z 106 — past the northern edge of `FondacoStreet`, which ends at z 99 — and S6 at
+> (104, 26), outside every floor rectangle in the district. A pawn placed at any of them falls.
+> Nobody had hit it because `LocalPawnDriver.spawn_index` is 0 and spawn *selection* is US-0062,
+> so only S1 has ever been used. The table above was right and the data was wrong; the data now
+> agrees with it. **Rule 1 below is satisfied and arithmetic (closest pair 30.9 m); rules 4 and 6
+> were NOT re-derived after the move and are owed a level pass.**
+
 **Spawn placement rules:**
 
 | # | Rule | Value | Reason |

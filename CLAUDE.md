@@ -323,6 +323,26 @@ lesson from a different direction:
 **Both were found by taking a screenshot of the running game**, which no suite
 here can do and which took one throwaway script. Do that after any visual change.
 
+**AND TWO MORE ON 2026-08-13, FROM THE OWNER TRYING TO VAULT A MARKET STALL.**
+
+- **THE WHOLE DISTRICT'S FLOOR WAS 0.1 M HIGH.** `FLOORS` declares the height of
+  the walkable *surface*, and the generator built each slab **straddling** that
+  height rather than hanging below it — so the street's top sat at 0.100 while
+  everything measured from the layout stayed put. A 0.9 m stall counter was
+  therefore only **0.80 m above a pawn standing at 0.10**, the 0.85 m waist probe
+  passed over it, and pressing Space at a market stall did nothing at all. Every
+  existing test missed it because `test_traversal_probes_geometry.gd` builds its
+  own exact boxes and `test_client_boot_walks.gd` vaults a 1.8 m block — the
+  *mantle* band, where 10 cm cannot move anything out of a 1.2 m window. **The
+  vault band is 0.9–1.1 and the only geometry in it is the stalls, which nothing
+  had ever tried to vault.** The same fix put three spawn points back on the
+  ground: S3, S4 and S6 were outside every floor rectangle.
+- **SHIFT + SPACE SPRINTED.** GDD-02 §1.3 gives the pad a second sprint route,
+  "L2 full + A", and nothing restricted it to a pad — `INPUT-TRAVERSE` is `Space`
+  on a keyboard. It predates US-0090 and got much easier to hit once Shift meant
+  Run. The combo now requires a mapped pad to be holding the bindings, which
+  `PadSelection` already knows.
+
 **The gate is genuinely runnable now.** One command, no server — `boot.gd` loads
 `client_root.tscn` with or without `--connect`, so the "client, menu" log line
 names a menu that does not exist:
@@ -365,12 +385,12 @@ US-0024 measures it against clips that do not exist.
 | | |
 |---|---|
 | CI | 7 jobs. **Running again as of 2026-08-07 after a two-day outage** — run `31200490320`, all seven green. The seven commits merged during the outage were never through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | 103 architecture guards + 387 unit + 101 integration, all three counted in CI |
+| Tests | 103 architecture guards + 387 unit + 108 integration, all three counted in CI |
 | Tuning | 277 tunables across 14 resource classes; all 23 cross-field invariants assert. **Eight IDs are deprecated** and recorded in TUNABLES §19 — never reused |
 | Autoloads | All eight. `Tuning` precomputes 86 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |
 | Boot | Branches on `--server`; 7 CLI flags parsed in pure Core; 5 export presets |
-| Map | `MAP-VETRAIO` greybox, 120 × 120 m. Client loads 28 meshes, server loads none. **Lit as of US-0091** — one key light and a sky, because nothing in the project had ever created either and the district rendered near-black |
+| Map | `MAP-VETRAIO` greybox, 120 × 120 m. Client loads 28 meshes, server loads none. **The street surface is exactly `STREET_Y`** — floors used to straddle their declared height, putting every walkable top 0.1 m high, which made the 0.9 m stalls unvaultable and three spawn points float over nothing. **Lit as of US-0091** — one key light and a sky, because nothing in the project had ever created either and the district rendered near-black |
 | Pawn | 14 states declared — **the Jog rung was removed in US-0090** and `Jog` is a retired ID absent from `ALL`. Transition edges asserted against the normative diagram. **Eleven implemented**: five locomotion + `Vault`, `Climb`, `Drop`, `KillAnim`, `Stunned`, `Blended`. `Respawning`, `StunAnim` and `Dead` are M4 |
 | Traversal | **Complete.** Probes cast, all seven §7.2 cases resolve from real geometry, both forgiveness windows open, and vault, mantle, climb, drop and gap jump all perform |
 | Pawn body | `GreyboxBody`, procedural — capsule, head and a chest marker on `+Z`, measured from the collider so the two cannot drift. **`PersonaVisuals` was empty through US-0021, 0022 and 0023**: three stories of camera work built around a pawn that did not render, every suite green. Not a persona — ART_BIBLE §6.1's four constructions are US-0039's |

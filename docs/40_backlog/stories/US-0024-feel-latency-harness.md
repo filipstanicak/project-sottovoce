@@ -247,7 +247,7 @@ motion-reduction must be discoverable *before* someone feels ill — GDD-02 §9.
 | Line | Verdict | Date | Note |
 |---|---|---|---|
 | Slowing is instant from every state | **pass, locomotion only** | 2026-08-13 | Idle, Stroll, Run, Sprint. The Vault and Climb rows were not separately reported |
-| Ten sloppy vaults resolve | **not run** | — | The only line still outstanding. Criterion 4 cannot be ticked without it |
+| Ten sloppy vaults resolve | **blocked, then unblocked** | 2026-08-13 | **It could not be run: the stalls were not vaultable.** The district's floor sat 0.1 m above its declared height, so a 0.9 m counter was 0.80 m above the pawn and the 0.85 m waist probe passed over it. Fixed; **needs running now** |
 | FOV ladder perceptible, not nauseating | **pass** | 2026-08-13 | Perceptible, no discomfort. Framing judged with it and accepted |
 | Input → animation ≤ 80 ms | **cannot be judged** | — | no animation exists |
 

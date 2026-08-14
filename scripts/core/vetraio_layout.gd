@@ -103,13 +103,24 @@ const BLEND_PROPS: Array = [
 
 ## TUN-SPAWN-POINT-COUNT points, GDD-05 §2.7. All street-level, none in Piazza
 ## Secca — you never begin a life already accruing suspicion.
+## **THREE OF THESE STOOD OVER NOTHING UNTIL 2026-08-13.** S3, S4 and S6 were at
+## z 106, z 106 and (104, 26) — past the northern edge of `FondacoStreet` and
+## outside every floor rectangle in the district. A pawn placed there falls.
+## Nobody had hit it because `LocalPawnDriver.spawn_index` is 0 and spawn
+## SELECTION is US-0062, so only S1 has ever been used.
+##
+## GDD-05 §2.7 names where they belong — Fondaco west, Fondaco east, Campanile
+## base, all street stratum — and the table below now agrees with it. Rule 1,
+## thirty metres to the nearest other spawn, is satisfied and arithmetic; **rules
+## 4 and 6 (circuit proximity and spawn-to-spawn sightlines) were NOT re-derived**
+## and are owed a level pass.
 const SPAWNS: Array = [
 	["S1", 12.0, 36.0],
 	["S2", 20.0, 70.0],
-	["S3", 10.0, 106.0],
-	["S4", 96.0, 106.0],
+	["S3", 6.0, 97.5],
+	["S4", 114.0, 97.5],
 	["S5", 100.0, 70.0],
-	["S6", 104.0, 26.0],
+	["S6", 88.0, 14.0],
 ]
 
 ## The four blend-group circuits, GDD-05 §2.5. Closed loops; no circuit enters
