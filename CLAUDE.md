@@ -250,7 +250,42 @@ three are blocked, each by something real:
 
 **M1's gate is passed. The remaining M1 work is nothing** — US-0024's two open
 criteria wait on an animation that does not exist and on prediction, which is
-US-0032 in M2. **Start M2 at US-0025, the net peer lifecycle.**
+US-0032 in M2.
+
+**M2 HAS STARTED. US-0025 IS BUILT AND THE TRANSPORT IS UP.** A dedicated server
+listens on three ENet channels, a client dials in with `--connect`, and the
+`NET-C2S-HELLO` / `NET-S2C-WELCOME` handshake completes — verified by hand across
+two real processes on 2026-08-14, because **no automated test in this repo can
+reach it**: `Net` is an autoload, one process holds one of it, and an RPC
+resolves by node path, so a second `Net` could not answer the first. That round
+trip is US-0036's harness. The story leaves its last criterion unticked and says
+so.
+
+**The decisions are pure and the wiring is not.** `Handshake` and `Messages`
+hold every branch that decides something — the channel a message rides, whether
+a peer is admitted, whether the server must correct its tuning — with no socket,
+no node and no autoload, so five of seven criteria are proven by tests that
+stand nothing up. Three things worth knowing:
+
+- **A socket is not a player.** `Net.player_count()` counts peers that finished
+  the handshake, never peers that merely connected.
+- **`Handshake.check()` cannot see the tuning hash.** Not a rule written in a
+  comment — there is no argument through which tuning could ever refuse a peer.
+  A mismatch is answered with `NET-S2C-TUNING-SYNC`, and `Tuning.adopt()`
+  validates every invariant before installing it.
+- **RTT has two sources on purpose.** The server reads ENet's own statistic; the
+  client smooths its own pongs. `client_time` is forgeable, and lag compensation
+  rewinds by an amount derived from RTT — an RTT a client could inflate is an
+  RTT a client could use to reach further into the past.
+
+**THE HAND RUN FOUND SOMETHING THE SNAPSHOT WILL HAVE TO ANSWER.** Godot's peer
+ids are 32-bit random numbers — the test client was welcomed as peer
+**1526710570** — and both protocol tables declare `peer_id:u8`. Nothing is
+broken yet because nothing is hand-serialised, but US-0029 cannot pack that into
+a byte. Either the server maps peers onto small slot numbers for the wire, or
+the schema is wrong. Recorded in US-0025, not decided.
+
+**Next is US-0026, the RPC router and the authority chokepoint.**
 
 **TWO STORIES WERE WRITTEN AND HELD BEHIND THE GATE**, both for the same reason:
 they change what `INPUT-TRAVERSE` does, and the gate's second line *counts
@@ -416,7 +451,7 @@ US-0024 measures it against clips that do not exist.
 | | |
 |---|---|
 | CI | 7 jobs. **Running again as of 2026-08-07 after a two-day outage** — run `31200490320`, all seven green. The seven commits merged during the outage were never through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | 103 architecture guards + 408 unit + 113 integration, all three counted in CI |
+| Tests | 103 architecture guards + 429 unit + 118 integration, all three counted in CI |
 | Tuning | 280 tunables across 14 resource classes; all 26 cross-field invariants assert. **Eight IDs are deprecated** and recorded in TUNABLES §19 — never reused |
 | Autoloads | All eight. `Tuning` precomputes 86 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |

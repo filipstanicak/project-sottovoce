@@ -28,7 +28,12 @@ const FORBIDDEN_SUFFIXES: Array[String] = ["_signal", "_event", "_callback"]
 
 ## Past-tense endings, plus the irregular forms actually used in the catalogue.
 const PAST_TENSE_ENDINGS: Array[String] = ["ed", "en"]
-const ALLOWED_IRREGULARS: Array[String] = ["caption"]
+##
+## `peer_left` is the past tense of *leave*, and English does not spell it with
+## an `-ed`. Renaming it to satisfy the heuristic would produce `peer_departed`,
+## which is worse prose in service of a suffix — the rule is "past-tense fact",
+## and this is one.
+const ALLOWED_IRREGULARS: Array[String] = ["caption", "peer_left"]
 
 
 func _signals() -> Array:

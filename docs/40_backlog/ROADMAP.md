@@ -267,9 +267,27 @@ No suspicion, no networking, no NPCs. Single player, local, no rules.
 **Exit:** 3 clients + headless server, replicated movement, prediction and interpolation,
 join/leave stable.
 
+> **M2 HAS STARTED, 2026-08-14.** US-0025 is built: a server listens on three
+> ENet channels, a client dials in with `--connect`, and the handshake completes.
+> Verified across two real processes by hand — **no automated test here can reach
+> it**, because `Net` is an autoload and an RPC resolves by node path, so one
+> process cannot hold both ends. That round trip belongs to US-0036's harness,
+> and US-0025's last criterion stays unticked rather than being rounded up.
+>
+> Two things it decided that the corpus had left open, both recorded in the
+> story: **`build_hash` is derived from the protocol surface**, not from a build
+> stamp, because a stamp rejects builds that differ in a shader and accepts ones
+> that differ in the wire format; and **`NET-C2S-HELLO` now carries the client's
+> tuning hash**, because a server that never learns it could only send
+> `NET-S2C-TUNING-SYNC` always or never, and the catalogue says *on mismatch*.
+>
+> It also found one the snapshot will have to answer: **Godot's peer ids are
+> 32-bit random numbers and the protocol declares `peer_id:u8`.** Nothing is
+> broken until something is hand-serialised, which is US-0029.
+
 | Delivers | |
 |---|---|
-| `Net` autoload, ENet peer lifecycle, three channels | |
+| `Net` autoload, ENet peer lifecycle, three channels | **Done, US-0025** |
 | `RpcRouter` with authority checks on **every** C2S message | |
 | `MatchDirector` net tick — 30 Hz from the 60 Hz physics clock | |
 | Server-side pawn simulation; the **same** state machine as M1 | |

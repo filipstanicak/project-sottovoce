@@ -230,7 +230,7 @@ is consulted constantly.
 
 | ID | Ch | Rel | Rate | Payload | Authority check |
 |---|---|---|---|---|---|
-| `NET-C2S-HELLO` | X | Reliable | Once | `protocol_version:u16`, `build_hash:u64` | Version and build must match server; else reject with reason |
+| `NET-C2S-HELLO` | X | Reliable | Once | `protocol_version:u16`, `build_hash:u64`, `tuning_hash:u64` | Version and build must match server; else reject with reason. **The tuning hash can never refuse a peer** — it is carried so the server can answer a mismatch with `NET-S2C-TUNING-SYNC` rather than sending 6 KB on every join or never noticing (US-0025) |
 | `NET-C2S-LOADOUT` | X | Reliable | Lobby only | `persona:u8`, `ability_a:u8`, `ability_b:u8`, `passive:u8` | **Rejected unless phase == LOBBY.** IDs must be within the MVP set; abilities must differ |
 | `NET-C2S-READY` | X | Reliable | Lobby only | `ready:bool` | Rejected unless phase == LOBBY |
 | `NET-C2S-INPUT` | S | Unreliable | **60 Hz** | `seq:u16`, `move:2×i8`, `yaw:u8`, `pitch:i8`, `buttons:u16`, `client_tick:u16` | Sender must own a living pawn. `seq` must be newer than last processed (stale/replayed commands dropped). Applies to the **sender's** pawn only — the pawn is looked up from the peer id, never from the payload |
@@ -262,7 +262,8 @@ evaluated by the server against the lag-compensated world. A client cannot expre
 | `NET-S2C-SCORE-EVENT` | E | Reliable | On event | `event_id:u32`, `tick:u32`, `kind:u8`, `actor:u8`, `subject:u8`, `base:i16`, `mult:u8`, `group:u16` |
 | `NET-S2C-PHASE-CHANGED` | E | Reliable | On change | `phase:u8`, `tick:u32`, `multiplier:u8` |
 | `NET-S2C-MATCH-END` | E | Reliable | Once | Full `ScoreEvent` log for the results fold |
-| `NET-S2C-PLAYER-JOINED` / `-LEFT` | X | Reliable | On change | `peer_id:u8`, `persona:u8` |
+| `NET-S2C-PLAYER-JOINED` | X | Reliable | On change | `peer_id:u8`, `persona:u8` |
+| `NET-S2C-PLAYER-LEFT` | X | Reliable | On change | `peer_id:u8`, `persona:u8` |
 | `NET-S2C-PONG` | S | Unreliable | 1 Hz | `client_time:u32`, `server_tick:u32` |
 
 ### 6.3 Snapshot payload
@@ -531,7 +532,9 @@ func sample(entity_id: int, render_time_ms: float) -> EntityState
 | `scripts/net/client/interpolator.gd` | Timestamp-based interpolation |
 | `scripts/net/protocol/input_command.gd` | `InputCommand` |
 | `scripts/net/protocol/snapshot.gd` | Snapshot serialise / deserialise |
-| `scripts/net/protocol/messages.gd` | `NET-` ID constants + payload schemas |
+| `scripts/net/protocol/messages.gd` | `NET-` ID constants, the channel each message travels on, and the messages §6.4 forbids |
+| `scripts/net/protocol/handshake.gd` | Pure. Admit, reject or correct — the `NET-C2S-HELLO` decision with no socket |
+| `scripts/net/rtt_table.gd` | Pure. The **client's** smoothed RTT. The server reads ENet's own statistic instead |
 | `scripts/net/protocol/quantise.gd` | Position / yaw / phase quantisation helpers |
 
 ---
