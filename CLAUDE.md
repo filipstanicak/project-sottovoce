@@ -252,17 +252,21 @@ three are blocked, each by something real:
 criteria wait on an animation that does not exist and on prediction, which is
 US-0032 in M2. **Start M2 at US-0025, the net peer lifecycle.**
 
-**TWO STORIES ARE WRITTEN AND DELIBERATELY NOT BUILT**, both queued behind the
-gate for the same reason: they change what `INPUT-TRAVERSE` does, and the gate's
-second line *counts traverse presses*. Once Space always produces something,
-"nothing happened" stops being observable and the vault tally stops meaning what
-the checklist says.
+**TWO STORIES WERE WRITTEN AND HELD BEHIND THE GATE**, both for the same reason:
+they change what `INPUT-TRAVERSE` does, and the gate's second line *counts
+traverse presses*. Once Space always produces something, "nothing happened" stops
+being observable and the vault tally stops meaning what the checklist says. **The
+gate passed on 2026-08-13, so the hold expired.**
 
-- **US-0093** — a speed-scaled hop on §7.2's no-match case. An impulse rather
-  than a fifteenth state, so the resolver stays the only owner of Space. **Open
-  question: does a hop cost anonymity?** Raised, never ruled on, recorded rather
-  than invented.
-- **US-0094** — the steered wall cling. **It reverses GDD-02 §7's "assisted, not
+- **US-0093 IS BUILT AND MERGED** (#62, 2026-08-14) — a speed-scaled hop on
+  §7.2's no-match case. An impulse rather than a fifteenth state, so the resolver
+  stays the only owner of Space. **Open question: does a hop cost anonymity?**
+  Raised, never ruled on, recorded rather than invented — there is no crowd to
+  observe until M3, so it waits for something to observe. Its first day in the
+  owner's hands found the held-traverse repeat above (#63); nothing was wrong
+  with the hop itself.
+- **US-0094 IS STILL A DRAFT AND STILL NEEDS A DECISION BEFORE ANY CODE** — the
+  steered wall cling. **It reverses GDD-02 §7's "assisted, not
   simulated" and §1.1's "the player never chooses which manoeuvre"**, so its
   first acceptance criterion is the owner's sign-off in the GDD before any code.
   It also costs things nobody would look for: the level-design contract sized

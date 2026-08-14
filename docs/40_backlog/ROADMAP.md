@@ -137,6 +137,21 @@ state machine, locally.
 > letting the player step off. **The ten-of-ten arrived without touching the
 > forgiveness windows**, which is the strongest thing the gate says about them.
 >
+> **A tenth followed the gate rather than blocking it** (#63, 2026-08-14). The
+> action buffer armed from held state, so one finger on Space bought a fresh
+> traverse every physics frame — harmless for nine stories, because the extra
+> resolves had nothing to do, until **US-0093 gave them something**: the hop lifts
+> the pawn far enough that the lip it just left re-classifies as a gap jump, which
+> plans an interpolation and zeroes the velocity mid-air. It arms on the edge now.
+> Same lesson as the nine: found by holding a key rather than tapping it, and no
+> suite here presses a key for longer than one frame.
+>
+> **US-0093 IS BUILT AND MERGED** (#62). Both traversal stories were held behind
+> the gate because they change what `INPUT-TRAVERSE` does and the gate's second
+> line counts traverse presses; the gate passed, so the hold expired. **US-0094 is
+> still a draft** and still needs the owner's sign-off on reversing §7's
+> "assisted, not simulated" before any code.
+>
 > **Status 2026-08-12 — 11 of 12, and the twelfth is not code.** US-0013 to
 > US-0023 are done and US-0024 is `in-progress` with everything buildable built.
 > Fourteen states declared, eleven implemented, every edge asserted against the §3
