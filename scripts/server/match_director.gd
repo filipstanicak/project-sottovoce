@@ -37,6 +37,7 @@ var ctx := MatchContext.new()
 
 var _systems: Dictionary = {}
 var _queues: Dictionary = {}
+var _last_command: Dictionary = {}
 var _frames_per_tick: int = 2
 var _frame: int = 0
 
@@ -104,6 +105,7 @@ func system_for(stage: StringName) -> GameSystem:
 
 func forget(peer: int) -> void:
 	_queues.erase(peer)
+	_last_command.erase(peer)
 
 
 ## How many commands are waiting for `peer`. For tests and diagnostics.
@@ -163,8 +165,44 @@ func _run_stage(stage: StringName) -> void:
 ## once per tick with a doubled `dt`: the client integrated two separate steps
 ## with a decision between them, and a single step of twice the length lands
 ## somewhere else on any curve that is not linear.
+##
+## **A MISSING COMMAND REPEATS THE LAST ONE RATHER THAN STALLING**, US-0028. A
+## stalled pawn produces a position the client cannot have predicted — it kept
+## walking — so every dropped packet would guarantee a reconciliation, and a
+## player on a lossy connection would stutter continuously against a server that
+## was merely waiting. Repeating is what the client's own prediction did with
+## that tick, so the two agree.
+##
+## Walks `ctx.pawns`, not the queues: a peer with a pawn and an empty queue is
+## exactly the case that needs filling, and it has no queue entry to be found by.
 func _substep_pawns() -> void:
-	for peer: int in _queues.keys():
-		var queue: Array = _queues[peer]
-		while not queue.is_empty():
-			input_applied.emit(peer, queue.pop_front() as InputCommand, MatchContext.step_dt())
+	for peer: int in _ctx_pawn_peers():
+		var applied := _drain(peer)
+		_repeat_last(peer, applied)
+
+
+func _ctx_pawn_peers() -> Array:
+	return ctx.pawns.keys() if not ctx.pawns.is_empty() else _queues.keys()
+
+
+## Everything the peer actually sent this tick, in sequence order.
+func _drain(peer: int) -> int:
+	var queue: Array = _queues.get(peer, [])
+	var applied := 0
+	while not queue.is_empty():
+		var command := queue.pop_front() as InputCommand
+		_last_command[peer] = command
+		input_applied.emit(peer, command, MatchContext.step_dt())
+		applied += 1
+	return applied
+
+
+## Fill the tick out to its full complement of substeps with the last command
+## seen. Nothing is repeated for a peer that has never sent one — there is no
+## intent to extend, and a pawn that has not yet moved must not start.
+func _repeat_last(peer: int, applied: int) -> void:
+	if applied >= _frames_per_tick or not _last_command.has(peer):
+		return
+	var command := _last_command[peer] as InputCommand
+	for _i: int in _frames_per_tick - applied:
+		input_applied.emit(peer, command, MatchContext.step_dt())

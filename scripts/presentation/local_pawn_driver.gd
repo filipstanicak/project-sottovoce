@@ -102,42 +102,10 @@ func _physics_process(delta: float) -> void:
 	# its own loop — so the camera still reads the look on the same side of the
 	# state machine it always did.
 	command_sampled.emit(command)
-	# BEFORE step(), once per physics frame. Raycasts are only valid in the
-	# physics step, and a state casting its own would cast again on every
-	# reconciliation replay — the same query against a world that has moved on.
-	_probes.refresh(ctx)
-	_machine.step(ctx, command, delta)
-	_apply_motion(command)
+	# **THE SAME CODE THE SERVER RUNS**, not a copy of it — ADR-0008 requires the
+	# state machine to match, and stepping it is only half of a tick. US-0028.
+	PawnMotion.advance(ctx, _machine, _probes, _body, command, delta)
 	pawn_stepped.emit(ctx)
-
-
-## Move the body from the velocity the state machine computed, and write back
-## what actually happened. The write-back matters: a pawn that walked into a wall
-## has a velocity the simulation must know about, or the next tick accelerates
-## from a speed it never reached.
-func _apply_motion(command: InputCommand) -> void:
-	ctx.yaw = command.look_yaw
-	_body.rotation.y = ctx.yaw
-	if _machine.drives_position(ctx):
-		# A traversal owns its own position: it is a fixed displacement against
-		# static geometry, planned once and interpolated. Running move_and_slide()
-		# here with the velocity frozen would leave the body where it stood and
-		# then overwrite the plan with it — a vault that computes a perfect arc
-		# and never moves the pawn.
-		_body.global_position = ctx.position
-		_body.velocity = Vector3.ZERO
-		return
-	_body.velocity = ctx.velocity
-	if not ctx.grounded or not _body.is_on_floor():
-		_body.velocity.y -= _gravity() * (1.0 / Tuning.net.client_input_rate)
-	_body.move_and_slide()
-	ctx.velocity = _body.velocity
-	ctx.position = _body.global_position
-	ctx.grounded = _body.is_on_floor()
-
-
-func _gravity() -> float:
-	return float(ProjectSettings.get_setting("physics/3d/default_gravity", 9.8))
 
 
 func _spawn_position() -> Vector3:
