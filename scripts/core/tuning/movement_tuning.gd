@@ -110,7 +110,10 @@ extends Resource
 ## Upward impulse when INPUT-TRAVERSE resolves to nothing and the pawn is idle, blend-walking or
 ## strolling. v²/2g puts the crown at 0.34 m — a hop, not a jump. It exists because Space in open
 ## ground used to do nothing at all (§7.2 case 7), which reads as a broken key rather than as the
-## silence it was designed to be.
+## silence it was designed to be. A hop costs no suspicion of its own — it inherits whatever the
+## current speed state charges. Design law 1 prices speed, and a hop is not speed; whether
+## jumping on the spot in a market should cost anonymity anyway is deferred to M3, when there is
+## a crowd to observe rather than an argument to have (US-0093).
 ## TUN-TRAVERSE-HOP-STANDING
 @export_range(1.8, 3.4, 0.1) var hop_standing: float = 2.6
 
