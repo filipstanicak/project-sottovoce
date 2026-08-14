@@ -524,6 +524,8 @@ func sample(entity_id: int, render_time_ms: float) -> EntityState
 |---|---|
 | `scripts/net/net.gd` | `Net` autoload — peer lifecycle, role, RTT |
 | `scripts/net/server/rpc_router.gd` | Authority chokepoint |
+| `scripts/net/protocol/authority.gd` | Pure. **The authority column of §6.1 as a table** — who may say what, and when |
+| `scripts/net/protocol/sequence_gate.gd` | Pure. Drops stale and replayed input, across the `u16` wrap |
 | `scripts/net/server/snapshot_builder.gd` | Cull, delta, quantise |
 | `scripts/net/server/lag_comp_history.gd` | 500 ms ring |
 | `scripts/net/client/input_sender.gd` | 60 Hz sampling and send |
@@ -543,8 +545,10 @@ func sample(entity_id: int, render_time_ms: float) -> EntityState
 
 | Test | Asserts |
 |---|---|
-| `test_no_client_authority.gd` | **Source scan:** no `@rpc` handler writes to a system's state without passing `_authorise`. Every C2S entry in §6.1 has a non-empty authority check |
-| `test_client_cannot_assert_outcome.gd` | The message catalogue contains no C2S message with an outcome field. Parsed from `messages.gd` |
+| `test_no_client_authority.gd` | **Source scan, BUILT US-0026:** every `@rpc("any_peer")` handler calls `_authorise` and calls it **first**. `PRE_AUTHORITY` is the only way past it and each entry carries its argument |
+| `test_authority.gd` | Every C2S entry in §6.1 has a rule and every rule has an entry, in both directions. Warmup is not playing; a forbidden message is refused even from a fully authorised player |
+| `test_sequence_gate.gd` | Stale, replayed and reordered input dropped — **including across the `u16` wrap**, which arrives 18 minutes into a match |
+| `test_client_cannot_assert_outcome.gd` | **BUILT US-0026.** No C2S row in NETWORK_PROTOCOL §2 carries an outcome field, and none of the five forbidden messages has acquired a row. Parsed from the **catalogue**, not from code — a field caught there has not been implemented yet |
 | `test_prediction_reconciliation.gd` | At synthetic 150 ms RTT with a forced divergence, the client converges within `TUN-NET-RECONCILE-SMOOTH-TIME` with no visual discontinuity |
 | `test_reconcile_snaps_sim_blends_visual.gd` | After reconciliation the simulation position equals the server's exactly, while the visual is offset and decaying |
 | `test_input_buffer_overflow.gd` | At 600 ms RTT the buffer force-accepts rather than accumulating unbounded error |
