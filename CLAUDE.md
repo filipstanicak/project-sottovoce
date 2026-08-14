@@ -546,10 +546,37 @@ against the 180 s the story allows.
   which is stronger in one direction and weaker in another, and the story says
   which.
 
-**M2 IS NEARLY DONE.** US-0025 to US-0030 and US-0032 to US-0034 and US-0036 are
-built. What is left: **US-0031** (delta encoding), **US-0035** (lag-comp
-history), **US-0037** (join/leave stability) and **US-0038** (the M2 gate).
-US-0030's culling criteria stay unticked — there is no crowd to cull until M3.
+**US-0037 IS BUILT: CHURN LEAVES NOTHING BEHIND.** 40 cycles of three peers —
+**120 joins and 120 departures** — with five counters back at baseline
+afterwards: server pawns, `MatchContext.pawns`, wire slots, clients, and
+**packets still on the wire**.
+
+**Cleanup is the code most likely to look correct and never have executed.** It
+is written once, beside the thing it cleans up, and the happy path never reaches
+it. The failure it looks for is **inheritance, not leakage**: ENet reuses peer
+ids, so anything left behind is handed to the next joiner, who is then named as
+somebody else in every message that names anybody.
+
+- **A departed client sent one more command.** `queue_free()` frees at the end of
+  the frame, so a removed client's driver sampled once more and enqueued a packet
+  nobody could deliver — and the snapshot answering it arrived for a client that
+  no longer existed. Found by the in-flight count failing to return to zero,
+  which is why the baseline counts the wire and not only the entities.
+- **A test of this file was true of the wrong thing.** It let a pawn stand still
+  for 30 frames and then asserted a rejoining one had not resumed from where it
+  stopped — which it trivially had not, because it had never gone anywhere. Trap
+  4, inside a test about cleanup.
+- **Two criteria stay unticked**: a timeout behaving identically to a clean
+  disconnect needs a real connection to time out (two processes), and "the match
+  ends gracefully below minimum players" is `SYS-MATCH`'s, in M4.
+- **Five minutes is repetition, and repetition is what is counted.** 18 000
+  physics frames would outlast the 180 s the integration suite is allowed;
+  nothing here accumulates with time rather than with cycles.
+
+**M2 IS NEARLY DONE.** US-0025 to US-0030, US-0032 to US-0034, US-0036 and
+US-0037 are built. What is left: **US-0031** (delta encoding), **US-0035**
+(lag-comp history) and **US-0038** (the M2 gate). US-0030's culling criteria stay
+unticked — there is no crowd to cull until M3.
 
 **US-0024's "≤ 80 ms with prediction active" IS MEASURED — AND STAYS UNTICKED.**
 With a real server, a real snapshot stream and reconciliation live, the response
