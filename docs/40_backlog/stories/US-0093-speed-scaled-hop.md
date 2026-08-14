@@ -2,9 +2,9 @@
 id: US-0093
 title: A hop when nothing resolves, scaled by the speed state
 version: 1.0.0
-status: draft
+status: done
 owner: Lead Game Designer
-last_updated: 2026-08-13
+last_updated: 2026-08-14
 depends_on: [GDD-02-PLAYER]
 ---
 
@@ -78,16 +78,25 @@ in a market is not behaving like a civilian, and the crowd is the game's substra
 **Recommendation: no extra cost now, revisit at M3** when NPC startle exists and the answer can
 be observed rather than argued. Recorded so it is a decision rather than an omission.
 
-## Why this is not built yet
+## Why it waited, and what that bought
 
-**It changes what Space does when nothing resolves, and that is exactly what the M1 feel gate
-counts.** US-0024's checklist line 2 is *ten deliberately sloppy vaults all resolve*, tallied by
-the debug readout as `#` resolved and `.` produced nothing. Once Space always produces *something*,
-"nothing happened" stops being observable and the tally stops meaning what the checklist says it
-means.
+It changes what Space does when nothing resolves, which is exactly what the M1 feel gate counted:
+line 2 is *ten deliberately sloppy vaults all resolve*, tallied by the readout as `#` resolved and
+`.` produced nothing. Once Space always produces *something*, "nothing happened" stops being
+observable.
 
-So: **run the gate first**, then build this. If the gate is judged against a controller that is
-mid-change, the judgement is worth less than the time it took.
+**The gate was judged first — ten of ten, 2026-08-13 — and then this was built.** The tally meant
+what the checklist said it meant while it was being taken.
+
+## What it measured, live
+
+| From | Rise |
+|---|---|
+| Idle / stroll | **0.367 m** |
+| Run | **0.936 m** |
+
+Slightly above `v²/2g` (0.345 and 0.90) because the impulse lands a full frame before gravity
+does. The relationship is what matters and the tunables are what set it.
 
 ## Traps
 
@@ -99,14 +108,17 @@ mid-change, the judgement is worth less than the time it took.
 
 ## Acceptance criteria
 
-None are ticked. Nothing is built.
+All ticked. Built 2026-08-14, after the gate.
 
-- [ ] Space with no traversal match produces a vertical impulse; cases 1–6 still win.
-- [ ] The impulse is `TUN-TRAVERSE-HOP-STANDING` from idle/blend-walk/stroll and
+- [x] Space with no traversal match produces a vertical impulse; cases 1–6 still win.
+- [x] The impulse is `TUN-TRAVERSE-HOP-STANDING` from idle/blend-walk/stroll and
       `TUN-TRAVERSE-HOP-COMMITTED` from run/sprint.
-- [ ] **No horizontal velocity is added** — the arc's length is whatever the player already had.
-- [ ] A hop that ends near a ledge still resolves into a ledge grab (§7.2 case 1).
-- [ ] No hop while airborne.
-- [ ] GDD-02 §7.2 case 7 is rewritten, and §7's "silence, not a flail" argument is kept for the
+- [x] **No horizontal velocity is added** — the arc's length is whatever the player already had.
+- [x] A hop that ends near a ledge still resolves into a ledge grab (§7.2 case 1). The
+      `grounded` guard is what makes it unambiguous: airborne, the hop cannot fire and case 1 is
+      the only thing that can answer.
+- [x] No hop while airborne.
+- [x] GDD-02 §7.2 case 7 is rewritten, and §7's "silence, not a flail" argument is kept for the
       case it still governs — a traverse that genuinely fails.
-- [ ] The suspicion decision above is recorded in TUNABLES, whichever way it goes.
+- [x] The suspicion decision above is recorded in TUNABLES, whichever way it goes. **No cost of
+      its own; deferred to M3**, when there is a crowd to observe rather than an argument to have.
