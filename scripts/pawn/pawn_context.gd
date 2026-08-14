@@ -41,6 +41,16 @@ var traverse_buffer_ticks: int = 0
 var ability_buffer_ticks: int = 0
 var ledge_magnet_ticks: int = 0
 
+## What the buttons were doing on the previous `step()`, so the action buffers
+## can arm on the PRESS and not on the hold.
+##
+## `InputCommand.buttons` is held state — the server receives it at 30 Hz having
+## missed frames, so an edge is something the simulation derives rather than
+## something the wire carries. This is where the previous field is kept for that
+## derivation, and it lives in the context rather than in the sampler because the
+## server and the client's replay must derive the same edges.
+var held_buttons: int = InputBits.NONE
+
 ## THE MANOEUVRE IN PROGRESS, committed at the instant of the press.
 ##
 ## A `TraversalResolver.Case`, with the world positions it decided on. Planned
@@ -89,6 +99,7 @@ func reset_for_spawn(at: Vector3, facing: float) -> void:
 	traverse_buffer_ticks = 0
 	ability_buffer_ticks = 0
 	ledge_magnet_ticks = 0
+	held_buttons = InputBits.NONE
 	traverse_case = 0
 	traverse_start = Vector3.ZERO
 	traverse_target = Vector3.ZERO

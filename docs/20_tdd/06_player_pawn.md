@@ -247,6 +247,7 @@ var state_timer_ticks: int
 var probe_result: ProbeResult
 var traverse_buffer_ticks: int
 var ledge_magnet_ticks: int
+var held_buttons: int                            ## last step's buttons, so §3 can arm on the EDGE
 
 # --- Gameplay (SERVER-AUTHORITATIVE — mirrored on the client, NEVER predicted) ---
 var suspicion: float
@@ -277,6 +278,14 @@ The action buffer must be inside `PawnContext` and inside `step()`, because it c
 simulation result. A client-only action buffer would mean the client predicting a vault the
 server never performed.
 
+**IT ARMS ON THE PRESS, NEVER ON THE HOLD.** `InputCommand.buttons` is held state — the
+server receives it at 30 Hz having missed frames, so an edge is *derived*
+(`InputBits.newly_pressed`) against `ctx.held_buttons` and never transmitted. Arming from the
+held bit instead re-arms the counter every frame the key is down, and since `resolve()`
+consumes whatever is armed, **one held key buys a fresh traverse sixty times a second**. That
+shipped from US-0016 and showed nothing until the hop existed to be interrupted; it was found
+at the controls on 2026-08-14, holding Space off a market stall.
+
 ```gdscript
 ## Called every step, from PawnStateMachine.step(), BEFORE the state runs — so a
 ## press and its consumption can land on the same tick. Implemented as
@@ -286,7 +295,9 @@ server never performed.
 ## which runs at 60 Hz; the 30 Hz conversion would forgive 0.10 s while every
 ## document says 0.20. See TDD-03 §1.1 — the two tick domains.
 static func tick(ctx: PawnContext, input: InputCommand) -> void:
-    if input.traverse:
+    var pressed := InputBits.newly_pressed(input.buttons, ctx.held_buttons)
+    ctx.held_buttons = input.buttons
+    if InputBits.is_set(pressed, InputBits.TRAVERSE):
         ctx.traverse_buffer_ticks = Tuning.step_ticks(&"TUN-TRAVERSE-INPUT-BUFFER")  # 12 ticks
     elif ctx.traverse_buffer_ticks > 0:
         ctx.traverse_buffer_ticks -= 1
@@ -528,7 +539,8 @@ func PawnContext.apply_authoritative(state: PredictedState) -> void
 | `test_traversal_case_states.gd` | Every case names a state the graph can enter from locomotion |
 | `test_traversal_resolution_geometry.gd` | The seven cases resolve from **real** geometry, not a hand-filled struct |
 | `test_traversal_assists_geometry.gd` | The gap fan and the ledge probes fire against real bodies |
-| `test_pawn_input_buffer.gd` | The action buffer arms, decays, expires and is consumed exactly once — at the **step** rate |
+| `test_pawn_input_buffer.gd` | The action buffer arms, decays, expires and is consumed exactly once — at the **step** rate, and **on the press rather than the hold** |
+| `test_a_held_traverse_is_one_traverse.gd` | Holding Space off a stall lip flies the **same arc** as tapping it. Two trials compared frame by frame, so it pins no distance |
 | `test_step_counters_use_step_ticks.gd` | Nothing under `scripts/pawn/` compares a 60 Hz counter against the 30 Hz conversion |
 | `test_client_boot_walks.gd` | **A key press moves the pawn**, through the real scene and the real bindings |
 | `test_input_sampled_once.gd` | One command per physics frame, and `TUN-SPEED-RUN-RESOLVE` closes on the tick it specifies. It measured the deprecated `TUN-SPEED-SPRINT-HOLD` when it was written, and read **13 of 24** while input was sampled twice |

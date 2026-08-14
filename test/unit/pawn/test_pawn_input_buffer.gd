@@ -85,6 +85,57 @@ func test_a_press_and_its_consumption_can_share_a_tick() -> void:
 	assert_true(PawnInputBuffer.consume_traverse(_ctx))
 
 
+func test_a_held_traverse_arms_once_and_then_decays() -> void:
+	# **THE PRESS, NOT THE HOLD.** `InputCommand.buttons` is held state, and arming
+	# from it directly re-armed the buffer every frame the key was down — so one
+	# held key bought a fresh traverse sixty times a second. Found at the controls:
+	# hold Space off a market stall and the pawn hops, then re-resolves in mid-air
+	# where it has risen far enough for the same lip to classify as a gap jump,
+	# which zeroes the velocity. It read as stopping dead in the air.
+	var window := Tuning.step_ticks(&"TUN-TRAVERSE-INPUT-BUFFER")
+	PawnInputBuffer.tick(_ctx, _press_traverse())
+	for i: int in 3:
+		PawnInputBuffer.tick(_ctx, _press_traverse())
+		assert_eq(
+			_ctx.traverse_buffer_ticks,
+			window - i - 1,
+			"holding the key re-armed the buffer instead of letting it decay"
+		)
+
+
+func test_a_held_traverse_expires_while_the_key_is_still_down() -> void:
+	# The consequence stated as a fact about the finger rather than about the
+	# counter: a player leaning on Space gets ONE traverse, not a stream of them.
+	for _i: int in Tuning.step_ticks(&"TUN-TRAVERSE-INPUT-BUFFER") + 1:
+		PawnInputBuffer.tick(_ctx, _press_traverse())
+	assert_false(PawnInputBuffer.has_traverse(_ctx), "a held key kept the buffer armed forever")
+
+
+func test_releasing_and_pressing_again_arms_again() -> void:
+	# The other half. Edge-arming must not swallow a genuine second press, or
+	# double-tapping Space at a wall would do nothing the second time.
+	PawnInputBuffer.tick(_ctx, _press_traverse())
+	assert_true(PawnInputBuffer.consume_traverse(_ctx))
+	PawnInputBuffer.tick(_ctx, InputCommand.empty(1))
+	PawnInputBuffer.tick(_ctx, _press_traverse())
+	assert_true(PawnInputBuffer.has_traverse(_ctx), "the second press was swallowed")
+
+
+func test_a_held_ability_arms_once_too() -> void:
+	# Same rule, same reason, and asserted here because the ability buffer has no
+	# consumer until M3 — the day one arrives it must not inherit the defect the
+	# traverse buffer shipped with.
+	var input := InputCommand.empty(1)
+	input.ability_1 = true
+	PawnInputBuffer.tick(_ctx, input)
+	PawnInputBuffer.tick(_ctx, input)
+	assert_eq(
+		_ctx.ability_buffer_ticks,
+		Tuning.step_ticks(&"TUN-ABILITY-INPUT-BUFFER") - 1,
+		"a held ability key re-armed its buffer"
+	)
+
+
 func test_the_ability_buffer_is_separate_from_the_traverse_one() -> void:
 	# Two windows, two tunables, two reasons. Sharing a counter would let a
 	# traverse eat an ability the player also pressed.
