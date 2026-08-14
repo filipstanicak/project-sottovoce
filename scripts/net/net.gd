@@ -48,7 +48,7 @@ func _ready() -> void:
 	multiplayer.connected_to_server.connect(_on_connected_to_server)
 	multiplayer.connection_failed.connect(_on_connection_failed)
 	multiplayer.server_disconnected.connect(_on_server_disconnected)
-	set_process(false)
+	set_physics_process(false)
 
 
 ## Listen on `port` for at most `max_players` peers. Returns false and logs
@@ -92,7 +92,7 @@ func stop() -> void:
 	_players.clear()
 	_rtt.clear()
 	_ping_sent_at.clear()
-	set_process(false)
+	set_physics_process(false)
 
 
 ## Smoothed round-trip time to `peer`, in milliseconds. 0.0 when unknown.
@@ -126,7 +126,7 @@ func _install(peer: ENetMultiplayerPeer, as_server: bool) -> void:
 	_peer = peer
 	is_server = as_server
 	multiplayer.multiplayer_peer = peer
-	set_process(not as_server)
+	set_physics_process(not as_server)
 
 
 ## `TUN-NET-TIMEOUT` on an individual ENet connection.
@@ -266,7 +266,13 @@ func _rejected(reason: int) -> void:
 ## Client only, and only once a second. `Messages.PING_INTERVAL` is not a
 ## tunable: it changes nothing a player perceives, and the server's own RTT does
 ## not depend on it.
-func _process(delta: float) -> void:
+##
+## **`_physics_process`, NOT `_process`.** A heartbeat driven by rendered frames
+## samples RTT at whatever rate the player's hardware chooses — 144 samples a
+## second on one machine and 12 during a hitch, feeding a smoothing filter whose
+## window is therefore different on every machine. The physics clock is fixed.
+## `test_no_gameplay_in_process.gd` refuses the other one outright.
+func _physics_process(delta: float) -> void:
 	if is_server or _peer == null:
 		return
 	_ping_accum += delta

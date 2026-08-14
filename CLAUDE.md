@@ -318,8 +318,38 @@ that acts before authorising) and `test_client_cannot_assert_outcome.gd`
 on disk, because three new test files had never been imported. Run
 `godot --headless --editor --quit-after 150` after adding a test file.
 
-**Next is US-0027, the net tick director — 30 Hz out of the 60 Hz physics
-clock.**
+**US-0027 IS BUILT: THE SERVER HAS A CLOCK AND AN ORDER.** `MatchDirector`
+fires one net tick every second physics frame — **derived, never timed**. An
+accumulator that fired when `delta` passed 33.3 ms drifts, fires twice after a
+hitch, and gives two machines different tick counts for the same match; a count
+of frames divided by two is exact. 10 000 frames are 5 000 ticks, asserted.
+`ctx.elapsed()` is derived from the tick for the same reason — a clock read from
+`Time` would give "how long is left" two answers, one the players see and one
+the scoring uses.
+
+- **The pawn substep is the one thing that is not 30 Hz, and it is not an
+  optimisation.** The client predicts twice at 1/60 with a decision between the
+  two steps; a server integrating once at 1/30 diverges on every acceleration
+  curve, immediately and permanently at `TUN-SPEED-ACCEL` 18 m/s². The server
+  steps once per received `InputCommand`.
+- **The order is parsed from TDD-01 §4's diagram**, so the document is the
+  authority. Systems registered backwards still tick crowd → suspicion →
+  detection.
+- **`ingest`, `pawn` and `snapshot` are positions, not systems.** Registering a
+  `GameSystem` under one is refused: it would run in the right place by accident
+  and hide that nothing owns it.
+- **`GameSystem` and `MatchContext` are NOT in Core**, though TDD-01 §6's file
+  table puts them there. `GameSystem extends Node` and Core is pure by law.
+
+**THE NEW GUARD CAUGHT `Net._process` ON ITS FIRST RUN** — the ping heartbeat
+written four hours earlier in US-0025. A heartbeat on rendered frames samples RTT
+144 times a second on one machine and 12 during a hitch, feeding a smoothing
+filter whose window is then different on every machine. Moved to
+`_physics_process`. **Nothing server-side may declare `_process` at all**, and no
+`GameSystem` may tick itself.
+
+**Next is US-0028, the server-side pawn simulation — the same state machine as
+M1, connected to `MatchDirector.input_applied`.**
 
 **TWO STORIES WERE WRITTEN AND HELD BEHIND THE GATE**, both for the same reason:
 they change what `INPUT-TRAVERSE` does, and the gate's second line *counts
@@ -485,7 +515,7 @@ US-0024 measures it against clips that do not exist.
 | | |
 |---|---|
 | CI | 7 jobs. **Running again as of 2026-08-07 after a two-day outage** — run `31200490320`, all seven green. The seven commits merged during the outage were never through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | 111 architecture guards + 458 unit + 118 integration, all three counted in CI |
+| Tests | 119 architecture guards + 476 unit + 118 integration, all three counted in CI |
 | Tuning | 280 tunables across 14 resource classes; all 26 cross-field invariants assert. **Eight IDs are deprecated** and recorded in TUNABLES §19 — never reused |
 | Autoloads | All eight. `Tuning` precomputes 86 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |
