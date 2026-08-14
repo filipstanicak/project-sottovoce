@@ -117,6 +117,86 @@ func test_the_body_actually_moves_within_budget() -> void:
 	assert_true(FeelChain.within_budget(_report("input -> body moved", ticks)))
 
 
+# ------------------------------------------ the same numbers, over a network --
+
+
+## Press `action` inside a running match and count simulation steps until
+## `responded`. One `advance(1)` is one pumped wire plus one physics frame, so a
+## count here is the same unit as `_ticks_until` above.
+func _ticks_until_networked(
+	harness: IntegrationHarness, action: StringName, responded: Callable
+) -> int:
+	Input.action_press(action)
+	for tick: int in range(1, PATIENCE + 1):
+		await harness.advance(1)
+		if responded.call():
+			return tick
+	return -1
+
+
+func test_the_response_is_the_same_with_prediction_active() -> void:
+	# **US-0024'S SECOND CRITERION, AND THE HALF OF IT THAT WAS BLOCKED.** It asked
+	# for the measurement "with prediction active", and prediction did not exist
+	# until US-0032. It does now, so this presses the same key against a running
+	# match — a real server, a real snapshot stream, reconciliation live, and a
+	# TYPICAL connection holding every packet six frames each way.
+	#
+	# **THE ANSWER IS THAT NOTHING CHANGES, AND THAT IS THE WHOLE POINT OF
+	# PREDICTION.** The client simulates its own input immediately; the network
+	# decides when it is CORRECTED, never when it responds. A number that grew
+	# with latency here would mean the local pawn was waiting for the server,
+	# which is the defect prediction exists to prevent.
+	var harness := IntegrationHarness.new()
+	harness.start(get_tree(), self, &"TYPICAL")
+	harness.add_client(1)
+	await harness.advance(30)
+
+	var driver := harness.driver_for(1)
+	var ticks: int = await _ticks_until_networked(
+		harness, &"input_move_forward", func() -> bool: return driver.ctx.velocity.length() > 0.0
+	)
+	var ms := _report("input -> first velocity, prediction active (TYPICAL)", ticks)
+	assert_eq(ticks, 2, "the network changed how long the local pawn takes to respond")
+	assert_true(
+		FeelChain.within_budget(ms),
+		(
+			"the measured stages are over the %.0f ms budget with prediction active"
+			% (FeelChain.budget_ms())
+		)
+	)
+	harness.tear_down()
+
+
+func test_latency_does_not_change_the_response_at_any_profile() -> void:
+	# The claim stated as a property rather than as one reading. If the local
+	# response were waiting on the wire at all, the worst profile would show it.
+	var readings: Dictionary = {}
+	for profile: StringName in IntegrationHarness.PROFILES:
+		var harness := IntegrationHarness.new()
+		harness.start(get_tree(), self, profile)
+		harness.add_client(1)
+		await harness.advance(30)
+		var driver := harness.driver_for(1)
+		readings[profile] = await _ticks_until_networked(
+			harness,
+			&"input_move_forward",
+			func() -> bool: return driver.ctx.velocity.length() > 0.0
+		)
+		harness.tear_down()
+		await get_tree().physics_frame
+
+	for profile: StringName in IntegrationHarness.PROFILES:
+		assert_eq(
+			int(readings[profile]),
+			2,
+			(
+				"%s answered in %d ticks — the local pawn is waiting on the wire"
+				% [profile, int(readings[profile])]
+			)
+		)
+	gut.p("input -> first velocity at every profile: %s tick(s)" % str(readings))
+
+
 func test_slowing_down_costs_exactly_one_tick() -> void:
 	# ADR-0012's claim, measured rather than asserted. "Instant from every state,
 	# in ONE tick, never gated" is the M1 feel gate's first line, and it is the

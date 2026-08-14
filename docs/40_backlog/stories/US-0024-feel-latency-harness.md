@@ -4,7 +4,7 @@ title: Feel latency measurement harness
 version: 1.0.0
 status: in-progress
 owner: Technical Director
-last_updated: 2026-08-13
+last_updated: 2026-08-14
 depends_on: [GDD-02-PLAYER, BIBLE-TEST-PLAN]
 ---
 
@@ -31,10 +31,18 @@ Automated measurement of input-to-visible-animation latency, plus the M1 feel-ga
       `test_feel_chain.gd::test_the_animation_stage_is_still_blocked` goes red the day a clip
       lands, and says what to finish.
 - [ ] Measured latency is at or under 80 ms at 60 fps with prediction active.
-      **Two blockers, both named.** The measured stages come in at 16.7–33.3 ms, well inside 80 —
-      but that is a *lower bound* on a chain missing its last two stages, and **prediction does
-      not exist yet** (US-0032, M2), so "with prediction active" cannot be true of any number
-      taken today.
+      **ONE BLOCKER LEFT, AND IT IS THE OTHER ONE.** Prediction exists as of US-0032/US-0033, and
+      the measurement has now been taken with it live: a real server, a real snapshot stream,
+      reconciliation running, at all four of `IntegrationHarness`'s latency profiles.
+
+      **Two ticks — 33.3 ms — at LAN, GOOD, TYPICAL and POOR alike.** Identical to the local-only
+      reading, which is the whole point of prediction: the client simulates its own input
+      immediately, and the network decides when it is *corrected*, never when it *responds*. A
+      number that grew with latency would have meant the local pawn was waiting on the wire.
+
+      It stays unticked because the number is still a **lower bound on a five-stage chain
+      measured across three stages** — `ANIMATE` has no clip and `PRESENT` has no display. The
+      criterion says "measured latency", and what is measured is not yet the whole of it.
 - [x] No animation except KillAnim reaches the 1.4 s commitment ceiling.
 - [x] The M1 feel-gate checklist is run and logged: instant slowdown from every state, ten sloppy
       vaults all resolve, FOV ladder perceptible without nausea.
