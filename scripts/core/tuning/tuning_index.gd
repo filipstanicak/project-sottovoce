@@ -31,6 +31,8 @@ const FIELD := {
 	&"TUN-TRAVERSE-MANTLE-DURATION": ["movement", "mantle_duration", "s"],
 	&"TUN-TRAVERSE-CLIMB-MAX-HEIGHT": ["movement", "traverse_climb_max_height", "m"],
 	&"TUN-TRAVERSE-DROP-SAFE-HEIGHT": ["movement", "traverse_drop_safe_height", "m"],
+	&"TUN-TRAVERSE-HOP-STANDING": ["movement", "hop_standing", "m/s"],
+	&"TUN-TRAVERSE-HOP-COMMITTED": ["movement", "hop_committed", "m/s"],
 	&"TUN-TRAVERSE-DROP-MIN-HEIGHT": ["movement", "drop_min_height", "m"],
 	&"TUN-TRAVERSE-DROP-STAGGER": ["movement", "drop_stagger", "s"],
 	&"TUN-TRAVERSE-GAP-MAX": ["movement", "traverse_gap_max", "m"],

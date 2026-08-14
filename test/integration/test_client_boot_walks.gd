@@ -229,14 +229,22 @@ func test_pressing_traverse_at_a_real_facade_climbs_it() -> void:
 	assert_gt(_driver.ctx.position.y - start.y, 3.0, "the pawn is still at the bottom of the wall")
 
 
-func test_a_traverse_in_an_empty_street_does_nothing_at_all() -> void:
-	# Case 7's silence, in the place a player will meet it most often.
+func test_a_traverse_in_an_empty_street_produces_no_manoeuvre() -> void:
+	# **CASE 7 CHANGED IN US-0093, AND THIS TEST CHANGED WITH IT.** It used to
+	# assert that an empty street did nothing *at all*, which was case 7 as
+	# written — "silence, not a flail". Space now hops there, and the part of the
+	# claim that survives is the part that mattered: no manoeuvre, no state
+	# change, and no horizontal displacement. The hop is an impulse, and
+	# `test_hop_reaches_the_pawn.gd` owns the vertical half.
 	var before := _driver.ctx.position
 	Input.action_press(&"input_traverse")
 	await _run(6)
 	Input.action_release(&"input_traverse")
 	assert_eq(_driver.ctx.state_id, PawnStateId.IDLE, "an empty street produced a manoeuvre")
-	assert_almost_eq(_driver.ctx.position.distance_to(before), 0.0, 0.2, "the pawn moved anyway")
+	var moved := _driver.ctx.position - before
+	assert_almost_eq(
+		Vector2(moved.x, moved.z).length(), 0.0, 0.05, "the hop carried the pawn along the ground"
+	)
 
 
 ## A `height`-tall wall 0.7 m in front of the pawn, standing on the ground the

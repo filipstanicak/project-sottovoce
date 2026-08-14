@@ -165,8 +165,46 @@ static func resolve(ctx: PawnContext) -> StringName:
 	if not PawnInputBuffer.consume_traverse(ctx):
 		return PawnState.STAY
 	var case := classify(ctx)
+	if case == Case.NONE:
+		_hop(ctx)
+		return PawnState.STAY
 	plan(ctx, case)
 	return state_for(case)
+
+
+## **US-0093. THE ONLY THING §7.2 CASE 7 DOES NOW.**
+##
+## An impulse, **not a fifteenth state**. The resolver stays the single owner of
+## `INPUT-TRAVERSE`, the pawn keeps whatever locomotion state it was already in —
+## and therefore whatever suspicion that state charges, with no new rule — and the
+## existing airborne handling takes it from here: `LocalPawnDriver` applies
+## gravity, and case 1 already turns a hop that ends near a ledge into a grab, for
+## free.
+##
+## **TWO DISCRETE HEIGHTS, NOT A CURVE.** The ladder is four rungs, and a smooth
+## speed→height function would reintroduce the slider those rungs exist to
+## replace. **No horizontal component is added**: the arc's length is only the
+## speed the player already had, which is what makes this a jump *up* rather than
+## a free metre of travel.
+##
+## **NOT WHILE AIRBORNE**, or it is a double jump nobody asked for and the roofs
+## open up. `ctx.grounded` is written by the driver after `step()`, so it is read
+## rather than inferred.
+##
+## Whether a hop should cost anonymity is **an open question, deliberately
+## unanswered** — US-0093 records it. Design law 1 prices *speed*, and a hop is not
+## speed; but a person jumping on the spot in a market is not behaving like a
+## civilian either. There is no crowd to observe until M3, so the question waits
+## for something to observe rather than being settled by argument.
+static func _hop(ctx: PawnContext) -> void:
+	if not ctx.grounded:
+		return
+	ctx.velocity.y = _hop_speed(ctx)
+
+
+static func _hop_speed(ctx: PawnContext) -> float:
+	var committed: bool = ctx.state_id == PawnStateId.RUN or ctx.state_id == PawnStateId.SPRINT
+	return Tuning.movement.hop_committed if committed else Tuning.movement.hop_standing
 
 
 ## Commit the manoeuvre's geometry to `ctx`, once, at the instant of the press.

@@ -107,6 +107,20 @@ extends Resource
 ## TUN-TRAVERSE-DROP-SAFE-HEIGHT
 @export_range(3.0, 5.0, 0.1) var traverse_drop_safe_height: float = 4.0
 
+## Upward impulse when INPUT-TRAVERSE resolves to nothing and the pawn is idle, blend-walking or
+## strolling. v²/2g puts the crown at 0.34 m — a hop, not a jump. It exists because Space in open
+## ground used to do nothing at all (§7.2 case 7), which reads as a broken key rather than as the
+## silence it was designed to be.
+## TUN-TRAVERSE-HOP-STANDING
+@export_range(1.8, 3.4, 0.1) var hop_standing: float = 2.6
+
+## The same impulse from Run or Sprint: 0.90 m, a real jump. Two discrete values, not a curve —
+## the ladder is four rungs and a smooth speed→height function would reintroduce exactly the
+## slider the rungs exist to replace. No horizontal component is added at either rung, so the
+## arc's length is only the speed the player already had.
+## TUN-TRAVERSE-HOP-COMMITTED
+@export_range(3.2, 5.4, 0.1) var hop_committed: float = 4.2
+
 ## Below this an edge is a step, not a manoeuvre. INPUT-TRAVERSE at the lip of anything shorter
 ## resolves to nothing and the player simply walks off under gravity, keeping the speed they had.
 ## Equal to TUN-TRAVERSE-VAULT-MAX-HEIGHT today and for the same reason — what a civilian could

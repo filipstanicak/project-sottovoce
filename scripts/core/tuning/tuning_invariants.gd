@@ -316,6 +316,13 @@ static func _traversal_reach(p: TuningProfile) -> Array[String]:
 				% [p.movement.gap_probe_depth, p.movement.traverse_climb_max_height]
 			)
 		)
+	if p.movement.hop_standing >= p.movement.hop_committed:
+		e.append(
+			(
+				"26. movement.hop_standing (%.2f) must be < hop_committed (%.2f)"
+				% [p.movement.hop_standing, p.movement.hop_committed]
+			)
+		)
 	if p.movement.drop_min_height > p.movement.traverse_vault_max_height:
 		e.append(
 			(
