@@ -83,6 +83,10 @@ func test_a_remote_pawn_moves_where_the_server_put_it() -> void:
 	add_child_autofree(remotes)
 	remotes.set_own_slot(_ctx.slots.slot_of(A))
 	remotes.apply_snapshot(Snapshot.deserialise(_builder.build_for(A).serialise()))
+	# **NOTHING MOVES ON `apply_snapshot` SINCE US-0034.** The snapshot records
+	# where a pawn WAS; the render clock decides when to draw it. One physics
+	# frame is what turns the first into the second.
+	await get_tree().physics_frame
 
 	var server_position := _host.context_for(B).position
 	var node := remotes.get_node("PawnRemote_%d" % _ctx.slots.slot_of(B)) as Node3D

@@ -49,11 +49,23 @@ func test_the_sampler_does_not_drive_itself() -> void:
 	)
 
 
+## Files that call `sample()` on something, and name `InputSampler` somewhere —
+## which any caller of ITS `sample()` must, since the project types every
+## variable and gdlint enforces it.
+##
+## **THE TYPE CHECK IS NOT DECORATION.** The needle used to be `.sample(` alone,
+## and it caught `SnapshotInterpolator.sample()` the day US-0034 added one: a
+## guard failing on a file that has nothing to do with input. A guard that cries
+## wolf gets relaxed, and the relaxation is what actually costs you. If a caller
+## ever reaches the sampler through an untyped variable this misses it —
+## `test_input_sampled_once.gd` measures the consequence end to end.
 func test_only_the_driver_calls_sample() -> void:
 	var callers: PackedStringArray = []
 	for path: String in SourceScanner.gd_files("res://scripts"):
 		if path == SAMPLER:
 			continue  # Its own declaration, `func sample(`, is not a call.
+		if not SourceScanner.code_contains(path, "InputSampler"):
+			continue
 		if SourceScanner.code_contains(path, ".sample("):
 			callers.append(path)
 	callers.sort()

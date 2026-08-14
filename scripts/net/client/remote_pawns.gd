@@ -6,11 +6,16 @@
 ## agent, no collision — TDD-06 §1 rule 2: a remote pawn that simulated would
 ## produce a second, wrong answer that disagrees with the server's.
 ##
-## **THIS SNAPS; IT DOES NOT INTERPOLATE.** `SnapshotInterpolator` is US-0034 and
-## it is the story that makes this look right — 30 Hz of teleporting is exactly
-## what the 100 ms interpolation buffer exists to hide. Snapping first is
-## deliberate: it makes the wire visible before the thing that smooths it, so a
-## replication bug cannot hide inside an interpolator.
+## **RENDERED `TUN-NET-INTERP-BUFFER` IN THE PAST**, between the two snapshots
+## that bracket that moment (US-0034). It snapped at 30 Hz when the loop first
+## closed, deliberately — seeing the wire before the thing that smooths it is
+## what keeps a replication bug from hiding inside an interpolator.
+##
+## **`_physics_process`, NOT `_process`.** Interpolating on rendered frames would
+## be marginally smoother on a 144 Hz display and would put a moving transform on
+## a clock the player's hardware chooses; the fixed clock is already twice the
+## snapshot rate. `test_no_gameplay_in_process.gd` refuses the other one under
+## `scripts/net/` outright, and it is right to.
 class_name RemotePawns
 extends Node3D
 
@@ -23,6 +28,8 @@ const PAWN_REMOTE := "res://scenes/pawn/pawn_remote.tscn"
 var _pawns: Dictionary = {}
 var _scene: PackedScene
 var _own_slot: int = SlotTable.NO_SLOT
+var _interpolator := SnapshotInterpolator.new()
+var _clock := RenderClock.new()
 
 
 func _ready() -> void:
@@ -36,31 +43,43 @@ func set_own_slot(slot: int) -> void:
 	_own_slot = slot
 
 
-## Move every slot the snapshot named, create the ones that are new, and free the
-## ones it did not mention.
+## Record what the snapshot said, create the slots that are new, and free the
+## ones it did not mention. **Nothing moves here** — moving is the clock's job.
 ##
 ## **ABSENCE IS THE SIGNAL FOR LEAVING.** There is no "player left" record in the
 ## snapshot, deliberately: a client that missed one reliable message would keep a
 ## ghost forever, whereas a client that misses one snapshot recovers on the next.
 func apply_snapshot(snapshot: Snapshot) -> void:
+	var server_time := float(snapshot.server_tick) / Tuning.net.server_tick
+	_clock.observe(server_time)
 	var seen: Dictionary = {}
 	for record: Array in snapshot.remote_pawns:
 		var slot: int = record[0]
 		if slot == _own_slot or slot == SlotTable.NO_SLOT:
 			continue
 		seen[slot] = true
-		_place(slot, record[1] as Vector3, record[2] as float)
+		if not _pawns.has(slot):
+			_spawn(slot)
+		_interpolator.push(slot, server_time, record[1] as Vector3, record[2] as float)
 	_free_unseen(seen)
 
 
-func _place(slot: int, position: Vector3, yaw: float) -> void:
-	if not _pawns.has(slot):
-		_spawn(slot)
-	var pawn := _pawns.get(slot) as Node3D
-	if pawn == null:
+## Draw every remote pawn where it was `TUN-NET-INTERP-BUFFER` ago.
+##
+## Between snapshots this is the only thing moving them, which is the difference
+## between a player walking and a player teleporting 30 times a second.
+func _physics_process(delta: float) -> void:
+	_clock.advance(delta)
+	if not _clock.started():
 		return
-	pawn.global_position = position
-	pawn.rotation.y = yaw
+	var at := _clock.render_time()
+	for slot: int in _pawns:
+		var placed: Array = _interpolator.sample(slot, at)
+		if placed.is_empty():
+			continue
+		var pawn := _pawns[slot] as Node3D
+		pawn.global_position = placed[0] as Vector3
+		pawn.rotation.y = placed[1] as float
 
 
 func _spawn(slot: int) -> void:
@@ -80,6 +99,7 @@ func _free_unseen(seen: Dictionary) -> void:
 			continue
 		(_pawns[slot] as Node).queue_free()
 		_pawns.erase(slot)
+		_interpolator.forget(slot)
 		Log.info("remote pawn vanished from slot %d" % slot, &"net")
 		remote_vanished.emit(slot)
 

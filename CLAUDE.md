@@ -441,11 +441,41 @@ joiner was told LOBBY while the match ran. One line of the log said `phase 0`,
 and no test reads a welcome. Same family as every other defect here: found by
 looking.
 
-**Next is US-0031 (delta encoding) or US-0034 (interpolation).** The loop works
-and looks wrong: remote pawns **snap** at 30 Hz because interpolation is
-US-0034, which was left out deliberately so a replication bug could not hide
-inside an interpolator. US-0030's culling criteria are also unticked — there is
-no crowd to cull until M3.
+**US-0034 IS BUILT: REMOTE PAWNS MOVE INSTEAD OF TELEPORTING.** Every remote
+entity is drawn `TUN-NET-INTERP-BUFFER` 100 ms in the past, between the two
+stamped samples that bracket that moment. Two pure objects, and the split is the
+design: `SnapshotInterpolator` answers *where was this at time T*, `RenderClock`
+answers *what is T*.
+
+- **Stamped, never spaced.** Assuming a fixed 33 ms interval is simpler and
+  breaks the moment the crowd LOD arrives — far NPCs come at 10 Hz and near ones
+  at 30, and a fixed interval makes the two rates fight.
+- **The clock only moves forward and never smooths.** A late snapshot does not
+  wind it back, because remote pawns jumping backwards is indistinguishable from
+  a real rubber-band. And a clock that eased toward the server would make the
+  delay drift — **a drifting delay is an adaptive buffer by accident**, which
+  ASM-0021 refuses.
+- **No extrapolation, ever.** Past the newest sample the last transform is held.
+  An extrapolated player who was about to stop is a player who appears to walk
+  through a wall.
+
+**A GUARD CRIED WOLF AND WAS TIGHTENED, NOT RELAXED.**
+`test_input_sampled_by_one_caller.gd` matched `.sample(` anywhere, so
+`SnapshotInterpolator.sample()` tripped a guard about input sampling. It now
+requires the file to name `InputSampler` too. A guard that fails on unrelated
+files gets loosened, and the loosening is what actually costs you.
+
+**KNOWN, RECORDED, NOT YET FIXED: `TUN-NET-TIMEOUT` IS NEVER APPLIED ON THE
+CLIENT.** `Net._on_connected_to_server()` calls `_apply_timeout()` for peer 1
+before ENet has that peer in its map, so `get_peer()` returns null and pushes
+`Condition "!peers.has(p_id)" is true` into every client's log. The early return
+handles it, which is why nothing broke — but the client falls back to ENet's
+default timeout rather than the tunable. From US-0025; found in the log of a
+two-process run, 2026-08-14.
+
+**Next is US-0031 (delta encoding), US-0032/0033 (prediction and
+reconciliation), or US-0036 (the two-process harness).** US-0030's culling
+criteria are still unticked — there is no crowd to cull until M3.
 
 **TWO STORIES WERE WRITTEN AND HELD BEHIND THE GATE**, both for the same reason:
 they change what `INPUT-TRAVERSE` does, and the gate's second line *counts
