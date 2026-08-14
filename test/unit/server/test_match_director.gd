@@ -116,6 +116,47 @@ func test_nothing_simulates_outside_play() -> void:
 	assert_eq(_substeps.size(), 0, "input was applied in the lobby")
 
 
+## Give the director a pawn to substep for, without a pawn. The repeat rule
+## walks `ctx.pawns`, because a peer with a pawn and an EMPTY queue is exactly
+## the case it exists for — and that peer has no queue entry to be found by.
+func _give_a_pawn() -> void:
+	_director.ctx.pawns[PEER] = self
+
+
+func test_a_missing_command_repeats_the_last_one_rather_than_stalling() -> void:
+	# **A STALLED PAWN PRODUCES A POSITION THE CLIENT CANNOT HAVE PREDICTED.** The
+	# client kept walking; a server that waited did not. Every dropped packet
+	# would then guarantee a reconciliation, and a player on a lossy connection
+	# would stutter continuously against a server that was merely being careful.
+	_give_a_pawn()
+	_director.enqueue_input(PEER, InputCommand.empty(7))
+	_run_frames(2)
+	assert_eq(_substeps.size(), 2, "one command did not fill the tick's two substeps")
+	assert_eq(_substeps[1][1], 7, "the fill was not the last command seen")
+
+	_substeps = []
+	_run_frames(2)
+	assert_eq(_substeps.size(), 2, "a tick with no input at all produced no substeps")
+	assert_eq(_substeps[0][1], 7, "the repeat forgot what the peer was doing")
+
+
+func test_a_full_tick_of_input_is_not_padded() -> void:
+	_give_a_pawn()
+	_director.enqueue_input(PEER, InputCommand.empty(1))
+	_director.enqueue_input(PEER, InputCommand.empty(2))
+	_run_frames(2)
+	assert_eq(_substeps.size(), 2, "a full tick was padded with a repeat")
+
+
+func test_a_pawn_that_has_never_had_input_is_not_stepped() -> void:
+	# There is no intent to extend, and a pawn that has not yet moved must not
+	# start. `InputCommand.empty()` is not "the player is standing still" — it is
+	# "we have never heard from them".
+	_give_a_pawn()
+	_run_frames(20)
+	assert_eq(_substeps.size(), 0, "a silent peer was stepped anyway")
+
+
 func test_a_departed_peer_leaves_nothing_queued() -> void:
 	_director.enqueue_input(PEER, InputCommand.empty(1))
 	_director.forget(PEER)

@@ -290,7 +290,7 @@ join/leave stable.
 | `Net` autoload, ENet peer lifecycle, three channels | **Done, US-0025** |
 | `RpcRouter` with authority checks on **every** C2S message | **Done, US-0026.** Plus the two §12 guards that had been promised since M0 and never written |
 | `MatchDirector` net tick — 30 Hz from the 60 Hz physics clock | **Done, US-0027.** Derived by counting frames, not by accumulating time; the order is parsed from §4's diagram |
-| Server-side pawn simulation; the **same** state machine as M1 | |
+| Server-side pawn simulation; the **same** state machine as M1 | **Done, US-0028** — and the same `PawnMotion`, extracted because stepping the machine is only half a tick |
 | Snapshot format, `SnapshotBuilder` (cull + quantise + delta) | |
 | `Predictor`, `Reconciler`, `SnapshotInterpolator` | |
 | `LagCompHistory` (recording only — no consumers until M4) | |

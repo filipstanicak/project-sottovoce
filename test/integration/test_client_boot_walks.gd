@@ -178,9 +178,14 @@ func test_the_probes_refresh_before_the_state_machine_steps() -> void:
 	# TDD-06 §4: raycasts are only valid in the physics step, and a state casting
 	# its own would cast again on every reconciliation replay — the same query
 	# against a world that has since moved on.
-	var source := SourceScanner.read("res://scripts/presentation/local_pawn_driver.gd")
-	var refresh := source.find("_probes.refresh(")
-	var step := source.find("_machine.step(")
+	#
+	# Scanned in `PawnMotion` since US-0028, because that is where the order now
+	# lives — and the move is why it matters more, not less: the SERVER runs these
+	# same lines, so an inversion here would put the two peers a frame apart on
+	# every probe, which is a divergence in prediction rather than a local bug.
+	var source := SourceScanner.read("res://scripts/pawn/pawn_motion.gd")
+	var refresh := source.find("probes.refresh(")
+	var step := source.find("machine.step(")
 	assert_gt(refresh, -1, "the driver does not refresh the probes")
 	assert_lt(refresh, step, "the probes refresh AFTER step() — the states read last frame")
 

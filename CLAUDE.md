@@ -348,8 +348,41 @@ filter whose window is then different on every machine. Moved to
 `_physics_process`. **Nothing server-side may declare `_process` at all**, and no
 `GameSystem` may tick itself.
 
-**Next is US-0028, the server-side pawn simulation — the same state machine as
-M1, connected to `MatchDirector.input_applied`.**
+**US-0028 IS BUILT: THE SERVER SIMULATES PAWNS, AND LANDS WHERE THE CLIENT
+DOES.** A peer joins, `PawnHost` spawns `pawn_server.tscn` at a declared spawn
+point, and every command that peer sends is applied through the same state
+machine the client predicts with. Verified across two processes — a client
+dialling in now produces `pawn spawned for peer 48400797 at (12, 0, 36)` on the
+server.
+
+**THE STORY'S REAL CONTENT IS `PawnMotion`.** ADR-0008 required the two peers to
+run the same `PawnStateMachine`, and they always did — **that is only half a
+tick.** The other half is the fifteen lines deciding who owns position during a
+traversal, when gravity applies, and what is written back from the body, and
+they lived in `LocalPawnDriver` alone. A second copy for the server would have
+been a divergence in prediction with a green suite either side of it: **every
+unit test calls `step()` directly and never reaches that code**, which is trap
+7's family and exactly how US-0019's vault computed a perfect arc and moved
+nothing. Both drivers now call `PawnMotion.advance()`, and
+`test_substep_matches_server.gd` asserts the two land in the **same place** —
+not merely within `TUN-NET-RECONCILE-THRESHOLD`.
+
+**A missing command repeats the last one rather than stalling.** A stalled pawn
+produces a position the client cannot have predicted — it kept walking — so
+every dropped packet would guarantee a reconciliation, and a lossy connection
+would stutter continuously against a server that was merely being careful. A
+peer that has *never* sent a command is not stepped: `InputCommand.empty()` is
+not "standing still", it is "we have never heard from them".
+
+**TRAP 4 AGAIN, IN THE SAME SHAPE AS US-0019.** `test_pawn_host.gd` failed on
+its own probe assertion the first time it ran, and the failure was worth more
+than the test: `PawnHost` in isolation has no world geometry, so every pawn in
+that file was **falling** — and "the pawn moved more than half a metre" was
+passing on it. The file loads the map's collision now, asserts the travel
+horizontally, and asserts the pawn is still grounded at the end.
+
+**Next is US-0029, the snapshot format — where `peer_id:u8` meets Godot's
+32-bit peer ids.**
 
 **TWO STORIES WERE WRITTEN AND HELD BEHIND THE GATE**, both for the same reason:
 they change what `INPUT-TRAVERSE` does, and the gate's second line *counts
@@ -515,7 +548,7 @@ US-0024 measures it against clips that do not exist.
 | | |
 |---|---|
 | CI | 7 jobs. **Running again as of 2026-08-07 after a two-day outage** — run `31200490320`, all seven green. The seven commits merged during the outage were never through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | 119 architecture guards + 476 unit + 118 integration, all three counted in CI |
+| Tests | 119 architecture guards + 479 unit + 132 integration, all three counted in CI |
 | Tuning | 280 tunables across 14 resource classes; all 26 cross-field invariants assert. **Eight IDs are deprecated** and recorded in TUNABLES §19 — never reused |
 | Autoloads | All eight. `Tuning` precomputes 86 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |
