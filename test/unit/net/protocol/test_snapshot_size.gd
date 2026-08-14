@@ -4,16 +4,15 @@
 ## the document — which is the point, because the document's own arithmetic does
 ## not survive being measured.
 ##
-## **§4 DECLARES FIELDS THAT CANNOT FIT THE SIZES §7.1 BUDGETS AGAINST.** The
-## payload lists, per NPC, an index `u8`, a position `3×i16`, a yaw `u8` and an
-## animation `u4 + u6` — and then says that is "7 bytes per NPC including index".
-## The index and the position alone are seven. The remote-pawn record is quoted
-## at 14 and its declared fields come to ten.
+## **§7.1 WAS RE-DERIVED AGAINST THESE MEASUREMENTS, NOT THE OTHER WAY ROUND.**
+## §4 originally declared, per NPC, an index `u8`, a position `3×i16`, a yaw `u8`
+## and an animation `u4 + u6` — and then budgeted the whole record at 7 bytes.
+## The index and the position alone were seven. Measured at ten, the district's
+## worst case projected to 108.3 kbit/s against a 96 budget.
 ##
-## This file measures both, and projects §7.1's worst case from the measurements.
-## The projection **exceeds the budget**, which is a real finding and not a
-## failure of this code: see US-0029, and `test_the_projected_worst_case` below,
-## which is deliberately `pending` rather than passing or failing.
+## The record was shrunk in answer, because the crowd is 90 of ~96 replicated
+## entities and is the only place the money is: `y` to a 5 cm byte, the animation
+## to `u3 + u5`. Eight bytes, and the projection closes.
 extends GutTest
 
 ## §7.1's worst case, unchanged.
@@ -60,15 +59,12 @@ func test_the_records_are_smaller_than_sending_floats() -> void:
 	assert_lt(Snapshot.NPC_BYTES, 12 + 4 + 2, "quantisation stopped saving anything")
 
 
-func test_the_declared_record_sizes_are_not_the_documented_ones() -> void:
-	# **A TEST THAT ASSERTS A DISCREPANCY**, deliberately. §7.1 budgets 7 bytes per
-	# NPC and 14 per remote pawn; the fields §4 declares come to ten and ten. This
-	# fails the day somebody reconciles the two, which is exactly when it should
-	# be read again.
-	assert_ne(Snapshot.NPC_BYTES, 7, "§7.1's 7 B per NPC is now achievable — re-derive the budget")
-	assert_ne(
-		Snapshot.REMOTE_BYTES, 14, "§7.1's 14 B per remote pawn now matches — re-derive the budget"
-	)
+func test_the_npc_record_is_the_one_the_budget_was_re_derived_against() -> void:
+	# US-0029 measured 10 bytes here and the projection came to 113 % of budget.
+	# The record was shrunk in answer — `y` to a 5 cm byte, the animation to
+	# `u3 + u5` — and §7.1 re-derived against 8. If it grows again the projection
+	# below goes back over, so this is the number to change first and deliberately.
+	assert_eq(Snapshot.NPC_BYTES, 8, "the NPC record changed size — re-derive TDD-04 §7.1")
 
 
 func test_the_projected_worst_case() -> void:

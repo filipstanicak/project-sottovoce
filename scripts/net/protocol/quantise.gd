@@ -25,6 +25,20 @@ const MAP_EXTENT := 327.0
 const I16_MIN := -32768
 const I16_MAX := 32767
 
+## Metres per step of the NPC height byte. **5 cm over 0–12.75 m**, which covers
+## the district's whole vertical range — `ROOF_Y` is 8.5 — in one byte instead of
+## the two an `i16` costs.
+##
+## **A CROWD MEMBER'S HEIGHT IS NOT A GAMEPLAY NUMBER.** Nothing reads an NPC's
+## `y`: the suspicion radius is horizontal, the compass is a bearing, and the
+## crowd's own strata are 3.5 m apart. What 5 cm buys is the difference between a
+## downstream projection over budget and one under it — see US-0029's
+## measurement and TDD-04 §7.1.
+const HEIGHT_STEP := 0.05
+
+## The tallest thing the height byte can carry. 255 × 5 cm.
+const HEIGHT_MAX := 12.75
+
 ## Degrees per step of the yaw byte. 360 / 256, and the reason yaw is a byte at
 ## all: at 60 m a 1.4° error moves a silhouette by 1.5 m, which sounds like a lot
 ## until you remember the silhouette is a clone you are trying to identify by its
@@ -63,6 +77,17 @@ static func yaw_to_u8(radians: float) -> int:
 
 static func u8_to_yaw(byte: int) -> float:
 	return deg_to_rad(float(byte % 256) * YAW_STEP)
+
+
+## Metres -> the NPC height byte. Clamped at both ends: below the street and
+## above the roof are both outside the crowd's world, and pinning is debuggable
+## where wrapping would put a market NPC on a rooftop.
+static func height_to_u8(metres: float) -> int:
+	return clampi(int(round(metres / HEIGHT_STEP)), 0, 255)
+
+
+static func u8_to_height(byte: int) -> float:
+	return float(clampi(byte, 0, 255)) * HEIGHT_STEP
 
 
 ## Suspicion, 0..100, as a byte. Rounded rather than truncated — a tier boundary

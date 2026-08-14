@@ -36,7 +36,7 @@ func _full() -> Snapshot:
 	snap.ticks_remaining = 7200
 	snap.multiplier = 2
 	snap.add_remote(2, Vector3(60.0, 3.5, 12.0), deg_to_rad(90.0), PawnStateId.STROLL, 33, 2)
-	snap.add_npc(17, Vector3(-4.0, 0.0, 77.5), deg_to_rad(180.0), 5, 40)
+	snap.add_npc(17, Vector3(-4.0, 3.5, 77.5), deg_to_rad(180.0), 5, 20)
 	return snap
 
 
@@ -86,7 +86,31 @@ func test_an_npc_round_trips_within_quantisation() -> void:
 	assert_eq(record[0], 17, "the index changed")
 	assert_almost_eq((record[1] as Vector3).z, 77.5, Tuning.net.quant_pos, "position")
 	assert_eq(record[3], 5, "anim state")
-	assert_eq(record[4], 40, "anim phase")
+	assert_eq(record[4], 20, "anim phase")
+
+
+func test_an_npc_height_is_coarser_than_its_ground_position() -> void:
+	# **DELIBERATE, AND THE REASON THE BUDGET CLOSES.** `x` and `z` keep their
+	# centimetre because the crowd's horizontal position is read by the suspicion
+	# radius and the compass; `y` is a byte at 5 cm because nothing reads a crowd
+	# member's height at all, and the strata are 3.5 m apart.
+	var snap := Snapshot.new()
+	snap.add_npc(1, Vector3(10.0, 8.5, 20.0), 0.0, 1, 1)
+	var record: Array = (Snapshot.deserialise(snap.serialise()) as Snapshot).npcs[0]
+	var position := record[1] as Vector3
+	assert_almost_eq(position.x, 10.0, Tuning.net.quant_pos, "x lost its centimetre")
+	assert_almost_eq(position.y, 8.5, Quantise.HEIGHT_STEP, "the roof stratum did not survive")
+
+
+func test_an_npc_animation_fits_one_byte() -> void:
+	# `u3` state and `u5` phase. Eight anim states is more than the crowd
+	# declares, and 32 phase steps is finer than a walk cycle can be read at the
+	# 45-70 m these records are sent from.
+	var snap := Snapshot.new()
+	snap.add_npc(1, Vector3.ZERO, 0.0, 7, 31)
+	var record: Array = (Snapshot.deserialise(snap.serialise()) as Snapshot).npcs[0]
+	assert_eq(record[3], 7, "the top anim state did not survive")
+	assert_eq(record[4], 31, "the top anim phase did not survive")
 
 
 func test_an_empty_snapshot_still_decodes() -> void:

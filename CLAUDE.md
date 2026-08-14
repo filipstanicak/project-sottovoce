@@ -394,23 +394,41 @@ against. `SlotTable` maps one to the other and **slot 0 is reserved to mean
 nobody**, so a record never filled in decodes as absent rather than as player
 one.
 
-**THE BANDWIDTH BUDGET DOES NOT CLOSE, AND THE FORMAT IS NOT THE PART THAT IS
-WRONG.** TDD-04 §7.1 budgets 7 bytes per NPC and 14 per remote pawn. **An NPC's
+**THE BANDWIDTH BUDGET DID NOT CLOSE, AND THE FORMAT WAS NOT THE PART THAT WAS
+WRONG.** TDD-04 §7.1 budgeted 7 bytes per NPC and 14 per remote pawn. **An NPC's
 index and position alone are seven**, before its yaw and animation. Measured
-from `Snapshot.serialise()`: NPC **10 B**, remote pawn **10 B**, fixed part
-**53 B** against a budgeted 25. Re-running §7.1's own worst case on the measured
-sizes gives **108.3 kbit/s against a 96 budget — 113 %**, where the document
-concluded 87 % with 13 % headroom.
+from `Snapshot.serialise()`: NPC 10 B, remote pawn 10 B, fixed part 53 B against
+a budgeted 25. §7.1's own worst case on the measured sizes came to **108.3
+kbit/s against a 96 budget — 113 %**, where the document concluded 87 %.
 
-Nothing is fixable by editing the serialiser: the encoding is as tight as §4's
-declared fields allow. The options are §14 open question 1's — build ADR-0007's
-fallback, shrink the payload, or re-derive the budget. **This is the owner's
-call.** `test_snapshot_size.gd` measures it every run and marks the projection
-**pending** rather than failing, because a red suite over a number nobody can fix
-in that file trains people to ignore it.
+**THE CROWD RECORD WAS SHRUNK RATHER THAN THE BUDGET MOVED** (#71). The crowd is
+90 of the ~96 replicated entities, so it is the only place the money is: an NPC's
+`y` is a **byte at 5 cm** rather than an `i16` at 1 cm, and its animation is
+`u3 + u5` in one byte rather than `u4 + u6` in two. Ten bytes to **eight**, and
+the projection closes at **93.0 kbit/s — 97 % of budget**. Nothing a player can
+perceive changed: nothing reads a crowd member's height, and 32 animation phase
+steps are finer than a walk cycle can be read at 45–70 m. Player records keep
+their centimetre in all three axes, because a player's elevation is gameplay.
 
-**Next is US-0030, the snapshot builder — cull, delta, quantise — which is where
-the budget question stops being theoretical.**
+**The lesson is the arithmetic, not the bytes.** A budget table whose per-record
+sizes were never measured against the format they describe reports whatever its
+author expected. `test_snapshot_size.gd` measures every record and recomputes
+§7.1's total on every run.
+
+**THE CLIENT CANNOT SEND `NET-C2S-INPUT`, AND NOTHING SENDS A SNAPSHOT BACK.**
+Godot addresses an RPC by **node path**, and the receiving peer looks up the same
+path — so `RpcRouter` at `/root/ServerRoot/NetServer/RpcRouter` is unreachable
+from a client, which has no node there to call it from. The handshake works only
+because `Net` is an autoload at `/root/Net` on **both** peers. Nothing is broken
+that was ever exercised; the router has simply never received a message. **Where
+the C2S surface lives is the next decision**, and it decides the shape of
+US-0030 through US-0034.
+
+**Next is closing the loop end to end** — an `InputSender`, a minimal
+`SnapshotBuilder` and a client-side applier, so that two connected players see
+each other move. Chosen over the strict story order because nine of ten defects
+here were found by looking at the game, and nothing has been observable since
+M1.
 
 **TWO STORIES WERE WRITTEN AND HELD BEHIND THE GATE**, both for the same reason:
 they change what `INPUT-TRAVERSE` does, and the gate's second line *counts

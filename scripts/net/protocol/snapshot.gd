@@ -31,7 +31,13 @@ const NO_STATE := 255
 const HEADER_BYTES := 7
 const OWN_BYTES := 43
 const REMOTE_BYTES := 10
-const NPC_BYTES := 10
+## **EIGHT, NOT TEN.** An NPC's `y` is a byte at 5 cm rather than an `i16` at
+## 1 cm, and its animation is `u3 + u5` rather than `u4 + u6`. Both were changed
+## in answer to US-0029's measurement: at ten bytes the district's worst case
+## projected to 108.3 kbit/s against a 96 budget, and the crowd is 90 of the ~96
+## replicated entities, so it is the only place the money is. See
+## NETWORK_PROTOCOL §4 and TDD-04 §7.1.
+const NPC_BYTES := 8
 
 ## The two length fields: one byte of remote pawns, two of NPCs.
 const COUNT_BYTES := 3
@@ -152,17 +158,26 @@ func _write_remotes(buffer: StreamPeerBuffer) -> void:
 		buffer.put_u8(Quantise.pack(record[4], 6, record[5], 2))
 
 
+## **THE CROWD IS WHERE THE BANDWIDTH IS**, so the crowd record is where it was
+## found. Ninety NPCs against six players: a byte saved here is worth fifteen
+## saved on a remote pawn.
+##
+## `x` and `z` keep their centimetre; `y` is a byte at 5 cm, because nothing
+## reads a crowd member's height — the suspicion radius is horizontal, the
+## compass is a bearing, and the strata are 3.5 m apart. The animation is `u3`
+## state and `u5` phase in one byte: eight anim states is more than
+## `CROWD_ANIM`'s five, and 32 phase steps is finer than a walk cycle can be read
+## at the 45–70 m these records are sent from.
 func _write_npcs(buffer: StreamPeerBuffer) -> void:
 	buffer.put_u16(npcs.size())
 	for record: Array in npcs:
+		var position := record[1] as Vector3
 		buffer.put_u8(record[0])
-		for step: int in Quantise.vector_to_i16(record[1] as Vector3):
-			buffer.put_16(step)
+		buffer.put_16(Quantise.pos_to_i16(position.x))
+		buffer.put_16(Quantise.pos_to_i16(position.z))
+		buffer.put_u8(Quantise.height_to_u8(position.y))
 		buffer.put_u8(Quantise.yaw_to_u8(record[2]))
-		# anim_state u4 + phase u6 is ten bits, so it costs two. §4 writes it as
-		# "u4 + phase u6 == 7 bytes per NPC including index", and those two halves
-		# of the sentence disagree — see US-0029 on the record sizes.
-		buffer.put_u16(Quantise.pack(record[3], 4, record[4], 6))
+		buffer.put_u8(Quantise.pack(record[3], 3, record[4], 5))
 
 
 ## The wire index of a state. `NO_STATE` for anything `PawnStateId` does not
@@ -258,10 +273,16 @@ func _read_npcs(buffer: StreamPeerBuffer) -> bool:
 		return false
 	for _i: int in count:
 		var index := buffer.get_u8()
-		var position := Quantise.i16_to_vector(buffer.get_16(), buffer.get_16(), buffer.get_16())
+		var x := Quantise.i16_to_pos(buffer.get_16())
+		var z := Quantise.i16_to_pos(buffer.get_16())
+		var y := Quantise.u8_to_height(buffer.get_u8())
 		var yaw := Quantise.u8_to_yaw(buffer.get_u8())
-		var packed := buffer.get_u16()
+		var packed := buffer.get_u8()
 		add_npc(
-			index, position, yaw, Quantise.unpack_high(packed, 6, 4), Quantise.unpack_low(packed, 6)
+			index,
+			Vector3(x, y, z),
+			yaw,
+			Quantise.unpack_high(packed, 5, 3),
+			Quantise.unpack_low(packed, 5)
 		)
 	return true
