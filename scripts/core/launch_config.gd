@@ -112,3 +112,20 @@ func problems(min_players: int, tuning_max: int) -> Array[String]:
 ## True when a client should skip the menu and dial straight in.
 func should_autoconnect() -> bool:
 	return not is_server and connect_address != ""
+
+
+## The host half of `--connect ip:port`.
+##
+## Split here rather than at the call site because `problems()` has already
+## guaranteed the colon, and a second parser somewhere else is a second place for
+## "what does an empty address mean" to be answered differently.
+func connect_host() -> String:
+	return connect_address.substr(0, connect_address.rfind(":"))
+
+
+## The port half. Falls back to `port`, which is `DEFAULT_PORT` unless `--port`
+## moved it — so `--connect 127.0.0.1:` is a bad line rather than a dial to zero.
+func connect_port() -> int:
+	var colon := connect_address.rfind(":")
+	var tail := connect_address.substr(colon + 1)
+	return int(tail) if tail.is_valid_int() else port

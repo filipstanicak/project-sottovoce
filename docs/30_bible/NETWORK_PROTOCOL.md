@@ -49,7 +49,7 @@ otherwise.
 
 | ID | Ch | Rel | Rate | Payload | Authority check |
 |---|---|---|---|---|---|
-| `NET-C2S-HELLO` | X | Rel | once | `protocol_version:u16`, `build_hash:u64` | Version and build must match; else reject with reason |
+| `NET-C2S-HELLO` | X | Rel | once | `protocol_version:u16`, `build_hash:u64`, `tuning_hash:u64` | Version and build must match; else reject with reason. **The tuning hash can never refuse a peer** — it is carried so the server can answer a mismatch with `NET-S2C-TUNING-SYNC` instead of always or never sending one (US-0025) |
 | `NET-C2S-LOADOUT` | X | Rel | lobby | `persona:u8`, `ability_a:u8`, `ability_b:u8`, `passive:u8` | Rejected unless phase == LOBBY. IDs within the MVP set. Abilities must differ |
 | `NET-C2S-READY` | X | Rel | lobby | `ready:bool` | Rejected unless phase == LOBBY |
 | `NET-C2S-INPUT` | S | Unrel | **60 Hz** | `seq:u16`, `move:2×i8`, `yaw:u8`, `pitch:i8`, `buttons:u16`, `client_tick:u16` | Sender owns a living pawn. `seq` newer than last processed. **Applies to the sender's pawn, looked up from the peer id — never from the payload** |
@@ -94,7 +94,8 @@ client-supplied and therefore forgeable. Contest resolution uses the **server re
 | `NET-S2C-SCORE-EVENT` | E | Rel | on event | `event_id:u32`, `tick:u32`, `kind:u8`, `actor:u8`, `subject:u8`, `base:i16`, `mult:u8`, `group:u16` |
 | `NET-S2C-PHASE-CHANGED` | E | Rel | on change | `phase:u8`, `tick:u32`, `multiplier:u8` |
 | `NET-S2C-MATCH-END` | E | Rel | once | Full `ScoreEvent` log (~24 KB) for the results fold |
-| `NET-S2C-PLAYER-JOINED` / `-LEFT` | X | Rel | on change | `peer_id:u8`, `persona:u8` |
+| `NET-S2C-PLAYER-JOINED` | X | Rel | on change | `peer_id:u8`, `persona:u8` |
+| `NET-S2C-PLAYER-LEFT` | X | Rel | on change | `peer_id:u8`, `persona:u8` |
 | `NET-S2C-PONG` | S | Unrel | 1 Hz | `client_time:u32`, `server_tick:u32` |
 
 ---

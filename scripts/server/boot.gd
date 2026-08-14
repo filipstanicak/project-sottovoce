@@ -34,8 +34,11 @@ func _ready() -> void:
 
 
 func _start_server(config: LaunchConfig) -> void:
-	Net.is_server = true
 	Log.info("server on port %d, up to %d players" % [config.port, config.max_players], &"boot")
+	if not Net.start_server(config.port, config.max_players):
+		Log.error("refusing to start: the port is not available", &"boot")
+		get_tree().quit(1)
+		return
 	# Deferred: _ready() runs while the tree is still adding children, and a
 	# direct swap there fails with "parent node is busy". Nothing in the test
 	# suite boots a scene, so this only ever shows up by launching the game.
@@ -46,6 +49,7 @@ func _start_client(config: LaunchConfig) -> void:
 	Net.is_server = false
 	if config.should_autoconnect():
 		Log.info("client joining %s directly" % config.connect_address, &"boot")
+		Net.join(config.connect_host(), config.connect_port())
 	else:
 		Log.info("client, menu", &"boot")
 	get_tree().change_scene_to_file.call_deferred(CLIENT_ROOT)
