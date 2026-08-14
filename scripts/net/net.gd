@@ -1,19 +1,18 @@
-## Peer lifecycle, role and RTT. `SYS-NET-REPLICATION`, TDD-04 §3, US-0025.
+## Peer lifecycle, role, RTT, and **every message on the wire**.
+## `SYS-NET-REPLICATION`, TDD-04 §3, US-0025 and US-0030.
 ##
-## THE ONLY PLACE A PEER IS CREATED OR DESTROYED. Everything else asks this what
-## role it is playing and who is connected; nothing else touches
-## `multiplayer.multiplayer_peer`, for the same reason `InputMap` has one writer —
-## two owners of a connection is two answers to "are we connected".
+## THE ONLY PLACE A PEER IS CREATED OR DESTROYED, and — since the doorway moved
+## here — the only node that answers an RPC. Both for the same reason: this is
+## the one node at the same path on every peer.
 ##
 ## **THE HANDSHAKE IS A GATE, NOT A GREETING.** A peer that has connected at the
-## transport level has proved nothing. It becomes a *player* only after
-## `NET-C2S-HELLO` is checked against `Handshake.check()`, and until then the
-## server sends it nothing but a welcome or a rejection.
+## transport level has proved nothing; it becomes a *player* only after
+## `NET-C2S-HELLO` is checked against `Handshake.check()`.
 ##
-## The decisions live in `Handshake` and `Messages`, which are pure; this file is
-## the wiring that carries them to a socket. That split is deliberate: every
-## branch that decides something is unit-testable with no transport standing up,
-## and what is left here is the part only an integration test can reach.
+## The decisions live elsewhere and every one of them is pure: `Handshake`
+## admits, `Authority` and `RpcRouter` authorise, `PeerRegistry` remembers,
+## `Snapshot` encodes. **This file is the wiring that carries them to a socket**,
+## and it is deliberately the only part that needs a transport to test.
 extends Node
 
 ## A peer completed the handshake and is a player. Past tense, because by the
@@ -31,15 +30,18 @@ signal handshake_completed
 ## This client was refused, with the reason the server gave.
 signal handshake_rejected(reason: Messages.Reject)
 
+## A snapshot arrived. CLIENT SIDE. Carries the decoded object, because every
+## listener would otherwise decode the same bytes again.
+signal snapshot_received(snapshot: Snapshot)
+
 ## True on the dedicated headless server. Every GameSystem checks this before
 ## instantiating: systems exist ONLY server-side.
 var is_server: bool = false
 
 var _peer: ENetMultiplayerPeer = null
-var _rtt := RttTable.new()
-var _players: Dictionary = {}
-var _ping_accum: float = 0.0
-var _ping_sent_at: Dictionary = {}
+var _peers := PeerRegistry.new()
+var _router: RpcRouter = null
+var _pings := PingClock.new()
 
 
 func _ready() -> void:
@@ -48,12 +50,18 @@ func _ready() -> void:
 	multiplayer.connected_to_server.connect(_on_connected_to_server)
 	multiplayer.connection_failed.connect(_on_connection_failed)
 	multiplayer.server_disconnected.connect(_on_server_disconnected)
-	set_physics_process(false)
+	# **A CHILD OF THIS AUTOLOAD IS AT THE SAME PATH ON EVERY PEER**, which is
+	# what lets an RPC surface live somewhere other than this file. `PingClock`
+	# is the first to use it; the C2S doorway below could move the same way if
+	# this file grows again.
+	_pings.name = "PingClock"
+	_pings.setup(_peers)
+	add_child(_pings)
 
 
 ## Listen on `port` for at most `max_players` peers. Returns false and logs
-## rather than throwing, because a port already in use is an ordinary condition
-## on a developer's machine and boot decides what to do about it.
+## rather than throwing: a port already in use is an ordinary condition on a
+## developer's machine, and boot decides what to do about it.
 func start_server(port: int, max_players: int) -> bool:
 	var peer := ENetMultiplayerPeer.new()
 	var err := peer.create_server(port, max_players, Messages.CHANNEL_COUNT)
@@ -71,8 +79,8 @@ func start_server(port: int, max_players: int) -> bool:
 	return true
 
 
-## Connect to a server. The handshake is sent from `_on_connected_to_server`, not
-## from here — at this point nothing has been established but an intention.
+## Connect to a server. The handshake is sent from `_on_connected_to_server`:
+## nothing is established here but an intention.
 func join(address: String, port: int) -> bool:
 	var peer := ENetMultiplayerPeer.new()
 	var err := peer.create_client(address, port, Messages.CHANNEL_COUNT)
@@ -84,58 +92,78 @@ func join(address: String, port: int) -> bool:
 	return true
 
 
+## **THE DOORWAY NEEDS THE DECIDER.** Called once by `server_root.gd`; until it
+## is, every C2S handler refuses everything.
+func bind_router(router: RpcRouter, slots: SlotTable = null) -> void:
+	_router = router
+	_peers.use_slots(slots)
+
+
+## The wire identity of `peer`, or `SlotTable.NO_SLOT`.
+func slot_of(peer: int) -> int:
+	return _peers.slot_of(peer)
+
+
+func peer_of(slot: int) -> int:
+	return _peers.peer_of(slot)
+
+
 func stop() -> void:
 	if _peer != null:
 		_peer.close()
 	multiplayer.multiplayer_peer = null
 	_peer = null
-	_players.clear()
-	_rtt.clear()
-	_ping_sent_at.clear()
-	set_physics_process(false)
+	_peers.clear()
+	_pings.clear()
 
 
 ## Smoothed round-trip time to `peer`, in milliseconds. 0.0 when unknown.
 ##
-## **THE SERVER READS THE TRANSPORT, NOT THE PONGS.** ENet measures RTT on every
-## packet it acknowledges; a pong measures it once a second and carries a
-## timestamp the client chose. Lag compensation rewinds the world by an amount
-## derived from this number, so it must not be one a client can inflate
-## (ADR-0010). Clients have no such option — nobody replicates the server's view
-## back to them — so they use their own smoothed samples.
+## **THE SERVER READS THE TRANSPORT, NOT THE PONGS** — ENet measures on every
+## packet it acknowledges, and a pong carries a timestamp the client chose.
+## `rtt_table.gd` has the argument in full.
 func rtt_ms(peer: int) -> float:
 	if is_server and _peer != null:
 		var enet := _peer.get_peer(peer)
 		if enet != null:
 			return float(enet.get_statistic(ENetPacketPeer.PEER_ROUND_TRIP_TIME))
 		return 0.0
-	return _rtt.rtt_ms(peer)
+	return _peers.rtt_ms(peer)
 
 
-## Peers that finished the handshake. Not "peers connected": a socket is not a
-## player until it has been checked.
+## Whether this peer is a client with a live connection.
+##
+## **EVERYTHING THAT SENDS MUST ASK FIRST.** With no peer at all, Godot's own
+## caller id is 1, so `rpc_id(1, ...)` addresses the sender and fails — which is
+## every test in this repo, none of which stands up a transport. Found the moment
+## the ping heartbeat moved to its own node and stopped being switched off with
+## `set_physics_process`.
+func is_client_connected() -> bool:
+	if is_server or _peer == null:
+		return false
+	return _peer.get_connection_status() == MultiplayerPeer.CONNECTION_CONNECTED
+
+
+## Peers that finished the handshake — a socket is not a player until checked.
 func player_count() -> int:
-	return _players.size()
+	return _peers.player_count()
 
 
 func has_player(peer: int) -> bool:
-	return _players.has(peer)
+	return _peers.has_player(peer)
 
 
 func _install(peer: ENetMultiplayerPeer, as_server: bool) -> void:
 	_peer = peer
 	is_server = as_server
 	multiplayer.multiplayer_peer = peer
-	set_physics_process(not as_server)
 
 
-## `TUN-NET-TIMEOUT` on an individual ENet connection.
-##
-## Applied per peer rather than globally because that is the only place ENet
-## exposes it. The three arguments are a retransmission limit and a floor and
-## ceiling in milliseconds; pinning the floor and the ceiling to the same value
-## is what makes the tunable mean what TUNABLES says it means, instead of a
-## number ENet is free to back off from.
+## `TUN-NET-TIMEOUT` on one ENet connection — per peer, because that is the only
+## place ENet exposes it. The three arguments are a retransmission limit and a
+## floor and ceiling in milliseconds; pinning floor and ceiling to the same value
+## is what makes the tunable mean what TUNABLES says, rather than a number ENet
+## is free to back off from.
 func _apply_timeout(peer_id: int) -> void:
 	if _peer == null:
 		return
@@ -152,8 +180,7 @@ func _apply_timeout(peer_id: int) -> void:
 func _on_peer_connected(id: int) -> void:
 	_apply_timeout(id)
 	if is_server:
-		# Nothing is sent yet. The client speaks first, and until it has, this is
-		# a socket rather than a player.
+		# The client speaks first; until it has, this is a socket, not a player.
 		Log.info("Net: peer %d connected, awaiting hello" % id, &"net")
 
 
@@ -182,9 +209,7 @@ func _on_server_disconnected() -> void:
 
 
 func _forget(id: int) -> void:
-	var was_player: bool = _players.erase(id)
-	_rtt.forget(id)
-	_ping_sent_at.erase(id)
+	var was_player := _peers.forget(id)
 	if was_player:
 		Log.info("Net: peer %d left" % id, &"net")
 		peer_left.emit(id)
@@ -205,12 +230,21 @@ func _hello(protocol_version: int, build_hash: int, tuning_hash: int) -> void:
 	if reason != Messages.Reject.NONE:
 		_reject(sender, reason)
 		return
-	_players[sender] = true
+	var slot := _peers.admit(sender)
+	if slot == SlotTable.NO_SLOT:
+		Log.warn("Net: peer %d arrived with the lobby full" % sender)
+		_reject(sender, Messages.Reject.LOBBY_FULL)
+		return
 	var server_hash: int = Tuning.profile.compute_hash()
+	# **THE SLOT, NOT THE PEER ID** — `NET-S2C-WELCOME` declares `peer_id:u8`.
+	# **THE ROUTER'S PHASE, NOT `GameState`'s.** `GameState` is the CLIENT's
+	# read-only mirror; reading it here sent every joiner LOBBY while the match
+	# was running. The server's own answer lives with the thing that gates rules
+	# on it. Found in the log of the first two-process run — `phase 0`.
 	_welcome.rpc_id(
-		sender, sender, server_hash, Messages.MAP_ON_THE_WIRE[Ids.MAP_VETRAIO], GameState.phase
+		sender, slot, server_hash, Messages.MAP_ON_THE_WIRE[Ids.MAP_VETRAIO], _router.phase()
 	)
-	Log.info("Net: peer %d welcomed — %d player(s)" % [sender, _players.size()], &"net")
+	Log.info("Net: peer %d welcomed — %d player(s)" % [sender, _peers.player_count()], &"net")
 	if Handshake.needs_tuning_sync(tuning_hash, server_hash):
 		Log.info("Net: peer %d has different tuning — correcting" % sender, &"net")
 		_tuning_sync.rpc_id(sender, Tuning.profile.serialise())
@@ -260,44 +294,85 @@ func _rejected(reason: int) -> void:
 	handshake_rejected.emit(reason as Messages.Reject)
 
 
-# ---------------------------------------------------------------- ping / pong --
+# ------------------------------------------------------- the C2S doorway --
 
-
-## Client only, and only once a second. `Messages.PING_INTERVAL` is not a
-## tunable: it changes nothing a player perceives, and the server's own RTT does
-## not depend on it.
+## **WHY THE HANDLERS LIVE HERE AND NOT ON `RpcRouter`.** Godot addresses an RPC
+## by **node path** and the receiving peer looks up the same path;
+## `/root/ServerRoot/NetServer/RpcRouter` does not exist on a client, so there
+## was no node to call it from and `NET-C2S-INPUT` was unsendable. This autoload
+## is at `/root/Net` on both peers, which is why the handshake worked at all.
 ##
-## **`_physics_process`, NOT `_process`.** A heartbeat driven by rendered frames
-## samples RTT at whatever rate the player's hardware chooses — 144 samples a
-## second on one machine and 12 during a hitch, feeding a smoothing filter whose
-## window is therefore different on every machine. The physics clock is fixed.
-## `test_no_gameplay_in_process.gd` refuses the other one outright.
-func _physics_process(delta: float) -> void:
-	if is_server or _peer == null:
-		return
-	_ping_accum += delta
-	if _ping_accum < Messages.PING_INTERVAL:
-		return
-	_ping_accum = 0.0
-	var now := Time.get_ticks_msec()
-	_ping_sent_at[now] = now
-	_ping.rpc_id(MultiplayerPeer.TARGET_PEER_SERVER, now)
+## The doorway is here; **the decision is still the router's**. Every handler
+## calls `authorise()` first and `test_no_client_authority.gd` refuses one that
+## does not.
 
-
-## `NET-C2S-PING`. SERVER SIDE. Echo only — the server stores nothing from this,
-## because `client_time` is the client's number and §2.2 forbids trusting it.
+## `NET-C2S-INPUT`. SERVER SIDE, 60 Hz. The sender is the transport's to state,
+## never the payload's to claim.
 @rpc("any_peer", "call_remote", "unreliable", Messages.Channel.STATE)
-func _ping(client_time: int) -> void:
-	if not is_server:
+func c2s_input(seq: int, move: Vector2, yaw: float, pitch: float, buttons: int, tick: int) -> void:
+	var peer := multiplayer.get_remote_sender_id()
+	if _router == null or not _router.authorise(peer, Ids.NET_C2S_INPUT):
 		return
-	_pong.rpc_id(multiplayer.get_remote_sender_id(), client_time, 0)
+	var command := InputCommand.new()
+	command.seq = seq
+	command.move = move
+	command.look_yaw = yaw
+	command.look_pitch = pitch
+	command.buttons = buttons
+	command.client_tick = tick
+	_router.receive_input(peer, command)
 
 
-## `NET-S2C-PONG`. CLIENT SIDE. The round trip is measured against the clock that
-## sent it, so an unmatched or replayed timestamp is discarded rather than
-## folded in as a wild sample.
+## `NET-C2S-ABILITY-REQUEST`. Aim is clamped by `SYS-ABILITY`, not here.
+@rpc("any_peer", "call_remote", "reliable", Messages.Channel.EVENT)
+func c2s_ability_request(slot: int, origin: Vector3, direction: Vector3) -> void:
+	var peer := multiplayer.get_remote_sender_id()
+	if _router == null or not _router.authorise(peer, Ids.NET_C2S_ABILITY_REQUEST):
+		return
+	_router.receive_ability_request(peer, slot, origin, direction)
+
+
+## `NET-C2S-BLEND-REQUEST`. Range and capacity belong to `SYS-BLEND`.
+@rpc("any_peer", "call_remote", "reliable", Messages.Channel.EVENT)
+func c2s_blend_request(target_id: int) -> void:
+	var peer := multiplayer.get_remote_sender_id()
+	if _router == null or not _router.authorise(peer, Ids.NET_C2S_BLEND_REQUEST):
+		return
+	_router.receive_blend_request(peer, target_id)
+
+
+## Send one sampled command upstream. `InputSender` calls this once per physics
+## frame.
+func send_input(command: InputCommand) -> void:
+	if not is_client_connected():
+		return
+	c2s_input.rpc_id(
+		MultiplayerPeer.TARGET_PEER_SERVER,
+		command.seq,
+		command.move,
+		command.look_yaw,
+		command.look_pitch,
+		command.buttons,
+		command.client_tick
+	)
+
+
+# ------------------------------------------------------ the snapshot stream --
+
+
+## Send one client its snapshot. SERVER SIDE, at `TUN-NET-SNAPSHOT-RATE`.
+func send_snapshot(peer: int, snapshot: Snapshot) -> void:
+	if not is_server or _peer == null:
+		return
+	s2c_snapshot.rpc_id(peer, snapshot.serialise())
+
+
+## `NET-S2C-SNAPSHOT`. CLIENT SIDE. **Unreliable by design**: a retransmitted
+## snapshot arrives after a fresher one and is worthless. A buffer that does not
+## decode is dropped in silence rather than applied partially.
 @rpc("authority", "call_remote", "unreliable", Messages.Channel.STATE)
-func _pong(client_time: int, _server_tick: int) -> void:
-	if not _ping_sent_at.erase(client_time):
+func s2c_snapshot(bytes: PackedByteArray) -> void:
+	var snapshot := Snapshot.deserialise(bytes)
+	if snapshot == null:
 		return
-	_rtt.record(MultiplayerPeer.TARGET_PEER_SERVER, float(Time.get_ticks_msec() - client_time))
+	snapshot_received.emit(snapshot)

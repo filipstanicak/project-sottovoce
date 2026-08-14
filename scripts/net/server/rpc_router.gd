@@ -69,10 +69,13 @@ func set_player(peer: int, admitted: bool) -> void:
 ## The one entry point. **EVERY C2S HANDLER CALLS THIS FIRST**, and the guard
 ## refuses a handler that does not.
 ##
-## Named with an underscore in TDD-04 §10's interface and kept that way: it is
-## not for callers outside this node, and a public `authorise()` would be an
-## invitation to authorise something somewhere else.
-func _authorise(peer: int, msg: StringName) -> bool:
+## **PUBLIC SINCE THE DOORWAY MOVED.** TDD-04 §10 names it `_authorise`, and the
+## underscore was right while the handlers lived on this node. They live on `Net`
+## now — Godot addresses an RPC by node path and `Net` is the only node at the
+## same path on both peers — so the chokepoint is called from another object, and
+## a private-by-convention method called from outside is worse than an honest
+## public one. What has NOT changed is that this is the only thing that decides.
+func authorise(peer: int, msg: StringName) -> bool:
 	var denial := Authority.check(msg, _players.has(peer), _phase, _pawn_owners.has(peer))
 	if denial == Authority.Denial.NONE:
 		return true
@@ -85,6 +88,14 @@ func _authorise(peer: int, msg: StringName) -> bool:
 ## router is told, rather than reading a client-side mirror it must never trust.
 func set_phase(phase: int) -> void:
 	_phase = phase
+
+
+## What the server thinks the phase is. Read by `Net` to fill
+## `NET-S2C-WELCOME` — **which used to send `GameState.phase`, the CLIENT's
+## mirror, from the server**, so every joiner was told LOBBY while the match was
+## running. Found by reading the log of the first two-process run: `phase 0`.
+func phase() -> int:
+	return _phase
 
 
 ## Record that `peer` owns a living pawn. US-0028 calls this on spawn; nothing
@@ -111,56 +122,34 @@ func last_acked_seq(peer: int) -> int:
 	return _sequence.last_seen(peer)
 
 
-# ------------------------------------------------------------------ handlers --
+# ------------------------------------------------------------------- routing --
 
-## `NET-C2S-INPUT`. **THE SENDER'S PAWN, LOOKED UP FROM THE PEER ID.**
+## **`Net` OWNS THE WIRE; THIS OWNS THE DECISION.** US-0030.
 ##
-## Nothing in the payload names a pawn, and the sender cannot name themselves:
-## the peer id comes from the transport, which is the only participant with no
-## reason to lie. That single fact is why there is no "which pawn" field to
-## validate — the question cannot be asked in this protocol.
+## These were `@rpc` handlers on this node until the first client tried to send
+## one and could not: Godot addresses an RPC by **node path**, and the receiving
+## peer looks up the same path. `/root/ServerRoot/NetServer/RpcRouter` does not
+## exist on a client, so there was no node to call it from — the handshake worked
+## only because `Net` is an autoload at `/root/Net` on both peers.
 ##
-## **THE FIELDS ARRIVE AS ARGUMENTS, NOT AS A `PackedByteArray`.** TDD-04 §10
-## sketches a packed payload, and that is right — but packing it means choosing
-## the quantisation (`TUN-NET-QUANT-POS`, `TUN-NET-QUANT-YAW`) and the u16/i8
-## widths of §6.3, which is **US-0029's** decision and not one this story has any
-## basis to make. A placeholder format invented here is a format US-0029 would
-## have to delete, and would be on the wire in the meantime. §10 is a sketch of
-## interfaces; §6.3 is the wire, and it stays unwritten until its own story.
-@rpc("any_peer", "call_remote", "unreliable", Messages.Channel.STATE)
-func c2s_input(seq: int, move: Vector2, yaw: float, pitch: float, buttons: int, tick: int) -> void:
-	var peer := multiplayer.get_remote_sender_id()
-	if not _authorise(peer, Ids.NET_C2S_INPUT):
-		return
-	if not _sequence.accept(peer, seq):
-		# Not an error and not logged as one. UDP reorders; a late packet is the
-		# transport working as designed, and logging each one would bury the
-		# refusals that mean something.
-		return
-	var command := InputCommand.new()
-	command.seq = seq
-	command.move = move
-	command.look_yaw = yaw
-	command.look_pitch = pitch
-	command.buttons = buttons
-	command.client_tick = tick
+## The doorway moved to `Net` and the decision stayed here. Every handler there
+## calls `authorise()` first and `test_no_client_authority.gd` still refuses one
+## that does not.
+
+
+## An authorised input, in sequence. Returns false if the gate dropped it —
+## which is not an error and is not logged: UDP reorders, and a late packet is
+## the transport working as designed.
+func receive_input(peer: int, command: InputCommand) -> bool:
+	if not _sequence.accept(peer, command.seq):
+		return false
 	input_received.emit(peer, command)
+	return true
 
 
-## `NET-C2S-ABILITY-REQUEST`. Aim is clamped server-side by the ability system —
-## §2's authority column — not here.
-@rpc("any_peer", "call_remote", "reliable", Messages.Channel.EVENT)
-func c2s_ability_request(slot: int, aim_origin: Vector3, aim_dir: Vector3) -> void:
-	var peer := multiplayer.get_remote_sender_id()
-	if not _authorise(peer, Ids.NET_C2S_ABILITY_REQUEST):
-		return
-	ability_requested.emit(peer, slot, aim_origin, aim_dir)
+func receive_ability_request(peer: int, slot: int, origin: Vector3, direction: Vector3) -> void:
+	ability_requested.emit(peer, slot, origin, direction)
 
 
-## `NET-C2S-BLEND-REQUEST`. Range and capacity belong to `SYS-BLEND`.
-@rpc("any_peer", "call_remote", "reliable", Messages.Channel.EVENT)
-func c2s_blend_request(target_id: int) -> void:
-	var peer := multiplayer.get_remote_sender_id()
-	if not _authorise(peer, Ids.NET_C2S_BLEND_REQUEST):
-		return
+func receive_blend_request(peer: int, target_id: int) -> void:
 	blend_requested.emit(peer, target_id)

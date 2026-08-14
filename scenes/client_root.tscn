@@ -1,10 +1,13 @@
-[gd_scene load_steps=8 format=3 uid="uid://bs0ttovclientroot"]
+[gd_scene load_steps=11 format=3 uid="uid://bs0ttovclientroot"]
 
 [ext_resource type="PackedScene" path="res://scenes/map/map_vetraio.tscn" id="1_map"]
 [ext_resource type="PackedScene" path="res://scenes/pawn/pawn_local.tscn" id="2_pawn"]
 [ext_resource type="Script" path="res://scripts/presentation/input_sampler.gd" id="3_sampler"]
 [ext_resource type="Script" path="res://scripts/presentation/local_pawn_driver.gd" id="4_driver"]
 [ext_resource type="Script" path="res://scripts/presentation/camera/camera_rig.gd" id="5_camera"]
+[ext_resource type="Script" path="res://scripts/net/client/input_sender.gd" id="6_sender"]
+[ext_resource type="Script" path="res://scripts/net/client/remote_pawns.gd" id="7_remotes"]
+[ext_resource type="Script" path="res://scripts/net/client/client_net.gd" id="8_clientnet"]
 
 [sub_resource type="ProceduralSkyMaterial" id="Sky_greybox"]
 sky_horizon_color = Color(0.65, 0.65, 0.67, 1)
@@ -62,6 +65,19 @@ light_energy = 1.2
 shadow_enabled = true
 
 [node name="Mirrors" type="Node" parent="."]
+
+; The client half of the net loop. InputSender pushes every sampled command
+; upstream; RemotePawns places the other players from each snapshot. Neither
+; knows the other exists — ClientNet joins them (US-0030).
+[node name="ClientNet" type="Node" parent="."]
+script = ExtResource("8_clientnet")
+
+[node name="InputSender" type="Node" parent="ClientNet"]
+script = ExtResource("6_sender")
+driver_path = NodePath("../../LocalPawnDriver")
+
+[node name="RemotePawns" type="Node3D" parent="ClientNet"]
+script = ExtResource("7_remotes")
 
 [node name="Hud" type="CanvasLayer" parent="."]
 

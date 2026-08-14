@@ -54,5 +54,7 @@ static func reason_text(reason: Messages.Reject) -> String:
 			return "protocol version mismatch"
 		Messages.Reject.BUILD_HASH:
 			return "build hash mismatch — the two peers disagree about the wire format"
+		Messages.Reject.LOBBY_FULL:
+			return "the lobby is full — no wire slot is free"
 		_:
 			return "accepted"

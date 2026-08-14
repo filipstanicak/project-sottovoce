@@ -415,20 +415,37 @@ sizes were never measured against the format they describe reports whatever its
 author expected. `test_snapshot_size.gd` measures every record and recomputes
 §7.1's total on every run.
 
-**THE CLIENT CANNOT SEND `NET-C2S-INPUT`, AND NOTHING SENDS A SNAPSHOT BACK.**
-Godot addresses an RPC by **node path**, and the receiving peer looks up the same
-path — so `RpcRouter` at `/root/ServerRoot/NetServer/RpcRouter` is unreachable
-from a client, which has no node there to call it from. The handshake works only
-because `Net` is an autoload at `/root/Net` on **both** peers. Nothing is broken
-that was ever exercised; the router has simply never received a message. **Where
-the C2S surface lives is the next decision**, and it decides the shape of
-US-0030 through US-0034.
+**THE LOOP IS CLOSED.** Two clients connect, each gets a server pawn, input
+goes up and a snapshot comes back, and **each player sees the other appear**.
+Verified across three processes on 2026-08-14; `test_the_loop_closes.gd` drives
+both halves against real objects in one.
 
-**Next is closing the loop end to end** — an `InputSender`, a minimal
-`SnapshotBuilder` and a client-side applier, so that two connected players see
-each other move. Chosen over the strict story order because nine of ten defects
-here were found by looking at the game, and nothing has been observable since
-M1.
+**THE CLIENT COULD NOT SEND ANYTHING AT ALL, AND US-0026 NEVER NOTICED.** Godot
+addresses an RPC by **node path** and the receiving peer looks up the same path —
+`/root/ServerRoot/NetServer/RpcRouter` does not exist on a client, so there was
+no node to call it from and `NET-C2S-INPUT` was unsendable. The whole authority
+chokepoint was built and nothing had ever reached it. The handshake worked only
+because `Net` is an autoload at `/root/Net` on **both** peers.
+
+**The doorway moved to `Net`; the decision stayed with the router.** Every
+handler calls `RpcRouter.authorise()` first — public now, because a
+private-by-convention method called from another object is worse than an honest
+public one — and `test_no_client_authority.gd` still refuses one that does not.
+**The general answer, worth knowing before the next surface needs one: anything
+the `Net` autoload creates in `_ready()` is at the same path on every peer too.**
+`PingClock` is the first to use it.
+
+**AND THE FIRST TWO-PROCESS RUN FOUND ANOTHER.** `NET-S2C-WELCOME` was sending
+`GameState.phase` — the **client's** read-only mirror — from the server, so every
+joiner was told LOBBY while the match ran. One line of the log said `phase 0`,
+and no test reads a welcome. Same family as every other defect here: found by
+looking.
+
+**Next is US-0031 (delta encoding) or US-0034 (interpolation).** The loop works
+and looks wrong: remote pawns **snap** at 30 Hz because interpolation is
+US-0034, which was left out deliberately so a replication bug could not hide
+inside an interpolator. US-0030's culling criteria are also unticked — there is
+no crowd to cull until M3.
 
 **TWO STORIES WERE WRITTEN AND HELD BEHIND THE GATE**, both for the same reason:
 they change what `INPUT-TRAVERSE` does, and the gate's second line *counts

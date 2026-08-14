@@ -17,12 +17,18 @@
 ## The scan is textual on purpose. A runtime test would have to *be* the
 ## adversary to find the gap; this finds it by reading, and finds it in a handler
 ## nobody has written a test for yet.
+##
+## **THE CHOKEPOINT IS `RpcRouter.authorise()` AND THE HANDLERS ARE ON `Net`.**
+## Godot addresses an RPC by node path, so only a node at the same path on both
+## peers can receive one — which is why the doorway moved to the autoload in
+## US-0030. The decision did not move: every handler there calls the router
+## first, and this guard is what says so.
 extends GutTest
 
 const ROOTS: Array[String] = ["res://scripts/net", "res://scripts/systems", "res://scripts/server"]
 
 ## The call every handler must make first.
-const CHOKEPOINT := "_authorise("
+const CHOKEPOINT := "authorise("
 
 ## Handlers that legitimately precede authority, each with the reason it does.
 ##
@@ -32,9 +38,9 @@ const CHOKEPOINT := "_authorise("
 ##
 ## - `_hello` establishes whether a peer is a player at all. Requiring authority
 ##   for it is circular — nobody could ever complete a handshake.
-## - `_ping` stores nothing and answers with nothing the sender did not send. Its
-##   authority column in NETWORK_PROTOCOL §2 reads "none needed — echo only".
-const PRE_AUTHORITY: Array[String] = ["_hello", "_ping"]
+## - `c2s_ping` stores nothing and answers with nothing the sender did not send.
+##   Its authority column in NETWORK_PROTOCOL §2 reads "none needed — echo only".
+const PRE_AUTHORITY: Array[String] = ["_hello", "c2s_ping"]
 
 
 ## Source lines with comments dropped and **string literals kept**.

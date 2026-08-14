@@ -21,7 +21,12 @@ enum Channel { STATE = 0, EVENT = 1, SESSION = 2 }
 
 ## Why a handshake was refused. `NONE` is the accept case, so a caller that
 ## forgets to check gets a value that is obviously not a reason.
-enum Reject { NONE, PROTOCOL_VERSION, BUILD_HASH }
+##
+## `LOBBY_FULL` is **appended, not inserted**: the ordinals travel on the wire in
+## the rejection message. ENet already refuses a connection past `max_clients`,
+## so this is close to unreachable — but "close to" is not "never", and a
+## `--max-players` larger than `TUN-LOBBY-MAX-PLAYERS` reaches it exactly.
+enum Reject { NONE, PROTOCOL_VERSION, BUILD_HASH, LOBBY_FULL }
 
 ## How many ENet channels the peer is created with. Not `Channel.size()`: the
 ## count passed to `create_server` is a transport parameter, and reading it off
