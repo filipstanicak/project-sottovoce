@@ -117,6 +117,26 @@ state machine, locally.
 | `test_feel_latency.gd` measuring input→animation | **Built, and it cannot reach the animation.** US-0024 measures three of five stages; `ANIMATE` has no clip and `PRESENT` no display. A tripwire fails the day a clip lands |
 | A body on screen, and light on it | Done, US-0091. **Neither existed before 2026-08-12** — `PersonaVisuals` was empty and the project had no light or environment at all |
 
+> **M1'S EXIT CRITERION IS MET AND THE FEEL GATE IS PASSED — 2026-08-13.** One
+> player walks, blends, runs, sprints, climbs and vaults with the camera and the
+> state machine, locally. The gate was judged at the controls and all three of its
+> lines passed: slowing is instant from every state (including the two committed
+> traversals that correctly *refuse* to slow), the FOV ladder is perceptible
+> without discomfort, and **ten of ten sloppy vaults resolved**.
+>
+> **US-0024 STAYS `in-progress`, AND THAT IS NOT A FORMALITY.** Two of its four
+> criteria are untrue and cannot be made true here: input→animation needs an
+> animation, and "with prediction active" needs US-0032, in M2. Ticking either to
+> close the milestone would make the backlog unreadable as a status view. M1 is
+> **11 done + 1 open on two blocked criteria**, and M2 may begin.
+>
+> **Getting the gate runnable took nine fixes across six PRs**, every one found by
+> a person looking at the game and none reachable by any test. The last three were
+> the vault line itself: the district's floor sat 0.1 m high so no stall was
+> vaultable, Shift + Space sprinted, and a stall's far lip gap-jumped instead of
+> letting the player step off. **The ten-of-ten arrived without touching the
+> forgiveness windows**, which is the strongest thing the gate says about them.
+>
 > **Status 2026-08-12 — 11 of 12, and the twelfth is not code.** US-0013 to
 > US-0023 are done and US-0024 is `in-progress` with everything buildable built.
 > Fourteen states declared, eleven implemented, every edge asserted against the §3
