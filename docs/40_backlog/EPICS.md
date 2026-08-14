@@ -108,6 +108,12 @@ Probes, the seven-case resolver, forgiveness windows, and the vault / climb / dr
 **Done when:** all seven resolution cases work **including case 7's silence**, a traverse 0.20 s
 early or 0.25 s late resolves, and probes mask `WORLD` only.
 
+> **Two drafts extend this epic beyond US-0017–0020, and both are unbuilt.** US-0093 replaces
+> case 7's silence with a speed-scaled hop; US-0094 replaces the planned climb with a steered
+> wall cling, **which reverses GDD-02 §7's "assisted, not simulated" principle** and needs the
+> owner's sign-off in the GDD before any code. Neither is scheduled: both change what
+> `INPUT-TRAVERSE` does, and the M1 feel gate counts traverse presses.
+
 ---
 
 ## 7. `EPIC-CAMERA` — M1
