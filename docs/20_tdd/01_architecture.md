@@ -366,9 +366,10 @@ func _subscribe() -> void:
 | `project.godot` | Engine config; Forward+; the eight autoloads in §2 |
 | `scenes/server_root.tscn` | Server topology (§3.1) |
 | `scenes/client_root.tscn` | Client topology (§3.2) |
-| `scripts/core/game_system.gd` | `GameSystem` base class |
-| `scripts/core/match_context.gd` | `MatchContext` |
-| `scripts/core/match_phase.gd` | `MatchPhase` enum |
+| `scripts/systems/game_system.gd` | `GameSystem` base class. **Not Core** — it extends `Node`, and `test_core_is_pure.gd` refuses that; §1.3 draws the line where the guard does (US-0027) |
+| `scripts/systems/match_context.gd` | `MatchContext`. **Not Core** — it holds live pawns, which is server state rather than a value type |
+| `scripts/core/match_phase.gd` | `MatchPhase` enum. Pure, and Core, because the phase gates rules |
+| `scripts/core/system_order.gd` | `SystemOrder` — §4's order as a list. Pure so a guard can compare it against the diagram above |
 | `scripts/core/game_state.gd` | `GameState` autoload |
 | `scripts/core/log.gd` | `Log` autoload — structured log + `TEL-` sink |
 | `scripts/core/strings.gd` | `Strings` autoload |

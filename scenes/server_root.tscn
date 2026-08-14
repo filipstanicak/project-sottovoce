@@ -1,6 +1,9 @@
-[gd_scene load_steps=2 format=3 uid="uid://bs0ttovserverroot"]
+[gd_scene load_steps=5 format=3 uid="uid://bs0ttovserverroot"]
 
 [ext_resource type="PackedScene" path="res://scenes/map/map_vetraio_collision.tscn" id="1_map"]
+[ext_resource type="Script" path="res://scripts/server/match_director.gd" id="2_director"]
+[ext_resource type="Script" path="res://scripts/net/server/rpc_router.gd" id="3_router"]
+[ext_resource type="Script" path="res://scripts/server/server_root.gd" id="4_root"]
 
 ; Server topology. NO PRESENTATION NODES — the release server export excludes
 ; scripts/presentation/, scripts/mirrors/ and scenes/ui/ entirely, so anything
@@ -8,9 +11,18 @@
 ; test_server_root_has_no_presentation.gd asserts it.
 
 [node name="ServerRoot" type="Node"]
+script = ExtResource("4_root")
+
+[node name="MatchDirector" type="Node" parent="."]
+script = ExtResource("2_director")
 
 [node name="Systems" type="Node" parent="."]
 
 [node name="World" type="Node3D" parent="."]
 
 [node name="Map" parent="World" instance=ExtResource("1_map")]
+
+[node name="NetServer" type="Node" parent="."]
+
+[node name="RpcRouter" type="Node" parent="NetServer"]
+script = ExtResource("3_router")
