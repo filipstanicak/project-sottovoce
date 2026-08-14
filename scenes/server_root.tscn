@@ -1,10 +1,11 @@
-[gd_scene load_steps=6 format=3 uid="uid://bs0ttovserverroot"]
+[gd_scene load_steps=7 format=3 uid="uid://bs0ttovserverroot"]
 
 [ext_resource type="PackedScene" path="res://scenes/map/map_vetraio_collision.tscn" id="1_map"]
 [ext_resource type="Script" path="res://scripts/server/match_director.gd" id="2_director"]
 [ext_resource type="Script" path="res://scripts/net/server/rpc_router.gd" id="3_router"]
 [ext_resource type="Script" path="res://scripts/server/server_root.gd" id="4_root"]
 [ext_resource type="Script" path="res://scripts/server/pawn_host.gd" id="5_pawns"]
+[ext_resource type="Script" path="res://scripts/net/server/snapshot_builder.gd" id="6_snap"]
 
 ; Server topology. NO PRESENTATION NODES — the release server export excludes
 ; scripts/presentation/, scripts/mirrors/ and scenes/ui/ entirely, so anything
@@ -30,3 +31,6 @@ script = ExtResource("5_pawns")
 
 [node name="RpcRouter" type="Node" parent="NetServer"]
 script = ExtResource("3_router")
+
+[node name="SnapshotBuilder" type="Node" parent="NetServer"]
+script = ExtResource("6_snap")

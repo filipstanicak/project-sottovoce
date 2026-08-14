@@ -35,6 +35,16 @@ var pawns: Dictionary = {}
 ## `MapData` for the loaded map. Read-only to systems.
 var map: MapData = null
 
+## **PEER ID -> WIRE SLOT**, for this match. Written by `Net` at the handshake
+## and read by anything that names a player on the wire.
+##
+## It is here rather than reachable through the `Net` autoload for the reason the
+## router learned the hard way: a builder whose answers come from a global cannot
+## be *asked a question* in a test — every assertion collapses to "there is no
+## slot", which stays true whatever the code does. If it is not on
+## `MatchContext`, a system cannot reach it.
+var slots := SlotTable.new()
+
 ## The seeded RNG. **THE ONLY SOURCE OF GAMEPLAY RANDOMNESS**, server-side —
 ## `randf` and `randi` are banned outside `scripts/presentation/`, because a
 ## match must replay identically from its seed.

@@ -485,20 +485,21 @@ cheat it prevents. Recorded as open question 4.
 ## 10. Interfaces
 
 ```gdscript
-## Validates and routes every inbound client message. THE authority chokepoint:
-## no client message reaches a system without passing through here.
+## Validates every inbound client message. THE authority chokepoint: no client
+## message reaches a system without passing through here.
 class_name RpcRouter
 extends Node
 
 ## Returns false and logs if the sender lacks authority. Every C2S handler
 ## calls this FIRST. There is no path around it.
-func _authorise(peer: int, msg: StringName) -> bool
-
-@rpc("any_peer", "unreliable", "call_remote", 0)
-func c2s_input(payload: PackedByteArray) -> void
-
-@rpc("any_peer", "reliable", "call_remote", 1)
-func c2s_ability_request(slot: int, aim_origin: Vector3, aim_dir: Vector3) -> void
+##
+## PUBLIC, and the @rpc handlers are NOT on this node — US-0030. Godot addresses
+## an RPC by node path and the receiving peer looks up the same path, so
+## /root/ServerRoot/NetServer/RpcRouter is unreachable from a client. The
+## handlers live on the `Net` autoload, which is at /root/Net on every peer, and
+## each of them calls this first. Anything `Net` creates in _ready() shares a
+## path too — see PingClock.
+func authorise(peer: int, msg: StringName) -> bool
 ```
 
 ```gdscript

@@ -4,11 +4,13 @@
 ## are. This file tests the wiring: that the router asks the right question, logs
 ## and announces a refusal, and forgets a peer completely when one leaves.
 ##
-## The `@rpc` handlers themselves are not driven here — they read
-## `multiplayer.get_remote_sender_id()`, which has no answer without a peer on
-## the other end. What they contain is one authorise call and one emit, and
-## `test_no_client_authority.gd` proves by source scan that the call is there and
-## comes first.
+## **THE `@rpc` HANDLERS ARE NOT ON THIS NODE AT ALL SINCE US-0030.** Godot
+## addresses an RPC by node path, and `/root/ServerRoot/NetServer/RpcRouter` does
+## not exist on a client — so there was nothing to call it from and
+## `NET-C2S-INPUT` was unsendable. The doorway moved to `Net`, which is at
+## `/root/Net` on every peer; the decision stayed here. Each handler there calls
+## `authorise()` first, and `test_no_client_authority.gd` proves by source scan
+## that it does and that it comes first.
 extends GutTest
 
 const PEER := 9
@@ -30,14 +32,14 @@ func _admit(peer: int) -> void:
 func test_it_refuses_a_peer_that_never_handshook() -> void:
 	_router.set_phase(GameState.Phase.ACTIVE)
 	_router.set_pawn_owner(PEER, true)
-	assert_false(_router._authorise(PEER, Ids.NET_C2S_INPUT), "a stranger was authorised")
+	assert_false(_router.authorise(PEER, Ids.NET_C2S_INPUT), "a stranger was authorised")
 
 
 func test_it_admits_a_player_with_a_pawn_in_play() -> void:
 	# The premise for everything below. Without it, every refusal in this file
 	# would be true for the same uninteresting reason.
 	_admit(PEER)
-	assert_true(_router._authorise(PEER, Ids.NET_C2S_INPUT), "a legitimate input was refused")
+	assert_true(_router.authorise(PEER, Ids.NET_C2S_INPUT), "a legitimate input was refused")
 
 
 func test_a_refusal_is_announced_with_its_reason() -> void:
@@ -45,7 +47,7 @@ func test_a_refusal_is_announced_with_its_reason() -> void:
 	# happened" would pass on a router that dropped everything for any cause.
 	watch_signals(_router)
 	_router.set_phase(GameState.Phase.ACTIVE)
-	_router._authorise(PEER, Ids.NET_C2S_INPUT)
+	_router.authorise(PEER, Ids.NET_C2S_INPUT)
 	assert_signal_emitted(_router, "message_denied")
 	var args: Array = get_signal_parameters(_router, "message_denied")
 	assert_eq(args[0], PEER, "the wrong peer was named")
@@ -60,7 +62,7 @@ func test_the_phase_is_the_servers_own() -> void:
 	_admit(PEER)
 	_router.set_phase(GameState.Phase.RESULTS)
 	watch_signals(_router)
-	assert_false(_router._authorise(PEER, Ids.NET_C2S_INPUT), "input was accepted in results")
+	assert_false(_router.authorise(PEER, Ids.NET_C2S_INPUT), "input was accepted in results")
 	assert_eq(
 		(get_signal_parameters(_router, "message_denied") as Array)[2],
 		Authority.Denial.WRONG_PHASE,
@@ -75,7 +77,7 @@ func test_pawn_ownership_is_recorded_and_revoked() -> void:
 	_admit(PEER)
 	_router.set_pawn_owner(PEER, false)
 	watch_signals(_router)
-	assert_false(_router._authorise(PEER, Ids.NET_C2S_INPUT), "a peer with no pawn was authorised")
+	assert_false(_router.authorise(PEER, Ids.NET_C2S_INPUT), "a peer with no pawn was authorised")
 	assert_eq(
 		(get_signal_parameters(_router, "message_denied") as Array)[2], Authority.Denial.NO_PAWN
 	)
@@ -90,11 +92,11 @@ func test_forgetting_a_peer_clears_everything_about_it() -> void:
 	# next joiner's input arrive in the past, a stale pawn flag authorises input
 	# for somebody else's pawn, and a stale roster entry admits a stranger.
 	_admit(PEER)
-	assert_true(_router._authorise(PEER, Ids.NET_C2S_INPUT), "the premise failed")
+	assert_true(_router.authorise(PEER, Ids.NET_C2S_INPUT), "the premise failed")
 	_router.forget(PEER)
 	assert_eq(_router.last_acked_seq(PEER), -1, "a recycled peer inherited a sequence")
 	watch_signals(_router)
-	assert_false(_router._authorise(PEER, Ids.NET_C2S_INPUT), "a recycled peer id was admitted")
+	assert_false(_router.authorise(PEER, Ids.NET_C2S_INPUT), "a recycled peer id was admitted")
 	assert_eq(
 		(get_signal_parameters(_router, "message_denied") as Array)[2],
 		Authority.Denial.NOT_A_PLAYER,
