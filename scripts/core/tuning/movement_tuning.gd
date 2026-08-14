@@ -107,6 +107,16 @@ extends Resource
 ## TUN-TRAVERSE-DROP-SAFE-HEIGHT
 @export_range(3.0, 5.0, 0.1) var traverse_drop_safe_height: float = 4.0
 
+## Below this an edge is a step, not a manoeuvre. INPUT-TRAVERSE at the lip of anything shorter
+## resolves to nothing and the player simply walks off under gravity, keeping the speed they had.
+## Equal to TUN-TRAVERSE-VAULT-MAX-HEIGHT today and for the same reason — what a civilian could
+## plausibly hop up, they can step down — but a separate ID because the two are separate
+## judgements. It exists because the market stalls are 0.9 m: standing on one and pressing
+## traverse gap-jumped a metre and threw the pawn's momentum away, on a lip you could have walked
+## off.
+## TUN-TRAVERSE-DROP-MIN-HEIGHT
+@export_range(0.6, 1.6, 0.1) var drop_min_height: float = 1.1
+
 ## The punishment for panicking off a roof. Not a death sentence; a window during which you can
 ## be killed.
 ## TUN-TRAVERSE-DROP-STAGGER
@@ -173,11 +183,15 @@ extends Resource
 ## TUN-TRAVERSE-GAP-PROBE-AHEAD
 @export_range(0.4, 0.9, 0.1) var gap_probe_ahead: float = 0.6
 
-## How deep the downward probes look. Deeper than TUN-TRAVERSE-DROP-SAFE-HEIGHT so a landing that
-## will stagger is still found — resolving to a costly drop is a decision the player gets to
-## make; finding nothing is the game refusing to answer.
+## How deep the downward probes look. At least TUN-TRAVERSE-CLIMB-MAX-HEIGHT (invariant §17.24):
+## anything you can climb up, you can fall down, and a fall the probes cannot see is a fall the
+## game cannot plan. It was 5.0 until 2026-08-13, which is shorter than MAP-VETRAIO's 8.5 m
+## façades — so the roof-to-street drop that TUN-TRAVERSE-DROP-STAGGER was written for was the
+## one drop that never measured, and the planner substituted the probe depth for the missing
+## distance and set the pawn down in mid-air. Finding nothing is still the game refusing to
+## answer; it is not licence to invent a landing.
 ## TUN-TRAVERSE-GAP-PROBE-DEPTH
-@export_range(3.0, 8.0, 0.1) var gap_probe_depth: float = 5.0
+@export_range(9.0, 14.0, 0.1) var gap_probe_depth: float = 10.0
 
 ## Spacing of the downward probes marching out to TUN-TRAVERSE-GAP-MAX. This is the resolution at
 ## which a landing edge is found: coarser and a narrow ledge across a gap is missed, finer and it
