@@ -26,15 +26,33 @@ class_name PawnInputBuffer
 extends RefCounted
 
 
-## Arm on press, decay by one otherwise. Called once per `step()`, before the
+## Arm on the PRESS, decay by one otherwise. Called once per `step()`, before the
 ## state runs, so a press and its consumption can happen on the same tick.
+##
+## **ON THE EDGE, NOT ON THE HOLD.** `InputCommand.buttons` is held state, so
+## arming from it directly re-armed the buffer on every frame the key was down —
+## and `resolve()` consumes whatever is armed, so ONE HELD KEY BOUGHT A FRESH
+## TRAVERSE SIXTY TIMES A SECOND. Found at the controls: hold Space at the lip of
+## a market stall and the pawn hops, then re-resolves in mid-air, where it has
+## risen far enough that the same lip measures deeper than
+## `TUN-TRAVERSE-DROP-MIN-HEIGHT` and classifies as a gap jump — which plans an
+## interpolation and zeroes the velocity. It reads as the pawn stopping dead in
+## the air. Tapping Space was always correct; only holding it was not.
+##
+## The forgiveness is unchanged and is what it always said it was: the press arms
+## `TUN-TRAVERSE-INPUT-BUFFER` and it decays from there, held or not, so an input
+## pressed 0.2 s early is still honoured when the wall arrives. What it no longer
+## does is stay armed for as long as a finger stays down.
 static func tick(ctx: PawnContext, input: InputCommand) -> void:
-	if input.traverse:
+	var pressed := InputBits.newly_pressed(input.buttons, ctx.held_buttons)
+	ctx.held_buttons = input.buttons
+
+	if InputBits.is_set(pressed, InputBits.TRAVERSE):
 		ctx.traverse_buffer_ticks = Tuning.step_ticks(&"TUN-TRAVERSE-INPUT-BUFFER")
 	elif ctx.traverse_buffer_ticks > 0:
 		ctx.traverse_buffer_ticks -= 1
 
-	if input.ability_1 or input.ability_2:
+	if InputBits.is_set(pressed, InputBits.ABILITY_1 | InputBits.ABILITY_2):
 		ctx.ability_buffer_ticks = Tuning.step_ticks(&"TUN-ABILITY-INPUT-BUFFER")
 	elif ctx.ability_buffer_ticks > 0:
 		ctx.ability_buffer_ticks -= 1

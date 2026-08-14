@@ -283,7 +283,7 @@ not change what blocks the gate:
 - **US-0092** — the pawn is centred; the shoulder offset, its swap and
   `INPUT-SHOULDER` are retired.
 
-**PLAYING THE GAME HAS FOUND SIX DEFECTS, ALL FIXED, NONE REACHABLE BY ANY TEST.**
+**PLAYING THE GAME HAS FOUND NINE DEFECTS, ALL FIXED, NONE REACHABLE BY ANY TEST.**
 The suites have no window, no display and no input devices, so every one of them
 lived in exactly the gap a subjective gate exists to cover. Four came from
 attempting the gate:
@@ -353,6 +353,23 @@ here can do and which took one throwaway script. Do that after any visual change
   Run. The combo now requires a mapped pad to be holding the bindings, which
   `PadSelection` already knows.
 
+**AND ONE MORE ON 2026-08-14, FROM HOLDING SPACE INSTEAD OF TAPPING IT.**
+
+- **A HELD KEY BOUGHT A FRESH TRAVERSE SIXTY TIMES A SECOND.**
+  `PawnInputBuffer.tick()` armed from `InputCommand.buttons`, which is *held*
+  state, so it re-armed the counter on every frame the key was down — and
+  `TraversalResolver.resolve()` spends whatever is armed. It shipped that way
+  from US-0016 and showed nothing for nine stories, because the extra resolves
+  had nothing to do. **US-0093 gave them something.** Hop off a 0.9 m stall with
+  Space held and the pawn rises ~0.22 m, which is enough for the lip it just left
+  to measure deeper than `TUN-TRAVERSE-DROP-MIN-HEIGHT` — so the second resolve
+  classifies the same edge as a **gap jump**, plans an interpolation, and zeroes
+  the velocity. It reads exactly as the owner reported it: *"if i jump of a edge
+  from a vautlable height, it slows me down mid air"*. The buffer now arms on the
+  edge, via `InputBits.newly_pressed` — which existed, was written for this, and
+  nothing had ever called. Reasoning about it was wrong twice; a per-frame log of
+  `classify()`, `state_id` and `velocity` found it in one run.
+
 **The gate is genuinely runnable now.** One command, no server — `boot.gd` loads
 `client_root.tscn` with or without `--connect`, so the "client, menu" log line
 names a menu that does not exist:
@@ -395,14 +412,14 @@ US-0024 measures it against clips that do not exist.
 | | |
 |---|---|
 | CI | 7 jobs. **Running again as of 2026-08-07 after a two-day outage** — run `31200490320`, all seven green. The seven commits merged during the outage were never through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | 103 architecture guards + 404 unit + 111 integration, all three counted in CI |
+| Tests | 103 architecture guards + 408 unit + 113 integration, all three counted in CI |
 | Tuning | 280 tunables across 14 resource classes; all 26 cross-field invariants assert. **Eight IDs are deprecated** and recorded in TUNABLES §19 — never reused |
 | Autoloads | All eight. `Tuning` precomputes 86 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |
 | Boot | Branches on `--server`; 7 CLI flags parsed in pure Core; 5 export presets |
 | Map | `MAP-VETRAIO` greybox, 120 × 120 m. Client loads 28 meshes, server loads none. **The street surface is exactly `STREET_Y`** — floors used to straddle their declared height, putting every walkable top 0.1 m high, which made the 0.9 m stalls unvaultable and three spawn points float over nothing. **Lit as of US-0091** — one key light and a sky, because nothing in the project had ever created either and the district rendered near-black |
 | Pawn | 14 states declared — **the Jog rung was removed in US-0090** and `Jog` is a retired ID absent from `ALL`. Transition edges asserted against the normative diagram. **Eleven implemented**: five locomotion + `Vault`, `Climb`, `Drop`, `KillAnim`, `Stunned`, `Blended`. `Respawning`, `StunAnim` and `Dead` are M4 |
-| Traversal | **Complete.** Probes cast, all seven §7.2 cases resolve from real geometry, both forgiveness windows open, and vault, mantle, climb, drop and gap jump all perform. **Case 7 hops as of US-0093** — an impulse, not a state, scaled by the speed rung and adding nothing horizontal |
+| Traversal | **Complete.** Probes cast, all seven §7.2 cases resolve from real geometry, both forgiveness windows open, and vault, mantle, climb, drop and gap jump all perform. **Case 7 hops as of US-0093** — an impulse, not a state, scaled by the speed rung and adding nothing horizontal. **The action buffer arms on the PRESS, not the hold** — arming from the held bit spent a traverse every frame a finger stayed down |
 | Pawn body | `GreyboxBody`, procedural — capsule, head and a chest marker on `+Z`, measured from the collider so the two cannot drift. **`PersonaVisuals` was empty through US-0021, 0022 and 0023**: three stories of camera work built around a pawn that did not render, every suite green. Not a persona — ART_BIBLE §6.1's four constructions are US-0039's |
 | Camera | Real spring arm: 2.6 m, **pawn centred** (US-0092 — the 0.45 m offset never changed the composition, because the rig aims at the pawn's own axis; `INPUT-SHOULDER` retired with it), occlusion that pulls **in** and never sideways, `WORLD`-masked so a crowd cannot push it. The FOV ladder is bound to the **state**, never to `ctx.velocity`: the rung is a consequence of the decision, not of the physics that follows it. Crowd-scan narrows to 48° and grants nothing. **Positive pitch LOWERS the arm** — the rig looks *at* the pivot, so a raised arm looks down; it shipped inverted from US-0021 until somebody played it |
 | Input | 20 `InputMap` actions from 14 live `INPUT-` IDs — `INPUT-SHOULDER` is retired via `InputActions.DEPRECATED`, still in the corpus and bound to nothing, KBM + pad. Chain GDD-02 → `Ids` → `InputActions` → `project.godot`, guarded on every hop, both directions. **Sampled once per physics frame by `LocalPawnDriver`, the only caller** — see trap 12. The mouse is **captured** on boot; `INPUT-MENU` releases, a click takes it back. **Only a mapped gamepad holds the joypad bindings** — `PadSelection`, applied through the one `InputMap` writer, because a set of sim pedals was steering |

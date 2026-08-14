@@ -111,8 +111,10 @@ func test_it_does_not_discount_the_rung_the_player_chose() -> void:
 
 func test_two_pawns_differing_only_in_the_scan_bit_end_up_the_same() -> void:
 	# The whole context, field by field, so a future change that granted something
-	# has to declare itself here. `velocity` is the ONLY exclusion, because it is
-	# the documented cost.
+	# has to declare itself here. `velocity` is the documented cost, and
+	# `held_buttons` is the previous frame's input echoed back for edge detection —
+	# it is the PREMISE of these two trials, not a result of them, and it differs
+	# by construction the moment the two commands differ in any bit at all.
 	#
 	# `position` is deliberately not excluded, and matches: `step()` computes a
 	# velocity and the DRIVER moves the body, so covering less ground is an
@@ -123,7 +125,9 @@ func test_two_pawns_differing_only_in_the_scan_bit_end_up_the_same() -> void:
 	var differences: PackedStringArray = []
 	for property: Dictionary in scanning.get_property_list():
 		var name: String = property["name"]
-		if name == "velocity" or not (int(property["usage"]) & PROPERTY_USAGE_SCRIPT_VARIABLE):
+		if name == "velocity" or name == "held_buttons":
+			continue
+		if not (int(property["usage"]) & PROPERTY_USAGE_SCRIPT_VARIABLE):
 			continue
 		if typeof(scanning.get(name)) == TYPE_OBJECT:
 			continue
