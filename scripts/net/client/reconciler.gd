@@ -33,6 +33,15 @@ signal corrected(error: float, replayed: bool)
 var replays: int = 0
 var forced: int = 0
 
+## **THE LAST COMPARISON'S RESULT, IN METRES.** How far the server's answer was
+## from what this client predicted *for the same command* — not from where the
+## client is now, which is always further along and is not an error.
+##
+## Kept because a test that wants "do the two peers agree" had nothing to read
+## and reached for the live position difference instead, which measures the
+## prediction lead and is non-zero when everything is perfect.
+var last_error: float = 0.0
+
 var _driver: LocalPawnDriver
 var _visuals: Node3D
 var _pending: Snapshot = null
@@ -86,6 +95,7 @@ func _reconcile(snapshot: Snapshot) -> void:
 
 	var authoritative := PredictedState.from_snapshot(snapshot)
 	var error := authoritative.error_against(predicted)
+	last_error = error
 	if error <= Tuning.net.reconcile_threshold:
 		corrected.emit(error, false)
 		return

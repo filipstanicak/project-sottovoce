@@ -170,10 +170,13 @@ target; it is hard to land in individually-inert pieces.
 **Done when:** reconciliation converges at all four latency profiles with no visible snap, and
 gameplay is identical at 30 / 60 / 144 fps.
 
-**FIRST CLAUSE MET; SECOND CANNOT BE TESTED HERE.** US-0032 to US-0034, US-0036 and US-0037 are
-built; **US-0035 is open.** Reconciliation converges at LAN, GOOD, TYPICAL and POOR, and the snap
-is invisible because **the simulation snaps while the visual blends** — the sim takes the
-server's answer exactly, and only the drawn offset decays.
+**FIRST CLAUSE MET; SECOND CANNOT BE TESTED HERE. THE EPIC IS COMPLETE** — US-0032 to US-0037 are
+all built. Reconciliation converges at LAN, GOOD, TYPICAL and POOR, and the snap is invisible
+because **the simulation snaps while the visual blends** — the sim takes the server's answer
+exactly, and only the drawn offset decays.
+
+US-0035's ring records and nothing reads it until M4, which is ADR-0010's design. Building it
+found that the snapshot was stamped a tick ahead of the world it described — see ROADMAP §4.
 
 The frame-rate clause is the one to watch: **a headless process has no display rate to vary.**
 `test_frame_rate_independence.gd` is not written and cannot be, and the property is guarded

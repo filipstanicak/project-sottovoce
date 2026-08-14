@@ -450,8 +450,31 @@ func rewind_ticks(peer: int) -> int:
 
 ### 8.3 History buffer
 
-`TUN-NET-LAGCOMP-HISTORY` 500 ms = 15 entries at 30 Hz. 6 pawns + 90 NPCs × 16 B × 15 ≈ **23 KB**.
-2.5× the maximum rewind, so the buffer is never the binding constraint (invariant §17.16).
+`TUN-NET-LAGCOMP-HISTORY` 500 ms = 15 entries at 30 Hz. 2.5× the maximum rewind, so the buffer is
+never the binding constraint (invariant §17.16).
+
+**Measured at 20 B per record, not the 16 B this section budgeted — 28.1 KB rather than 23 KB**
+for 96 entities × 15 ticks, read from `LagCompHistory.bytes()` by
+`test_lag_comp_history.gd` (US-0035). The extra four bytes are the **entity id, stored rather than
+implied by array position**. A dense array indexed by wire slot would hit 16 B exactly and would
+name the wrong player after a rejoin, because slots are reused the moment somebody leaves — the
+inheritance failure US-0037 exists to prevent. 28 KB is not a number worth trading that for.
+
+> The figure is amended here rather than the criterion reworded in US-0035, which leaves it
+> unticked. Same discipline as §7.1: **a budget nobody measured against the implementation reports
+> whatever its author expected.** That table said 87 % of the downstream budget and was at 113 %.
+
+**Recorded from `MatchDirector.tick_completed`, which is the same signal `SnapshotBuilder` uses,
+and that is not an implementation detail.** A rewind resolves against a tick a client observed in
+a snapshot; if the two were stamped on different timelines, every rewind would reach one tick
+further into the past than §8.1 permits, and nothing would fail until M4.
+
+> **Both were on `net_ticked` until US-0035**, which fires *before* the tick's stage loop — so a
+> snapshot stamped tick N carried the world from the end of N−1, while two comments in the code
+> claimed the opposite. It was internally consistent (measured client reconciliation error:
+> **0.00000 m**), so the only symptom was that `RemotePawns`, deriving `server_time` from
+> `server_tick`, drew every remote **133 ms** in the past against a `TUN-NET-INTERP-BUFFER` of
+> 100. `test_tick_completed_is_last.gd` now asserts the emission order.
 
 **Optimisation:** only entities within `TUN-CINDERFALL-RADIUS + TUN-KILL-RANGE` ≈ 7.5 m of the
 action are rewound — typically fewer than 10, not 96.
@@ -563,7 +586,9 @@ func sample(entity_id: int, render_time_ms: float) -> EntityState
 | `scripts/net/protocol/authority.gd` | Pure. **The authority column of §6.1 as a table** — who may say what, and when |
 | `scripts/net/protocol/sequence_gate.gd` | Pure. Drops stale and replayed input, across the `u16` wrap |
 | `scripts/net/server/snapshot_builder.gd` | Cull, delta, quantise |
-| `scripts/net/server/lag_comp_history.gd` | 500 ms ring |
+| `scripts/net/server/lag_comp_history.gd` | 500 ms ring. **Pure** — plain arrays in, a `RewoundWorld` out |
+| `scripts/net/server/rewound_world.gd` | What a rewind returns. Positions and yaw and **nothing else**, per §8.2 |
+| `scripts/net/server/lag_comp_recorder.gd` | Walks the world once a tick and feeds the ring. Separate from it so the ring can be asked a question without standing a world up |
 | `scripts/net/client/input_sender.gd` | 60 Hz sampling and send |
 | `scripts/net/client/predictor.gd` | Local prediction |
 | `scripts/net/client/reconciler.gd` | The §4.2 loop |

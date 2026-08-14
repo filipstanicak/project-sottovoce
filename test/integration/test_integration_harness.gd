@@ -34,10 +34,16 @@ func _walk_together(profile: StringName, frames: int) -> void:
 	await _harness.advance(20)
 
 
+## **THE RECONCILIATION ERROR, NOT THE PREDICTION LEAD.** These read
+## `disagreement()` until US-0035 — the live distance between the client's pawn
+## and the server's, which in a predicting architecture is *never* zero and is
+## not an error. Measured, that lead is exactly 2.00 commands at every speed:
+## 0.0733 m at stroll, **0.1500 m at run against a 0.10 m threshold**. The
+## assertions passed because the harness only ever walks.
 func _assert_all_peers_agree(profile: StringName) -> void:
 	for peer: int in PEERS:
 		assert_lt(
-			_harness.disagreement(peer),
+			_harness.reconciliation_error(peer),
 			Tuning.net.reconcile_threshold,
 			"peer %d left the server behind at %s" % [peer, profile]
 		)
