@@ -518,11 +518,38 @@ sampled command and then held for its latency. **Both are trap 4's family, and
 both were caught only because the numbers were implausible rather than merely
 red.**
 
-**M2 IS NEARLY DONE.** US-0025 to US-0030, US-0032, US-0033 and US-0034 are
+**US-0036 IS BUILT: THE LOOP IS UNDER CI.** `IntegrationHarness` stands up a
+real server and **three real clients in one process** — the real client scene
+with its real driver and reconciler, a real `PawnHost`, real `Snapshot` bytes —
+and walks them at four latency profiles. **Only the wire is synthetic**, because
+`Net` is an autoload and an RPC resolves by node path, so one process cannot hold
+both ends of a real one.
+
+**This is what retires "verified by hand"** from US-0025, US-0028 and US-0030.
+Those log excerpts were real evidence and they stay in the stories; what a log
+cannot do is fail a pull request. The integration suite runs in **87.7 s**
+against the 180 s the story allows.
+
+- **A comment in the harness was wrong before the code was.** It said a poor
+  profile ought to produce more replays. Measured: **zero replays at every
+  profile**, which is the right answer — the two peers run identical code from
+  identical commands, so *being late is not the same as being wrong*. What
+  latency costs is how stale a correction is when one is genuinely needed.
+- **The first version added every node twice**, because the harness parented them
+  and the test adopted them again. It owns what it makes now — which matters
+  beyond tidiness, since GUT frees a test instance between *scripts* and three
+  clients would have become six.
+- **Two criteria stay unticked.** "Every netcode test runs at all four" is true
+  only of the harness's own agreement test, and `test_frame_rate_independence.gd`
+  cannot exist headless — there is no display rate to vary. The property it was
+  to prove is guarded structurally by `test_no_gameplay_in_process.gd` instead,
+  which is stronger in one direction and weaker in another, and the story says
+  which.
+
+**M2 IS NEARLY DONE.** US-0025 to US-0030 and US-0032 to US-0034 and US-0036 are
 built. What is left: **US-0031** (delta encoding), **US-0035** (lag-comp
-history), **US-0036** (the two-process harness), **US-0037** (join/leave
-stability) and **US-0038** (the M2 gate). US-0030's culling criteria stay
-unticked — there is no crowd to cull until M3.
+history), **US-0037** (join/leave stability) and **US-0038** (the M2 gate).
+US-0030's culling criteria stay unticked — there is no crowd to cull until M3.
 
 **US-0024's "≤ 80 ms with prediction active" IS NOW UNBLOCKED** and has not been
 measured. It was one of the two criteria M1 left open; prediction exists now, so
