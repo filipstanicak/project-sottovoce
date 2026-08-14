@@ -72,6 +72,6 @@ func test_the_driver_asks_the_state_rather_than_deciding() -> void:
 	# rig that kept its own list would drift from the state table silently.
 	var source := SourceScanner.read("res://scripts/presentation/local_pawn_driver.gd")
 	assert_true(
-		source.contains("_machine.camera_controlled(ctx)"),
+		source.contains("machine.camera_controlled(ctx)"),
 		"the driver does not delegate the camera rule to the state machine"
 	)

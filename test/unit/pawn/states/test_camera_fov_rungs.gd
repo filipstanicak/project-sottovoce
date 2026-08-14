@@ -141,6 +141,6 @@ func test_the_rig_asks_the_state_rather_than_reading_the_velocity() -> void:
 	)
 	var driver := SourceScanner.read("res://scripts/presentation/local_pawn_driver.gd")
 	assert_true(
-		driver.contains("_machine.camera_fov(ctx)"),
+		driver.contains("machine.camera_fov(ctx)"),
 		"the driver does not delegate the rung to the state machine"
 	)

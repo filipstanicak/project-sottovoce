@@ -482,9 +482,51 @@ not exist — so it printed an empty list that read exactly like evidence.
 **A probe that cannot see reports the same thing as a quiet machine**, which is
 trap 13 in a new costume.
 
-**Next is US-0031 (delta encoding), US-0032/0033 (prediction and
-reconciliation), or US-0036 (the two-process harness).** US-0030's culling
-criteria are still unticked — there is no crowd to cull until M3.
+**US-0032 AND US-0033 ARE BUILT: THE CLIENT PREDICTS AND THE SERVER CORRECTS
+IT.** **The simulation snaps; the visual blends** — TDD-04 calls that its most
+important sentence and it is now code. On a divergence the context takes the
+server's answer *exactly*, every unacked command replays through the same
+`PawnMotion` the server used, and the difference between where the pawn was
+**drawn** and where it now **is** goes to `PersonaVisuals` as an offset decaying
+over `TUN-NET-RECONCILE-SMOOTH-TIME`. If the simulation blended, later
+predictions would run from a position the server never had and the error would
+**compound instead of converging**.
+
+- **`PredictedState` has nowhere to put gameplay state.** Position, velocity,
+  state, timer, grounded — that is the whole object, and the omissions are the
+  design: nothing gameplay-relevant is predicted, and the way to keep that true
+  is to have nowhere to put it.
+- **It reconciles on a physics frame, not on arrival.** A replay calls
+  `move_and_slide()` and re-casts the probes, and Godot delivers RPCs on the idle
+  frame. The snapshot is held and answered from `pawn_stepped`, which also puts
+  the replay *after* this frame's prediction rather than racing it.
+- **The common case is free.** Ninety frames of ordinary walking produce **zero**
+  replays: both peers run the same code from the same commands.
+- **`InputHistory.ack()` compared with `<=` and broke at the `u16` wrap.** Every
+  ~18 minutes the buffer would stop draining and the replay would re-run
+  eighteen minutes of input per snapshot. It uses `SequenceGate.is_newer()` now —
+  the same arithmetic the server's gate uses, because both ends must agree on
+  what "already answered" means.
+
+**TWO OF THE RECONCILIATION TESTS WERE WRONG BEFORE THE CODE WAS.** One looped
+four latency profiles calling `before_each()` by hand — standing up a second
+client and a second server without freeing the first, three pawns sharing one
+input — and reported a divergence that grew neatly with latency and looked
+exactly like a real finding. The other read the visual offset "three frames
+after" a shove, which is a guess: the snapshot carrying it is built on the *next*
+sampled command and then held for its latency. **Both are trap 4's family, and
+both were caught only because the numbers were implausible rather than merely
+red.**
+
+**M2 IS NEARLY DONE.** US-0025 to US-0030, US-0032, US-0033 and US-0034 are
+built. What is left: **US-0031** (delta encoding), **US-0035** (lag-comp
+history), **US-0036** (the two-process harness), **US-0037** (join/leave
+stability) and **US-0038** (the M2 gate). US-0030's culling criteria stay
+unticked — there is no crowd to cull until M3.
+
+**US-0024's "≤ 80 ms with prediction active" IS NOW UNBLOCKED** and has not been
+measured. It was one of the two criteria M1 left open; prediction exists now, so
+the measurement is possible for the first time.
 
 **TWO STORIES WERE WRITTEN AND HELD BEHIND THE GATE**, both for the same reason:
 they change what `INPUT-TRAVERSE` does, and the gate's second line *counts
