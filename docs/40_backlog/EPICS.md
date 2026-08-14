@@ -136,6 +136,11 @@ pawn simulation.
 **Done when:** three clients connect to a headless server, the server simulates their pawns from
 input commands, and **every C2S message has a non-empty authority check**.
 
+**DONE, 2026-08-15** (US-0025 to US-0028). All three clauses hold, the third structurally:
+`test_no_client_authority.gd` fails any handler that reaches a system before calling
+`RpcRouter.authorise()`, and it is falsified against a planted violation. The three-client half is
+proven by `IntegrationHarness` rather than by hand.
+
 ---
 
 ## 9. `EPIC-SNAPSHOT` — M2
@@ -144,6 +149,14 @@ Snapshot format, serialisation, culling, quantisation, delta encoding.
 
 **Done when:** remote pawns move smoothly on all clients and `test_snapshot_size.gd` is within
 the downstream budget.
+
+**BOTH CLAUSES HOLD; THE EPIC IS NOT DONE** (US-0029 and US-0030 built, **US-0031 open**). Remote
+pawns interpolate 100 ms in the past between stamped samples, and the budget closes at **97 %** —
+but only after the measurement found it at 113 % and the crowd record was shrunk from 10 B to 8 B.
+**Culling and delta encoding are both unbuilt**: culling has nothing to remove until the crowd
+exists in M3, and delta encoding is US-0031. The "done when" was written against an outcome, and
+it is satisfied by a snapshot that sends everything every tick — worth knowing before it is read
+as proof that the epic shipped.
 
 ---
 
@@ -156,6 +169,17 @@ target; it is hard to land in individually-inert pieces.
 
 **Done when:** reconciliation converges at all four latency profiles with no visible snap, and
 gameplay is identical at 30 / 60 / 144 fps.
+
+**FIRST CLAUSE MET; SECOND CANNOT BE TESTED HERE.** US-0032 to US-0034, US-0036 and US-0037 are
+built; **US-0035 is open.** Reconciliation converges at LAN, GOOD, TYPICAL and POOR, and the snap
+is invisible because **the simulation snaps while the visual blends** — the sim takes the
+server's answer exactly, and only the drawn offset decays.
+
+The frame-rate clause is the one to watch: **a headless process has no display rate to vary.**
+`test_frame_rate_independence.gd` is not written and cannot be, and the property is guarded
+structurally by `test_no_gameplay_in_process.gd` instead. See ROADMAP §4.1, where the same clause
+appears as a gate line and is flagged there too. **It did not fail — it was never runnable**, and
+that distinction is the whole reason this note exists.
 
 ---
 

@@ -229,6 +229,37 @@ The fix is `.ci/repo_files.sh`, sourced by both:
 call `git ls-files`, every guard must load through it, and both refusals must
 still be there. **Do not relax it** — same reason as §1.4.
 
+### 1.6 Nothing in CI checks that generated code is fresh
+
+**KNOWN GAP, NOT YET CLOSED.** Two things in this repository are generated —
+`scripts/core/ids.gd` plus `scripts/core/tuning/*` from
+`tools/tuning_codegen/run_all.py`, and the map scenes plus `MapData` from
+`tools/generate_map_vetraio.gd`. **No CI job regenerates either and diffs the
+result.**
+
+A stale generated file therefore passes every gate the pipeline has. It imports,
+it lints, it satisfies the architecture guards, and all three suites go green —
+because the tests exercise the *committed* file, which is self-consistent. It is
+wrong only against its source, and nothing compares the two.
+
+This is not hypothetical: `movement_tuning.gd` was found stale against
+TUNABLES.md on 2026-08-14 (#65), by hand, during a checkpoint. Regenerated on
+2026-08-15 both artefacts reproduced byte-for-byte, so the tree is currently
+clean — but that was established by somebody running the generators, not by CI.
+
+Two details anyone closing this gap will need:
+
+1. **The codegen emits PRE-format output.** The committed files are
+   post-`gdformat`, so a naive regenerate-and-diff reports a whitespace failure
+   on every run. Format before diffing.
+2. **The map generator leaks ObjectDB instances at exit** and prints warnings.
+   That is noise from Godot's headless teardown, not a failure; judge it on the
+   diff, not on stderr.
+
+Until a job exists, **regenerating and diffing is part of the checkpoint
+procedure** (`.claude/commands/save.md` §7), which means it happens at
+checkpoints rather than on every pull request.
+
 ---
 
 ## 2. Headless import

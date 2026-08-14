@@ -217,8 +217,15 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 
 ## Where the work is right now
 
-*Updated 2026-08-12. Keep this section current — it is the first thing a fresh
+*Updated 2026-08-15. Keep this section current — it is the first thing a fresh
 session reads, and a stale one is worse than none.*
+
+**PICK UP HERE.** M1 is complete and its gate is passed. **M2 is eleven stories
+built of fourteen**; what is left is **US-0035** (lag-comp history, recording
+only), **US-0031** (delta encoding) and **US-0038** (the M2 gate). Take US-0035
+first: it is self-contained, it has no consumers until M4, and it is the last
+non-gate story that adds machinery M4 will need. The rest of this section is why
+each of those sentences is true, and what has already cost somebody an hour.
 
 **M0 IS COMPLETE. M1'S EXIT CRITERION IS MET AND ITS FEEL GATE IS PASSED**, judged
 at the controls on 2026-08-13: slowing instant from every state, the FOV ladder
@@ -539,12 +546,14 @@ against the 180 s the story allows.
   and the test adopted them again. It owns what it makes now — which matters
   beyond tidiness, since GUT frees a test instance between *scripts* and three
   clients would have become six.
-- **Two criteria stay unticked.** "Every netcode test runs at all four" is true
-  only of the harness's own agreement test, and `test_frame_rate_independence.gd`
-  cannot exist headless — there is no display rate to vary. The property it was
-  to prove is guarded structurally by `test_no_gameplay_in_process.gd` instead,
-  which is stronger in one direction and weaker in another, and the story says
-  which.
+- **One criterion stays unticked and one test is not written.** "Every netcode
+  test runs at all four" is true only of the harness's own agreement test — the
+  rest are pure and have no wire to give a latency to. Separately,
+  `test_frame_rate_independence.gd` **cannot exist headless**: there is no
+  display rate to vary. That one is a missing test, not an unticked criterion.
+  The property it was to prove is guarded structurally by
+  `test_no_gameplay_in_process.gd` instead, which is stronger in one direction
+  and weaker in another, and the story says which.
 
 **US-0037 IS BUILT: CHURN LEAVES NOTHING BEHIND.** 40 cycles of three peers —
 **120 joins and 120 departures** — with five counters back at baseline
@@ -573,10 +582,24 @@ somebody else in every message that names anybody.
   physics frames would outlast the 180 s the integration suite is allowed;
   nothing here accumulates with time rather than with cycles.
 
-**M2 IS NEARLY DONE.** US-0025 to US-0030, US-0032 to US-0034, US-0036 and
-US-0037 are built. What is left: **US-0031** (delta encoding), **US-0035**
-(lag-comp history) and **US-0038** (the M2 gate). US-0030's culling criteria stay
+**M2 IS ELEVEN OF FOURTEEN.** US-0025 to US-0030, US-0032 to US-0034, US-0036
+and US-0037 are built. What is left: **US-0035** (lag-comp history), **US-0031**
+(delta encoding) and **US-0038** (the M2 gate). US-0030's culling criteria stay
 unticked — there is no crowd to cull until M3.
+
+**WHAT IS RUNNABLE AND WHAT IS NOT.** Three clients and a headless server hold a
+match: peers join, the server simulates their pawns, snapshots come back, each
+player sees the others move, and the local pawn predicts and reconciles. **There
+is no game in it yet.** No suspicion, no contracts, no crowd, no abilities, no
+kill, no stun, no score, no HUD, no match end — every one of those is M3 or
+later. What M2 proves is that the *transport* under them is honest.
+
+**TWO M2 GATE LINES CANNOT PASS AS WRITTEN**, and it is better to know now than
+at the gate. ROADMAP §4.1 asks for `test_frame_rate_independence.gd` at 30/60/144
+fps — impossible headless — and for a five-minute churn run, which US-0037
+delivered as 120 join/leave cycles because 18 000 physics frames would outlast
+the whole integration suite's 180 s budget. Both are flagged in §4.1 itself.
+US-0038 will have to judge them or amend them; it may not quietly tick them.
 
 **US-0024's "≤ 80 ms with prediction active" IS MEASURED — AND STAYS UNTICKED.**
 With a real server, a real snapshot stream and reconciliation live, the response
@@ -766,9 +789,14 @@ US-0024 measures it against clips that do not exist.
 | Camera | Real spring arm: 2.6 m, **pawn centred** (US-0092 — the 0.45 m offset never changed the composition, because the rig aims at the pawn's own axis; `INPUT-SHOULDER` retired with it), occlusion that pulls **in** and never sideways, `WORLD`-masked so a crowd cannot push it. The FOV ladder is bound to the **state**, never to `ctx.velocity`: the rung is a consequence of the decision, not of the physics that follows it. Crowd-scan narrows to 48° and grants nothing. **Positive pitch LOWERS the arm** — the rig looks *at* the pivot, so a raised arm looks down; it shipped inverted from US-0021 until somebody played it |
 | Input | 20 `InputMap` actions from 14 live `INPUT-` IDs — `INPUT-SHOULDER` is retired via `InputActions.DEPRECATED`, still in the corpus and bound to nothing, KBM + pad. Chain GDD-02 → `Ids` → `InputActions` → `project.godot`, guarded on every hop, both directions. **Sampled once per physics frame by `LocalPawnDriver`, the only caller** — see trap 12. The mouse is **captured** on boot; `INPUT-MENU` releases, a click takes it back. **Only a mapped gamepad holds the joypad bindings** — `PadSelection`, applied through the one `InputMap` writer, because a set of sim pedals was steering |
 
-**Ten criteria are deliberately unticked**, each blocked by something real. A
+**Eighteen criteria are deliberately unticked**, each blocked by something real. A
 prose count of these has now drifted three times, so they are a table — and the
-story files are the source of truth, not this:
+story files are the source of truth, not this. Regenerate the count rather than
+editing it:
+
+```bash
+grep -c '^- \[ \]' docs/40_backlog/stories/*.md
+```
 
 | Story | Unticked | Blocked by |
 |---|---|---|
@@ -777,12 +805,23 @@ story files are the source of truth, not this:
 | US-0022 | motion-reduction's compensating indicator | the FOV **lock** is done and tested; the persistent speed indicator belongs to the HUD, US-0084 |
 | US-0023 | ambience ducked, footsteps sharpened | `Audio.play()` is an empty stub until US-0075 |
 | US-0024 | input→animation measured; ≤ 80 ms with prediction | no clips. **The prediction half is now measured** — 33.3 ms at every latency profile — but the chain is still three stages of five, so the number is a lower bound. The feel-gate checklist is DONE (2026-08-13) |
+| US-0025 | ping/pong RTT proven over a real wire | the client half needs two processes. `RttTable` is unit-tested and the server half reads ENet directly |
+| US-0029 | "remote pawn is 14 B, NPC is 7 B" | **false as written.** Measured at 10 and 8; TDD-04 §4 and §7.1 were amended instead of rewording the criterion |
+| US-0030 | three culling criteria, plus `render_state` per observer | there is no crowd to cull until M3, and no `SYS-DETECTION` to compute a state until M3 |
+| US-0036 | "every netcode test runs at all four profiles" | true only of the harness's own agreement test; the rest are pure and have no wire to give a latency to |
+| US-0037 | timeout ≡ clean disconnect; match end below minimum players | a real timeout needs two processes; match end is `SYS-MATCH`'s, in M4 |
 
-The navmesh **bake** is likewise owed and recorded in US-0012. **Nothing here is
-forgotten and nothing is half-ticked** — a story marked done over a criterion
-that is not true makes the whole backlog unreadable as a status view.
+Two more things are owed and are **not** acceptance criteria, so they are not in
+the count: the navmesh **bake** (recorded in US-0012) and
+**`test_frame_rate_independence.gd`** (US-0036's test notes) — the latter cannot
+exist headless, because there is no display rate to vary. Do not go looking for
+it as an unticked line; it is a missing *test*, not a missing tick.
 
-### Thirteen things that will cost you an hour if you do not know them
+**Nothing here is forgotten and nothing is half-ticked** — a story marked done
+over a criterion that is not true makes the whole backlog unreadable as a status
+view.
+
+### Fourteen things that will cost you an hour if you do not know them
 
 1. **Two things are GENERATED.** `scripts/core/ids.gd`, `scripts/core/tuning/*.gd`
    and `tuning_index.gd` come from `tools/tuning_codegen/run_all.py`; the map
@@ -895,6 +934,18 @@ that is not true makes the whole backlog unreadable as a status view.
     polls for twelve seconds because a pad's **resting axis values arrive about a
     second after it enumerates** — a single glance at frame zero reads 0.00 even
     with a window. Trap 3's family: a check that reports clean over nothing.
+14. **A DOCUMENT SAYING "X ASSERTS Y" IS NOT EVIDENCE THAT X EXISTS.** Check that
+    it is a file, and that something runs it. This has now been wrong three
+    times: the seed claimed `test_claude_md_synced.gd` from US-0001 and it did
+    not exist until US-0023; TDD-12 §11 lists thirteen test hooks of which
+    **twelve do not exist**; and `NETWORK_PROTOCOL.md`'s header claimed
+    `test_protocol_docs_sync.gd` from M0 — **two deliberately duplicated
+    documents, drifting unguarded for two milestones, under a note telling every
+    reader they were checked.** Written 2026-08-15; no drift had accumulated,
+    which was luck rather than process. `test/metrics/` is likewise declared,
+    empty, and **not run by CI**, so a suite placed there would never execute.
+    **The claim is worse than the absence**, because the claim is what stops
+    anybody checking by hand.
 
 ### Local environment
 
@@ -906,10 +957,17 @@ Godot and gdtoolkit are not on `PATH` on this machine:
 `.ci/run_gut.sh` invokes a bare `godot`, so shim it before running a suite:
 
 ```bash
+mkdir -p /tmp/shim
 printf '#!/usr/bin/env bash\nexec "/c/Users/Slimex/Desktop/Godot_v4.7.1-stable_win64.exe" "$@"\n' > /tmp/shim/godot
 chmod +x /tmp/shim/godot
 export PATH="/tmp/shim:/c/Users/Slimex/AppData/Roaming/Python/Python314/Scripts:$PATH"
 ```
+
+`/tmp/shim` does not survive between sessions, so the `mkdir` is not optional —
+without it the redirect fails and the PATH export points at nothing, which then
+reads exactly like Godot not being installed.
+
+Python is on `PATH` as `python` (3.14.6), which is what the tuning codegen needs.
 
 ---
 

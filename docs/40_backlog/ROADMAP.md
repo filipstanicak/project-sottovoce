@@ -267,23 +267,31 @@ No suspicion, no networking, no NPCs. Single player, local, no rules.
 **Exit:** 3 clients + headless server, replicated movement, prediction and interpolation,
 join/leave stable.
 
-> **M2 HAS STARTED, 2026-08-14.** US-0025 is built: a server listens on three
-> ENet channels, a client dials in with `--connect`, and the handshake completes.
-> Verified across two real processes by hand — **no automated test here can reach
-> it**, because `Net` is an autoload and an RPC resolves by node path, so one
-> process cannot hold both ends. That round trip belongs to US-0036's harness,
-> and US-0025's last criterion stays unticked rather than being rounded up.
+> **M2 IS ELEVEN STORIES OF FOURTEEN, as of 2026-08-15.** US-0025 to US-0030,
+> US-0032 to US-0034, US-0036 and US-0037 are built. **The loop is closed and it
+> is under CI**: three real clients and a real server, peers joining and leaving,
+> input up, snapshots back, prediction and reconciliation live at four latency
+> profiles. Open: **US-0035** (lag-comp history), **US-0031** (delta encoding),
+> **US-0038** (the gate).
 >
-> Two things it decided that the corpus had left open, both recorded in the
-> story: **`build_hash` is derived from the protocol surface**, not from a build
-> stamp, because a stamp rejects builds that differ in a shader and accepts ones
-> that differ in the wire format; and **`NET-C2S-HELLO` now carries the client's
-> tuning hash**, because a server that never learns it could only send
-> `NET-S2C-TUNING-SYNC` always or never, and the catalogue says *on mismatch*.
+> **What M2 does not contain is a game.** No suspicion, no crowd, no abilities,
+> no kill, no stun, no score, no match end. §4.3 said "movement only" and that is
+> exactly what is replicated.
 >
-> It also found one the snapshot will have to answer: **Godot's peer ids are
-> 32-bit random numbers and the protocol declares `peer_id:u8`.** Nothing is
-> broken until something is hand-serialised, which is US-0029.
+> Three decisions the corpus had left open, each recorded in its story:
+> **`build_hash` is derived from the protocol surface**, not a build stamp,
+> because a stamp rejects builds differing in a shader and accepts ones differing
+> in the wire format; **`NET-C2S-HELLO` carries the client's tuning hash**,
+> because a server that never learns it could only send `NET-S2C-TUNING-SYNC`
+> always or never; and **peer ids never reach the wire** — Godot hands out random
+> 32-bit ids against a declared `peer_id:u8`, so `SlotTable` maps one to the
+> other and slot 0 is reserved to mean nobody.
+>
+> **The bandwidth budget in TDD-04 §7.1 was wrong and has been re-derived.** Its
+> per-record sizes were never reachable from §4's own field list; measured, the
+> projection was 113 % of budget where the document concluded 87 %. The **crowd
+> record was shrunk from 10 B to 8 B** rather than the budget moved, and it now
+> closes at 97 %. `test_snapshot_size.gd` recomputes the whole table every run.
 
 | Delivers | |
 |---|---|
@@ -291,7 +299,7 @@ join/leave stable.
 | `RpcRouter` with authority checks on **every** C2S message | **Done, US-0026.** Plus the two §12 guards that had been promised since M0 and never written |
 | `MatchDirector` net tick — 30 Hz from the 60 Hz physics clock | **Done, US-0027.** Derived by counting frames, not by accumulating time; the order is parsed from §4's diagram |
 | Server-side pawn simulation; the **same** state machine as M1 | **Done, US-0028** — and the same `PawnMotion`, extracted because stepping the machine is only half a tick |
-| Snapshot format, `SnapshotBuilder` (cull + quantise + delta) | **Format done, US-0029.** It measured the downstream budget at **113 %**, not the 87 % §7.1 concluded — the sizes that table budgeted against were unreachable from §4's own field list. **The crowd record was shrunk from 10 B to 8 B in answer and it now projects to 93.0 kbit/s, 97 % of budget** |
+| Snapshot format, `SnapshotBuilder` (cull + quantise + delta) | **Format done, US-0029; builder done, US-0030 — cull and delta are NOT.** It measured the downstream budget at **113 %**, not the 87 % §7.1 concluded — the sizes that table budgeted against were unreachable from §4's own field list. **The crowd record was shrunk from 10 B to 8 B in answer and it now projects to 93.0 kbit/s, 97 % of budget.** Culling is US-0030's four unticked criteria and has nothing to remove until the crowd exists in M3; delta encoding is US-0031, still open |
 | `Predictor`, `Reconciler`, `SnapshotInterpolator` | **All three done, US-0032 to US-0034.** Remote entities render 100 ms in the past between stamped samples; the local pawn predicts and **the simulation snaps while the visual blends**, converging at four latency profiles |
 | `LagCompHistory` (recording only — no consumers until M4) | Open, US-0035 |
 | Join / leave stability under churn | **Done, US-0037.** 120 joins and 120 departures return five counters to baseline; two criteria unticked — a real timeout needs two processes, and match-end below minimum players is `SYS-MATCH`'s in M4 |
@@ -299,11 +307,25 @@ join/leave stable.
 
 ### 4.1 The M2 gate
 
-- `test_prediction_reconciliation.gd` passes at **all four** latency profiles.
-- `test_frame_rate_independence.gd` passes at 30 / 60 / 144 fps.
-- Three clients, five minutes of join/leave churn, no orphaned entities.
+- `test_prediction_reconciliation.gd` passes at **all four** latency profiles. **Met.**
+- ~~`test_frame_rate_independence.gd` passes at 30 / 60 / 144 fps.~~ **THIS LINE CANNOT PASS AS
+  WRITTEN.** A headless process has no display rate to vary, so the test as specified cannot
+  exist here. The property it was to prove — that gameplay does not ride the render clock — is
+  guarded structurally by `test_no_gameplay_in_process.gd`, which forbids `_process` anywhere
+  server-side outright. That is **stronger** in one direction (it cannot be true only by accident
+  today) and **weaker** in another (a client-side visual reading gameplay state per frame would
+  still slip past). US-0038 must either accept the substitute explicitly or amend this line. It
+  may not tick it.
+- ~~Three clients, five minutes of join/leave churn~~, no orphaned entities. **Met as 120 join /
+  leave cycles, not as five minutes** — 18 000 physics frames would outlast the 180 s the whole
+  integration suite is allowed. What five minutes buys is repetition, and nothing here accumulates
+  with time rather than with cycles. Recorded in US-0037 rather than rounded up.
 - **`test_upstream_bandwidth.gd` is expected to FAIL** until input coalescing lands — that is
   planned, not a surprise (`RISK-BANDWIDTH`).
+
+**A gate whose lines were quietly reinterpreted is not a gate.** Two of these four were written
+before anyone knew the suite would run headless in CI, and both are answered here rather than at
+the moment somebody wants them green.
 
 ### 4.2 Why lag compensation records but does not resolve
 

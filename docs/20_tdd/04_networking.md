@@ -226,6 +226,19 @@ is consulted constantly.
 **Legend** — *Ch*: channel (S=STATE, E=EVENT, X=SESSION). *Rel*: reliability.
 **Every C2S row must have a non-empty authority check** (ADR-0002 compliance).
 
+> **`peer_id:u8` IN EVERY ROW BELOW IS A SLOT, NOT THE ENGINE'S PEER ID.** Godot hands out
+> **random 32-bit** peer ids — a test client was welcomed as `1526710570` — and this catalogue
+> declares a byte in seven places. The catalogue is right: six players fit in three bits, and the
+> byte is what §7's bandwidth budget was written against.
+>
+> `scripts/net/protocol/slot_table.gd` maps one onto the other, and **slot 0 is reserved to mean
+> nobody**, so a record that was never filled in decodes as *absent* rather than as player one.
+> The engine's id never reaches the wire.
+>
+> Found by hand in US-0025, before anything was serialised, and answered in US-0029. Written down
+> here because a reader wiring `peer_id` from `multiplayer.get_remote_sender_id()` would produce
+> a payload that fits, transmits, and is wrong.
+
 ### 6.1 Client → Server
 
 | ID | Ch | Rel | Rate | Payload | Authority check |
