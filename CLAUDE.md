@@ -220,7 +220,16 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 *Updated 2026-08-12. Keep this section current — it is the first thing a fresh
 session reads, and a stale one is worse than none.*
 
-**M0 IS COMPLETE. M1 IS 11 OF 12 AND CANNOT CLOSE YET.** US-0013 to US-0023 are
+**M0 IS COMPLETE. M1'S EXIT CRITERION IS MET AND ITS FEEL GATE IS PASSED**, judged
+at the controls on 2026-08-13: slowing instant from every state, the FOV ladder
+perceptible without discomfort, and **ten of ten sloppy vaults resolved**. One
+player walks, blends, runs, sprints, climbs and vaults locally. **M2 may begin.**
+
+**US-0024 REMAINS `in-progress` ON TWO CRITERIA THAT CANNOT BE MADE TRUE HERE** —
+input→animation needs an animation, and "with prediction active" needs US-0032 in
+M2. They stay unticked rather than rounded up.
+
+**M1 IS 11 DONE + 1 OPEN.** US-0013 to US-0023 are
 `status: done`; **US-0024 is `in-progress` and everything buildable in it is
 built.** One of its four criteria is met (the commitment ceiling). The other
 three are blocked, each by something real:
@@ -231,16 +240,17 @@ three are blocked, each by something real:
   has no display in headless CI. **The number is a lower bound and says so.**
   `test_feel_chain.gd` holds a tripwire that goes red the day a clip lands.
 - **"With prediction active" needs prediction**, which is US-0032, in M2.
-- **The feel-gate checklist is the owner's, and TWO OF ITS THREE LINES ARE NOW
-  JUDGED.** On 2026-08-13 the owner logged *slowing is instant* and *the FOV
+- **The feel-gate checklist is the owner's, and ALL THREE LINES ARE NOW JUDGED AND
+  PASSED (2026-08-13).** On 2026-08-13 the owner logged *slowing is instant* and *the FOV
   ladder is perceptible without discomfort*, and settled
   `TUN-SPEED-RUN-RESOLVE` at 0.15 s — the one number in US-0090 chosen rather
-  than derived. **The vault count is the only line left.** Ten sloppy vaults,
-  tallied by the readout, and the criterion says *run and logged*, so it stays
-  unticked until that number exists. The centred framing from US-0092 was judged
-  with the lens and accepted.
+  than derived. **The vault count came in at ten of ten**, without any change to
+  the forgiveness windows — which is the strongest thing the gate says about
+  them. The centred framing from US-0092 was judged with the lens and accepted.
 
-**M1's remaining work is not code.** It is one human sitting down with the game.
+**M1's gate is passed. The remaining M1 work is nothing** — US-0024's two open
+criteria wait on an animation that does not exist and on prediction, which is
+US-0032 in M2. **Start M2 at US-0025, the net peer lifecycle.**
 
 **TWO STORIES ARE WRITTEN AND DELIBERATELY NOT BUILT**, both queued behind the
 gate for the same reason: they change what `INPUT-TRAVERSE` does, and the gate's

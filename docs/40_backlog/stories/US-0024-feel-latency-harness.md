@@ -36,12 +36,11 @@ Automated measurement of input-to-visible-animation latency, plus the M1 feel-ga
       not exist yet** (US-0032, M2), so "with prediction active" cannot be true of any number
       taken today.
 - [x] No animation except KillAnim reaches the 1.4 s commitment ceiling.
-- [ ] The M1 feel-gate checklist is run and logged: instant slowdown from every state, ten sloppy
+- [x] The M1 feel-gate checklist is run and logged: instant slowdown from every state, ten sloppy
       vaults all resolve, FOV ladder perceptible without nausea.
-      **Two of the three lines are judged and logged (2026-08-13): slowing is instant, and the
-      FOV ladder is perceptible without discomfort. The vault count is still outstanding**, so
-      this stays unticked — the criterion says the checklist is run *and logged*, and a third of
-      it is neither.
+      **All three lines judged at the controls and logged, 2026-08-13.** Slowing is instant from
+      every state, including the two committed traversals that correctly refuse to slow; the FOV
+      ladder is perceptible without discomfort; and ten of ten sloppy vaults resolved.
 
 ## Test notes
 
@@ -207,13 +206,13 @@ already no.
 | W | Stroll | ✅ 2026-08-13 |
 | W + Shift, held | Run | ✅ 2026-08-13 |
 | W + Shift + double-tap Shift | Sprint | ✅ 2026-08-13 |
-| Space at a low wall, press Ctrl mid-vault | Vault | **not separately reported** (expected: **not** until it ends — 0.55 s) |
-| Space at a tall façade, press back mid-climb | Climb | **not separately reported** (expected: lets go into a drop) |
+| Space at a low wall, press Ctrl mid-vault | Vault | ✅ 2026-08-13 — *"nothing slows me down"*, which is the expected refusal |
+| Space at a tall façade, press back mid-climb | Climb | ✅ 2026-08-13 — *"the char goes back down"*, the release into a drop |
 
-**Judged 2026-08-13: "the slowing is instant".** The four locomotion rows are ticked on that.
-The last two are **not** ticked, because they are not "is it instant" questions — they ask
-whether a committed traversal *correctly refuses* to slow, and a general statement about slowing
-does not answer them. They belong with the vault run in §2, where the player is already at a wall.
+**Judged 2026-08-13.** The four locomotion rows on *"the slowing is instant"*; the last two
+separately, because they are not "is it instant" questions — they ask whether a committed
+traversal correctly **refuses** to slow. Both refused as specified: the vault ignored Ctrl for its
+0.55 s, and the climb let go into a drop.
 
 ### 2. Ten deliberately sloppy vaults all resolve
 
@@ -221,7 +220,13 @@ Approach a low wall ten times at bad angles, off-centre, late, and at different 
 Space each time. Count how many produce a vault rather than nothing.
 
 **Ten of ten, or the forgiveness windows need work.** The readout tallies it: `#` resolved,
-`.` produced nothing. Score: ___ / 10
+`.` produced nothing. Score: **10 / 10, 2026-08-13.**
+
+**It took three fixes to become runnable at all**, and none of them was the forgiveness windows —
+which is what the ten-of-ten says about them. The district's floor sat 0.1 m above its declared
+height, so the 0.9 m counters were 0.80 m above the pawn and the 0.85 m waist probe passed over
+every one of them (#59). Shift + Space sprinted (#59). And pressing traverse at a stall's far
+lip gap-jumped a metre instead of letting the player walk off (#60).
 
 ### 3. The FOV ladder is perceptible without being nauseating
 
@@ -247,7 +252,7 @@ motion-reduction must be discoverable *before* someone feels ill — GDD-02 §9.
 | Line | Verdict | Date | Note |
 |---|---|---|---|
 | Slowing is instant from every state | **pass, locomotion only** | 2026-08-13 | Idle, Stroll, Run, Sprint. The Vault and Climb rows were not separately reported |
-| Ten sloppy vaults resolve | **blocked, then unblocked** | 2026-08-13 | **It could not be run: the stalls were not vaultable.** The district's floor sat 0.1 m above its declared height, so a 0.9 m counter was 0.80 m above the pawn and the 0.85 m waist probe passed over it. Fixed; **needs running now** |
+| Ten sloppy vaults resolve | **pass — 10 / 10** | 2026-08-13 | Blocked until #59 and #60: the stalls were unvaultable and a stall lip gap-jumped. Ten of ten once they were, with no change to the forgiveness windows |
 | FOV ladder perceptible, not nauseating | **pass** | 2026-08-13 | Perceptible, no discomfort. Framing judged with it and accepted |
 | Input → animation ≤ 80 ms | **cannot be judged** | — | no animation exists |
 
