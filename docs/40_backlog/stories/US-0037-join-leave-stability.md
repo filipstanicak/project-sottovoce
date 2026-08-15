@@ -1,10 +1,10 @@
 ---
 id: US-0037
 title: Join and leave stability
-version: 1.0.0
+version: 1.1.0
 status: in-progress
 owner: Technical Director
-last_updated: 2026-08-14
+last_updated: 2026-08-15
 depends_on: [TDD-04-NET]
 ---
 
@@ -40,9 +40,16 @@ in every message that names anybody.
 - [x] A leaving peer's pawn is freed and its per-peer bookkeeping released — asserted as a
       **baseline comparison** across five counters, not as five separate absences, so a new owner
       of per-peer state has to be added to the baseline to be ignored.
-- [ ] **A timeout is handled identically to a clean disconnect.** Not asserted. Both arrive as
-      the same `Net.peer_left` signal and take the same path, which is the design — but proving
-      it needs a real ENet connection to time out, which is two processes. Left unticked.
+- [x] **A timeout is handled identically to a clean disconnect.** **Proven across real processes
+      on 2026-08-15, in US-0038's gate run.** A client was killed hard — no disconnect packet, the
+      peer simply stops answering, which is the timeout path — and about ten seconds later
+      (`TUN-NET-TIMEOUT` is 10 s) the server logged `Net: peer 843868542 left` followed by
+      `pawn freed for peer 843868542`: the same `Net.peer_left` → `_on_peer_left` sequence a clean
+      disconnect takes.
+
+      "Identically" is structural — there is **one signal and one handler** — and what was missing
+      was evidence that a timeout reaches it at all. A *graceful* quit could not be exercised in
+      the same run, because a headless process has no window to receive a close request.
 - [x] Repeated join and leave churn leaves no orphaned entities. **40 cycles of three peers —
       120 joins and 120 departures** — with everything back to baseline afterwards.
 - [x] Remaining clients see no stutter when a peer joins: the incumbents still agree with the

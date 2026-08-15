@@ -267,12 +267,12 @@ No suspicion, no networking, no NPCs. Single player, local, no rules.
 **Exit:** 3 clients + headless server, replicated movement, prediction and interpolation,
 join/leave stable.
 
-> **M2 IS THIRTEEN STORIES OF FOURTEEN, as of 2026-08-15.** US-0025 to US-0037
-> are all built. **The loop is closed and it
+> **M2 IS COMPLETE, as of 2026-08-15.** US-0025 to US-0038 are all built and the
+> gate is run and judged — see §4.1. **The loop is closed and it
 > is under CI**: three real clients and a real server, peers joining and leaving,
 > input up, snapshots back, prediction and reconciliation live at four latency
-> profiles. Open: **US-0038**, the gate — and read §4.1 first, because two of its
-> four lines cannot pass as written.
+> profiles. **Next is M3, the crowd, at US-0039**, which retires six criteria that
+> are unticked only for want of NPCs.
 >
 > **What M2 does not contain is a game.** No suspicion, no crowd, no abilities,
 > no kill, no stun, no score, no match end. §4.3 said "movement only" and that is
@@ -320,12 +320,37 @@ join/leave stable.
   leave cycles, not as five minutes** — 18 000 physics frames would outlast the 180 s the whole
   integration suite is allowed. What five minutes buys is repetition, and nothing here accumulates
   with time rather than with cycles. Recorded in US-0037 rather than rounded up.
-- **`test_upstream_bandwidth.gd` is expected to FAIL** until input coalescing lands — that is
-  planned, not a surprise (`RISK-BANDWIDTH`).
+- ~~**`test_upstream_bandwidth.gd` is expected to FAIL** until input coalescing lands.~~ **THE
+  TEST DID NOT EXIST**, which is worse than failing: "expected to FAIL" reads like something that
+  runs and goes red, and nothing ran. Written at the gate (US-0038), it reports **253 % of
+  budget, not the 112 % §7.3 predicted** — the payload is 56 bytes, not 9, because
+  `NET-C2S-INPUT` is sent as RPC arguments and Godot variant-encodes them. **And coalescing does
+  not fix it**: it halves only the packet overhead, leaving 211 %, while costing up to 16 ms of
+  input latency. Hand-serialising the command reaches 115 % on its own. `RISK-BANDWIDTH` is
+  re-scored up.
 
 **A gate whose lines were quietly reinterpreted is not a gate.** Two of these four were written
 before anyone knew the suite would run headless in CI, and both are answered here rather than at
 the moment somebody wants them green.
+
+> **JUDGED 2026-08-15, US-0038. M2 IS COMPLETE.** Six of nine story criteria met.
+>
+> The **churn** line is ticked at 120 cycles rather than five minutes, because that substitution
+> loses nothing — what five minutes buys is repetition, and nothing in the lifecycle path
+> accumulates with time rather than cycles.
+>
+> The **frame-rate** line is *not* ticked and its structural substitute is accepted explicitly:
+> good enough for M2's transport criterion, not good enough to claim the frame-rate case is
+> closed. The difference between these two judgements is the whole point of running a gate.
+>
+> Also not ticked: **downstream "measured"** — every record size in the 93.5 kbit/s projection is
+> measured, but the entity counts are §7.1's assumptions and there is no crowd until M3 — and the
+> **feel check at 180 ms RTT**, which is the owner's and needs a windowed client. The objective
+> half is measured: response is 33.3 ms at every latency profile.
+>
+> The gate also **retired US-0037's last open criterion**: a hard-killed client (the timeout path)
+> produced the same `peer left` → `pawn freed` sequence a clean disconnect takes, across four real
+> processes.
 
 ### 4.2 Why lag compensation records but does not resolve
 

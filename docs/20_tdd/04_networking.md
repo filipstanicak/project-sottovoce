@@ -402,15 +402,45 @@ seed-derive far ones) remains designed, documented and unbuilt.
 
 | Component | Calculation | Bytes/s |
 |---|---|---|
-| `NET-C2S-INPUT` (9 B × 60 Hz) | | 540 |
+| `NET-C2S-INPUT` (**56 B** × 60 Hz, measured) | | 3 360 |
 | Overhead (28 B × 60 packets/s) | | 1 680 |
 | Occasional reliable requests | | ~20 |
-| **Total** | | **2 240 B/s ≈ 18 kbit/s** |
+| **Total** | | **5 060 B/s ≈ 40.5 kbit/s** |
 
-**Slightly over the 16 kbit/s budget, and the cause is packet overhead, not payload** — 28 bytes
-of header carrying 9 bytes of input. Mitigation: **coalesce two input commands per packet**,
-halving the packet rate to 30 Hz while preserving the 60 Hz sample rate. Cost is up to 16 ms of
-added input latency for the first command in each pair, against an 80 ms budget.
+**253 % of the 16 kbit/s budget, and the cause is the PAYLOAD, not packet overhead.**
+
+> **THIS TABLE WAS RE-DERIVED AT THE M2 GATE (US-0038), AND ITS DIAGNOSIS WAS BACKWARDS.** It
+> read *"2 240 B/s ≈ 18 kbit/s — slightly over, and the cause is packet overhead, not payload:
+> 28 bytes of header carrying 9 bytes of input."*
+>
+> **`NET-C2S-INPUT` is not hand-serialised.** `Snapshot` packs its own bytes, which is why §7.1's
+> figures can be measured. Input goes out as **RPC arguments**, and Godot encodes those as
+> Variants — an `int` is 8 bytes, a `Vector2` 12, a `float` 8 or 12. The 9-byte figure is what
+> §6.1's hand-packed layout *would* cost, and that layout exists only in this document.
+>
+> Measured by `test_upstream_bandwidth.gd`:
+>
+> | | Payload | Total | Of budget |
+> |---|---|---|---|
+> | This table's old assumption | 9 B | 18.0 kbit/s | 112 % |
+> | **Measured** | **56 B** | **40.5 kbit/s** | **253 %** |
+> | Coalescing only | 56 B | 33.8 kbit/s | 211 % |
+> | Hand-packed only | 10 B | 18.4 kbit/s | 115 % |
+> | Hand-packed **and** coalesced | 10 B | 11.7 kbit/s | **73 %** |
+>
+> **The lesson is §7.1's, in the other direction.** There the per-record sizes were unreachable
+> from §4's own field list. Here the arithmetic is *correct for the format it assumes* — the
+> implementation simply never used that format, and nobody had measured which one was on the wire.
+> **A budget is a claim about an implementation; an unmeasured one describes the document.**
+
+**Mitigation — REORDERED AT THE GATE. Hand-serialise `InputCommand` first**, the way `Snapshot`
+already is: that alone takes upstream to 115 % and costs nothing a player can feel.
+
+**Coalescing is no longer the first move and must not be built first.** Two commands per packet
+halves the packet rate, so it halves only the 28-byte overhead — leaving the miss at 211 % while
+spending up to 16 ms of added input latency against an 80 ms budget. It was the right answer when
+the payload was believed to be 9 bytes and overhead dominated; against a 56-byte payload the
+overhead is the smaller half. Both together reach 73 %.
 
 > Recorded as open question 2. The naive implementation misses the budget; the fix is known,
 > cheap, and has a real cost that must be measured against `TUN-FEEL-INPUT-TO-ANIM-MAX`.

@@ -23,14 +23,14 @@ depends_on: [ADR-0001, ADR-0002, ADR-0007, BIBLE-PERF-BUDGET, BIBLE-DOD, GDD-08-
 |---|---|---|---|---|---|
 | `RISK-POPULATION` | Nobody can assemble a lobby | **High** | **High** | **Critical** | M6 |
 | `RISK-CROWD-PERF` | 90 NPCs do not fit 2.0 ms | **Medium** | **High** | **High** | M3 |
-| `RISK-NETCODE` | Prediction/reconciliation instability | **High** | Medium | **High** | M2 |
+| `RISK-NETCODE` | Prediction/reconciliation instability | Medium | Medium | Medium | M2 — **re-scored down at the gate** |
 | `RISK-AGENT-DRIFT` | Docs and code diverge | **High** | Medium | **High** | Continuous |
 | `RISK-NOT-FUN-SOLO` | The loop needs 6 humans to be fun | Medium | **High** | **High** | M4 |
 | `RISK-ANIM-SCOPE` | Clone parity doubles animation cost | Medium | Medium | Medium | M3 |
 | `RISK-BALANCE-UNFALSIFIABLE` | Too few playtests to settle the model | **High** | Low | Medium | M6 |
 | `RISK-ART-SCOPE` | Art exceeds a small team's capacity | Medium | Medium | Medium | M6 |
 | `RISK-ANONYMITY-LEAK` | A silent discriminator ships | Low | **High** | Medium | M3 |
-| `RISK-BANDWIDTH` | Upstream/downstream budgets missed | Medium | Low | Low | M2 |
+| `RISK-BANDWIDTH` | Upstream/downstream budgets missed | **High** | Low | Medium | M2 — **re-scored UP at the gate; upstream is 253 %** |
 | `RISK-IP` | A franchise term or asset reaches a public build | Low | **High** | Medium | Continuous |
 | `RISK-SCOPE-CREEP` | The fence erodes | Medium | Medium | Medium | Continuous |
 
@@ -105,9 +105,20 @@ coarsen LOD bands → reduce Mid-band fidelity → Far-band impostors → `Steer
 
 | | |
 |---|---|
-| **Probability** | High — this is simply hard |
+| **Probability** | **Medium** — was High. Re-scored at the M2 gate, 2026-08-15 |
 | **Impact** | Medium — recoverable, but expensive |
-| **Exposure** | High |
+| **Exposure** | **Medium** — was High |
+
+> **RE-SCORED AT THE M2 GATE (US-0038).** Prediction and reconciliation are built and converge at
+> all four latency profiles, and the measured reconciliation error between a client and the server
+> for the same command is **0.00000 m** — the two peers run identical code from identical inputs,
+> so *being late is not the same as being wrong*. Measured replays under ordinary play: **zero at
+> every profile.**
+>
+> Probability drops because the hard part is done and instrumented, not because the code is
+> assumed good. **Impact is unchanged**: the consumers that make positional error matter — kill,
+> stun, contest resolution — are all M4, so nothing has yet *depended* on this being right. The
+> risk stops falling here until something does.
 
 **Why.** Client prediction with server reconciliation is the highest-bug-density code in the
 project. The game is decided at 2.5 m inside 0.4 s windows, so small positional errors change
@@ -296,21 +307,42 @@ Plus `test_footstep_parity.gd` for the audio equivalent, and the no-per-instance
 
 | | |
 |---|---|
-| **Probability** | Medium |
+| **Probability** | **High** — was Medium. Re-scored at the M2 gate, 2026-08-15 |
 | **Impact** | Low |
-| **Exposure** | Low |
+| **Exposure** | **Medium** — was Low |
 
-**Status: partially realised.** Upstream measures ~18 kbit/s against a 16 kbit/s budget —
-**packet overhead, not payload**. Downstream fits at 87 % with 13 % headroom, which is thin.
+> **RE-SCORED AT THE M2 GATE (US-0038), AND IT IS THE ONE RISK THAT GOT WORSE.** Upstream is
+> **253 % of budget, not the 112 % §7.3 predicted** — measured, not projected, by
+> `test_upstream_bandwidth.gd`, which did not exist until the gate went looking for it.
+>
+> **`NET-C2S-INPUT` is not hand-serialised.** It goes out as RPC arguments, which Godot encodes as
+> Variants: **56 bytes, not 9**. §7.3's arithmetic was correct for the format it assumed; nothing
+> ever used that format.
+>
+> Probability moves to High because the miss is realised and larger than believed. **Exposure
+> stays Medium rather than High**: the fix is known, bounded and cheap — hand-serialise the
+> command the way `Snapshot` already is — and it costs no gameplay latency.
 
-**Trigger.** `test_upstream_bandwidth.gd` (currently **failing by design**);
-`test_crowd_bandwidth.gd`; real playtest 95th percentile above 90 kbit/s down.
+**Status: realised, and worse than documented.** Upstream measures **40.5 kbit/s against a
+16 kbit/s budget** — **payload, not packet overhead**, which reverses §7.3's diagnosis. Downstream
+projects at **93.5 kbit/s, 97 %** of budget with 3 % headroom, itself re-derived in US-0029 from
+an original claim of 87 %.
 
-**Mitigations.** Four downstream mechanisms — culling, quantisation to 7 B/NPC, delta encoding,
-rate LOD. The ADR-0007 fallback (replicate near, seed-derive far) is designed but unbuilt.
+**Trigger.** `test_upstream_bandwidth.gd` (**written at the M2 gate; reports `pending` with the
+number**); `test_crowd_bandwidth.gd` (not written — needs the crowd, M3); real playtest 95th
+percentile above 90 kbit/s down.
 
-**Response.** Upstream: coalesce two input commands per packet, measuring the ≤ 16 ms latency
-cost against the 80 ms feel budget first. Downstream: the ADR-0007 fallback.
+**Mitigations.** Four downstream mechanisms — culling, quantisation to **8 B/NPC**, delta encoding
+(built, US-0031), rate LOD (NPC-only, M3). The ADR-0007 fallback (replicate near, seed-derive far)
+is designed but unbuilt.
+
+**Response — REORDERED AT THE GATE.** Upstream: **hand-serialise `InputCommand` first.** That
+alone takes upstream from 253 % to 115 %, and costs nothing a player can feel. **Coalescing is no
+longer the first move and must not be built first**: it halves the packet rate, so it only halves
+the 28-byte overhead, leaving the miss at 211 % while spending up to 16 ms of input latency
+against an 80 ms feel budget. It was the right answer when the payload was believed to be 9 bytes
+and overhead dominated. Hand-packing **and** coalescing together reach 73 %. Downstream: the
+ADR-0007 fallback.
 
 ---
 
