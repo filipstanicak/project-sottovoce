@@ -220,11 +220,19 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 *Updated 2026-08-15. Keep this section current — it is the first thing a fresh
 session reads, and a stale one is worse than none.*
 
-**PICK UP HERE. M2 IS COMPLETE AND M3 HAS STARTED.** US-0039 is built: ninety
-NPC bodies are allocated once and their identities derive from the match seed.
-**Next is US-0040** — placing them. Nothing steers, animates or replicates the
-crowd yet, so US-0030's four culling criteria and US-0031's two still wait for
-NPCs *on the wire*, which is US-0040 at the earliest.
+**PICK UP HERE. M2 IS COMPLETE AND M3 HAS STARTED.** US-0039 built `NpcPool` and
+`CrowdRoster`: ninety NPC bodies allocated once, identities derived from the
+match seed.
+
+**BUT THE POOL IS NOT WIRED INTO `server_root.tscn`.** Nothing calls
+`preallocate()` in a running server, so the crowd exists in tests and not in the
+game. **US-0040's first job is that wiring**, before the spawn distribution it is
+actually about. US-0039's first criterion was ticked in its own PR on the
+strength of the tests and **unticked again at the next checkpoint** — the story
+says so.
+
+Nothing steers, animates or replicates the crowd, so US-0030's four culling
+criteria and US-0031's two still wait for NPCs *on the wire*.
 
 **US-0095 CLOSED HALF THE GATE'S UPSTREAM FINDING.** `NET-C2S-INPUT` was going
 out as six loose RPC arguments — Godot variant-encodes those at **56 bytes**
@@ -741,7 +749,7 @@ already is** — that alone reaches 115 %, and costs nothing a player can feel.
 **M2 IS COMPLETE.** US-0025 to US-0038 are all built. US-0030's culling criteria
 and US-0031's two stay unticked — there is no crowd on the wire until US-0040.
 
-**M3 HAS STARTED. US-0039 IS BUILT: NINETY BODIES, ALLOCATED ONCE.** Real
+**M3 HAS STARTED. US-0039 IS BUILT — AND ITS POOL IS NOT PLUGGED IN YET.** Real
 `CharacterBody3D` nodes from `npc_server.tscn`, not array slots — **the cost this
 story moves off the hot path is the body**, and a pool that sized an array would
 satisfy the criterion's words while missing its point entirely. Instantiating one
@@ -770,6 +778,11 @@ furnace" and being wrong**, which reads as a lying teammate rather than a bug.
   like the last.
 - **The NPC capsule matches the pawn's on purpose.** A clone findable by walking
   into it is exactly the silent discriminator `RISK-ANONYMITY-LEAK` names.
+- **`NpcPool` IS IN NO SCENE.** `server_root.tscn` does not hold one and nothing
+  calls `preallocate()`, so ninety bodies are allocated in tests and nowhere
+  else. The story's first criterion is unticked for exactly this and **US-0040
+  must wire it before anything else** — a spawn distribution over a pool that is
+  never created would be a system with no subjects.
 
 **WHAT IS RUNNABLE AND WHAT IS NOT.** Three clients and a headless server hold a
 match: peers join, the server simulates their pawns, snapshots come back, each
@@ -973,7 +986,7 @@ US-0024 measures it against clips that do not exist.
 | Camera | Real spring arm: 2.6 m, **pawn centred** (US-0092 — the 0.45 m offset never changed the composition, because the rig aims at the pawn's own axis; `INPUT-SHOULDER` retired with it), occlusion that pulls **in** and never sideways, `WORLD`-masked so a crowd cannot push it. The FOV ladder is bound to the **state**, never to `ctx.velocity`: the rung is a consequence of the decision, not of the physics that follows it. Crowd-scan narrows to 48° and grants nothing. **Positive pitch LOWERS the arm** — the rig looks *at* the pivot, so a raised arm looks down; it shipped inverted from US-0021 until somebody played it |
 | Input | 20 `InputMap` actions from 14 live `INPUT-` IDs — `INPUT-SHOULDER` is retired via `InputActions.DEPRECATED`, still in the corpus and bound to nothing, KBM + pad. Chain GDD-02 → `Ids` → `InputActions` → `project.godot`, guarded on every hop, both directions. **Sampled once per physics frame by `LocalPawnDriver`, the only caller** — see trap 12. The mouse is **captured** on boot; `INPUT-MENU` releases, a click takes it back. **Only a mapped gamepad holds the joypad bindings** — `PadSelection`, applied through the one `InputMap` writer, because a set of sim pedals was steering |
 
-**Twenty-four criteria are deliberately unticked**, each blocked by something real. A
+**Twenty-five criteria are deliberately unticked**, each blocked by something real. A
 prose count of these has now drifted three times, so they are a table — and the
 story files are the source of truth, not this. Regenerate the count rather than
 editing it:
@@ -994,6 +1007,7 @@ grep -c '^- \[ \]' docs/40_backlog/stories/*.md
 | US-0030 | three culling criteria, plus `render_state` per observer | there is no crowd to cull until M3, and no `SYS-DETECTION` to compute a state until M3 |
 | US-0036 | "every netcode test runs at all four profiles" | true only of the harness's own agreement test; the rest are pure and have no wire to give a latency to |
 | US-0037 | match end below minimum players | `SYS-MATCH`'s, in M4. **The timeout criterion was ticked at the M2 gate** — a hard-killed client took the same `peer left` → `pawn freed` path across four real processes |
+| US-0039 | "all 90 allocated before the first PLAYING tick" | **the pool is in no scene.** `NpcPool` allocates ninety real bodies and is asserted doing it, but `server_root.tscn` does not instantiate one, so nothing allocates in a running server. US-0040's first job |
 | US-0038 | frame-rate independence; downstream "measured"; the 180 ms feel check | impossible headless (the structural substitute is accepted, not ticked); the entity counts in the projection need M3's crowd; the feel check is the owner's and needs a windowed client |
 | US-0031 | rate LOD beyond 45 m; downstream measured with 90 NPCs | there is no crowd until M3 — and **rate LOD is NPC-only by design**, since a *player* at 46 m at 10 Hz would be visibly coarse. The projection is 93.5 kbit/s, 97 %, but a projection is not a measurement |
 | US-0035 | NPC transforms recorded; memory "around 23 KB" | there is no crowd until M3. Memory measured at **28.1 KB** — 20 B per record, not §8.3's 16, because the entity id is stored rather than implied by slot. TDD-04 §8.3 amended |

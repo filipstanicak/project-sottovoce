@@ -370,7 +370,7 @@ No gameplay rules replicated — there are none yet. No NPCs. Movement only.
 
 | Delivers | |
 |---|---|
-| `NpcPool` — 90 pre-allocated, never instantiated mid-match | **Done, US-0039.** Ninety real `CharacterBody3D` nodes, not array slots — the cost this moves off the hot path is the body. `activate()` allocates nothing and **refuses to grow** rather than spiking |
+| `NpcPool` — 90 pre-allocated, never instantiated mid-match | **Built, US-0039 — and NOT WIRED INTO THE SERVER.** Ninety real `CharacterBody3D` nodes, not array slots, because the cost this moves off the hot path is the body; `activate()` allocates nothing and **refuses to grow** rather than spiking. But `server_root.tscn` holds no `NpcPool` and nothing calls `preallocate()`, so the crowd is allocated in tests and nowhere else. **US-0040 wires it first.** US-0039's matching criterion is unticked |
 | Seeded persona assignment; identical roster on every peer | **Done, US-0039.** `CrowdRoster` is pure and in Core, so parity is asked directly rather than by standing three peers up. **The clone quota derives from existing tunables** and reproduces TUNABLES' 10/11/12 exactly — TUNABLES called those numbers "chosen" and BALANCE_MODEL called them "derived", which was circular |
 | `NpcBrain` — the five-state HFSM with Startle as a global interrupt | |
 | Navmesh, navigation agents, steering | |
