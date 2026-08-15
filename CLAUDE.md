@@ -217,7 +217,7 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 
 ## Where the work is right now
 
-*Updated 2026-08-15. Keep this section current — it is the first thing a fresh
+*Updated 2026-08-16. Keep this section current — it is the first thing a fresh
 session reads, and a stale one is worse than none.*
 
 **PICK UP HERE. M3 IS FOUR STORIES IN AND THE CROWD WALKS.** US-0039 built
@@ -229,9 +229,18 @@ between idle anchors, stand at them for 8–25 s, and walk round each other.
 **US-0041 IS DONE BAR ONE LINE, AND THAT ONE IS BLOCKED**, not unstarted:
 far-band path validity needs the Near/Mid/Far bands, which are US-0045's.
 
-**Pick up at US-0043** (the director's circuits and formation slots), which is
-what makes `WALKING_GROUP` reachable at all and is the last piece of crowd
-*behaviour* before US-0044's startle and gawk.
+**PICK UP AT US-0043** (the director's circuits and formation slots): four
+circuits with 55–75 s periods from `MapData`, groups of four in loose formation
+at 1.3 m spacing with a **joinable slot**, and the 2 s rebalance timer. It is
+what makes `WALKING_GROUP` reachable at all — today it is a state nothing can
+enter — and the joinable slot is the first crowd mechanic a *player* can use.
+
+**WHAT THE CROWD CANNOT DO YET.** Only **Stroll** and **Idle** are reachable.
+Nothing assigns a formation slot (US-0043); nothing grants a gawk token or sets
+`startle_flag` (US-0044); there is **no LOD at all** (US-0045), so 78 brains step
+every tick against TDD-08 §4.1's ~34; and **no NPC is on the wire**, so every
+client still sees an empty district. The crowd is real on the server and
+invisible to everyone playing.
 
 **US-0042 IS DONE: ONE GRID, FOUR CONSUMERS, 0.0561 MS.** A counting sort over
 buffers sized once, so a rebuild allocates nothing — measured at **37 % of
@@ -294,6 +303,17 @@ because filtering them changes the per-zone density a unit test asserts.
 
 Nothing animates or replicates the crowd, so US-0030's four culling criteria and
 US-0031's two still wait for NPCs *on the wire*.
+
+**TDD-08's OWN FILE TABLE AND TEST TABLE WERE AUDITED AT THIS CHECKPOINT, AND
+BOTH WERE PARTLY FICTION.** §10 named nineteen tests of which **fourteen did not
+exist as files** — some covered under another name, some genuinely future work,
+and the table said nothing about which. §9 listed
+`scripts/systems/crowd/npc_states/*.gd`, "5 state handlers", for a machine
+ADR-0003 deliberately built as a flat table; the directory existed empty since M0
+and was never tracked by git, so it was not even in a clean checkout. Both tables
+now carry a state column naming the file that actually asserts each row, or the
+story that will write it. **Trap 14's fourth instance, and the first one found by
+looking for it rather than by tripping over it.**
 
 **US-0095 CLOSED HALF THE GATE'S UPSTREAM FINDING.** `NET-C2S-INPUT` was going
 out as six loose RPC arguments — Godot variant-encodes those at **56 bytes**

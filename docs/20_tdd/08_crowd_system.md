@@ -390,44 +390,57 @@ func set_lod_band(band: int) -> void
 
 ## 9. Files this chapter creates
 
-| Path | Purpose |
-|---|---|
-| `scenes/npc/npc_server.tscn` | Brain + agent + capsule |
-| `scenes/npc/npc_view.tscn` | Mesh + `AnimationTree`, inert |
-| `scripts/systems/crowd/crowd_director.gd` | `SYS-CROWD` |
-| `scripts/systems/crowd/npc_pool.gd` | Pre-allocation, seeded activation |
-| `scripts/systems/crowd/npc_brain.gd` | The five-state HFSM |
-| `scripts/systems/crowd/npc_states/*.gd` | 5 state handlers |
-| `scripts/systems/crowd/steering.gd` | Avoidance + slot seeking; the §11 caching exception |
-| `scripts/systems/crowd/spatial_hash.gd` | Shared grid |
-| `scripts/systems/crowd/corpse.gd` | `SYS-CORPSE` |
-| `scripts/presentation/npc_view.gd` | Client-side view |
+**The third column is what is actually on disk**, checked at the 2026-08-16 checkpoint. A file
+table that describes an intention reads exactly like one that describes a repository, and this
+corpus has already shipped three claims of the second kind that were the first.
+
+| Path | Purpose | State |
+|---|---|---|
+| `scenes/npc/npc_server.tscn` | Capsule + agent | **Exists.** No brain node — `NpcBrain` is a `RefCounted` the pool owns, not a child |
+| `scenes/npc/npc_view.tscn` | Mesh + `AnimationTree`, inert | Not written. US-0046 |
+| `scripts/systems/crowd/crowd_director.gd` | `SYS-CROWD` | **Exists**, US-0041. Circuits, slots and rebalance are US-0043's |
+| `scripts/systems/crowd/npc_pool.gd` | Pre-allocation, seeded activation | **Exists**, US-0039 |
+| `scripts/systems/crowd/npc_brain.gd` | The five-state HFSM | **Exists**, US-0040 |
+| ~~`scripts/systems/crowd/npc_states/*.gd`~~ | ~~5 state handlers~~ | **Will not be written.** ADR-0003 chose a flat table over per-state objects: five handler files for five behaviours is five virtual calls per agent per tick, and §3's whole argument is that the crowd needs to be legible rather than clever. The directory was created empty in M0 and is removed |
+| `scripts/systems/crowd/steering.gd` | Avoidance + slot seeking; the §11 caching exception | **Exists**, US-0041 |
+| `scripts/systems/crowd/repath_queue.gd` | The §12 Q2 stagger, capped at `TUN-PERF-CROWD-REPATH-PER-TICK` | **Exists**, US-0041. Not in the original table |
+| `scripts/systems/crowd/crowd_placement.gd` | Where the ninety start | **Exists**, US-0041. Not in the original table, and there is no spawn-distribution story anywhere in M3 |
+| `scripts/systems/crowd/crowd_context.gd` | What one brain can see | **Exists**, US-0040. Not in the original table |
+| `scripts/systems/crowd/spatial_hash.gd` | Shared grid | **Exists**, US-0042 |
+| `scripts/systems/crowd/corpse.gd` | `SYS-CORPSE` | Not written. US-0044 |
+| `scripts/presentation/npc_view.gd` | Client-side view | Not written. US-0045/0046 |
+| `scripts/core/crowd_roster.gd` | The derived roster | **Exists**, US-0039. In Core, not here, because both peers derive it |
 
 ---
 
 ## 10. Test hooks
 
-| Test | Asserts |
-|---|---|
-| `test_crowd_perf.gd` | 90 NPCs headless within `TUN-PERF-CROWD-BUDGET`. **The chapter's gate** |
-| `test_npc_no_alloc.gd` | `NpcBrain.step()` allocates nothing after warm-up |
-| `test_npc_transition_table.gd` | Every (state, event) pair is handled or explicitly listed as ignored — the classic silent-FSM bug |
-| `test_startle_global_interrupt.gd` | Startle is entered from all four other states |
-| `test_startle_propagation.gd` | No cascade beyond 2 hops in a 90-NPC dense cluster |
-| `test_startle_directional.gd` | A wave from an off-centre origin is measurably lopsided along the flee direction |
-| `test_gawk_pocket_preservation.gd` | A corpse beside a 6-anchor pocket never drops it below `TUN-BLEND-POCKET-MIN-NPC` |
-| `test_gawk_corpse_phases.gd` | Cluster disperses at 6 s; corpse persists to 20 s |
-| `test_clone_roster_parity.gd` | Three peers derive identical rosters from one seed |
-| `test_clone_animation_parity.gd` | Every `anonymous_clip_names` entry exists in the clone library, all four personas |
-| `test_clone_local_min.gd` | Over a 3-minute clustered match, every player always had ≥ 2 same-persona clones within 25 m |
-| `test_anim_lod_silhouette.gd` | Silhouettes match across LOD band boundaries within a pixel threshold |
-| `test_lod_changes_rate_not_logic.gd` | **Source scan:** no distance check inside `NpcBrain.step()` |
-| `test_npc_speed_matches_blendwalk.gd` | `TUN-CROWD-NPC-SPEED-STROLL == TUN-SPEED-BLENDWALK` (invariant §17.1) |
-| `test_flee_slower_than_sprint.gd` | `TUN-CROWD-NPC-SPEED-FLEE < TUN-SPEED-SPRINT` (invariant §17.14) — a sprinting player cannot hide inside a startle wave |
-| `test_navmesh_coverage.gd` | Every street-level playable point is on the navmesh; no roof or balcony is |
-| `test_npcview_is_inert.gd` | `NpcView` has no agent, no brain, no `step()` |
-| `test_no_midmatch_instantiate.gd` | No NPC is instantiated or freed between match start and end |
-| `test_spatial_hash_correctness.gd` | Hash queries match brute-force results for 1000 random queries |
+**Fourteen of these nineteen rows named a file that does not exist**, audited at the 2026-08-16
+checkpoint. Some are covered under another name, some are genuinely future work, and the
+difference matters: trap 14 in `CLAUDE.md` exists because *the claim is worse than the absence* —
+a table saying "X asserts Y" is what stops anybody checking by hand.
+
+| Named test | Asserts | Where it actually lives |
+|---|---|---|
+| `test_crowd_perf.gd` | 90 NPCs headless within `TUN-PERF-CROWD-BUDGET`. **The chapter's gate** | Not written. **US-0048**, the M3 gate |
+| `test_npc_no_alloc.gd` | `NpcBrain.step()` allocates nothing after warm-up | `test/arch/test_npc_brain_no_alloc.gd`, and `test_spatial_hash_no_alloc.gd` beside it |
+| `test_npc_transition_table.gd` | Every (state, event) pair is handled or explicitly `IGNORED` — the classic silent-FSM bug | `test/unit/systems/crowd/test_npc_brain.gd` |
+| `test_startle_global_interrupt.gd` | Startle is entered from all four other states | `test_npc_brain.gd`. The *wave* is US-0044's |
+| `test_startle_propagation.gd` | No cascade beyond 2 hops in a 90-NPC dense cluster | Not written. **US-0044** — nothing sets `startle_flag` yet |
+| `test_startle_directional.gd` | A wave from an off-centre origin is measurably lopsided | Not written. **US-0044**. The flee *direction* is asserted in `test_crowd_moves.gd` |
+| `test_gawk_pocket_preservation.gd` | A corpse beside a 6-anchor pocket never drops it below `TUN-BLEND-POCKET-MIN-NPC` | Not written. **US-0044** |
+| `test_gawk_corpse_phases.gd` | Cluster disperses at 6 s; corpse persists to 20 s | Not written. **US-0044** |
+| `test_clone_roster_parity.gd` | Three peers derive identical rosters from one seed | `test/unit/core/test_crowd_roster.gd` — the roster is pure, so parity is asked directly rather than across peers |
+| `test_clone_animation_parity.gd` | Every `anonymous_clip_names` entry exists in the clone library | Not written. **US-0046**, and there are no clips |
+| `test_clone_local_min.gd` | Over a 3-minute clustered match, every player always had ≥ 2 same-persona clones within 25 m | Not written. **US-0047**. `SpatialHash.count_persona()` is the query it needs and exists |
+| `test_anim_lod_silhouette.gd` | Silhouettes match across LOD band boundaries | Not written. **US-0045**, and it needs a rendered frame |
+| `test_lod_changes_rate_not_logic.gd` | **Source scan:** no distance check inside `NpcBrain.step()` | Not written. **US-0045**. There is no LOD at all yet |
+| `test_npc_speed_matches_blendwalk.gd` | `TUN-CROWD-NPC-SPEED-STROLL == TUN-SPEED-BLENDWALK` | Invariant 1 in `test/unit/core/tuning/test_tuning_ranges.gd`. **And measured on a walking crowd** by `test_crowd_moves.gd`, which is the half a tuning check cannot see |
+| `test_flee_slower_than_sprint.gd` | `TUN-CROWD-NPC-SPEED-FLEE < TUN-SPEED-SPRINT` | Invariant 14, same file |
+| `test_navmesh_coverage.gd` | Every street-level playable point is on the navmesh; no roof or balcony is | `test/integration/test_navmesh_coverage.gd`, **and** a same-named unit test of `MapData`'s declarations. Both exist and they check different things |
+| `test_npcview_is_inert.gd` | `NpcView` has no agent, no brain, no `step()` | Not written. **US-0045/0046** |
+| `test_no_midmatch_instantiate.gd` | No NPC is instantiated or freed between match start and end | Partly: `test/integration/test_npc_pool.gd` asserts `body_count()` never falls and that `activate()` refuses to grow |
+| `test_spatial_hash_correctness.gd` | Hash queries match brute-force results for 1000 random queries | `test/unit/systems/crowd/test_spatial_hash.gd` |
 
 ---
 

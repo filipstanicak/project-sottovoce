@@ -94,7 +94,7 @@ depends_on: [TDD-01-ARCHITECTURE, ADR-0005, ADR-0009]
 │   ├── systems/                   LAYER 2. SERVER ONLY. Each extends GameSystem.
 │   │   ├── contract_system.gd spawn_system.gd suspicion_system.gd detection_system.gd
 │   │   ├── ability_system.gd kill_system.gd stun_system.gd score_system.gd
-│   │   └── crowd/                 crowd_director.gd npc_brain.gd npc_states/ steering.gd
+│   │   └── crowd/                 crowd_director.gd npc_brain.gd steering.gd spatial_hash.gd
 │   │
 │   ├── net/                       LAYER 3. Both peers, different halves.
 │   │   ├── net.gd                 (autoload) peer lifecycle, role, RTT
