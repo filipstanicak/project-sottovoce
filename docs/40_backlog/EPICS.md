@@ -204,6 +204,10 @@ their identities derive from the seed, asserted both purely and through two live
 walks yet** — placement is US-0040, the brain US-0041, navigation US-0042 — so the frame budget has
 not been measured and cannot be until something moves.
 
+**And the pool is in no scene.** `server_root.tscn` does not instantiate an `NpcPool`, so the
+allocation happens in tests and nowhere else. US-0040 wires it before anything else: a spawn
+distribution over a pool that is never created would be a system with no subjects.
+
 ---
 
 ## 12. `EPIC-CROWD-BEHAVIOUR` — M3

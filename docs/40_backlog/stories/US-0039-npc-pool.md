@@ -34,11 +34,23 @@ three peers up — which is also the only way to ask it across many seeds at onc
 
 ## Acceptance criteria
 
-- [x] **All 90 allocated before the first PLAYING tick, sized to the maximum regardless of player
-      count.** Ninety real `CharacterBody3D` nodes from `npc_server.tscn`, not array slots — the
+> **Five of six. The first is unticked because the pool is not wired into the server scene** — see
+> below. Every other criterion is a property of `NpcPool` or `CrowdRoster` and is asserted against
+> live objects.
+
+- [ ] **All 90 allocated before the first PLAYING tick, sized to the maximum regardless of player
+      count.** **Half true, and the half that is missing is the wiring.** `NpcPool` allocates
+      ninety real `CharacterBody3D` nodes from `npc_server.tscn` — not array slots, because the
       cost this story moves off the hot path is the **body**, and a pool that sized an array would
       satisfy the criterion's words while missing its point. `body_count()` reads the node list so
-      a test can tell the difference.
+      a test can tell the difference, and "sized to the maximum regardless of player count" is
+      asserted directly.
+
+      **But nothing instantiates the pool in `server_root.tscn`**, so no allocation happens before
+      any tick of a real match. It is true of the class and not yet of the server. Wiring it is
+      US-0040's first job, alongside the spawn distribution that gives the bodies somewhere to be.
+      Ticked in this story's own PR on the strength of the tests; **caught and reverted at the
+      next checkpoint**, which is what a checkpoint is for.
 - [x] **No NPC is instantiated or freed between match start and end.** Asserted by **counting
       nodes** across three `activate()` calls at different crowd sizes, rather than by reading the
       source: the failure is a body appearing at runtime however it got there. `activate()` also
