@@ -1083,8 +1083,9 @@ US-0024 measures it against clips that do not exist.
 | Camera | Real spring arm: 2.6 m, **pawn centred** (US-0092 — the 0.45 m offset never changed the composition, because the rig aims at the pawn's own axis; `INPUT-SHOULDER` retired with it), occlusion that pulls **in** and never sideways, `WORLD`-masked so a crowd cannot push it. The FOV ladder is bound to the **state**, never to `ctx.velocity`: the rung is a consequence of the decision, not of the physics that follows it. Crowd-scan narrows to 48° and grants nothing. **Positive pitch LOWERS the arm** — the rig looks *at* the pivot, so a raised arm looks down; it shipped inverted from US-0021 until somebody played it |
 | Input | 20 `InputMap` actions from 14 live `INPUT-` IDs — `INPUT-SHOULDER` is retired via `InputActions.DEPRECATED`, still in the corpus and bound to nothing, KBM + pad. Chain GDD-02 → `Ids` → `InputActions` → `project.godot`, guarded on every hop, both directions. **Sampled once per physics frame by `LocalPawnDriver`, the only caller** — see trap 12. The mouse is **captured** on boot; `INPUT-MENU` releases, a click takes it back. **Only a mapped gamepad holds the joypad bindings** — `PadSelection`, applied through the one `InputMap` writer, because a set of sim pedals was steering |
 
-**Twenty-two criteria are deliberately unticked**, each blocked by something real. A
-prose count of these has now drifted three times, so they are a table — and the
+**Twenty-five criteria are deliberately unticked**, each blocked by something real — counted
+from the `done` and `in-progress` stories on 2026-08-15, having read twenty-two
+for several PRs. A prose count of these has now drifted four times, so they are a table — and the
 story files are the source of truth, not this. Regenerate the count rather than
 editing it:
 
