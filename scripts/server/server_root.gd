@@ -78,10 +78,47 @@ func _seed_the_match() -> void:
 func _stand_the_crowd_up() -> void:
 	crowd.preallocate()
 	var players: int = Tuning.match_rules.max_players
-	crowd.activate(
-		Tuning.crowd.count_default_6p, director.ctx.match_seed, CrowdRoster.PLAYABLE, players
-	)
+	var count: int = Tuning.crowd.count_default_6p
+	crowd.activate(count, director.ctx.match_seed, CrowdRoster.PLAYABLE, players)
 	director.ctx.crowd = crowd
+	_place_the_crowd.call_deferred(count)
+
+
+## **ON THE NAVMESH, OR THEY CANNOT LEAVE.** The world's navigation map is the one
+## `NavigationRegion3D` in the map scene publishes; an NPC placed off it is an NPC
+## its agent can never path away from, which reads as a broken NPC rather than a
+## broken placement.
+##
+## Placed from the map's idle anchors rather than scattered uniformly: a uniform
+## spread over 120 × 120 m would put the crowd in the middle of streets and
+## nobody anywhere a person would actually stand.
+func _place_the_crowd(count: int) -> void:
+	var map: RID = crowd.get_world_3d().navigation_map
+
+	# **WAIT FOR THE MAP, OR EVERY NPC LANDS AT THE ORIGIN.** A query before the
+	# navigation server's first synchronisation is an error, and the fallback
+	# answer is `Vector3.ZERO` — so the whole crowd would stack in one corner of
+	# the district and it would read as a placement bug rather than a timing one.
+	# Two iterations, measured: the first registers the region, the second
+	# rasterises it. Same wait as `test_navmesh_coverage.gd`, for the same reason.
+	var started: int = NavigationServer3D.map_get_iteration_id(map)
+	for _i: int in 120:
+		await get_tree().physics_frame
+		if NavigationServer3D.map_get_iteration_id(map) >= started + 2:
+			break
+
+	var spots := CrowdPlacement.positions(
+		count, director.ctx.match_seed, director.ctx.map.idle_anchors, map
+	)
+	for index: int in spots.size():
+		crowd.set_position(index, spots[index])
+	Log.info(
+		(
+			"crowd placed: %d NPCs across %d anchors"
+			% [spots.size(), director.ctx.map.idle_anchors.size()]
+		),
+		&"crowd"
+	)
 
 
 ## **EVERYTHING THAT ANSWERS "WHERE WAS THE WORLD AT TICK N".** Both consumers

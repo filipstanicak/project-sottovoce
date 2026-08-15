@@ -61,6 +61,13 @@ by sub-centimetre position, which reads to a player as the game being broken.
 > `MAT-VOID` appears nowhere, asserted.
 >
 > Navmesh exclusions (roofs, balconies, canal) are declared in `MapData` and
-> asserted. The runtime *bake* is deferred: it is a scene operation, and
-> `NavigationRegion3D.bake_navigation_mesh()` needs a live tree, which no test
-> currently starts. Recorded as owed rather than claimed.
+> asserted. The *bake* was deferred: it needs a live tree, which no test started.
+> Recorded as owed rather than claimed — **while the criterion above stayed
+> ticked**, which is a contradiction inside one story and exactly the shape
+> US-0039's first criterion took later.
+>
+> **Settled in US-0041, 2026-08-16.** The mesh is baked by
+> `tools/generate_map_vetraio.gd` and committed, which is what TDD-08 §7 meant by
+> "rebake: never at runtime" — it is a build-time operation, not a startup one.
+> `test_navmesh_coverage.gd` samples 2011 street points and asserts the
+> exclusions. The criterion is now true rather than merely ticked.

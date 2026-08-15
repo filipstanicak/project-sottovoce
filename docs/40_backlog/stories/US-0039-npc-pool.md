@@ -122,8 +122,8 @@ Each omission is a story, not an oversight:
 
 | Missing | Whose |
 |---|---|
-| `NavigationAgent3D` | US-0042, with the navmesh and steering |
-| `NpcBrain` (the five-state HFSM) | US-0041 |
+| `NavigationAgent3D` | **US-0041**, with the navmesh and steering — the navmesh half landed there; the agent comes with the steering half |
+| `NpcBrain` (the five-state HFSM) | **US-0040** |
 | Any mesh at all | US-0046 — and it must be the **persona's own** mesh, because a clone with an "NPC variant" material is a discriminator (GDD-03 §6.3 rule 1) |
 
 **The capsule matches the pawn's on purpose.** A clone whose collider differed from a player's
@@ -152,7 +152,7 @@ if two players saw different clone distributions, "I saw a Lucerna by the furnac
 
 **Nothing places, steers or animates these NPCs yet.** They are allocated, identified and parked
 at the origin. **There is no spawn-distribution story in M3 at all** — US-0040 is the brain,
-US-0041 the navmesh and steering, US-0042 the spatial hash. Placement arrives with the navmesh,
+US-0041 the navmesh and steering, US-0042 the spatial hash. **Placement landed in US-0041**,
 because a position that is not on the navmesh is a position an agent cannot leave. The crowd does
 not appear in a snapshot yet either, so US-0030's culling criteria and US-0031's rate-LOD
 criterion stay unticked — they need NPCs *on the wire*, which is US-0040 at the earliest.

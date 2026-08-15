@@ -225,11 +225,15 @@ US-0040 built `NpcBrain` **and wired the pool into `server_root.tscn`**, which
 was US-0039's last open criterion. A real server now logs
 `NpcPool: 90 bodies allocated`.
 
-**NEXT IS US-0041 — the navmesh, agents and steering.** It matters more than its
-title suggests: **nothing ticks a brain yet**, and **placement lives there too**.
-There is no spawn-distribution story anywhere in M3, because a position that is
-not on the navmesh is a position an agent cannot leave — so the NPCs are
-allocated, identified and all standing at the origin.
+**US-0041 IS HALF DONE: THE NAVMESH EXISTS AND THE CROWD IS PLACED.** A server
+logs `crowd placed: 78 NPCs across 62 anchors`. **The steering half is not
+started** — no `NavigationAgent3D` on the NPC scene, and still nothing ticks a
+brain — so US-0041's last three criteria are unticked and its own story says
+which are merely unstarted and which are blocked (far-band path validity needs
+US-0045's LOD bands).
+
+**Pick up at US-0041's steering half**, or take US-0042 (the spatial hash) first
+— it is pure and now has positions to index.
 
 Nothing steers, animates or replicates the crowd, so US-0030's four culling
 criteria and US-0031's two still wait for NPCs *on the wire*.
@@ -783,6 +787,37 @@ furnace" and being wrong**, which reads as a lying teammate rather than a bug.
   tests and nowhere else — while the criterion saying so was ticked. **A criterion
   can be true of a class and false of the game.**
 
+**US-0041 IS HALF BUILT, AND THE NAVMESH FINALLY EXISTS.** US-0012 ticked
+"navmesh baked" while its own note said the bake was **"recorded as owed rather
+than claimed"** — a ticked criterion and a note denying it, in one story. TDD-08
+§7's "rebake: never at runtime" is what resolves it: the bake is a **build-time**
+operation, so `tools/generate_map_vetraio.gd` bakes it and the mesh is committed.
+195 polygons; 2011 street points sampled on a 2 m grid, **17 uncovered**.
+
+- **THE AGENT DIMENSIONS WERE BEING SILENTLY CHANGED.** Recast quantises
+  `agent_radius` and `agent_height` to whole voxels and **ceils** them, so at
+  Godot's default 0.25 cell the 0.4 m radius bakes as **0.5** and the 1.8 m
+  height as **2.0** — only a warning says so, and ticking the criterion on the
+  property values would have been false. The cell is 0.2, which divides both
+  exactly, and the test asserts the quotients are whole.
+- **AN UNSYNCED NAVIGATION MAP ANSWERS EVERY QUERY WITH THE ORIGIN.** Not an
+  error — the origin. The coverage test first reported **2011 of 2011 street
+  points unreachable**, which is a timing defect wearing a level defect's
+  clothes. `map_force_update()` alone does nothing; the map needs **two**
+  iterations (the first registers the region, the second rasterises it); querying
+  before the first is an *error*, so polling with `map_get_closest_point` fills
+  the log on the way to succeeding; and **`before_all()` cannot hold the wait** —
+  its coroutine returns at the first `await` and the tests run anyway, which is
+  why the *last* test in a file passes while the first does not.
+- **The same wait is in `server_root._place_the_crowd`**, or every NPC snaps to
+  (0, 0, 0) and the crowd stacks in one corner.
+- **Placement had nowhere else to live.** There is no spawn-distribution story in
+  M3; a position off the navmesh is a position an agent can never leave, so
+  `CrowdPlacement` spreads the crowd round-robin over the map's idle anchors with
+  a seeded scatter. Its first version **threw the scatter away** when there was no
+  map, stacking 78 NPCs on 20 points — caught by the one assertion that could see
+  it.
+
 **US-0040 IS BUILT: FIVE STATES, ONE GLOBAL INTERRUPT.** A flat HFSM, not a
 behaviour tree — per-tick tree traversal across ninety agents in GDScript is
 thousands of virtual calls for five behaviours, and **the crowd is not required
@@ -1001,7 +1036,7 @@ US-0024 measures it against clips that do not exist.
 | | |
 |---|---|
 | CI | 7 jobs. **Running again as of 2026-08-07 after a two-day outage** — run `31200490320`, all seven green. The seven commits merged during the outage were never through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | **36 arch + 68 unit + 26 integration scripts**, holding 130 + 627 + 193 assertions. **One is `pending` by design** — `test_upstream_bandwidth.gd` reports the 253 % upstream miss rather than going red, the same choice `test_snapshot_size.gd` made. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
+| Tests | **36 arch + 69 unit + 27 integration scripts**, holding 130 + 634 + 199 assertions. **One is `pending` by design** — `test_upstream_bandwidth.gd` reports the 253 % upstream miss rather than going red, the same choice `test_snapshot_size.gd` made. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
 | Tuning | 282 tunables across 14 resource classes; all 27 cross-field invariants assert. **Eight IDs are deprecated** and recorded in TUNABLES §19 — never reused |
 | Autoloads | All eight. `Tuning` precomputes 86 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |
@@ -1013,7 +1048,7 @@ US-0024 measures it against clips that do not exist.
 | Camera | Real spring arm: 2.6 m, **pawn centred** (US-0092 — the 0.45 m offset never changed the composition, because the rig aims at the pawn's own axis; `INPUT-SHOULDER` retired with it), occlusion that pulls **in** and never sideways, `WORLD`-masked so a crowd cannot push it. The FOV ladder is bound to the **state**, never to `ctx.velocity`: the rung is a consequence of the decision, not of the physics that follows it. Crowd-scan narrows to 48° and grants nothing. **Positive pitch LOWERS the arm** — the rig looks *at* the pivot, so a raised arm looks down; it shipped inverted from US-0021 until somebody played it |
 | Input | 20 `InputMap` actions from 14 live `INPUT-` IDs — `INPUT-SHOULDER` is retired via `InputActions.DEPRECATED`, still in the corpus and bound to nothing, KBM + pad. Chain GDD-02 → `Ids` → `InputActions` → `project.godot`, guarded on every hop, both directions. **Sampled once per physics frame by `LocalPawnDriver`, the only caller** — see trap 12. The mouse is **captured** on boot; `INPUT-MENU` releases, a click takes it back. **Only a mapped gamepad holds the joypad bindings** — `PadSelection`, applied through the one `InputMap` writer, because a set of sim pedals was steering |
 
-**Nineteen criteria are deliberately unticked**, each blocked by something real. A
+**Twenty-two criteria are deliberately unticked**, each blocked by something real. A
 prose count of these has now drifted three times, so they are a table — and the
 story files are the source of truth, not this. Regenerate the count rather than
 editing it:
@@ -1034,6 +1069,7 @@ grep -c '^- \[ \]' docs/40_backlog/stories/*.md
 | US-0030 | three culling criteria, plus `render_state` per observer | there is no crowd to cull until M3, and no `SYS-DETECTION` to compute a state until M3 |
 | US-0036 | "every netcode test runs at all four profiles" | true only of the harness's own agreement test; the rest are pure and have no wire to give a latency to |
 | US-0037 | match end below minimum players | `SYS-MATCH`'s, in M4. **The timeout criterion was ticked at the M2 gate** — a hard-killed client took the same `peer left` → `pawn freed` path across four real processes |
+| US-0041 | steering; the repath stagger; far-band path validity | the first two are **unstarted** — no agent on the NPC scene and nothing ticks a brain. The third is **blocked**: far-band validity needs the Near/Mid/Far LOD bands, which are US-0045's |
 | US-0038 | frame-rate independence; downstream "measured"; the 180 ms feel check | impossible headless (the structural substitute is accepted, not ticked); the entity counts in the projection need M3's crowd; the feel check is the owner's and needs a windowed client |
 | US-0031 | rate LOD beyond 45 m; downstream measured with 90 NPCs | there is no crowd until M3 — and **rate LOD is NPC-only by design**, since a *player* at 46 m at 10 Hz would be visibly coarse. The projection is 93.5 kbit/s, 97 %, but a projection is not a measurement |
 | US-0035 | NPC transforms recorded; memory "around 23 KB" | there is no crowd until M3. Memory measured at **28.1 KB** — 20 B per record, not §8.3's 16, because the entity id is stored rather than implied by slot. TDD-04 §8.3 amended |
