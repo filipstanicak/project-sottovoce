@@ -22,6 +22,10 @@
 class_name SnapshotBuilder
 extends Node
 
+## **PER-CLIENT ACKNOWLEDGED-SNAPSHOT BOOKKEEPING**, US-0031's first criterion.
+## Pure and separable, so what a delta omits can be asked directly.
+var delta := SnapshotDelta.new()
+
 var _ctx: MatchContext
 var _pawns: PawnHost
 var _router: RpcRouter
@@ -49,6 +53,18 @@ func send_all(_ctx_in: MatchContext, _dt: float) -> void:
 		return
 	for peer: int in _ctx.pawns.keys():
 		Net.send_snapshot(peer, build_for(peer))
+
+
+## The client says which snapshot tick it holds. Connected to
+## `RpcRouter.snapshot_acked`.
+func note_ack(peer: int, tick: int) -> void:
+	delta.note_ack(peer, tick)
+
+
+## Release a departed peer's baselines. ENet reuses ids, so a baseline left
+## behind would be delta-ed against by whoever inherits the id — US-0037.
+func forget(peer: int) -> void:
+	delta.forget(peer)
 
 
 ## The snapshot `peer` should receive. Public so a test can read one without a
@@ -82,6 +98,7 @@ func _fill_own(snapshot: Snapshot, peer: int) -> void:
 ## copy of itself 100 ms in the past, which is a memorable bug to look at and a
 ## tedious one to explain.
 func _fill_remotes(snapshot: Snapshot, peer: int) -> void:
+	var everyone: Array = []
 	for other: int in _ctx.pawns.keys():
 		if other == peer:
 			continue
@@ -94,4 +111,23 @@ func _fill_remotes(snapshot: Snapshot, peer: int) -> void:
 		# `render_state` is 0 (`PLAIN`) for everyone until `SYS-DETECTION` lands in
 		# M3. It is filled per observer HERE when it does — the loop is already
 		# per observer, which is the whole reason this is not a broadcast.
-		snapshot.add_remote(slot, ctx.position, ctx.yaw, ctx.state_id, 0, 0)
+		everyone.append([slot, ctx.position, ctx.yaw, ctx.state_id, 0, 0])
+
+	# **WHO EXISTS IS STATED; WHO MOVED IS SENT.** The mask is built from every
+	# visible player, the records from only those whose quantised state changed —
+	# so a player omitted for standing still is still known to be there, and one
+	# who left is not.
+	snapshot.present_slots = _mask(everyone)
+	snapshot.baseline_age = delta.baseline_age(peer, snapshot.server_tick)
+	for record: Array in delta.changed(peer, snapshot.server_tick, everyone):
+		snapshot.remote_pawns.append(record)
+	delta.remember(peer, snapshot.server_tick, everyone)
+
+
+static func _mask(records: Array) -> int:
+	var mask := 0
+	for record: Array in records:
+		var slot := int(record[0])
+		if slot > 0 and slot <= 8:
+			mask |= 1 << (slot - 1)
+	return mask

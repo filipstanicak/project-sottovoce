@@ -220,11 +220,11 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 *Updated 2026-08-15. Keep this section current — it is the first thing a fresh
 session reads, and a stale one is worse than none.*
 
-**PICK UP HERE.** M1 is complete and its gate is passed. **M2 is twelve stories
-built of fourteen**; what is left is **US-0031** (delta encoding) and **US-0038**
-(the M2 gate). Take US-0031 first — the gate should judge a finished milestone.
-The rest of this section is why each of those sentences is true, and what has
-already cost somebody an hour.
+**PICK UP HERE.** M1 is complete and its gate is passed. **M2 is thirteen
+stories of fourteen**; what is left is **US-0038, the M2 gate**. Read ROADMAP
+§4.1 before starting it: **two of its four lines cannot pass as written** and are
+flagged there. The rest of this section is why each of those sentences is true,
+and what has already cost somebody an hour.
 
 **M0 IS COMPLETE. M1'S EXIT CRITERION IS MET AND ITS FEEL GATE IS PASSED**, judged
 at the controls on 2026-08-13: slowing instant from every state, the FOV ladder
@@ -623,9 +623,49 @@ threshold. The assertions passed only because the harness never drove faster tha
 a walk. It is `prediction_lead()` now, with `reconciliation_error()` beside it
 reading `Reconciler.last_error`. **Trap 4, in the harness written to catch trap 4.**
 
-**M2 IS TWELVE OF FOURTEEN.** US-0025 to US-0030 and US-0032 to US-0037 are
-built. What is left: **US-0031** (delta encoding) and **US-0038** (the M2 gate).
-US-0030's culling criteria stay unticked — there is no crowd to cull until M3.
+**US-0031 IS BUILT: ONLY WHAT CHANGED GOES ON THE WIRE.** A settled snapshot for
+two motionless players is **55 bytes — the fixed block, with not one remote
+record.** The protocol had no way for a client to acknowledge a snapshot, and
+that was the story's first half.
+
+**`client_tick` PAID FOR THE ACK AND COST NOTHING.** It was specified
+advisory-only, TDD-03 §4 asked whether it should be sent at all, and in practice
+`InputSampler` set it to `_seq` — with an integration test asserting the two were
+**identical**. Two bytes of a number already in the packet, at 60 Hz, on an
+upstream budget already at **112 %**. It is `acked_tick` now, upstream is
+unchanged, and TDD-03 §4's open question is closed. **The forgeability rule is
+untouched**: it orders nothing, and a lying client earns itself a delta it cannot
+assemble and therefore cannot acknowledge — it can waste its own bandwidth and
+nobody else's.
+
+- **The baseline is what the client ACKNOWLEDGED, never what was last sent.**
+  Snapshots are unreliable, so *sent* says nothing about *arrived*. Delta-ing
+  against the last sent snapshot works perfectly until one packet drops and then
+  corrupts every frame after it — on a connection that looks healthy, and never
+  on a LAN.
+- **`present_slots` is the one field delta encoding made necessary.** Absent used
+  to mean *gone*; it now means *unchanged*. Without it, a player who disconnects
+  **while standing still** is omitted for being unchanged and is never freed.
+- **Delta encoding is a wire concern and stops at `Net`.** The assembler runs
+  before `snapshot_received` is emitted, so every consumer is handed the same
+  complete object as before and none of them knows deltas exist.
+- **Two criteria stay unticked.** Rate LOD is **NPC-only by design** — §7.2
+  justifies 10 Hz by "those NPCs are outside all gameplay radii anyway", which is
+  not true of a player at 46 m — and the 90-NPC measurement needs a crowd. The
+  projection is now **93.5 kbit/s, 97 %**, up from 93.0: the two new header bytes.
+
+**AND IT FOUND THE HARNESS'S SERVER CLOCK HAD NEVER TICKED.**
+`IntegrationHarness` never advanced `ctx.tick`, so every snapshot it built from
+US-0036 onward carried `server_tick = 0`. Nothing depended on it — the reconciler
+orders by `last_acked_seq` — so nothing failed. Delta encoding was the first
+thing to read it, found a client whose newest assembled tick was permanently
+zero, and **sent full snapshots forever while five of the six new tests passed**.
+The sixth was written first and specifically to catch that. **Trap 3's family,
+fifth instance.**
+
+**M2 IS THIRTEEN OF FOURTEEN.** US-0025 to US-0037 are all built. What is left is
+**US-0038, the M2 gate**. US-0030's culling criteria stay unticked — there is no
+crowd to cull until M3.
 
 **WHAT IS RUNNABLE AND WHAT IS NOT.** Three clients and a headless server hold a
 match: peers join, the server simulates their pawns, snapshots come back, each
@@ -829,7 +869,7 @@ US-0024 measures it against clips that do not exist.
 | Camera | Real spring arm: 2.6 m, **pawn centred** (US-0092 — the 0.45 m offset never changed the composition, because the rig aims at the pawn's own axis; `INPUT-SHOULDER` retired with it), occlusion that pulls **in** and never sideways, `WORLD`-masked so a crowd cannot push it. The FOV ladder is bound to the **state**, never to `ctx.velocity`: the rung is a consequence of the decision, not of the physics that follows it. Crowd-scan narrows to 48° and grants nothing. **Positive pitch LOWERS the arm** — the rig looks *at* the pivot, so a raised arm looks down; it shipped inverted from US-0021 until somebody played it |
 | Input | 20 `InputMap` actions from 14 live `INPUT-` IDs — `INPUT-SHOULDER` is retired via `InputActions.DEPRECATED`, still in the corpus and bound to nothing, KBM + pad. Chain GDD-02 → `Ids` → `InputActions` → `project.godot`, guarded on every hop, both directions. **Sampled once per physics frame by `LocalPawnDriver`, the only caller** — see trap 12. The mouse is **captured** on boot; `INPUT-MENU` releases, a click takes it back. **Only a mapped gamepad holds the joypad bindings** — `PadSelection`, applied through the one `InputMap` writer, because a set of sim pedals was steering |
 
-**Twenty criteria are deliberately unticked**, each blocked by something real. A
+**Twenty-two criteria are deliberately unticked**, each blocked by something real. A
 prose count of these has now drifted three times, so they are a table — and the
 story files are the source of truth, not this. Regenerate the count rather than
 editing it:
@@ -850,6 +890,7 @@ grep -c '^- \[ \]' docs/40_backlog/stories/*.md
 | US-0030 | three culling criteria, plus `render_state` per observer | there is no crowd to cull until M3, and no `SYS-DETECTION` to compute a state until M3 |
 | US-0036 | "every netcode test runs at all four profiles" | true only of the harness's own agreement test; the rest are pure and have no wire to give a latency to |
 | US-0037 | timeout ≡ clean disconnect; match end below minimum players | a real timeout needs two processes; match end is `SYS-MATCH`'s, in M4 |
+| US-0031 | rate LOD beyond 45 m; downstream measured with 90 NPCs | there is no crowd until M3 — and **rate LOD is NPC-only by design**, since a *player* at 46 m at 10 Hz would be visibly coarse. The projection is 93.5 kbit/s, 97 %, but a projection is not a measurement |
 | US-0035 | NPC transforms recorded; memory "around 23 KB" | there is no crowd until M3. Memory measured at **28.1 KB** — 20 B per record, not §8.3's 16, because the entity id is stored rather than implied by slot. TDD-04 §8.3 amended |
 
 Two more things are owed and are **not** acceptance criteria, so they are not in

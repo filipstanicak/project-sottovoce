@@ -267,11 +267,12 @@ No suspicion, no networking, no NPCs. Single player, local, no rules.
 **Exit:** 3 clients + headless server, replicated movement, prediction and interpolation,
 join/leave stable.
 
-> **M2 IS TWELVE STORIES OF FOURTEEN, as of 2026-08-15.** US-0025 to US-0030
-> and US-0032 to US-0037 are built. **The loop is closed and it
+> **M2 IS THIRTEEN STORIES OF FOURTEEN, as of 2026-08-15.** US-0025 to US-0037
+> are all built. **The loop is closed and it
 > is under CI**: three real clients and a real server, peers joining and leaving,
 > input up, snapshots back, prediction and reconciliation live at four latency
-> profiles. Open: **US-0031** (delta encoding) and **US-0038** (the gate).
+> profiles. Open: **US-0038**, the gate — and read §4.1 first, because two of its
+> four lines cannot pass as written.
 >
 > **What M2 does not contain is a game.** No suspicion, no crowd, no abilities,
 > no kill, no stun, no score, no match end. §4.3 said "movement only" and that is
@@ -298,7 +299,7 @@ join/leave stable.
 | `RpcRouter` with authority checks on **every** C2S message | **Done, US-0026.** Plus the two §12 guards that had been promised since M0 and never written |
 | `MatchDirector` net tick — 30 Hz from the 60 Hz physics clock | **Done, US-0027.** Derived by counting frames, not by accumulating time; the order is parsed from §4's diagram |
 | Server-side pawn simulation; the **same** state machine as M1 | **Done, US-0028** — and the same `PawnMotion`, extracted because stepping the machine is only half a tick |
-| Snapshot format, `SnapshotBuilder` (cull + quantise + delta) | **Format done, US-0029; builder done, US-0030 — cull and delta are NOT.** It measured the downstream budget at **113 %**, not the 87 % §7.1 concluded — the sizes that table budgeted against were unreachable from §4's own field list. **The crowd record was shrunk from 10 B to 8 B in answer and it now projects to 93.0 kbit/s, 97 % of budget.** Culling is US-0030's four unticked criteria and has nothing to remove until the crowd exists in M3; delta encoding is US-0031, still open |
+| Snapshot format, `SnapshotBuilder` (cull + quantise + delta) | **Format done, US-0029; builder done, US-0030; delta done, US-0031 — culling is NOT.** It measured the downstream budget at **113 %**, not the 87 % §7.1 concluded — the sizes that table budgeted against were unreachable from §4's own field list. **The crowd record was shrunk from 10 B to 8 B in answer and it now projects to 93.0 kbit/s, 97 % of budget.** Culling is US-0030's four unticked criteria and has nothing to remove until the crowd exists in M3. **Delta encoding is built**: a settled snapshot for two motionless players is 55 B, the fixed block with no remote record. Its ack cost nothing — `client_tick` was provably a duplicate of `seq` and became `acked_tick`. **Rate LOD is NPC-only by design** and waits for M3 with the measurement |
 | `Predictor`, `Reconciler`, `SnapshotInterpolator` | **All three done, US-0032 to US-0034.** Remote entities render 100 ms in the past between stamped samples; the local pawn predicts and **the simulation snaps while the visual blends**, converging at four latency profiles |
 | `LagCompHistory` (recording only — no consumers until M4) | **Done, US-0037's sibling, US-0035.** 15 frames at 30 Hz, recorded from `tick_completed`; the ring is pure and the recorder walks the world. **Building it found the snapshot on the wrong signal** — both were on `net_ticked`, which fires *before* the stage loop, so a snapshot stamped tick N carried the world from N−1 while two comments said otherwise. Two criteria unticked: NPCs need M3, and memory measured 28.1 KB against §8.3's 23 |
 | Join / leave stability under churn | **Done, US-0037.** 120 joins and 120 departures return five counters to baseline; two criteria unticked — a real timeout needs two processes, and match-end below minimum players is `SYS-MATCH`'s in M4 |

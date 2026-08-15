@@ -2,7 +2,7 @@
 ##
 ## **THE LAYOUT IS FIXED**, because it is the wire format of `NET-C2S-INPUT`
 ## (NETWORK_PROTOCOL §2): `seq:u16`, `move:2×i8`, `yaw:u8`, `pitch:i8`,
-## `buttons:u16`, `client_tick:u16`. Sent at `TUN-NET-CLIENT-INPUT-RATE` 60 Hz.
+## `buttons:u16`, `acked_tick:u16`. Sent at `TUN-NET-CLIENT-INPUT-RATE` 60 Hz.
 ##
 ## THE CLIENT SENDS INTENT, NEVER OUTCOME. There is no "I killed X" here and
 ## there never will be: kill and stun are *buttons*, validated server-side
@@ -40,13 +40,26 @@ var look_pitch: float = 0.0
 ## newly_pressed`), never transmitted.
 var buttons: int = InputBits.NONE
 
-## The client's tick when this was sampled.
+## **THE NEWEST SNAPSHOT TICK THIS CLIENT HAS ASSEMBLED.** The baseline the
+## server may delta against — US-0031, TDD-04 §7.2 mechanism 3.
 ##
-## **ADVISORY ONLY.** Used for diagnostics and nothing else. It is NEVER used to
-## order events or resolve contests: it is client-supplied and therefore
-## forgeable, and a contest resolved on a forgeable number is a contest the
-## attacker wins. Contest resolution uses the server receive tick (ADR-0010).
-var client_tick: int = 0
+## **THIS FIELD WAS `client_tick` UNTIL US-0031**, where ADR-0010 marked it
+## advisory-only, "used for diagnostics and nothing else". It was set to `_seq`
+## and an integration test asserted the two were identical — so it carried two
+## bytes of the sequence number at 60 Hz, on an upstream budget already at 112 %
+## of `TUN-NET-BUDGET-UP`. Delta encoding needed exactly two bytes and there were
+## none to spare. A redundant field became a load-bearing one, at no cost on the
+## wire.
+##
+## **STILL FORGEABLE, AND STILL NEVER USED TO ORDER ANYTHING.** ADR-0010's rule
+## is untouched: contests resolve on the server receive tick. The worst a lying
+## client can do with this number is ask to be sent more bytes than it needs, or
+## a delta it cannot apply — which it then fails to assemble and fails to
+## acknowledge, so the server falls back to a full send. **It can waste its own
+## bandwidth and nobody else's.**
+##
+## Zero means "I have nothing yet, send me everything".
+var acked_tick: int = 0
 
 # --- Views onto `buttons`. No storage of their own. ---
 
@@ -132,5 +145,5 @@ func duplicate_command() -> InputCommand:
 	out.look_yaw = look_yaw
 	out.look_pitch = look_pitch
 	out.buttons = buttons
-	out.client_tick = client_tick
+	out.acked_tick = acked_tick
 	return out

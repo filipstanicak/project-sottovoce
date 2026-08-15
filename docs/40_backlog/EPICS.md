@@ -150,13 +150,15 @@ Snapshot format, serialisation, culling, quantisation, delta encoding.
 **Done when:** remote pawns move smoothly on all clients and `test_snapshot_size.gd` is within
 the downstream budget.
 
-**BOTH CLAUSES HOLD; THE EPIC IS NOT DONE** (US-0029 and US-0030 built, **US-0031 open**). Remote
+**BOTH CLAUSES HOLD; US-0029 TO US-0031 ARE BUILT.** Remote
 pawns interpolate 100 ms in the past between stamped samples, and the budget closes at **97 %** —
 but only after the measurement found it at 113 % and the crowd record was shrunk from 10 B to 8 B.
-**Culling and delta encoding are both unbuilt**: culling has nothing to remove until the crowd
-exists in M3, and delta encoding is US-0031. The "done when" was written against an outcome, and
-it is satisfied by a snapshot that sends everything every tick — worth knowing before it is read
-as proof that the epic shipped.
+**Delta encoding is built** (US-0031): a settled snapshot for two motionless players is the
+55-byte fixed block with no remote record. **Culling and rate LOD are not** — culling has nothing
+to remove until the crowd exists in M3, and rate LOD is NPC-only by design, since a *player* at
+46 m sent at 10 Hz would be visibly coarse. The "done when" was written against an outcome, and it
+was satisfied before delta encoding existed at all — worth knowing before it is read as proof that
+the epic shipped.
 
 ---
 

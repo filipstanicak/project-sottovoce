@@ -246,7 +246,7 @@ is consulted constantly.
 | `NET-C2S-HELLO` | X | Reliable | Once | `protocol_version:u16`, `build_hash:u64`, `tuning_hash:u64` | Version and build must match server; else reject with reason. **The tuning hash can never refuse a peer** — it is carried so the server can answer a mismatch with `NET-S2C-TUNING-SYNC` rather than sending 6 KB on every join or never noticing (US-0025) |
 | `NET-C2S-LOADOUT` | X | Reliable | Lobby only | `persona:u8`, `ability_a:u8`, `ability_b:u8`, `passive:u8` | **Rejected unless phase == LOBBY.** IDs must be within the MVP set; abilities must differ |
 | `NET-C2S-READY` | X | Reliable | Lobby only | `ready:bool` | Rejected unless phase == LOBBY |
-| `NET-C2S-INPUT` | S | Unreliable | **60 Hz** | `seq:u16`, `move:2×i8`, `yaw:u8`, `pitch:i8`, `buttons:u16`, `client_tick:u16` | Sender must own a living pawn. `seq` must be newer than last processed (stale/replayed commands dropped). Applies to the **sender's** pawn only — the pawn is looked up from the peer id, never from the payload |
+| `NET-C2S-INPUT` | S | Unreliable | **60 Hz** | `seq:u16`, `move:2×i8`, `yaw:u8`, `pitch:i8`, `buttons:u16`, `acked_tick:u16` | Sender must own a living pawn. `seq` must be newer than last processed (stale/replayed commands dropped). Applies to the **sender's** pawn only — the pawn is looked up from the peer id, never from the payload |
 | `NET-C2S-ABILITY-REQUEST` | E | Reliable | On demand | `slot:u8`, `aim_origin:3×f32`, `aim_dir:3×f32` | Slot must be equipped; cooldown must be expired **on the server**; `TUN-ABILITY-GLOBAL-COOLDOWN` respected; aim clamped to the ability's range server-side |
 | `NET-C2S-BLEND-REQUEST` | E | Reliable | On demand | `target_id:u16` (blend prop or group slot) | Target must exist, be within `TUN-BLEND-GROUP-JOIN-RADIUS`, and have capacity (`TUN-BLEND-PROP-CAPACITY` 1) |
 | `NET-C2S-SKIP-RESULTS` | X | Reliable | Once | — | Phase must be RESULTS. Skip requires **unanimous** consent |
@@ -362,10 +362,10 @@ Against `TUN-NET-BANDWIDTH-BUDGET-DOWN` **96 kbit/s** and `-UP` **16 kbit/s** pe
 | Near NPCs (≤ 45 m; ~45 visible, 30 Hz, 55 % changed) | 45 × 0.55 × **8 B** × 30 | 5 940 |
 | Far NPCs (45–70 m; ~30 visible, 10 Hz, 70 % changed) | 30 × 0.70 × **8 B** × 10 | 1 680 |
 | Remote pawns (5 × **10 B** × 30 Hz) | | 1 500 |
-| Header + own pawn + gameplay + compass + match + counts (**53 B** × 30 Hz) | | 1 590 |
+| Header + own pawn + gameplay + compass + match + counts (**55 B** × 30 Hz) | | 1 650 |
 | Reliable events (score, kill, stun, ability — est. 2/s × 40 B) | | 80 |
 | ENet + UDP/IP overhead (~28 B × 30 packets/s) | | 840 |
-| **Total** | | **11 630 B/s ≈ 93.0 kbit/s** |
+| **Total** | | **11 690 B/s ≈ 93.5 kbit/s** |
 
 **97 % of budget. 3 % headroom.** Thin — thinner than the 13 % this section claimed before the
 format was built and measured — which is why the ADR-0007 fallback (replicate near NPCs,
@@ -395,8 +395,8 @@ seed-derive far ones) remains designed, documented and unbuilt.
 |---|---|---|---|
 | 1 | **Distance culling** | 0–50 % | NPCs beyond `TUN-NET-NPC-CULL-RADIUS` 70 m are not sent. 70 m > `TUN-COMPASS-RANGE-MAX` 60 m, so a culled NPC can never affect anything the client can perceive (invariant §17.17) |
 | 2 | **Quantisation** | ~60 % vs. floats | Player position 3×i16 at 1 cm; **NPC position 2×i16 plus a 5 cm height byte**; yaw u8 at 1°; NPC anim 3+5 bits. **8 bytes per NPC** including index, measured |
-| 3 | **Delta encoding** | ~40 % | Only NPCs whose quantised state changed since the client's last ack. A standing idle NPC costs nothing, and 40–60 % of the crowd is idle at any moment |
-| 4 | **Rate LOD** | ~20 % | NPCs beyond 45 m at 10 Hz. Interpolation error at walking speed is < 15 cm — far below every gameplay radius, and those NPCs are outside all of them anyway |
+| 3 | **Delta encoding** | ~40 % | **Built, US-0031.** Only entities whose **quantised** state changed since the client's last ack. A standing idle NPC costs nothing, and 40–60 % of the crowd is idle at any moment. Measured against players: a settled snapshot for two motionless clients is **55 B — the fixed block, with not one remote record** |
+| 4 | **Rate LOD** | ~20 % | **Open — needs the crowd, M3.** It is scoped to NPCs on purpose: a *player* at 46 m interpolated at 10 Hz would be visibly coarse, and the justification below does not hold for them. NPCs beyond 45 m at 10 Hz. Interpolation error at walking speed is < 15 cm — far below every gameplay radius, and those NPCs are outside all of them anyway |
 
 ### 7.3 Upstream
 
@@ -482,7 +482,7 @@ action are rewound — typically fewer than 10, not 96.
 ### 8.4 Contest resolution
 
 Two kill initiations on the same victim within `TUN-KILL-CONTEST-WINDOW` 0.4 s are resolved by
-**server receive tick**, never by `InputCommand.client_tick`.
+**server receive tick**, never by any client-supplied number. (`InputCommand` no longer carries a client clock at all — those two bytes became `acked_tick` in US-0031.)
 
 This is a real trade: a low-ping player wins a genuine tie. The alternative — comparing
 client-claimed timestamps — is trivially forgeable and would hand the contest window to whoever
@@ -624,7 +624,7 @@ func sample(entity_id: int, render_time_ms: float) -> EntityState
 | `test_render_state_per_observer.gd` | With one player at suspicion 100, five observers receive `PLAIN` and only their hunter/prey receives `HARD` |
 | `test_lagcomp_rewind.gd` | Kill valid at 150 ms rewind, invalid at 0; invalid at 250 ms (proving the clamp); NPC-occluded LOS clear in the past; unspawned Cinderfall does not block |
 | `test_lagcomp_no_exploit.gd` | Rewound validation cannot resolve against a stale contract, stale tier, or spent cooldown |
-| `test_no_client_time_in_kill.gd` | `KillSystem` and `StunSystem` never read `InputCommand.client_tick` |
+| `test_no_client_time_in_kill.gd` | `KillSystem` and `StunSystem` never read `InputCommand.acked_tick` — the field that replaced `client_tick`, still client-supplied and still forbidden from ordering anything |
 | `test_channel_separation.gd` | Reliable event floods do not delay snapshot delivery |
 | `test_join_leave_stable.gd` | 3 clients joining and leaving repeatedly for 5 minutes leaves the cycle valid and no orphaned entities |
 

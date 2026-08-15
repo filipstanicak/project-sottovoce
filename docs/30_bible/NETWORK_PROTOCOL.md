@@ -68,7 +68,7 @@ otherwise.
 | `NET-C2S-HELLO` | X | Rel | once | `protocol_version:u16`, `build_hash:u64`, `tuning_hash:u64` | Version and build must match; else reject with reason. **The tuning hash can never refuse a peer** — it is carried so the server can answer a mismatch with `NET-S2C-TUNING-SYNC` instead of always or never sending one (US-0025) |
 | `NET-C2S-LOADOUT` | X | Rel | lobby | `persona:u8`, `ability_a:u8`, `ability_b:u8`, `passive:u8` | Rejected unless phase == LOBBY. IDs within the MVP set. Abilities must differ |
 | `NET-C2S-READY` | X | Rel | lobby | `ready:bool` | Rejected unless phase == LOBBY |
-| `NET-C2S-INPUT` | S | Unrel | **60 Hz** | `seq:u16`, `move:2×i8`, `yaw:u8`, `pitch:i8`, `buttons:u16`, `client_tick:u16` | Sender owns a living pawn. `seq` newer than last processed. **Applies to the sender's pawn, looked up from the peer id — never from the payload** |
+| `NET-C2S-INPUT` | S | Unrel | **60 Hz** | `seq:u16`, `move:2×i8`, `yaw:u8`, `pitch:i8`, `buttons:u16`, `acked_tick:u16` | Sender owns a living pawn. `seq` newer than last processed. **Applies to the sender's pawn, looked up from the peer id — never from the payload** |
 | `NET-C2S-ABILITY-REQUEST` | E | Rel | on demand | `slot:u8`, `aim_origin:3×f32`, `aim_dir:3×f32` | Slot equipped; cooldown expired **on the server**; GCD respected; aim **clamped** server-side |
 | `NET-C2S-BLEND-REQUEST` | E | Rel | on demand | `target_id:u16` | Target exists, within join radius, has capacity |
 | `NET-C2S-SKIP-RESULTS` | X | Rel | once | — | Phase == RESULTS. Skip requires **unanimous** consent |
@@ -84,11 +84,24 @@ lag-compensated world. **A client cannot express the concept "I killed someone" 
 protocol.** That is what allows [`../00_meta/SCOPE_FENCE.md`](../00_meta/SCOPE_FENCE.md) OUT #9
 to defer all anti-cheat beyond server authority.
 
-### 2.2 `InputCommand.client_tick` is advisory
+### 2.2 `InputCommand.acked_tick` is client-supplied and orders nothing
 
-It is sent for diagnostics and is **never** used to order events or resolve contests — it is
-client-supplied and therefore forgeable. Contest resolution uses the **server receive tick**
-(ADR-0010). `test_no_client_time_in_kill.gd` asserts `KillSystem` and `StunSystem` never read it.
+**It was `client_tick` until US-0031.** That field was specified as advisory-only — sent for
+diagnostics — and turned out to be set to `seq`, with an integration test asserting the two
+identical. It carried two bytes of a number already in the packet, at 60 Hz, on an upstream budget
+already at **112 % of `TUN-NET-BUDGET-UP`**. Delta encoding needed exactly two bytes.
+
+It now carries **the newest snapshot tick the client has assembled** — the baseline the server may
+delta against (§4).
+
+The rule that mattered is unchanged. It is client-supplied and therefore **forgeable**, and it is
+**never** used to order events or resolve contests; contest resolution uses the **server receive
+tick** (ADR-0010). `test_no_client_time_in_kill.gd` asserts `KillSystem` and `StunSystem` never
+read it.
+
+What a lying client gains is nothing: name a baseline you do not hold and you are sent a delta you
+cannot assemble, which you then cannot acknowledge, so the server falls back to a full snapshot.
+**It can waste its own bandwidth and nobody else's.**
 
 ---
 
@@ -118,12 +131,22 @@ client-supplied and therefore forgeable. Contest resolution uses the **server re
 
 ## 4. Snapshot payload
 
+> **`present_slots` IS NOT REDUNDANT, AND IT IS THE ONE FIELD DELTA ENCODING MADE NECESSARY.**
+> Before US-0031, absent from a snapshot meant *gone*. It now means *unchanged* — so without a
+> separate statement of who exists, a player who disconnects while standing still is omitted for
+> being unchanged and **is never freed**. They stand in the district for the rest of the match.
+>
+> It is written even on a full snapshot, where the records imply it. One byte buys a single decode
+> path, and a format whose shape depends on a flag is a format that gets read wrong on the branch
+> nobody tested.
+
 ```
 NET-S2C-SNAPSHOT — per client, per tick
 ├── header
 │   ├── server_tick        u32
 │   ├── last_acked_seq     u16      this client's last processed InputCommand
-│   └── flags              u8
+│   ├── flags              u8
+│   └── baseline_age       u8       ticks back to the delta baseline; 0 = FULL
 ├── own_pawn                        FULL — the prediction authority
 │   ├── position           3×f32
 │   ├── velocity           3×f32
@@ -148,14 +171,15 @@ NET-S2C-SNAPSHOT — per client, per tick
 │   ├── phase              u8
 │   ├── ticks_remaining    u16
 │   └── multiplier         u8
-├── remote_pawns[]                  visible players only
+├── present_slots          u8       WHO EXISTS this tick, one bit per slot
+├── remote_pawns[]                  only those whose QUANTISED state changed
 │   ├── peer_id            u8
 │   ├── position           3×i16    1 cm, map-local
 │   ├── yaw                u8       1 deg
 │   ├── state_id           u8
 │   ├── anim_phase         u6
 │   └── render_state       u2       PLAIN | TINTED | HARD — COMPUTED PER OBSERVER
-└── npcs[]                          delta + culled + rate-LOD
+└── npcs[]                          delta; culling and rate-LOD are M3's
     ├── index              u8
     ├── position_xz        2×i16    1 cm, map-local
     ├── height             u8       5 cm  — see below

@@ -18,7 +18,7 @@ func test_the_layout_is_the_one_tdd_03_declares() -> void:
 		declared[property["name"]] = true
 
 	var missing: PackedStringArray = []
-	for field: String in ["seq", "move", "look_yaw", "look_pitch", "buttons", "client_tick"]:
+	for field: String in ["seq", "move", "look_yaw", "look_pitch", "buttons", "acked_tick"]:
 		if not declared.has(field):
 			missing.append(field)
 	assert_eq(missing.size(), 0, "InputCommand lost a wire field: " + ", ".join(missing))
@@ -106,16 +106,37 @@ func test_a_duplicate_shares_nothing() -> void:
 	assert_eq(copy.look_yaw, 1.25)
 
 
-func test_client_tick_is_marked_advisory_where_someone_will_read_it() -> void:
-	# ADR-0010: client_tick is client-supplied and forgeable, and a contest
-	# resolved on a forgeable number is a contest the attacker wins. The warning
-	# has to be at the field, because that is where it will be read.
+func test_the_client_supplied_tick_is_marked_forgeable_where_someone_will_read_it() -> void:
+	# **THE FIELD CHANGED JOBS IN US-0031; THE WARNING ON IT DID NOT.** It was
+	# `client_tick`, advisory-only per ADR-0010 and provably a duplicate of `seq`;
+	# it is `acked_tick` now and carries the delta baseline. What survives the
+	# rename is the reason the warning exists: **it is client-supplied and
+	# therefore forgeable**, and a contest resolved on a forgeable number is a
+	# contest the attacker wins.
+	#
+	# The warning has to be at the field, because that is where it will be read by
+	# whoever is tempted to order something by it.
 	var text := SourceScanner.read("res://scripts/pawn/input_command.gd")
-	var at := text.find("var client_tick")
-	assert_gt(at, -1, "InputCommand lost client_tick")
-	var docstring := text.substr(maxi(0, at - 600), 600)
-	assert_true(docstring.contains("ADVISORY ONLY"), "client_tick is not marked advisory-only")
-	assert_true(docstring.contains("ADR-0010"), "client_tick does not cite ADR-0010")
+	var at := text.find("var acked_tick")
+	assert_gt(at, -1, "InputCommand lost acked_tick")
+	var docstring := text.substr(maxi(0, at - 1200), 1200)
+	assert_true(docstring.to_lower().contains("forgeable"), "acked_tick is not marked forgeable")
+	assert_true(docstring.contains("ADR-0010"), "acked_tick does not cite ADR-0010")
+
+
+func test_a_forged_ack_can_only_cost_the_liar_bandwidth() -> void:
+	# **WHY REPURPOSING THIS FIELD IS SAFE**, stated where it can fail. A lying
+	# client can name any baseline it likes. The worst outcomes are: a full
+	# snapshot it did not need, or a delta it cannot assemble — which it then
+	# fails to acknowledge, so the server falls back to full. Neither reaches
+	# another player, and neither orders an event.
+	var text := SourceScanner.read("res://scripts/pawn/input_command.gd")
+	var at := text.find("var acked_tick")
+	var docstring := text.substr(maxi(0, at - 1200), 1200)
+	assert_true(
+		docstring.to_lower().contains("never used to order"),
+		"acked_tick no longer states that it orders nothing"
+	)
 
 
 func test_wants_movement_is_what_decides_idle() -> void:

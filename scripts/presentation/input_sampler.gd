@@ -164,7 +164,7 @@ func _unhandled_input(event: InputEvent) -> void:
 func sample(delta: float) -> InputCommand:
 	_seq += 1
 	_command.seq = _seq
-	_command.client_tick = _seq
+
 	_command.buttons = InputBits.NONE
 	# **BUTTONS BEFORE LOOK**, since US-0023. `INPUT-SCAN` scales look
 	# sensitivity, and whether it is held is only known after the hold/toggle

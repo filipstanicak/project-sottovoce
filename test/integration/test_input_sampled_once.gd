@@ -80,7 +80,7 @@ func test_one_command_is_sampled_per_physics_frame() -> void:
 
 
 func test_the_sequence_number_advances_once_per_frame() -> void:
-	# `seq` and `client_tick` are what US-0033 reconciles against. A seq that
+	# `seq` is what US-0033 reconciles against. A seq that
 	# advances at 120 Hz against a server applying commands at 60 would ask the
 	# server for acknowledgements of commands that were never sent.
 	await _run(20)
@@ -92,7 +92,12 @@ func test_the_sequence_number_advances_once_per_frame() -> void:
 		_commands.size() - 1,
 		"seq advanced more than once per emitted command — something samples unobserved"
 	)
-	assert_eq(last.client_tick, last.seq, "client_tick and seq have come apart")
+	# **`acked_tick` IS NO LONGER ASSERTED EQUAL TO `seq`.** It was `client_tick`
+	# and this line proved it duplicated the sequence number — which is exactly
+	# what made those two bytes available to delta encoding in US-0031. It now
+	# carries the snapshot baseline and is stamped by `Net.send_input` from the
+	# assembler, not by the sampler, so there is nothing here to compare.
+	assert_eq(last.acked_tick, 0, "the sampler is stamping acked_tick again")
 
 
 # ------------------------------------------------------- what the rate bought us --
