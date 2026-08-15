@@ -17,6 +17,7 @@ const SCENE_OUT := "res://scenes/map/map_vetraio.tscn"
 ## server export except map collision and navmesh.
 const COLLISION_OUT := "res://scenes/map/map_vetraio_collision.tscn"
 const DATA_OUT := "res://data/maps/map_vetraio.tres"
+const NAVMESH_OUT := "res://data/maps/map_vetraio_navmesh.tres"
 
 ## How far a walkable slab hangs below the surface it declares. Thick enough that
 ## nothing falls through it, and entirely beneath `FLOORS`' y so the surface is
@@ -40,26 +41,113 @@ var _materials: Dictionary = {}
 var _with_meshes := true
 
 
+## **THE BAKE NEEDS A LIVE TREE, SO THE WHOLE RUN IS DEFERRED.** `_init()` fires
+## while the `SceneTree` is still being constructed: a node added to the root
+## there is not yet *inside* the tree, and `parse_source_geometry_data` refuses
+## it. One awaited frame is the difference — and it is exactly the reason US-0012
+## recorded the bake as owed rather than doing it.
 func _init() -> void:
+	_run.call_deferred()
+
+
+func _run() -> void:
+	await process_frame
 	DirAccess.make_dir_recursive_absolute("res://scenes/map")
 	DirAccess.make_dir_recursive_absolute("res://data/maps")
 	_build_materials()
 
+	var data := _write_everything()
+	if data == null:
+		quit(1)
+		return
+	_report(data)
+	quit(0)
+
+
+## Both scenes, the navmesh and the MapData. Null on any failure.
+##
+## **THE BAKE COMES BEFORE THE COLLISION SCENE IS SAVED**, because the region
+## carrying the baked mesh goes *into* that scene. A navmesh resource nothing
+## publishes is a navmesh no agent can path on: the world's navigation map stays
+## empty, every query answers the origin, and the whole crowd is placed at
+## (0, 0, 0) — a missing node wearing a placement bug's clothes.
+func _write_everything() -> MapData:
 	if not _save_scene(_build_scene(true), SCENE_OUT):
-		quit(1)
-		return
-	if not _save_scene(_build_scene(false), COLLISION_OUT):
-		quit(1)
-		return
+		return null
+
+	var navmesh := _bake_navmesh()
+	if navmesh == null:
+		return null
+	if not _save_scene(_build_scene(false, navmesh), COLLISION_OUT):
+		return null
 
 	var data := _build_data()
 	if ResourceSaver.save(data, DATA_OUT) != OK:
 		push_error("failed to save %s" % DATA_OUT)
-		quit(1)
-		return
+		return null
+	return data
 
-	_report(data)
-	quit(0)
+
+## The mesh's parameters, TDD-08 §7. Separate from the bake because "what the mesh
+## is" and "how it gets built" are two things.
+func _navmesh_settings() -> NavigationMesh:
+	var mesh := NavigationMesh.new()
+	# **CELL SIZE FIRST.** The agent dimensions are quantised against it — and
+	# **ceiled** — so assigning them the other way round quantises against Godot's
+	# default 0.25 and bakes a 0.4 m radius as 0.5. Only a warning says so.
+	mesh.cell_size = VetraioLayout.NAV_CELL_SIZE
+	mesh.cell_height = VetraioLayout.NAV_CELL_HEIGHT
+	mesh.agent_radius = VetraioLayout.NAV_AGENT_RADIUS
+	mesh.agent_height = VetraioLayout.NAV_AGENT_HEIGHT
+	mesh.agent_max_slope = VetraioLayout.NAV_MAX_SLOPE
+	mesh.geometry_parsed_geometry_type = NavigationMesh.PARSED_GEOMETRY_STATIC_COLLIDERS
+
+	# **THE STREET STRATUM AND NOTHING ABOVE IT.** Roofs, balconies and the
+	# campanile are excluded by never being offered to the baker, rather than by
+	# being carved out afterwards — a filter that runs second can be forgotten.
+	# The canal has no floor to bake in the first place.
+	mesh.filter_baking_aabb = AABB(
+		Vector3(-1.0, VetraioLayout.NAV_BAKE_FLOOR, -1.0),
+		Vector3(
+			VetraioLayout.MAP_SIZE + 2.0,
+			VetraioLayout.NAV_BAKE_CEILING - VetraioLayout.NAV_BAKE_FLOOR,
+			VetraioLayout.MAP_SIZE + 2.0
+		)
+	)
+	return mesh
+
+
+## **BAKED HERE, NOT AT RUNTIME.** TDD-08 §7: the geometry is static and the mesh
+## is never rebaked in a match. US-0012 recorded the bake as owed precisely
+## because it needs a live tree — and this generator already runs inside the
+## engine, which is the tree it needs.
+##
+## Baking at startup instead would cost every server seconds of a countdown it
+## does not have, and would make a **level** defect appear as a *networking* one:
+## clients waiting on a server that looks hung.
+func _bake_navmesh() -> NavigationMesh:
+	var mesh := _navmesh_settings()
+
+	# **PARSED EXPLICITLY RATHER THAN THROUGH A REGION.** `bake_navigation_mesh()`
+	# wants its source root in the scene tree in a way that nesting it under the
+	# region does not satisfy; the two-step API says what it needs out loud, which
+	# is the whole reason this is worth the extra line.
+	var source := _build_scene(false)
+	get_root().add_child(source)
+	var geometry := NavigationMeshSourceGeometryData3D.new()
+	NavigationServer3D.parse_source_geometry_data(mesh, geometry, source)
+	NavigationServer3D.bake_from_source_geometry_data(mesh, geometry)
+	get_root().remove_child(source)
+	source.free()
+
+	if mesh.get_polygon_count() == 0:
+		push_error("navmesh baked to zero polygons — the source geometry was not parsed")
+		return null
+	print("navmesh: %d polygons" % mesh.get_polygon_count())
+	if ResourceSaver.save(mesh, NAVMESH_OUT) != OK:
+		push_error("failed to save %s" % NAVMESH_OUT)
+		return null
+	return mesh
 
 
 func _save_scene(root: Node3D, path: String) -> bool:
@@ -118,7 +206,7 @@ func _build_materials() -> void:
 		_materials[key] = mat
 
 
-func _build_scene(with_meshes: bool = true) -> Node3D:
+func _build_scene(with_meshes: bool = true, navmesh: NavigationMesh = null) -> Node3D:
 	_with_meshes = with_meshes
 	var root := Node3D.new()
 	root.name = "MapVetraio" if with_meshes else "MapVetraioCollision"
@@ -140,6 +228,16 @@ func _build_scene(with_meshes: bool = true) -> Node3D:
 	)
 	root.add_child(canal)
 	canal.owner = root
+
+	# **THE REGION IS WHAT PUBLISHES THE MESH.** Without it the world's navigation
+	# map is empty and every `map_get_closest_point` answers the origin — so an
+	# agent cannot path and a placement snaps every NPC to (0, 0, 0).
+	if navmesh != null:
+		var region := NavigationRegion3D.new()
+		region.name = "NavRegion"
+		region.navigation_mesh = navmesh
+		root.add_child(region)
+		region.owner = root
 	return root
 
 
