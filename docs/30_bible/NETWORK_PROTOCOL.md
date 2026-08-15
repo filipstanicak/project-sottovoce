@@ -68,7 +68,7 @@ otherwise.
 | `NET-C2S-HELLO` | X | Rel | once | `protocol_version:u16`, `build_hash:u64`, `tuning_hash:u64` | Version and build must match; else reject with reason. **The tuning hash can never refuse a peer** — it is carried so the server can answer a mismatch with `NET-S2C-TUNING-SYNC` instead of always or never sending one (US-0025) |
 | `NET-C2S-LOADOUT` | X | Rel | lobby | `persona:u8`, `ability_a:u8`, `ability_b:u8`, `passive:u8` | Rejected unless phase == LOBBY. IDs within the MVP set. Abilities must differ |
 | `NET-C2S-READY` | X | Rel | lobby | `ready:bool` | Rejected unless phase == LOBBY |
-| `NET-C2S-INPUT` | S | Unrel | **60 Hz** | `seq:u16`, `move:2×i8`, `yaw:u8`, `pitch:i8`, `buttons:u16`, `acked_tick:u16` | Sender owns a living pawn. `seq` newer than last processed. **Applies to the sender's pawn, looked up from the peer id — never from the payload** |
+| `NET-C2S-INPUT` | S | Unrel | **60 Hz** | `seq:u16`, `move:2×i8`, `yaw:u8`, `pitch:i8`, `buttons:u16`, `acked_tick:u16` — **hand-packed, 12 B; see §2.3** | Sender owns a living pawn. `seq` newer than last processed. **Applies to the sender's pawn, looked up from the peer id — never from the payload** |
 | `NET-C2S-ABILITY-REQUEST` | E | Rel | on demand | `slot:u8`, `aim_origin:3×f32`, `aim_dir:3×f32` | Slot equipped; cooldown expired **on the server**; GCD respected; aim **clamped** server-side |
 | `NET-C2S-BLEND-REQUEST` | E | Rel | on demand | `target_id:u16` | Target exists, within join radius, has capacity |
 | `NET-C2S-SKIP-RESULTS` | X | Rel | once | — | Phase == RESULTS. Skip requires **unanimous** consent |
@@ -102,6 +102,28 @@ read it.
 What a lying client gains is nothing: name a baseline you do not hold and you are sent a delta you
 cannot assemble, which you then cannot acknowledge, so the server falls back to a full snapshot.
 **It can waste its own bandwidth and nobody else's.**
+
+### 2.3 `NET-C2S-INPUT` is hand-packed, and yaw/pitch are wider than the table says
+
+**12 bytes**: `seq:u16`, `move:2×i8`, `yaw:u16`, `pitch:i16`, `buttons:u16`, `acked_tick:u16`.
+`InputCodec` owns the layout.
+
+Until US-0095 it went out as **six loose RPC arguments**, which Godot variant-encodes at **56
+bytes** — the M2 gate measured upstream at 253 % of budget because of it.
+
+**The table above says `yaw:u8` and `pitch:i8`. The codec uses `u16`/`i16`, and it costs the same
+on the wire.** A `PackedByteArray` argument costs 8 bytes of Variant wrapper plus the payload
+rounded up to four, so 10 and 12 bytes both cost 20. The narrower fields save nothing, and they
+cost two measured things:
+
+- `pitch:i8` would **stair-step the camera** — `camera_rig.gd` reads `look_pitch` directly, and
+  180° in 256 steps is 0.7° a step.
+- `yaw:u8` would make a **slow mouse drag stick**: the sampler accumulates look, and a frame
+  moving less than 0.7° would round back where it started.
+
+**The client quantises at SAMPLE time.** It predicts with the command it holds and the server
+simulates with the command it received; one rounding step between them is a divergence on every
+frame, absorbed silently by the reconciler.
 
 ---
 

@@ -42,6 +42,19 @@ var _latch := InputLatch.new()
 var _speed := SpeedGate.new()
 var _command := InputCommand.new()
 var _seq: int = 0
+
+## **FULL-PRECISION LOOK, ACCUMULATED HERE AND QUANTISED INTO THE COMMAND.**
+##
+## The command carries what the wire carries, so the client predicts with exactly
+## the values the server will receive — quantising at *send* time instead would
+## make the two peers step on different numbers and diverge every frame.
+##
+## The accumulator has to be separate. Rounding look in place would mean any
+## frame whose motion is smaller than half a quantisation step rounds back to
+## where it started — **a slow mouse drag would not turn the camera at all**, and
+## the smaller the field, the more of the drag disappears.
+var _look_yaw: float = 0.0
+var _look_pitch: float = 0.0
 var _mouse_delta: Vector2 = Vector2.ZERO
 var _want_mouse: bool = false
 
@@ -182,22 +195,31 @@ func sample(delta: float) -> InputCommand:
 ## multiplier if it applies, into the command's absolute yaw and pitch.
 func _sample_look(delta: float) -> void:
 	var scale := CameraFov.look_scale(_command.scan)
-	_command.look_yaw -= _mouse_delta.x * mouse_sensitivity * scale
-	_command.look_pitch -= _mouse_delta.y * mouse_sensitivity * scale
+	_look_yaw -= _mouse_delta.x * mouse_sensitivity * scale
+	_look_pitch -= _mouse_delta.y * mouse_sensitivity * scale
 	_mouse_delta = Vector2.ZERO
 
 	var pad := _vector_for(Ids.INPUT_LOOK)
-	_command.look_yaw -= pad.x * pad_look_speed * delta * scale
-	_command.look_pitch += pad.y * pad_look_speed * delta * scale
-	_command.look_yaw = wrapf(_command.look_yaw, -PI, PI)
-	_command.look_pitch = clampf(_command.look_pitch, -PI / 2.0, PI / 2.0)
+	_look_yaw -= pad.x * pad_look_speed * delta * scale
+	_look_pitch += pad.y * pad_look_speed * delta * scale
+	_look_yaw = wrapf(_look_yaw, -PI, PI)
+	_look_pitch = clampf(_look_pitch, -PI / 2.0, PI / 2.0)
+
+	# **THE COMMAND HOLDS WHAT THE WIRE HOLDS.** 0.0055° a step — finer than a
+	# mouse can express — so nothing is felt, and `InputCodec.serialise` is exactly
+	# lossless from here.
+	_command.look_yaw = InputCodec.quantise_yaw(_look_yaw)
+	_command.look_pitch = InputCodec.quantise_pitch(_look_pitch)
 
 
 func _sample_move() -> void:
 	var raw := _vector_for(Ids.INPUT_MOVE)
 	if raw.length() > 1.0:
 		raw = raw.normalized()
-	_command.move = raw
+	# Quantised for the same reason as look, and safe to do in place: `move` is
+	# read fresh from the device every frame rather than accumulated, so rounding
+	# it cannot stick.
+	_command.move = InputCodec.quantise_move(raw)
 
 
 ## Read one AXIS action's four bindings as a vector, with the deadzone applied by

@@ -1,27 +1,20 @@
-## **WHAT AN INPUT COMMAND ACTUALLY COSTS UPSTREAM.** TDD-04 §7.3, US-0038.
+## **WHAT AN INPUT COMMAND ACTUALLY COSTS UPSTREAM.** TDD-04 §7.3, US-0038,
+## US-0095.
 ##
-## The M2 gate asks for the upstream budget miss to be recorded *with its failing
-## test*. This is that test, and it is written last in M2 rather than first
-## because until it was written the miss was a **projection from a format nobody
-## implemented**.
+## Written at the M2 gate, when it found the upstream miss was **253 % of budget
+## rather than the 112 % §7.3 predicted**: `NET-C2S-INPUT` went out as six loose
+## RPC arguments, which Godot variant-encodes at 56 bytes against a budgeted 9.
 ##
-## **`NET-C2S-INPUT` IS NOT HAND-SERIALISED.** `Snapshot` is — it packs its own
-## bytes, which is why §7.1's downstream figures can be measured. Input goes out
-## as **RPC arguments**, and Godot encodes those as Variants: an `int` costs 8
-## bytes, a `Vector2` 12, a `float` 8 or 12. §7.3 budgets the payload at **9
-## bytes**, which is what the hand-packed layout in §6.1 would cost — `seq:u16`,
-## `move:2×i8`, `yaw:u8`, `pitch:i8`, `buttons:u16`, `acked_tick:u16` — and that
-## layout exists only in the document.
+## **US-0095 HAND-SERIALISED IT, AND THE GATE'S OWN PROJECTION WAS TOO
+## OPTIMISTIC.** US-0038 recorded "hand-packed only → 18.4 kbit/s, 115 %". That
+## figure counted the payload as reaching the wire raw. It does not: a
+## `PackedByteArray` RPC argument costs **8 bytes of Variant wrapper plus the
+## payload rounded up to four**. The real figure is **145 %** — a large
+## improvement, and still over.
 ##
-## This is US-0029's defect in the other direction. There, §7.1's per-record sizes
-## were unreachable from §4's field list and the total was re-derived. Here §7.3's
-## arithmetic is *correct for the format it assumes*; the implementation simply
-## never used that format, and nobody had measured which one was on the wire.
-##
-## **MEASURED WITH `var_to_bytes`**, which is the same variant encoder Godot's
-## high-level multiplayer uses. The real figure is **this or larger**: RPC adds
-## its own framing (a node-path cache id and a method id) that this does not
-## count, and ENet adds its header on top.
+## The correction matters more than the number. **A projection is not a
+## measurement**, and the gate's table was a projection made one layer too high —
+## the same mistake §7.3 made, one level down. This file measures.
 extends GutTest
 
 ## §7.3's own assumptions, so the projection here and the table there can be
@@ -29,142 +22,120 @@ extends GutTest
 const PACKET_OVERHEAD := 28.0
 const RELIABLE_EXTRA_BYTES_PER_SECOND := 20.0
 
-## What §7.3 budgeted the payload at, and what the hand-packed §6.1 layout would
-## actually cost. Both are here because the gap between them is the finding.
-const BUDGETED_PAYLOAD := 9
-const HAND_PACKED_PAYLOAD := 10
+## What six loose Variant arguments cost, before US-0095.
+const LOOSE_ARGUMENT_BYTES := 56
 
 
-## The arguments `Net.send_input` passes to `c2s_input`, in order. **The wire is
-## this list**, so the measurement has to be of exactly it.
-func _rpc_arguments() -> Array:
-	var command := InputCommand.new()
-	command.seq = 40000
-	command.move = Vector2(0.7, -0.7)
-	command.look_yaw = 2.5
-	command.look_pitch = -0.3
-	command.buttons = 0b1010101010
-	command.acked_tick = 12345
-	return [
-		command.seq,
-		command.move,
-		command.look_yaw,
-		command.look_pitch,
-		command.buttons,
-		command.acked_tick,
-	]
+func _upstream(payload_wire: float, packets_per_second: float) -> float:
+	return (
+		payload_wire * packets_per_second
+		+ PACKET_OVERHEAD * packets_per_second
+		+ RELIABLE_EXTRA_BYTES_PER_SECOND
+	)
 
 
-func _measured_payload_bytes() -> int:
-	var total := 0
-	for arg: Variant in _rpc_arguments():
-		total += var_to_bytes(arg).size()
-	return total
+func _kbit(bytes_per_second: float) -> float:
+	return bytes_per_second * 8.0 / 1000.0
 
 
-func test_the_argument_list_matches_what_net_actually_sends() -> void:
-	# **GUARDS THE MEASUREMENT.** If `send_input` gains or loses an argument and
-	# this list does not, every number below is measured against a wire that no
-	# longer exists — and it would keep reporting a plausible figure.
-	# **ANCHORED ON THE FUNCTION, NOT ON THE CALL'S FORMATTING.** The first version
-	# searched for the literal "c2s_input.rpc_id(" and failed, because `gdformat`
-	# reflows a long call so the dot starts its own line. A guard that breaks on
-	# whitespace is a guard somebody loosens, and the loosening is what costs you.
+func test_the_input_path_still_hand_serialises() -> void:
+	# **GUARDS EVERY NUMBER BELOW.** If `send_input` went back to loose arguments,
+	# the projection here would keep reporting the packed figure and look healthy.
+	#
+	# Anchored on the function rather than on the call's formatting: `gdformat`
+	# reflows long calls, and a guard that breaks on whitespace is one somebody
+	# loosens.
 	var source := SourceScanner.read("res://scripts/net/net.gd")
 	var at := source.find("func send_input")
 	assert_gt(at, -1, "Net.send_input is gone")
 	var call := source.substr(at, 600)
-	assert_true(call.contains("c2s_input"), "send_input no longer sends NET-C2S-INPUT")
-	assert_true(call.contains("rpc_id"), "send_input no longer dispatches by rpc_id")
-	for field: String in ["command.seq", "command.move", "command.look_yaw", "command.buttons"]:
-		assert_true(call.contains(field), "send_input no longer passes %s" % field)
+	assert_true(call.contains("InputCodec.serialise"), "send_input no longer packs the command")
 	assert_true(
 		call.contains("assembler.newest_tick()"), "send_input no longer sends the snapshot ack"
 	)
 
 
-func test_the_payload_is_not_the_nine_bytes_the_budget_assumes() -> void:
-	# **THE FINDING.** Recorded as an assertion rather than a comment, so it fails
-	# the day somebody hand-serialises the input command — which is the fix, and
-	# which should make this test change rather than quietly keep passing.
-	var measured := _measured_payload_bytes()
-	gut.p("NET-C2S-INPUT payload measured at %d B (§7.3 budgets %d)" % [measured, BUDGETED_PAYLOAD])
-	assert_gt(
-		measured,
-		BUDGETED_PAYLOAD,
-		(
-			"the payload now fits §7.3's budget — if input was hand-serialised, "
-			+ "update this test and §7.3 together"
-		)
-	)
+func test_hand_serialising_cut_the_payload_by_two_thirds() -> void:
+	var packed := InputCodec.wire_bytes(InputCodec.BYTES)
+	gut.p("payload: %d B loose -> %d B packed" % [LOOSE_ARGUMENT_BYTES, packed])
+	assert_lt(packed * 2, LOOSE_ARGUMENT_BYTES, "the codec no longer even halves the payload")
 
 
-func test_input_coalescing_alone_would_not_close_the_gap() -> void:
-	# **THE MITIGATION §7.3 NAMES DOES NOT WORK ON THE REAL NUMBER.** Coalescing
-	# two commands per packet halves the packet rate, so it halves the 28-byte
-	# overhead — but the payload doubles per packet, so payload cost is unchanged.
-	# It was the right answer when the payload was believed to be 9 bytes and the
-	# overhead dominated. Against a 56-byte payload the overhead is the small half.
+func test_the_measured_upstream_now() -> void:
 	var rate: float = Tuning.net.client_input_rate
-	var payload := float(_measured_payload_bytes())
+	var budget: float = Tuning.net.bandwidth_budget_up
+	var packed := float(InputCodec.wire_bytes(InputCodec.BYTES))
 
-	var now := payload * rate + PACKET_OVERHEAD * rate + RELIABLE_EXTRA_BYTES_PER_SECOND
-	var coalesced := (
-		payload * rate + PACKET_OVERHEAD * (rate / 2.0) + RELIABLE_EXTRA_BYTES_PER_SECOND
-	)
-	var hand_packed := (
-		float(HAND_PACKED_PAYLOAD) * rate + PACKET_OVERHEAD * rate + RELIABLE_EXTRA_BYTES_PER_SECOND
-	)
+	var before := _upstream(float(LOOSE_ARGUMENT_BYTES), rate)
+	var now := _upstream(packed, rate)
+	gut.p("before US-0095: %.1f kbit/s (%.0f %%)" % [_kbit(before), 100.0 * _kbit(before) / budget])
+	gut.p("now:            %.1f kbit/s (%.0f %%)" % [_kbit(now), 100.0 * _kbit(now) / budget])
+	gut.p("budget:         %.0f kbit/s" % budget)
 
-	gut.p("upstream now:            %.0f B/s = %.1f kbit/s" % [now, now * 8.0 / 1000.0])
-	gut.p("with coalescing only:    %.0f B/s = %.1f kbit/s" % [coalesced, coalesced * 8.0 / 1000.0])
+	assert_lt(_kbit(now), _kbit(before) * 0.7, "hand-serialising bought less than a third")
+
+
+func test_the_packet_overhead_alone_is_most_of_the_budget() -> void:
+	# **THE FINDING THAT DECIDES WHAT COMES NEXT.** At 60 packets a second, ENet's
+	# 28-byte header costs 13.4 kbit/s — **84 % of the whole budget before a single
+	# byte of payload.** Even a zero-length command would leave under 5 bytes a
+	# packet of room.
+	#
+	# So the payload was the right thing to fix first and it cannot be the last:
+	# what remains is the *packet rate*, which is exactly what coalescing halves.
+	# §7.3's original mitigation was correct — it was correct about the wrong
+	# term, at a time when nobody had measured which term dominated.
+	var rate: float = Tuning.net.client_input_rate
+	var budget: float = Tuning.net.bandwidth_budget_up
+	var overhead_only := _kbit(PACKET_OVERHEAD * rate)
 	gut.p(
 		(
-			"hand-packed, no coalesce: %.0f B/s = %.1f kbit/s"
-			% [hand_packed, hand_packed * 8.0 / 1000.0]
+			"packet overhead alone: %.1f kbit/s = %.0f %% of budget"
+			% [overhead_only, 100.0 * overhead_only / budget]
 		)
 	)
-	gut.p("budget: %.0f kbit/s" % Tuning.net.bandwidth_budget_up)
+	assert_gt(overhead_only, budget * 0.75, "overhead is no longer the dominant term")
 
-	assert_gt(
-		coalesced * 8.0 / 1000.0,
-		Tuning.net.bandwidth_budget_up,
-		"coalescing alone now fits the budget — §7.3's mitigation may be enough after all"
+
+func test_coalescing_would_now_close_the_budget() -> void:
+	# **AND NOW IT IS THE RIGHT MOVE, WHICH IT WAS NOT BEFORE US-0095.** Against a
+	# 56-byte payload, coalescing left the miss at 211 % and would have spent up
+	# to 16 ms of input latency to get there. Against a packed command it closes
+	# the budget outright — the payload doubles per packet but the packet rate
+	# halves, so overhead halves and the total falls under.
+	var rate: float = Tuning.net.client_input_rate
+	var budget: float = Tuning.net.bandwidth_budget_up
+	var two_commands := float(InputCodec.wire_bytes(InputCodec.BYTES * 2))
+	var coalesced := _upstream(two_commands, rate / 2.0)
+
+	gut.p(
+		(
+			"hand-packed AND coalesced: %.1f kbit/s (%.0f %%)"
+			% [_kbit(coalesced), 100.0 * _kbit(coalesced) / budget]
+		)
 	)
+	assert_lt(_kbit(coalesced), budget, "coalescing no longer closes the budget")
 
 
 func test_the_projected_upstream_against_the_budget() -> void:
-	# **PENDING, NOT FAILING**, the same choice `test_snapshot_size.gd` made and
-	# for the same reason: this is a design finding, not a defect in any file a
-	# red suite would point at. A permanently red test is one somebody deletes.
-	#
-	# ROADMAP §4.1 says this test "is expected to FAIL". US-0038 honours that as a
-	# **recorded, visible pending with the number in it** rather than a red
-	# pipeline, and says so rather than reinterpreting it quietly.
+	# **PENDING, NOT FAILING**, the same choice `test_snapshot_size.gd` made: a
+	# design finding rather than a defect in any file a red suite would point at,
+	# and a permanently red test is one somebody eventually deletes.
 	var rate: float = Tuning.net.client_input_rate
-	var total := (
-		float(_measured_payload_bytes()) * rate
-		+ PACKET_OVERHEAD * rate
-		+ RELIABLE_EXTRA_BYTES_PER_SECOND
-	)
-	var kbit := total * 8.0 / 1000.0
+	var budget: float = Tuning.net.bandwidth_budget_up
+	var kbit := _kbit(_upstream(float(InputCodec.wire_bytes(InputCodec.BYTES)), rate))
 
-	if kbit > Tuning.net.bandwidth_budget_up:
+	if kbit > budget:
 		pending(
 			(
 				(
 					"upstream is %.1f kbit/s against a %.0f budget (%.0f %%). "
-					+ "NET-C2S-INPUT is sent as RPC arguments, which Godot variant-encodes: "
-					+ "%d bytes, not the 9 §7.3 assumes. Hand-serialising it the way Snapshot "
-					+ "is serialised is the fix; coalescing alone is not. RISK-BANDWIDTH, US-0038."
+					+ "Hand-serialising the command (US-0095) brought it down from 253 %%; "
+					+ "what is left is PACKET OVERHEAD — 28 B × 60 Hz is 84 %% of the budget "
+					+ "on its own. Coalescing two commands per packet closes it. RISK-BANDWIDTH."
 				)
-				% [
-					kbit,
-					Tuning.net.bandwidth_budget_up,
-					100.0 * kbit / Tuning.net.bandwidth_budget_up,
-					_measured_payload_bytes(),
-				]
+				% [kbit, budget, 100.0 * kbit / budget]
 			)
 		)
 		return
-	assert_lt(kbit, Tuning.net.bandwidth_budget_up)
+	assert_lt(kbit, budget)
