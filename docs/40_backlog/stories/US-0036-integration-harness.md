@@ -1,10 +1,10 @@
 ---
 id: US-0036
 title: Headless 3-client integration harness
-version: 1.0.0
+version: 1.1.0
 status: in-progress
 owner: Technical Director
-last_updated: 2026-08-14
+last_updated: 2026-08-15
 depends_on: [BIBLE-TEST-PLAN, TDD-12-BUILD]
 ---
 
@@ -57,6 +57,27 @@ pull request**.
 - [x] Suite completes in at most 180 s — **87.7 s** for the whole integration suite, 104 s for
       all three suites together.
 - [x] Runs headless in CI on pull requests.
+
+## The harness's server clock never ticked
+
+**Found in US-0031, 2026-08-15.** `IntegrationHarness` never advanced `ctx.tick`, so **every
+snapshot it built from this story onward carried `server_tick = 0`.**
+
+Nothing depended on it and nothing failed. The reconciler orders by `last_acked_seq`, not by tick;
+`RemotePawns` — the one thing that derives a timeline from `server_tick` — is not in the harness's
+delivery path at all, since `_arrive_downstream` hands the snapshot straight to the `Reconciler`.
+So a server whose clock was frozen at zero produced a suite that passed for two stories.
+
+Delta encoding was the first thing to read it. It found a client whose newest assembled tick was
+permanently zero, so the ack was zero, no baseline was ever usable, and **the server sent a full
+snapshot every tick while five of the six new tests passed.** The sixth was written first and
+exists only to catch that.
+
+The harness derives its clock the way `MatchDirector` does now — one net tick every second physics
+frame, counted rather than timed.
+
+**The lesson is about harnesses specifically:** a fake whose unused fields hold plausible defaults
+is a fake that lies the moment somebody starts using them. Zero is a plausible tick.
 
 ## `disagreement()` measured the wrong thing, and three tests believed it
 
