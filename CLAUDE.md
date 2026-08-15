@@ -224,10 +224,23 @@ session reads, and a stale one is worse than none.*
 crowd, starting at US-0039**. M3 retires six criteria that are unticked only for
 want of NPCs: US-0030's four culling ones and US-0031's two.
 
-**Read US-0038 before starting M3.** The gate found the upstream budget is at
-**253 % — not the 112 % TDD-04 §7.3 documented** — and that the coalescing fix
-§7.3 proposed does not work. The payload, not the packet rate, is the problem.
-That is the largest open technical debt in the project and it is now measured.
+**US-0095 CLOSED HALF THE GATE'S UPSTREAM FINDING.** `NET-C2S-INPUT` was going
+out as six loose RPC arguments — Godot variant-encodes those at **56 bytes**
+against a budgeted 9 — and is hand-packed into 12 now. **253 % → 145 %.**
+
+**What is left is packet overhead, and it is 84 % of the budget on its own.**
+28 B × 60 Hz is 13.4 kbit/s before a single byte of payload, so coalescing two
+commands per packet is now the right next step and lands at **91 %, under
+budget** — which it would not have done before, when it left the miss at 211 %
+for 16 ms of input latency. Not built: that is a feel decision, not a bandwidth
+one.
+
+**The gate's own projection was too optimistic and is corrected.** US-0038 said
+hand-packing would reach 115 %; it reached 145 %, because a `PackedByteArray` RPC
+argument costs **8 bytes of Variant wrapper plus the payload rounded up to
+four**. A projection is not a measurement — and that one was a projection made a
+layer *above* the thing it described, which is the same mistake §7.3 made a layer
+below.
 
 The rest of this section is why each of those sentences is true, and what has
 already cost somebody an hour.
@@ -713,6 +726,11 @@ already is** — that alone reaches 115 %, and costs nothing a player can feel.
   that substitution loses nothing: what five minutes buys is repetition, and
   nothing in the lifecycle path accumulates with time rather than cycles. The
   difference between this line and the frame-rate one is exactly that.
+- **`run_gut.sh` CAUGHT ITS FIFTH SILENT SKIP**, during US-0095. A parameter
+  named `bytes` collided with an existing local in `IntegrationHarness`, the file
+  failed to parse, and four integration scripts were skipped — the suite reported
+  **153 passing tests and no failures**. Without the script-count check that is
+  indistinguishable from a healthy run.
 - **RISK-NETCODE moved DOWN, RISK-BANDWIDTH moved UP.** Prediction converges at
   four profiles with a measured reconciliation error of 0.00000 m — but its
   *impact* is unchanged, because kill, stun and contests are all M4 and nothing
@@ -911,7 +929,7 @@ US-0024 measures it against clips that do not exist.
 | | |
 |---|---|
 | CI | 7 jobs. **Running again as of 2026-08-07 after a two-day outage** — run `31200490320`, all seven green. The seven commits merged during the outage were never through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | **35 arch + 65 unit + 25 integration scripts**, holding 126 + 587 + 183 assertions. **One is `pending` by design** — `test_upstream_bandwidth.gd` reports the 253 % upstream miss rather than going red, the same choice `test_snapshot_size.gd` made. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
+| Tests | **35 arch + 66 unit + 25 integration scripts**, holding 126 + 599 + 183 assertions. **One is `pending` by design** — `test_upstream_bandwidth.gd` reports the 253 % upstream miss rather than going red, the same choice `test_snapshot_size.gd` made. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
 | Tuning | 280 tunables across 14 resource classes; all 26 cross-field invariants assert. **Eight IDs are deprecated** and recorded in TUNABLES §19 — never reused |
 | Autoloads | All eight. `Tuning` precomputes 86 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |

@@ -323,8 +323,12 @@ Plus `test_footstep_parity.gd` for the audio equivalent, and the no-per-instance
 > stays Medium rather than High**: the fix is known, bounded and cheap — hand-serialise the
 > command the way `Snapshot` already is — and it costs no gameplay latency.
 
-**Status: realised, and worse than documented.** Upstream measures **40.5 kbit/s against a
-16 kbit/s budget** — **payload, not packet overhead**, which reverses §7.3's diagnosis. Downstream
+**Status: realised, halved, and still open.** Upstream measured **40.5 kbit/s against a
+16 kbit/s budget** at the M2 gate — **payload, not packet overhead**, which reversed §7.3's
+diagnosis. **US-0095 hand-serialised the command and brought it to 23.2 kbit/s, 145 %.** What
+remains *is* packet overhead: 28 B × 60 Hz is 84 % of the budget on its own, and coalescing —
+§7.3's original proposal, right about the mechanism and wrong about which term dominated — would
+close it at 91 %. Downstream
 projects at **93.5 kbit/s, 97 %** of budget with 3 % headroom, itself re-derived in US-0029 from
 an original claim of 87 %.
 
@@ -336,13 +340,14 @@ percentile above 90 kbit/s down.
 (built, US-0031), rate LOD (NPC-only, M3). The ADR-0007 fallback (replicate near, seed-derive far)
 is designed but unbuilt.
 
-**Response — REORDERED AT THE GATE.** Upstream: **hand-serialise `InputCommand` first.** That
-alone takes upstream from 253 % to 115 %, and costs nothing a player can feel. **Coalescing is no
-longer the first move and must not be built first**: it halves the packet rate, so it only halves
+**Response — step one DONE (US-0095), step two now correct.** Upstream: **hand-serialise
+`InputCommand` first** — done, 253 % → 145 %, and it cost nothing a player can feel. **Coalescing
+was not the first move and must not have been built first**: it halves the packet rate, so it only halves
 the 28-byte overhead, leaving the miss at 211 % while spending up to 16 ms of input latency
 against an 80 ms feel budget. It was the right answer when the payload was believed to be 9 bytes
-and overhead dominated. Hand-packing **and** coalescing together reach 73 %. Downstream: the
-ADR-0007 fallback.
+and overhead dominated. **Now that the payload is packed it IS the right next step**: hand-packing
+and coalescing together reach **91 %**, under budget. It still costs up to 16 ms of input latency
+against an 80 ms feel budget, so measure before committing. Downstream: the ADR-0007 fallback.
 
 ---
 

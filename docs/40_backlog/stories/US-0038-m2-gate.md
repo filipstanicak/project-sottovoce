@@ -1,7 +1,7 @@
 ---
 id: US-0038
 title: M2 gate — netcode verification
-version: 1.0.0
+version: 1.1.0
 status: in-progress
 owner: Technical Director
 last_updated: 2026-08-15
@@ -136,10 +136,20 @@ Measured with `var_to_bytes`, the same variant encoder Godot's high-level multip
 | | Payload | Total upstream | Against a 16 kbit/s budget |
 |---|---|---|---|
 | §7.3's assumption | 9 B | 18.0 kbit/s | 112 % |
-| **Measured today** | **56 B** | **40.5 kbit/s** | **253 %** |
+| **Measured at the gate** | **56 B** | **40.5 kbit/s** | **253 %** |
 | With coalescing only | 56 B | 33.8 kbit/s | 211 % |
-| Hand-packed, no coalescing | 10 B | 18.4 kbit/s | 115 % |
-| Hand-packed **and** coalesced | 10 B | 11.7 kbit/s | **73 %** |
+| ~~Hand-packed, no coalescing~~ | ~~10 B~~ | ~~18.4 kbit/s~~ | ~~115 %~~ |
+| ~~Hand-packed **and** coalesced~~ | ~~10 B~~ | ~~11.7 kbit/s~~ | ~~73 %~~ |
+
+> **THE LAST TWO ROWS WERE WRONG, AND US-0095 CORRECTED THEM.** They counted the packed payload as
+> reaching the wire raw. A `PackedByteArray` RPC argument costs **8 bytes of Variant wrapper plus
+> the payload rounded up to four**, so a 12-byte command costs 20. Hand-packed is **145 %**, not
+> 115 %; hand-packed and coalesced is **91 %**, not 73 %.
+>
+> **A projection is not a measurement.** This table was a projection made one layer *above* the
+> thing it described — which is exactly the mistake §7.3 made one layer below, in the same story
+> that found it. Hand-serialisation still made the largest single difference available (253 % →
+> 145 %), so the decision the gate reached was right; only its arithmetic was not.
 
 **The decision, logged:** coalescing is **not** the fix and must not be built first. §7.3 proposed
 it when the payload was believed to be 9 bytes and the 28-byte packet overhead dominated — at
@@ -149,7 +159,9 @@ latency against an 80 ms feel budget. **Paying latency for 42 kbit/s would be th
 the project.**
 
 **Hand-serialising `InputCommand` the way `Snapshot` is serialised is the fix**, and it alone
-brings upstream to 115 %. Both together reach 73 %. That ordering is now recorded in §7.3 and in
+brings upstream to **145 %** (corrected — see above). **Built in US-0095.** Both together reach
+91 %, and coalescing became the right second step only once the payload was fixed: packet overhead
+alone is 84 % of the budget. That ordering is now recorded in §7.3 and in
 `RISK-BANDWIDTH`, and neither is M2's — M2's exit criterion is that the transport is honest about
 what it costs, which is now true.
 

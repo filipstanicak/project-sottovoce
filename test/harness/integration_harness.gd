@@ -189,7 +189,11 @@ func _uplink(peer: int, command: InputCommand) -> void:
 	# replayed during reconciliation.
 	var outgoing := command.duplicate_command()
 	outgoing.acked_tick = (_clients[peer]["assembler"] as SnapshotAssembler).newest_tick()
-	_in_flight.append([_latency, peer, outgoing, true, null])
+	# **SERIALISED, LIKE THE SNAPSHOT.** Input has had a wire format since
+	# US-0095, and a harness that passed the object would prove nothing about what
+	# actually travels — including that the client predicts with exactly the values
+	# the server receives. Same reason the downstream half serialises.
+	_in_flight.append([_latency, peer, InputCodec.serialise(outgoing), true, null])
 
 
 ## Deliver everything that has landed, and hold the rest one frame longer.
@@ -200,7 +204,7 @@ func _pump_wire() -> void:
 			still.append([int(packet[0]) - 1, packet[1], packet[2], packet[3], packet[4]])
 			continue
 		if bool(packet[3]):
-			_arrive_upstream(int(packet[1]), packet[2] as InputCommand)
+			_arrive_upstream(int(packet[1]), packet[2] as PackedByteArray)
 		else:
 			_arrive_downstream(int(packet[1]), packet[4] as PackedByteArray)
 	_in_flight = still
@@ -208,8 +212,11 @@ func _pump_wire() -> void:
 
 ## The server receives a command, applies it, and answers with a snapshot — which
 ## then has to travel back, and waits its own latency to do so.
-func _arrive_upstream(peer: int, command: InputCommand) -> void:
+func _arrive_upstream(peer: int, input_bytes: PackedByteArray) -> void:
 	if not _clients.has(peer):
+		return
+	var command := InputCodec.deserialise(input_bytes)
+	if command == null:
 		return
 	# **THE ACK RIDES THE INPUT**, exactly as `NET-C2S-INPUT` carries it, so the
 	# delta path here is the shipping one rather than a full send every tick.
@@ -220,13 +227,13 @@ func _arrive_upstream(peer: int, command: InputCommand) -> void:
 	# **SERIALISED, NOT HANDED OVER.** The format is where the information rules
 	# live, so a harness that passed objects would prove nothing about what
 	# actually travels.
-	var bytes := snapshot.serialise()
-	snapshot_bytes += bytes.size()
+	var snapshot_wire := snapshot.serialise()
+	snapshot_bytes += snapshot_wire.size()
 	if snapshot.baseline_age == Snapshot.FULL:
 		full_snapshots += 1
 	else:
 		delta_snapshots += 1
-	_in_flight.append([_latency, peer, null, false, bytes])
+	_in_flight.append([_latency, peer, null, false, snapshot_wire])
 
 
 func _arrive_downstream(peer: int, bytes: PackedByteArray) -> void:

@@ -323,18 +323,20 @@ func _rejected(reason: int) -> void:
 
 ## `NET-C2S-INPUT`. SERVER SIDE, 60 Hz. The sender is the transport's to state,
 ## never the payload's to claim.
+## **ONE PACKED ARGUMENT, NOT SIX LOOSE ONES.** Godot variant-encodes every RPC
+## argument — an `int` is 8 bytes, a `Vector2` 12 — which cost 56 bytes a command
+## and put upstream at 253 % of budget (US-0038). `InputCodec` packs it into 12.
 @rpc("any_peer", "call_remote", "unreliable", Messages.Channel.STATE)
-func c2s_input(seq: int, move: Vector2, yaw: float, pitch: float, buttons: int, tick: int) -> void:
+func c2s_input(bytes: PackedByteArray) -> void:
 	var peer := multiplayer.get_remote_sender_id()
 	if _router == null or not _router.authorise(peer, Ids.NET_C2S_INPUT):
 		return
-	var command := InputCommand.new()
-	command.seq = seq
-	command.move = move
-	command.look_yaw = yaw
-	command.look_pitch = pitch
-	command.buttons = buttons
-	command.acked_tick = tick
+	# A malformed buffer is dropped, never partially decoded: a short read would
+	# decode as a command holding no buttons and no movement, and the server
+	# would simulate it.
+	var command := InputCodec.deserialise(bytes)
+	if command == null:
+		return
 	_router.receive_input(peer, command)
 
 
@@ -361,20 +363,11 @@ func c2s_blend_request(target_id: int) -> void:
 func send_input(command: InputCommand) -> void:
 	if not is_client_connected():
 		return
-	(
-		c2s_input
-		. rpc_id(
-			MultiplayerPeer.TARGET_PEER_SERVER,
-			command.seq,
-			command.move,
-			command.look_yaw,
-			command.look_pitch,
-			command.buttons,
-			# **FROM THE ASSEMBLER, NOT THE COMMAND.** The command is replayed during
-			# reconciliation; a network value stamped on it would enter replay input.
-			assembler.newest_tick()
-		)
-	)
+	# **THE ACK IS STAMPED ON A COPY.** The command is replayed during
+	# reconciliation; a network value written onto it would enter replay input.
+	var outgoing := command.duplicate_command()
+	outgoing.acked_tick = assembler.newest_tick()
+	c2s_input.rpc_id(MultiplayerPeer.TARGET_PEER_SERVER, InputCodec.serialise(outgoing))
 
 
 # ------------------------------------------------------ the snapshot stream --

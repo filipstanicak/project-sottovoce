@@ -226,6 +226,26 @@ is consulted constantly.
 **Legend** — *Ch*: channel (S=STATE, E=EVENT, X=SESSION). *Rel*: reliability.
 **Every C2S row must have a non-empty authority check** (ADR-0002 compliance).
 
+> **`NET-C2S-INPUT` IS HAND-PACKED, AND ITS LAYOUT IS NOT QUITE THE ONE ABOVE.**
+> Until US-0095 it went out as six loose RPC arguments, which Godot variant-encodes at **56
+> bytes** — the M2 gate measured upstream at 253 % of budget because of it. `InputCodec` now packs
+> it into **12 bytes**: `seq:u16`, `move:2×i8`, `yaw:u16`, `pitch:i16`, `buttons:u16`,
+> `acked_tick:u16`.
+>
+> **Yaw is `u16` and pitch is `i16`, where this table said `u8` and `i8`, and the wire cost is
+> identical.** A `PackedByteArray` argument costs 8 bytes of Variant wrapper plus the payload
+> rounded up to four, so a 10-byte and a 12-byte payload **both cost 20**. The narrower fields
+> save nothing and cost two things that were measured rather than argued:
+>
+> - `pitch:i8` would **stair-step the camera** — `camera_rig.gd` reads `look_pitch` directly to
+>   place the arm, and 180° in 256 steps is 0.7° a step.
+> - `yaw:u8` would make a **slow mouse drag stick**: the sampler accumulates look, and at 1.4° a
+>   step any frame moving less than 0.7° rounds back where it started.
+>
+> **The client quantises at SAMPLE time, not at send time.** It predicts with the command it holds
+> and the server simulates with the command it received; a single rounding step between them is a
+> divergence on every frame that the reconciler would absorb silently.
+
 > **`peer_id:u8` IN EVERY ROW BELOW IS A SLOT, NOT THE ENGINE'S PEER ID.** Godot hands out
 > **random 32-bit** peer ids — a test client was welcomed as `1526710570` — and this catalogue
 > declares a byte in seven places. The catalogue is right: six players fit in three bits, and the
@@ -246,7 +266,7 @@ is consulted constantly.
 | `NET-C2S-HELLO` | X | Reliable | Once | `protocol_version:u16`, `build_hash:u64`, `tuning_hash:u64` | Version and build must match server; else reject with reason. **The tuning hash can never refuse a peer** — it is carried so the server can answer a mismatch with `NET-S2C-TUNING-SYNC` rather than sending 6 KB on every join or never noticing (US-0025) |
 | `NET-C2S-LOADOUT` | X | Reliable | Lobby only | `persona:u8`, `ability_a:u8`, `ability_b:u8`, `passive:u8` | **Rejected unless phase == LOBBY.** IDs must be within the MVP set; abilities must differ |
 | `NET-C2S-READY` | X | Reliable | Lobby only | `ready:bool` | Rejected unless phase == LOBBY |
-| `NET-C2S-INPUT` | S | Unreliable | **60 Hz** | `seq:u16`, `move:2×i8`, `yaw:u8`, `pitch:i8`, `buttons:u16`, `acked_tick:u16` | Sender must own a living pawn. `seq` must be newer than last processed (stale/replayed commands dropped). Applies to the **sender's** pawn only — the pawn is looked up from the peer id, never from the payload |
+| `NET-C2S-INPUT` | S | Unreliable | **60 Hz** | `seq:u16`, `move:2×i8`, `yaw:u8`, `pitch:i8`, `buttons:u16`, `acked_tick:u16` — **hand-packed into 12 bytes, see below** | Sender must own a living pawn. `seq` must be newer than last processed (stale/replayed commands dropped). Applies to the **sender's** pawn only — the pawn is looked up from the peer id, never from the payload |
 | `NET-C2S-ABILITY-REQUEST` | E | Reliable | On demand | `slot:u8`, `aim_origin:3×f32`, `aim_dir:3×f32` | Slot must be equipped; cooldown must be expired **on the server**; `TUN-ABILITY-GLOBAL-COOLDOWN` respected; aim clamped to the ability's range server-side |
 | `NET-C2S-BLEND-REQUEST` | E | Reliable | On demand | `target_id:u16` (blend prop or group slot) | Target must exist, be within `TUN-BLEND-GROUP-JOIN-RADIUS`, and have capacity (`TUN-BLEND-PROP-CAPACITY` 1) |
 | `NET-C2S-SKIP-RESULTS` | X | Reliable | Once | — | Phase must be RESULTS. Skip requires **unanimous** consent |
@@ -402,12 +422,24 @@ seed-derive far ones) remains designed, documented and unbuilt.
 
 | Component | Calculation | Bytes/s |
 |---|---|---|
-| `NET-C2S-INPUT` (**56 B** × 60 Hz, measured) | | 3 360 |
+| `NET-C2S-INPUT` (**20 B** × 60 Hz, measured — 12 B packed + 8 B Variant wrapper) | | 1 200 |
 | Overhead (28 B × 60 packets/s) | | 1 680 |
 | Occasional reliable requests | | ~20 |
-| **Total** | | **5 060 B/s ≈ 40.5 kbit/s** |
+| **Total** | | **2 900 B/s ≈ 23.2 kbit/s** |
 
-**253 % of the 16 kbit/s budget, and the cause is the PAYLOAD, not packet overhead.**
+**145 % of the 16 kbit/s budget, down from 253 %**, and **what remains is packet overhead, not
+payload** — which is where this section started, for the wrong reason.
+
+> **HAND-SERIALISED IN US-0095, AND THE GATE'S OWN PROJECTION WAS TOO OPTIMISTIC.** US-0038
+> recorded "hand-packed only → 18.4 kbit/s, 115 %". That counted the payload as reaching the wire
+> raw; a `PackedByteArray` RPC argument costs **8 bytes of Variant wrapper plus the payload
+> rounded up to four**. The real figure is 145 %. **A projection is not a measurement** — and that
+> one was a projection made one layer above the thing it described, which is the same mistake this
+> section made one layer below.
+>
+> **At 60 packets a second, ENet's 28-byte header alone is 13.4 kbit/s — 84 % of the whole budget
+> before a single byte of payload.** Even a zero-length command would leave under five bytes of
+> room per packet. So the payload was the right thing to fix first and cannot be the last.
 
 > **THIS TABLE WAS RE-DERIVED AT THE M2 GATE (US-0038), AND ITS DIAGNOSIS WAS BACKWARDS.** It
 > read *"2 240 B/s ≈ 18 kbit/s — slightly over, and the cause is packet overhead, not payload:
@@ -433,14 +465,19 @@ seed-derive far ones) remains designed, documented and unbuilt.
 > implementation simply never used that format, and nobody had measured which one was on the wire.
 > **A budget is a claim about an implementation; an unmeasured one describes the document.**
 
-**Mitigation — REORDERED AT THE GATE. Hand-serialise `InputCommand` first**, the way `Snapshot`
-already is: that alone takes upstream to 115 % and costs nothing a player can feel.
+**Mitigation — step one is DONE, step two is now the right move.**
 
-**Coalescing is no longer the first move and must not be built first.** Two commands per packet
-halves the packet rate, so it halves only the 28-byte overhead — leaving the miss at 211 % while
-spending up to 16 ms of added input latency against an 80 ms budget. It was the right answer when
-the payload was believed to be 9 bytes and overhead dominated; against a 56-byte payload the
-overhead is the smaller half. Both together reach 73 %.
+1. **Hand-serialise `InputCommand`** — done, US-0095. 253 % → 145 %, and it cost nothing a player
+   can feel.
+2. **Coalesce two commands per packet** — **now correct, and it was not before.** Against a
+   56-byte payload it would have left the miss at 211 % while spending up to 16 ms of added input
+   latency against an 80 ms budget: a bad trade. Against a packed command the payload doubles per
+   packet but the packet rate halves, so the dominant overhead term halves and the total lands at
+   **14.6 kbit/s — 91 %, under budget.** Measure the latency cost before committing, as this
+   section has always said.
+
+§7.3 proposed coalescing from the start and was right about the mechanism and wrong about the
+term: overhead did not dominate until the payload was fixed.
 
 > Recorded as open question 2. The naive implementation misses the budget; the fix is known,
 > cheap, and has a real cost that must be measured against `TUN-FEEL-INPUT-TO-ANIM-MAX`.
