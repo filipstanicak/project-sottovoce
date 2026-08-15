@@ -139,7 +139,9 @@ input commands, and **every C2S message has a non-empty authority check**.
 **DONE, 2026-08-15** (US-0025 to US-0028). All three clauses hold, the third structurally:
 `test_no_client_authority.gd` fails any handler that reaches a system before calling
 `RpcRouter.authorise()`, and it is falsified against a planted violation. The three-client half is
-proven by `IntegrationHarness` rather than by hand.
+proven **both** ways: by `IntegrationHarness` in CI, and by hand at the M2 gate (US-0038) across
+four real processes, where each client was welcomed into a distinct wire slot and saw the other
+two appear.
 
 ---
 
@@ -172,8 +174,10 @@ target; it is hard to land in individually-inert pieces.
 **Done when:** reconciliation converges at all four latency profiles with no visible snap, and
 gameplay is identical at 30 / 60 / 144 fps.
 
-**FIRST CLAUSE MET; SECOND CANNOT BE TESTED HERE. THE EPIC IS COMPLETE** — US-0032 to US-0037 are
-all built. Reconciliation converges at LAN, GOOD, TYPICAL and POOR, and the snap is invisible
+**FIRST CLAUSE MET; SECOND CANNOT BE TESTED HERE. THE EPIC IS COMPLETE** — US-0032 to US-0038 are
+all built, and **US-0038's gate run judged the second clause explicitly rather than ticking it**:
+the structural substitute is accepted for M2's transport criterion and the line is left open, so
+nobody later reads the frame-rate case as closed. Reconciliation converges at LAN, GOOD, TYPICAL and POOR, and the snap is invisible
 because **the simulation snaps while the visual blends** — the sim takes the server's answer
 exactly, and only the drawn offset decays.
 

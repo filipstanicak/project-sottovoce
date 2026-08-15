@@ -220,11 +220,17 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 *Updated 2026-08-15. Keep this section current — it is the first thing a fresh
 session reads, and a stale one is worse than none.*
 
-**PICK UP HERE.** M1 is complete and its gate is passed. **M2 is thirteen
-stories of fourteen**; what is left is **US-0038, the M2 gate**. Read ROADMAP
-§4.1 before starting it: **two of its four lines cannot pass as written** and are
-flagged there. The rest of this section is why each of those sentences is true,
-and what has already cost somebody an hour.
+**PICK UP HERE. M2 IS COMPLETE — ITS GATE IS RUN AND JUDGED.** Next is **M3, the
+crowd, starting at US-0039**. M3 retires six criteria that are unticked only for
+want of NPCs: US-0030's four culling ones and US-0031's two.
+
+**Read US-0038 before starting M3.** The gate found the upstream budget is at
+**253 % — not the 112 % TDD-04 §7.3 documented** — and that the coalescing fix
+§7.3 proposed does not work. The payload, not the packet rate, is the problem.
+That is the largest open technical debt in the project and it is now measured.
+
+The rest of this section is why each of those sentences is true, and what has
+already cost somebody an hour.
 
 **M0 IS COMPLETE. M1'S EXIT CRITERION IS MET AND ITS FEEL GATE IS PASSED**, judged
 at the controls on 2026-08-13: slowing instant from every state, the FOV ladder
@@ -663,9 +669,57 @@ zero, and **sent full snapshots forever while five of the six new tests passed**
 The sixth was written first and specifically to catch that. **Trap 3's family,
 fifth instance.**
 
-**M2 IS THIRTEEN OF FOURTEEN.** US-0025 to US-0037 are all built. What is left is
-**US-0038, the M2 gate**. US-0030's culling criteria stay unticked — there is no
-crowd to cull until M3.
+**US-0038 IS RUN: M2 IS COMPLETE.** Six of nine gate criteria are met, and the
+three that are not are each blocked by something real and named. The gate's value
+was not running the suite — it was **checking that the things it names exist and
+measure what they claim to**, and two did not.
+
+**THE UPSTREAM BUDGET IS AT 253 %, NOT 112 %, AND THE PLANNED FIX DOES NOT WORK.**
+`test_upstream_bandwidth.gd` **did not exist**; §4.1 called it "expected to FAIL",
+which reads like a test that runs and goes red, and nothing ran. Written, it
+measured the payload at **56 bytes against the 9 §7.3 budgets**, because
+**`NET-C2S-INPUT` is not hand-serialised** — it goes out as RPC arguments and
+Godot encodes those as Variants. §7.3's arithmetic was right for a format nothing
+ever used.
+
+| | Payload | Total | Of budget |
+|---|---|---|---|
+| §7.3's old assumption | 9 B | 18.0 kbit/s | 112 % |
+| **Measured** | **56 B** | **40.5 kbit/s** | **253 %** |
+| Coalescing only | 56 B | 33.8 kbit/s | 211 % |
+| Hand-packed only | 10 B | 18.4 kbit/s | 115 % |
+| Hand-packed **and** coalesced | 10 B | 11.7 kbit/s | **73 %** |
+
+**Coalescing must not be built first.** It halves the packet rate, so it halves
+only the 28-byte overhead, and spends up to 16 ms of input latency against an
+80 ms feel budget to do it. **Hand-serialise `InputCommand` the way `Snapshot`
+already is** — that alone reaches 115 %, and costs nothing a player can feel.
+
+- **The hand run was real and retired US-0037's last open criterion.** Four
+  processes: a headless server and three clients, each welcomed into a distinct
+  wire slot, **each seeing the other two appear**. First multi-process run with
+  delta encoding live. A hard-killed client — no disconnect packet, which is the
+  **timeout** path — produced `peer left` then `pawn freed` about ten seconds
+  later, the same sequence a clean disconnect takes.
+- **The headless clients cannot move** (trap 13), so that run proves the
+  *transport*, not replicated movement. The harness proves the movement. Saying
+  otherwise would be the rounding-up a gate exists to refuse.
+- **The frame-rate line stays unticked and its substitute is accepted
+  explicitly.** `test_no_gameplay_in_process.gd` is stronger in one direction —
+  gameplay cannot ride the render clock *by accident* — and weaker in another: a
+  client-side visual reading gameplay state per frame still slips past. Good
+  enough for M2's transport criterion, not good enough to tick.
+- **The churn line IS ticked at 120 cycles rather than five minutes**, because
+  that substitution loses nothing: what five minutes buys is repetition, and
+  nothing in the lifecycle path accumulates with time rather than cycles. The
+  difference between this line and the frame-rate one is exactly that.
+- **RISK-NETCODE moved DOWN, RISK-BANDWIDTH moved UP.** Prediction converges at
+  four profiles with a measured reconciliation error of 0.00000 m — but its
+  *impact* is unchanged, because kill, stun and contests are all M4 and nothing
+  has yet depended on it being right.
+
+**M2 IS COMPLETE.** US-0025 to US-0038 are all built. US-0030's culling criteria
+and US-0031's two stay unticked — there is no crowd until M3.
 
 **WHAT IS RUNNABLE AND WHAT IS NOT.** Three clients and a headless server hold a
 match: peers join, the server simulates their pawns, snapshots come back, each
@@ -857,7 +911,7 @@ US-0024 measures it against clips that do not exist.
 | | |
 |---|---|
 | CI | 7 jobs. **Running again as of 2026-08-07 after a two-day outage** — run `31200490320`, all seven green. The seven commits merged during the outage were never through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | **35 arch + 64 unit + 25 integration scripts**, holding 126 + 583 + 183 assertions. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
+| Tests | **35 arch + 65 unit + 25 integration scripts**, holding 126 + 587 + 183 assertions. **One is `pending` by design** — `test_upstream_bandwidth.gd` reports the 253 % upstream miss rather than going red, the same choice `test_snapshot_size.gd` made. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
 | Tuning | 280 tunables across 14 resource classes; all 26 cross-field invariants assert. **Eight IDs are deprecated** and recorded in TUNABLES §19 — never reused |
 | Autoloads | All eight. `Tuning` precomputes 86 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |
