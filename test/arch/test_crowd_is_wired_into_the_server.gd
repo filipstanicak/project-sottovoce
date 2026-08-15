@@ -65,6 +65,23 @@ func test_the_server_registers_the_crowd_director() -> void:
 	)
 
 
+func test_the_director_rebuilds_the_shared_hash() -> void:
+	# **THE HASH IS ON `MatchContext` SO FOUR SYSTEMS CAN REACH IT** — and a hash
+	# nobody rebuilds is a grid that answers every query with the crowd's opening
+	# positions, for eight minutes, without erroring. `test_crowd_moves.gd` proves
+	# it is current; this proves there is exactly one place that makes it so.
+	assert_true(
+		SourceScanner.code_contains(
+			"res://scripts/systems/crowd/crowd_director.gd", "crowd_hash.rebuild("
+		),
+		"CrowdDirector never rebuilds ctx.crowd_hash"
+	)
+	assert_true(
+		SourceScanner.code_contains("res://scripts/systems/match_context.gd", "SpatialHash.new()"),
+		"MatchContext does not own the shared hash"
+	)
+
+
 func test_the_director_claims_the_crowd_stage() -> void:
 	# And that the stage it claims is one a system may occupy at all — `ingest`,
 	# `pawn` and `snapshot` are positions in the order, and the director refuses

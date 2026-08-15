@@ -221,6 +221,26 @@ func test_the_navmesh_sits_above_the_street_which_is_why_gravity_is_needed() -> 
 	assert_gt(on_mesh.y, VetraioLayout.STREET_Y - 0.01, "the navmesh is below the street")
 
 
+func test_the_spatial_hash_holds_this_tick_s_crowd_and_not_the_first_one() -> void:
+	# **THE ONLY ASSERTION THAT CAN TELL A LIVE HASH FROM A STALE ONE.** A grid
+	# built once at setup and never rebuilt has the right *count* forever, and
+	# every unit test of the hash would still pass. What it does not have is the
+	# crowd's current positions — so after thirty ticks of walking, asking whether
+	# each NPC is findable **at its own feet** is the question that separates them.
+	#
+	# It matters because suspicion runs immediately after the crowd stage and asks
+	# "is anybody within `TUN-SUSPICION-OPEN-RADIUS` of me". Against last minute's
+	# crowd, a player standing in an emptied plaza would accrue nothing.
+	await _stand_up()
+	await _run(30)
+	assert_eq(_ctx.crowd_hash.count(), CROWD, "the hash does not hold the active crowd")
+	var missing := 0
+	for index: int in CROWD:
+		if _ctx.crowd_hash.count_within(_pool.body_of(index).global_position, 0.5) == 0:
+			missing += 1
+	assert_eq(missing, 0, "%d NPCs are not where the hash says they are" % missing)
+
+
 func test_an_idle_npc_stands_still() -> void:
 	# Idle is the state with no goal and no speed, and "no goal" is the case that
 	# would otherwise re-enter the repath queue every tick and starve the rest.

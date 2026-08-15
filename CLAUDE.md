@@ -220,18 +220,41 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 *Updated 2026-08-15. Keep this section current — it is the first thing a fresh
 session reads, and a stale one is worse than none.*
 
-**PICK UP HERE. M3 IS THREE STORIES IN AND THE CROWD WALKS.** US-0039 built
+**PICK UP HERE. M3 IS FOUR STORIES IN AND THE CROWD WALKS.** US-0039 built
 the pool and roster, US-0040 the brain, US-0041 the navmesh and the steering
-under it. A server logs `NpcPool: 90 bodies allocated` and
+under it, US-0042 the shared spatial hash. A server logs `NpcPool: 90 bodies allocated` and
 `crowd placed: 78 NPCs across 62 anchors`, and the seventy-eight now stroll
 between idle anchors, stand at them for 8–25 s, and walk round each other.
 
 **US-0041 IS DONE BAR ONE LINE, AND THAT ONE IS BLOCKED**, not unstarted:
 far-band path validity needs the Near/Mid/Far bands, which are US-0045's.
 
-**Pick up at US-0042 (the spatial hash)** — pure, small, and the four consumers
-TDD-08 §6 names are all waiting on it — or **US-0043** (the director's circuits
-and formation slots), which is what makes `WALKING_GROUP` reachable at all.
+**Pick up at US-0043** (the director's circuits and formation slots), which is
+what makes `WALKING_GROUP` reachable at all and is the last piece of crowd
+*behaviour* before US-0044's startle and gawk.
+
+**US-0042 IS DONE: ONE GRID, FOUR CONSUMERS, 0.0561 MS.** A counting sort over
+buffers sized once, so a rebuild allocates nothing — measured at **37 % of
+§11.2's 0.15 ms budget**, which is what closes TDD-08 §12's third open question
+in favour of correctness over double-buffering. Three things in it are worth
+carrying:
+
+- **The cell size is READ from `TUN-SUSPICION-OPEN-RADIUS`, not declared as
+  6.0.** The criterion is that the two are the *same number* — a literal stops
+  satisfying it the first time the radius is retuned, and nothing would say so.
+- **Two empty answers agree.** Every brute-force comparison also counts how often
+  it found *anybody* and fails if that number is low, because a hash returning
+  nothing at all matches brute force whenever brute force found nothing — which
+  on random points is most of the time. Trap 3's family, designed out.
+- **A hash built once at setup passes every unit test in its own file.** The
+  count is right forever; only the *positions* go stale. The one assertion that
+  separates the two lives in `test_crowd_moves.gd`: after thirty ticks of
+  walking, every NPC must be findable **at its own feet**.
+
+`nearest_distance()` takes a **bound** and returns `INF` outside it, deviating
+from TDD-08 §6's signature: unbounded, it must widen until it finds somebody,
+which is a full crowd scan per pawn per tick arriving exactly when the district
+is emptiest. TDD-08 §6.1 records that and two other amendments.
 
 **THE NUMBER THAT MATTERS IS 1.400 M/S AGAINST A DOCUMENTED STROLL OF 1.400.**
 "The NPCs moved" is satisfied by NPCs moving at any speed at all, and the crowd's
@@ -1070,7 +1093,7 @@ US-0024 measures it against clips that do not exist.
 | | |
 |---|---|
 | CI | 7 jobs. **Running again as of 2026-08-07 after a two-day outage** — run `31200490320`, all seven green. The seven commits merged during the outage were never through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | **38 arch + 70 unit + 28 integration scripts**, holding 139 + 644 + 210 tests and 212 + 3536 + 565 assertions. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **126.8 s** of the 180 s it is allowed, up from 87.7 s: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **One is `pending` by design** — `test_upstream_bandwidth.gd` reports the 253 % upstream miss rather than going red, the same choice `test_snapshot_size.gd` made. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
+| Tests | **39 arch + 71 unit + 28 integration scripts**, holding 144 + 657 + 211 tests and 226 + 5365 + 567 assertions. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **127.9 s** of the 180 s it is allowed, up from 87.7 s at M2: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **One is `pending` by design** — `test_upstream_bandwidth.gd` reports the 253 % upstream miss rather than going red, the same choice `test_snapshot_size.gd` made. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
 | Tuning | 284 tunables across 14 resource classes; all 28 cross-field invariants assert. **Eight IDs are deprecated** and recorded in TUNABLES §19 — never reused |
 | Autoloads | All eight. `Tuning` precomputes 88 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |
@@ -1078,7 +1101,7 @@ US-0024 measures it against clips that do not exist.
 | Map | `MAP-VETRAIO` greybox, 120 × 120 m. Client loads 28 meshes, server loads none. **The street surface is exactly `STREET_Y`** — floors used to straddle their declared height, putting every walkable top 0.1 m high, which made the 0.9 m stalls unvaultable and three spawn points float over nothing. **Lit as of US-0091** — one key light and a sky, because nothing in the project had ever created either and the district rendered near-black. **The navmesh is baked at build time and committed** (US-0041): 195 polygons, and it sits **0.400 m above the street**, which is why steering applies gravity rather than trusting the snap |
 | Pawn | 14 states declared — **the Jog rung was removed in US-0090** and `Jog` is a retired ID absent from `ALL`. Transition edges asserted against the normative diagram. **Eleven implemented**: five locomotion + `Vault`, `Climb`, `Drop`, `KillAnim`, `Stunned`, `Blended`. `Respawning`, `StunAnim` and `Dead` are M4 |
 | Traversal | **Complete.** Probes cast, all seven §7.2 cases resolve from real geometry, both forgiveness windows open, and vault, mantle, climb, drop and gap jump all perform. **Case 7 hops as of US-0093** — an impulse, not a state, scaled by the speed rung and adding nothing horizontal. **The action buffer arms on the PRESS, not the hold** — arming from the held bit spent a traverse every frame a finger stayed down |
-| Crowd | 90 bodies pre-allocated, 78 active, each with a brain and a `CrowdContext` allocated beside it. `CrowdDirector` ticks them at the `crowd` stage and translates the five flags `NpcBrain.step()` deliberately does not read into `handle()` calls; `Steering` moves the bodies from the **avoidance callback**, on the physics frame, and knows nothing about states — it takes a point and a speed. Repath is FIFO and capped at three a tick. **Only Stroll and Idle are reachable**: slots are US-0043's and startle and gawk are US-0044's |
+| Crowd | 90 bodies pre-allocated, 78 active, each with a brain and a `CrowdContext` allocated beside it. One `SpatialHash` on `MatchContext`, rebuilt at the **top** of the crowd stage so the brains and every downstream system read the same grid — 0.0561 ms, allocating nothing. `CrowdDirector` ticks them at the `crowd` stage and translates the five flags `NpcBrain.step()` deliberately does not read into `handle()` calls; `Steering` moves the bodies from the **avoidance callback**, on the physics frame, and knows nothing about states — it takes a point and a speed. Repath is FIFO and capped at three a tick. **Only Stroll and Idle are reachable**: slots are US-0043's and startle and gawk are US-0044's |
 | Pawn body | `GreyboxBody`, procedural — capsule, head and a chest marker on `+Z`, measured from the collider so the two cannot drift. **`PersonaVisuals` was empty through US-0021, 0022 and 0023**: three stories of camera work built around a pawn that did not render, every suite green. Not a persona — ART_BIBLE §6.1's four constructions are US-0039's |
 | Camera | Real spring arm: 2.6 m, **pawn centred** (US-0092 — the 0.45 m offset never changed the composition, because the rig aims at the pawn's own axis; `INPUT-SHOULDER` retired with it), occlusion that pulls **in** and never sideways, `WORLD`-masked so a crowd cannot push it. The FOV ladder is bound to the **state**, never to `ctx.velocity`: the rung is a consequence of the decision, not of the physics that follows it. Crowd-scan narrows to 48° and grants nothing. **Positive pitch LOWERS the arm** — the rig looks *at* the pivot, so a raised arm looks down; it shipped inverted from US-0021 until somebody played it |
 | Input | 20 `InputMap` actions from 14 live `INPUT-` IDs — `INPUT-SHOULDER` is retired via `InputActions.DEPRECATED`, still in the corpus and bound to nothing, KBM + pad. Chain GDD-02 → `Ids` → `InputActions` → `project.godot`, guarded on every hop, both directions. **Sampled once per physics frame by `LocalPawnDriver`, the only caller** — see trap 12. The mouse is **captured** on boot; `INPUT-MENU` releases, a click takes it back. **Only a mapped gamepad holds the joypad bindings** — `PadSelection`, applied through the one `InputMap` writer, because a set of sim pedals was steering |
