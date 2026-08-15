@@ -30,6 +30,14 @@ var roster: Array[StringName] = []
 ## the body, not the array entry.
 var _npcs: Array[CharacterBody3D] = []
 
+## **ONE BRAIN AND ONE CONTEXT PER BODY, ALLOCATED WITH IT.** `NpcBrain.reset()`
+## was written for this in US-0040 — the pool reuses brains along with the
+## bodies, so a match end costs no allocation and a match start costs none
+## either. They live here rather than on `CrowdDirector` for the same reason the
+## bodies do: the no-mid-match-allocation rule is checkable by reading one file.
+var _brains: Array[NpcBrain] = []
+var _contexts: Array[CrowdContext] = []
+
 var _capacity: int = 0
 var _active: int = 0
 var _positions: PackedVector3Array = PackedVector3Array()
@@ -59,6 +67,8 @@ func preallocate(count: int = -1) -> void:
 		npc.visible = false
 		add_child(npc)
 		_npcs.append(npc)
+		_brains.append(NpcBrain.new())
+		_contexts.append(CrowdContext.new())
 	_allocated = true
 	Log.info("NpcPool: %d bodies allocated" % _capacity, &"crowd")
 
@@ -84,6 +94,11 @@ func activate(count: int, match_seed: int, personas_in_use: Array, players: int)
 	roster = CrowdRoster.derive(count, match_seed, personas_in_use, players)
 	_active = count
 	for index: int in _capacity:
+		# **A REUSED BRAIN CARRIES THE LAST MATCH'S STATE UNLESS IT IS RESET.** An
+		# NPC that entered the new match already Startled would flee from a violence
+		# that happened in a match nobody in this one played.
+		_brains[index].reset()
+		_contexts[index].clear_events()
 		var live := index < count
 		_npcs[index].process_mode = (
 			Node.PROCESS_MODE_INHERIT if live else Node.PROCESS_MODE_DISABLED
@@ -130,6 +145,22 @@ func set_position(index: int, position: Vector3) -> void:
 ## The body at `index`. For tests and for the systems that will steer it in M3.
 func body_of(index: int) -> CharacterBody3D:
 	return _npcs[index] if index >= 0 and index < _npcs.size() else null
+
+
+## The navigation agent at `index`, or null. Named rather than found by type: a
+## `get_node` that silently returned null would disable steering for that NPC
+## and look exactly like an NPC with nowhere to go.
+func agent_of(index: int) -> NavigationAgent3D:
+	var body := body_of(index)
+	return null if body == null else body.get_node_or_null(^"Agent") as NavigationAgent3D
+
+
+func brain_of(index: int) -> NpcBrain:
+	return _brains[index] if index >= 0 and index < _brains.size() else null
+
+
+func context_of(index: int) -> CrowdContext:
+	return _contexts[index] if index >= 0 and index < _contexts.size() else null
 
 
 ## How many bodies exist, active or not. **Never falls** during a match.

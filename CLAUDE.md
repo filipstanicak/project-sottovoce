@@ -220,23 +220,57 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 *Updated 2026-08-15. Keep this section current — it is the first thing a fresh
 session reads, and a stale one is worse than none.*
 
-**PICK UP HERE. M3 IS TWO STORIES IN.** US-0039 built the pool and roster;
-US-0040 built `NpcBrain` **and wired the pool into `server_root.tscn`**, which
-was US-0039's last open criterion. A real server now logs
-`NpcPool: 90 bodies allocated`.
+**PICK UP HERE. M3 IS THREE STORIES IN AND THE CROWD WALKS.** US-0039 built
+the pool and roster, US-0040 the brain, US-0041 the navmesh and the steering
+under it. A server logs `NpcPool: 90 bodies allocated` and
+`crowd placed: 78 NPCs across 62 anchors`, and the seventy-eight now stroll
+between idle anchors, stand at them for 8–25 s, and walk round each other.
 
-**US-0041 IS HALF DONE: THE NAVMESH EXISTS AND THE CROWD IS PLACED.** A server
-logs `crowd placed: 78 NPCs across 62 anchors`. **The steering half is not
-started** — no `NavigationAgent3D` on the NPC scene, and still nothing ticks a
-brain — so US-0041's last three criteria are unticked and its own story says
-which are merely unstarted and which are blocked (far-band path validity needs
-US-0045's LOD bands).
+**US-0041 IS DONE BAR ONE LINE, AND THAT ONE IS BLOCKED**, not unstarted:
+far-band path validity needs the Near/Mid/Far bands, which are US-0045's.
 
-**Pick up at US-0041's steering half**, or take US-0042 (the spatial hash) first
-— it is pure and now has positions to index.
+**Pick up at US-0042 (the spatial hash)** — pure, small, and the four consumers
+TDD-08 §6 names are all waiting on it — or **US-0043** (the director's circuits
+and formation slots), which is what makes `WALKING_GROUP` reachable at all.
 
-Nothing steers, animates or replicates the crowd, so US-0030's four culling
-criteria and US-0031's two still wait for NPCs *on the wire*.
+**THE NUMBER THAT MATTERS IS 1.400 M/S AGAINST A DOCUMENTED STROLL OF 1.400.**
+"The NPCs moved" is satisfied by NPCs moving at any speed at all, and the crowd's
+speed is its one load-bearing number: invariant 1 forces
+`TUN-CROWD-NPC-SPEED-STROLL` to equal `TUN-SPEED-BLENDWALK` so that a
+blend-walking player is indistinguishable from the crowd **by motion**. A crowd
+at any other speed passes every other assertion and is a silent
+`RISK-ANONYMITY-LEAK` — discovered by a playtester saying the clones look slow.
+It nearly happened twice:
+
+- **`NavigationAgent3D` emits `velocity_computed` EVERY PHYSICS FRAME** once
+  avoidance is on. Measured, not assumed: nine callbacks over ten frames after a
+  *single* `set_velocity()`. So the body is moved there, at 60 Hz, and only the
+  *desired* velocity is chosen at the 30 Hz net tick. Moving it from the tick
+  instead halves every NPC's speed in silence, because `move_and_slide()` always
+  integrates by the **physics** delta whatever rate you call it at. Trap 9's
+  family, in a new domain.
+- **RVO MAY PICK ANY VELOCITY UP TO `max_speed`, NOT UP TO THE ONE IT WAS ASKED
+  FOR.** Left at the flee speed, a *strolling* NPC dodging a neighbour sidestepped
+  at **2.24 m/s**. `Steering.drive()` now sets `max_speed` from the state's own
+  speed every tick, with a 0.1 m/s floor so a standing NPC is still shovable —
+  at exactly zero a walking group would walk *through* an idle cluster.
+
+**AND ONE NPC SPENT EVERY RUN STANDING ON A MARKET STALL.** `Npc003` at
+(38.3, **0.90**, 18.6): inside StallA's footprint, on top of the counter, on the
+navmesh, on the floor, and unable to leave — the exact failure
+`CrowdPlacement`'s own docstring exists to prevent, wearing a disguise. It was
+not *off* the mesh; it was on a piece of mesh nothing can reach.
+**`map_get_closest_point` is a 3D nearest-polygon query and knows nothing about
+connectivity.** `agent_max_climb` decides whether a stall top is *linked* to the
+street and does nothing at all to stop a nearest-point query landing on it. The
+fix is to ask for the snap from `H_VAULT` **below** the point, which biases the
+answer to the street; a height gate and an explicit `NAV_MAX_CLIMB` 0.4 sit
+behind it. **The idle anchors are still generated on a grid with no obstacle
+filter**, so some sit inside stalls — recorded in US-0041, not fixed there,
+because filtering them changes the per-zone density a unit test asserts.
+
+Nothing animates or replicates the crowd, so US-0030's four culling criteria and
+US-0031's two still wait for NPCs *on the wire*.
 
 **US-0095 CLOSED HALF THE GATE'S UPSTREAM FINDING.** `NET-C2S-INPUT` was going
 out as six loose RPC arguments — Godot variant-encodes those at **56 bytes**
@@ -1036,20 +1070,22 @@ US-0024 measures it against clips that do not exist.
 | | |
 |---|---|
 | CI | 7 jobs. **Running again as of 2026-08-07 after a two-day outage** — run `31200490320`, all seven green. The seven commits merged during the outage were never through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | **36 arch + 69 unit + 27 integration scripts**, holding 130 + 634 + 199 assertions. **One is `pending` by design** — `test_upstream_bandwidth.gd` reports the 253 % upstream miss rather than going red, the same choice `test_snapshot_size.gd` made. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
-| Tuning | 282 tunables across 14 resource classes; all 27 cross-field invariants assert. **Eight IDs are deprecated** and recorded in TUNABLES §19 — never reused |
-| Autoloads | All eight. `Tuning` precomputes 86 durations into **two** tick tables — see trap 7 |
+| Tests | **38 arch + 70 unit + 28 integration scripts**, holding 139 + 644 + 210 tests and 212 + 3536 + 565 assertions. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **126.8 s** of the 180 s it is allowed, up from 87.7 s: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **One is `pending` by design** — `test_upstream_bandwidth.gd` reports the 253 % upstream miss rather than going red, the same choice `test_snapshot_size.gd` made. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
+| Tuning | 284 tunables across 14 resource classes; all 28 cross-field invariants assert. **Eight IDs are deprecated** and recorded in TUNABLES §19 — never reused |
+| Autoloads | All eight. `Tuning` precomputes 88 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |
 | Boot | Branches on `--server`; 7 CLI flags parsed in pure Core; 5 export presets |
-| Map | `MAP-VETRAIO` greybox, 120 × 120 m. Client loads 28 meshes, server loads none. **The street surface is exactly `STREET_Y`** — floors used to straddle their declared height, putting every walkable top 0.1 m high, which made the 0.9 m stalls unvaultable and three spawn points float over nothing. **Lit as of US-0091** — one key light and a sky, because nothing in the project had ever created either and the district rendered near-black |
+| Map | `MAP-VETRAIO` greybox, 120 × 120 m. Client loads 28 meshes, server loads none. **The street surface is exactly `STREET_Y`** — floors used to straddle their declared height, putting every walkable top 0.1 m high, which made the 0.9 m stalls unvaultable and three spawn points float over nothing. **Lit as of US-0091** — one key light and a sky, because nothing in the project had ever created either and the district rendered near-black. **The navmesh is baked at build time and committed** (US-0041): 195 polygons, and it sits **0.400 m above the street**, which is why steering applies gravity rather than trusting the snap |
 | Pawn | 14 states declared — **the Jog rung was removed in US-0090** and `Jog` is a retired ID absent from `ALL`. Transition edges asserted against the normative diagram. **Eleven implemented**: five locomotion + `Vault`, `Climb`, `Drop`, `KillAnim`, `Stunned`, `Blended`. `Respawning`, `StunAnim` and `Dead` are M4 |
 | Traversal | **Complete.** Probes cast, all seven §7.2 cases resolve from real geometry, both forgiveness windows open, and vault, mantle, climb, drop and gap jump all perform. **Case 7 hops as of US-0093** — an impulse, not a state, scaled by the speed rung and adding nothing horizontal. **The action buffer arms on the PRESS, not the hold** — arming from the held bit spent a traverse every frame a finger stayed down |
+| Crowd | 90 bodies pre-allocated, 78 active, each with a brain and a `CrowdContext` allocated beside it. `CrowdDirector` ticks them at the `crowd` stage and translates the five flags `NpcBrain.step()` deliberately does not read into `handle()` calls; `Steering` moves the bodies from the **avoidance callback**, on the physics frame, and knows nothing about states — it takes a point and a speed. Repath is FIFO and capped at three a tick. **Only Stroll and Idle are reachable**: slots are US-0043's and startle and gawk are US-0044's |
 | Pawn body | `GreyboxBody`, procedural — capsule, head and a chest marker on `+Z`, measured from the collider so the two cannot drift. **`PersonaVisuals` was empty through US-0021, 0022 and 0023**: three stories of camera work built around a pawn that did not render, every suite green. Not a persona — ART_BIBLE §6.1's four constructions are US-0039's |
 | Camera | Real spring arm: 2.6 m, **pawn centred** (US-0092 — the 0.45 m offset never changed the composition, because the rig aims at the pawn's own axis; `INPUT-SHOULDER` retired with it), occlusion that pulls **in** and never sideways, `WORLD`-masked so a crowd cannot push it. The FOV ladder is bound to the **state**, never to `ctx.velocity`: the rung is a consequence of the decision, not of the physics that follows it. Crowd-scan narrows to 48° and grants nothing. **Positive pitch LOWERS the arm** — the rig looks *at* the pivot, so a raised arm looks down; it shipped inverted from US-0021 until somebody played it |
 | Input | 20 `InputMap` actions from 14 live `INPUT-` IDs — `INPUT-SHOULDER` is retired via `InputActions.DEPRECATED`, still in the corpus and bound to nothing, KBM + pad. Chain GDD-02 → `Ids` → `InputActions` → `project.godot`, guarded on every hop, both directions. **Sampled once per physics frame by `LocalPawnDriver`, the only caller** — see trap 12. The mouse is **captured** on boot; `INPUT-MENU` releases, a click takes it back. **Only a mapped gamepad holds the joypad bindings** — `PadSelection`, applied through the one `InputMap` writer, because a set of sim pedals was steering |
 
-**Twenty-two criteria are deliberately unticked**, each blocked by something real. A
-prose count of these has now drifted three times, so they are a table — and the
+**Twenty-five criteria are deliberately unticked**, each blocked by something real — counted
+from the `done` and `in-progress` stories on 2026-08-15, having read twenty-two
+for several PRs. A prose count of these has now drifted four times, so they are a table — and the
 story files are the source of truth, not this. Regenerate the count rather than
 editing it:
 
@@ -1069,7 +1105,7 @@ grep -c '^- \[ \]' docs/40_backlog/stories/*.md
 | US-0030 | three culling criteria, plus `render_state` per observer | there is no crowd to cull until M3, and no `SYS-DETECTION` to compute a state until M3 |
 | US-0036 | "every netcode test runs at all four profiles" | true only of the harness's own agreement test; the rest are pure and have no wire to give a latency to |
 | US-0037 | match end below minimum players | `SYS-MATCH`'s, in M4. **The timeout criterion was ticked at the M2 gate** — a hard-killed client took the same `peer left` → `pawn freed` path across four real processes |
-| US-0041 | steering; the repath stagger; far-band path validity | the first two are **unstarted** — no agent on the NPC scene and nothing ticks a brain. The third is **blocked**: far-band validity needs the Near/Mid/Far LOD bands, which are US-0045's |
+| US-0041 | far-band path validity | **blocked**, not unstarted: it needs the Near/Mid/Far LOD bands, which are US-0045's. Steering and the repath stagger are done — the crowd walks at exactly `TUN-CROWD-NPC-SPEED-STROLL` and no tick issues more than three path queries |
 | US-0038 | frame-rate independence; downstream "measured"; the 180 ms feel check | impossible headless (the structural substitute is accepted, not ticked); the entity counts in the projection need M3's crowd; the feel check is the owner's and needs a windowed client |
 | US-0031 | rate LOD beyond 45 m; downstream measured with 90 NPCs | there is no crowd until M3 — and **rate LOD is NPC-only by design**, since a *player* at 46 m at 10 Hz would be visibly coarse. The projection is 93.5 kbit/s, 97 %, but a projection is not a measurement |
 | US-0035 | NPC transforms recorded; memory "around 23 KB" | there is no crowd until M3. Memory measured at **28.1 KB** — 20 B per record, not §8.3's 16, because the entity id is stored rather than implied by slot. TDD-04 §8.3 amended |

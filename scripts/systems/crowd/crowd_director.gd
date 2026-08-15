@@ -1,0 +1,213 @@
+## **`SYS-CROWD`. THE THING THAT TICKS NINETY BRAINS.** TDD-08 §8, US-0041.
+## SERVER ONLY.
+##
+## Registered at the `crowd` stage, which runs **before** suspicion for a reason
+## `SystemOrder` states: `TUN-SUSPICION-GAIN-OPEN` asks whether an NPC is within
+## `TUN-SUSPICION-OPEN-RADIUS`, and a tick of lag lets a player be "alone" inside
+## a pocket that has already re-formed.
+##
+## **THIS FILE OWNS THE STATE KNOWLEDGE AND `Steering` OWNS NONE.** The whole
+## division is `_goal_for()` and `_speed_for()`: a state becomes a point and a
+## number here, and everything downstream sees only the point and the number.
+## That is US-0041's fourth acceptance criterion, and `test_steering_knows_no_states.gd`
+## enforces the half of it that can be enforced by reading.
+##
+## **WHAT IS NOT HERE YET, SAID PLAINLY.** Only Stroll and Idle can actually be
+## reached today: nothing assigns a formation slot (US-0043), nothing grants a
+## gawk token (US-0044) and nothing sets `startle_flag` (US-0044 again). Startle's
+## goal and speed are implemented anyway and tested by setting the flag by hand,
+## because the steering layer is what US-0044 will hang off — but a crowd that
+## only strolls and stands is what a server actually runs this milestone.
+##
+## **THERE IS NO LOD.** Every active NPC steps every tick, which is 78 brains
+## rather than TDD-08 §4.1's ~34. The bands are US-0045's and inventing them here
+## would put a distance check inside the crowd's hot path that `test_lod_changes_
+## rate_not_logic.gd` will later have to find and remove.
+class_name CrowdDirector
+extends GameSystem
+
+## No goal. `Vector3.INF` rather than `Vector3.ZERO`, because the origin is a
+## real place on this map — the same reason `RewoundWorld.position_of` uses it.
+const NO_GOAL := Vector3.INF
+
+## How many path queries the last tick actually issued. Read by the tests that
+## assert the stagger; there is no other way to observe a cap from outside.
+var served_last_tick: int = 0
+
+var _pool: NpcPool = null
+var _map: MapData = null
+var _rng: RandomNumberGenerator = null
+var _steering := Steering.new()
+var _repath := RepathQueue.new()
+
+## Where each NPC is walking, parallel to the pool. `NO_GOAL` means "needs one",
+## which is what puts it in the repath queue.
+var _goals: PackedVector3Array = PackedVector3Array()
+
+
+func stage() -> StringName:
+	return &"crowd"
+
+
+## **A CROWD IS OPTIONAL AND ITS ABSENCE IS NOT AN ERROR.** The integration
+## harness stands up a server with no NPCs at all, and so does every client.
+func setup(ctx: MatchContext) -> void:
+	_pool = ctx.crowd
+	_map = ctx.map
+	_rng = ctx.rng
+	if _pool == null:
+		return
+	if not Tuning.reloaded.is_connected(_steering.refresh):
+		Tuning.reloaded.connect(_steering.refresh)
+	_goals.resize(_pool.body_count())
+	for index: int in _pool.body_count():
+		_goals[index] = NO_GOAL
+		var body := _pool.body_of(index)
+		var agent := _pool.agent_of(index)
+		if body == null or agent == null:
+			continue
+		_steering.configure(body, agent, _pool.is_active(index))
+		_steering.attach(body, agent)
+		_pool.context_of(index).rng = _rng
+
+
+## One tick: every active brain, then the staggered path queries.
+##
+## **THE QUERIES ARE SERVED LAST, ON PURPOSE.** Requests made this tick are
+## eligible this tick, so an NPC that just arrived somewhere is not made to wait
+## a whole tick standing still before it is even considered.
+func tick(_ctx: MatchContext, dt: float) -> void:
+	if _pool == null:
+		return
+	for index: int in _pool.active_count():
+		_advance(index, dt)
+	_serve_repaths()
+
+
+func teardown() -> void:
+	_repath.clear()
+	_goals.resize(0)
+
+
+## One NPC: deliver what happened to it, step it, then ask for what it now needs.
+func _advance(index: int, dt: float) -> void:
+	var brain := _pool.brain_of(index)
+	var cctx := _pool.context_of(index)
+	var agent := _pool.agent_of(index)
+	if brain == null or cctx == null or agent == null:
+		return
+
+	# **ARRIVAL IS ONLY MEANINGFUL WHEN THERE IS SOMEWHERE TO ARRIVE.** An agent
+	# with no target reports `is_navigation_finished()` as true, so testing it
+	# unconditionally would fire REACHED_ANCHOR on the first tick of every match
+	# and walk the whole crowd into Idle before anybody had gone anywhere.
+	if _goals[index] != NO_GOAL and _steering.arrived(agent):
+		cctx.reached_anchor = true
+		_goals[index] = NO_GOAL
+
+	var before: int = brain.state
+	brain.step(cctx, dt)
+	_dispatch(brain, cctx)
+	cctx.clear_events()
+
+	# A state change invalidates wherever it was going: a startled NPC must stop
+	# walking to the bench it had picked.
+	if brain.state != before:
+		_goals[index] = NO_GOAL
+	if _goals[index] == NO_GOAL and _travels(brain.state):
+		_repath.request(index)
+
+	_steering.drive(_pool.body_of(index), agent, _speed_for(brain.state))
+
+
+## **THE FLAGS `NpcBrain.step()` DOES NOT READ.** Its hot path is three
+## operations and handles only the interrupt and the timer; every other event is
+## a `CrowdContext` flag that somebody has to turn into a `handle()` call, and
+## this is that somebody. Doing it inside `step()` would put five branches on a
+## path that runs ninety times a tick to serve events that fire rarely.
+func _dispatch(brain: NpcBrain, cctx: CrowdContext) -> void:
+	if cctx.reached_anchor:
+		brain.handle(NpcBrain.Event.REACHED_ANCHOR, cctx)
+	if cctx.slot_assigned:
+		brain.handle(NpcBrain.Event.SLOT_ASSIGNED, cctx)
+	if cctx.slot_revoked:
+		brain.handle(NpcBrain.Event.SLOT_REVOKED, cctx)
+	if cctx.gawk_granted:
+		brain.handle(NpcBrain.Event.GAWK_GRANTED, cctx)
+	if cctx.corpse_gone:
+		brain.handle(NpcBrain.Event.CORPSE_GONE, cctx)
+
+
+## Hand out this tick's ration of path queries.
+func _serve_repaths() -> void:
+	var served := _repath.take(Tuning.perf.crowd_repath_per_tick)
+	served_last_tick = served.size()
+	for index: int in served:
+		var brain := _pool.brain_of(index)
+		var goal := _goal_for(index, brain.state)
+		_goals[index] = goal
+		if goal != NO_GOAL:
+			_steering.aim(_pool.agent_of(index), goal)
+
+
+## Does this state move? Idle stands still by definition; the other two that do
+## not travel are waiting for the systems that would tell them where to go.
+func _travels(state: int) -> bool:
+	return state == NpcBrain.State.STROLL or state == NpcBrain.State.STARTLE
+
+
+## Metres per second for a state. **Stroll is `TUN-CROWD-NPC-SPEED-STROLL`, which
+## invariant 1 forces to equal `TUN-SPEED-BLENDWALK`** — a crowd moving at any
+## other speed is a crowd a blend-walking player cannot hide in.
+func _speed_for(state: int) -> float:
+	match state:
+		NpcBrain.State.STROLL:
+			return _steering.stroll_speed
+		NpcBrain.State.STARTLE:
+			return _steering.flee_speed
+		_:
+			return 0.0
+
+
+## Where a state wants to be.
+##
+## Stroll picks an idle anchor from the seeded generator — anchors rather than
+## open ground, because GDD-05 puts them where a city would actually gather, and
+## a crowd walking between benches reads as a district while a crowd walking
+## between random points reads as a screensaver.
+func _goal_for(index: int, state: int) -> Vector3:
+	match state:
+		NpcBrain.State.STROLL:
+			return _an_anchor()
+		NpcBrain.State.STARTLE:
+			return _away_from(index)
+		_:
+			return NO_GOAL
+
+
+func _an_anchor() -> Vector3:
+	if _map == null or _map.idle_anchors.is_empty():
+		return NO_GOAL
+	var pick: int = (
+		_rng.randi_range(0, _map.idle_anchors.size() - 1)
+		if _rng != null
+		else _map.idle_anchors.size() / 2
+	)
+	return _map.idle_anchors[pick]
+
+
+## Directly away from whatever caused the scare, as far as the flee lasts.
+##
+## **AWAY FROM, NOT TOWARDS SAFETY.** A startle wave is read by distant players
+## as a *direction*, and NPCs that all converged on the nearest safe corner would
+## point at the corner instead of at the violence — the wave would still exist
+## and would say the wrong thing, which is worse than saying nothing.
+func _away_from(index: int) -> Vector3:
+	var cctx := _pool.context_of(index)
+	var here := _pool.body_of(index).global_position
+	var away := here - cctx.startle_origin
+	away.y = 0.0
+	if away.length_squared() < 0.000001:
+		away = Vector3.FORWARD
+	var reach: float = _steering.flee_speed * Tuning.crowd.startle_duration
+	return here + away.normalized() * reach

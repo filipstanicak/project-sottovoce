@@ -140,3 +140,11 @@ extends Resource
 ## is an information event, not just a suspicion charge.
 ## TUN-CROWD-BUMP-PUSH
 @export_range(0.8, 2.0, 0.1) var bump_push: float = 1.2
+
+## How close an NPC must come to its idle anchor to count as arrived. It decides how tightly an
+## idle cluster packs, which is what makes it a gameplay number rather than a navigation one:
+## NPCs arriving within 1.2 m of one anchor stand inside TUN-BLEND-POCKET-RADIUS of each other,
+## so an anchor reliably forms a valid blend pocket. Larger and a cluster stops reading as a
+## group; smaller and NPCs shove one another for the same 0.35 m of floor. Invariant §17.28.
+## TUN-CROWD-ANCHOR-ARRIVE-RADIUS
+@export_range(0.6, 2.5, 0.1) var anchor_arrive_radius: float = 1.2

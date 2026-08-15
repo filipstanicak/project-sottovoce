@@ -444,6 +444,7 @@ Shared rules first, then per ability. Cooldowns are authoritative on the server 
 | `TUN-CORPSE-LIFETIME` | 20.0 | s | 12–30 | How long a corpse persists. It is a deliberate information object: it says "someone died here, recently, and their killer was here 20 seconds ago". |
 | `TUN-CORPSE-FADE-TIME` | 1.5 | s | — | Visual dissolve at end of life. |
 | `TUN-CROWD-BUMP-PUSH` | 1.2 | m/s | 0.8–2.0 | Impulse applied to an NPC a player collides with. Enough to be visible to onlookers — a bump is an information event, not just a suspicion charge. |
+| `TUN-CROWD-ANCHOR-ARRIVE-RADIUS` | 1.2 | m | 0.6–2.5 | How close an NPC must come to its idle anchor to count as arrived. It decides how tightly an idle cluster packs, which is what makes it a gameplay number rather than a navigation one: NPCs arriving within 1.2 m of one anchor stand inside `TUN-BLEND-POCKET-RADIUS` of each other, so an anchor reliably forms a **valid blend pocket**. Larger and a cluster stops reading as a group; smaller and NPCs shove one another for the same 0.35 m of floor. Invariant §17.28. |
 
 ---
 
@@ -579,6 +580,7 @@ the ordered lever list are in [`../10_gdd/07_balance.md`](../10_gdd/07_balance.m
 | `TUN-PERF-CROWD-LOD-NEAR` | 20.0 | m | 15–30 | Full animation and 30 Hz AI update inside this radius. |
 | `TUN-PERF-CROWD-LOD-MID` | 45.0 | m | 30–60 | Reduced animation, 10 Hz AI update. |
 | `TUN-PERF-CROWD-LOD-FAR` | 70.0 | m | — | Beyond: 2 Hz AI, no animation, impostor rendering. Equals `TUN-NET-NPC-CULL-RADIUS`. |
+| `TUN-PERF-CROWD-REPATH-PER-TICK` | 3 | count | 1–10 | How many NPCs may ask the navigation server for a **new path** in one tick. TDD-08 §12 Q2's own answer to whether `NavigationAgent3D` amortises at 90 agents: a path query is the crowd's only unbounded per-agent cost, and ninety arriving in one tick is a server *hitch* rather than a slow tick. At the 30 Hz net tick this still serves the whole crowd inside a second, well within the 2 s the director takes to rebalance anything. |
 
 **Note on LOD and fairness:** animation LOD must never change an NPC's *silhouette or gait*
 inside `TUN-COMPASS-RANGE-MAX`, because that is a distance at which a player is trying to
@@ -651,6 +653,7 @@ Beyond each row's own Range, these cross-field invariants are asserted at load:
 | 24 | `TUN-TRAVERSE-GAP-PROBE-DEPTH >= TUN-TRAVERSE-CLIMB-MAX-HEIGHT` | **Anything you can climb up, you can fall down.** A probe shallower than the tallest single climb cannot measure the drop back down it, and an unmeasured drop is one the planner must refuse rather than guess at. This is the invariant that would have caught a 5 m probe under an 8.5 m façade. |
 | 26 | `TUN-TRAVERSE-HOP-STANDING < TUN-TRAVERSE-HOP-COMMITTED` | The committed rung must be the taller one, or speed buys a *smaller* jump and the ladder reads backwards in the one place a player can see it directly. |
 | 27 | `TUN-CROWD-IDLE-DURATION-MIN < TUN-CROWD-IDLE-DURATION-MAX` | The brain draws an idle pause between the two. Inverted, `randf_range` returns values outside the intended band and every NPC's pause becomes wrong in the same direction — a crowd that all moves off together, which reads as a mechanism rather than a city. |
+| 28 | `2 × TUN-CROWD-ANCHOR-ARRIVE-RADIUS <= TUN-BLEND-POCKET-RADIUS` | **An idle anchor must form a valid blend pocket.** The arrival radius is the reason a hiding player has somebody to stand beside: NPCs that stop anywhere within it are at most twice it apart, and that spread has to fit inside the radius `TUN-BLEND-POCKET-MIN-NPC` is counted in. Widen the arrival radius past this and anchors quietly stop producing pockets — nothing errors, and the game simply has fewer places to hide. |
 | 25 | `TUN-TRAVERSE-DROP-MIN-HEIGHT <= TUN-TRAVERSE-VAULT-MAX-HEIGHT` | A lip you cannot vault up must not be dismissed as a step down. Keeps the two judgements from crossing. |
 | 23 | `TUN-SPEED-STROLL < TUN-SCORE-PATIENT-SPEED < TUN-SPEED-RUN` | Patience has to be a line you can cross. Below stroll it would be unearnable — a player travelling at their cruising speed would already have lost it — and at or above run it would be unlosable without committing, which is the one thing it is meant to price. |
 | 22 | `TUN-CAM-FOV-BLEND <= TUN-CAM-FOV-MOTION-REDUCED <= TUN-CAM-FOV-SPRINT` | Motion-reduction replaces the ladder with one value. Outside the ladder's own span that value would frame *every* speed unusually, which is a second cost on top of the warning channel the mode already gives up. |
