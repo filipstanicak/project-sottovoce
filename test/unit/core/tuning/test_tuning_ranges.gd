@@ -86,6 +86,21 @@ func test_the_ability_invariants_are_live() -> void:
 	assert_true(hit, "breaking invariant 12 produced no error — it is inert")
 
 
+func test_the_anchor_pocket_invariant_is_live() -> void:
+	# 28, falsified. This is the invariant whose violation has no symptom: widen
+	# the arrival radius and idle anchors quietly stop forming blend pockets —
+	# nothing errors, no NPC misbehaves, and the game simply has fewer places to
+	# hide. An inert check here would be worse than no check, because it is the
+	# reason nobody would go looking.
+	var p := _profile()
+	p.crowd.anchor_arrive_radius = p.suspicion.blend_pocket_radius
+	var caught := false
+	for e: String in p.validate():
+		if e.begins_with("28."):
+			caught = true
+	assert_true(caught, "an anchor too wide to form a pocket produced no error — 28 is inert")
+
+
 func test_the_fov_invariants_are_live() -> void:
 	# 21 and 22, falsified rather than trusted. An inverted FOV ladder is the one
 	# tuning error in this file that a playtester would feel and never be able to

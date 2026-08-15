@@ -46,3 +46,11 @@ extends Resource
 ## Beyond: 2 Hz AI, no animation, impostor rendering. Equals TUN-NET-NPC-CULL-RADIUS.
 ## TUN-PERF-CROWD-LOD-FAR
 @export var crowd_lod_far: float = 70.0
+
+## How many NPCs may ask the navigation server for a new path in one tick. TDD-08 §12 Q2's own
+## answer to whether NavigationAgent3D amortises at 90 agents: a path query is the crowd's only
+## unbounded per-agent cost, and ninety arriving in one tick is a server hitch rather than a slow
+## tick. At the 30 Hz net tick this still serves the whole crowd inside a second, well within the
+## 2 s the director takes to rebalance anything.
+## TUN-PERF-CROWD-REPATH-PER-TICK
+@export_range(1, 10, 1) var crowd_repath_per_tick: int = 3

@@ -100,6 +100,7 @@ func _navmesh_settings() -> NavigationMesh:
 	mesh.agent_radius = VetraioLayout.NAV_AGENT_RADIUS
 	mesh.agent_height = VetraioLayout.NAV_AGENT_HEIGHT
 	mesh.agent_max_slope = VetraioLayout.NAV_MAX_SLOPE
+	mesh.agent_max_climb = VetraioLayout.NAV_MAX_CLIMB
 	mesh.geometry_parsed_geometry_type = NavigationMesh.PARSED_GEOMETRY_STATIC_COLLIDERS
 
 	# **THE STREET STRATUM AND NOTHING ABOVE IT.** Roofs, balconies and the

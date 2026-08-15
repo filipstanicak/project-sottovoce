@@ -66,7 +66,46 @@ static func _snapped(wanted: Vector3, anchor: Vector3, map: RID) -> Vector3:
 	# that could see it, because on a live map the path is never taken.
 	if not map.is_valid():
 		return wanted
-	var snapped := NavigationServer3D.map_get_closest_point(map, wanted)
-	if snapped.distance_to(wanted) > MAX_SNAP:
-		return NavigationServer3D.map_get_closest_point(map, anchor)
-	return snapped
+	var snapped := _street_point(map, wanted)
+	if _is_reasonable(snapped, wanted, anchor):
+		return snapped
+	var fallback := _street_point(map, anchor)
+	return fallback if _is_reasonable(fallback, anchor, anchor) else anchor
+
+
+## The nearest navmesh point to `at`, **asked for from below it**.
+##
+## `map_get_closest_point` is a 3D nearest-polygon query with no idea of
+## connectivity, so a point inside a market stall's footprint answers with the
+## stall's *top* — a real navmesh polygon, 0.9 m up, that `NAV_MAX_CLIMB` has
+## disconnected from everything. An NPC placed there is on the navmesh, on the
+## floor, and can never leave: Npc003 stood on StallA for every run of
+## `test_crowd_moves.gd` until this function existed.
+##
+## Probing from `H_VAULT` below biases the query toward the street: directly under
+## a stall the top is 2.2 m from the probe and the street at the stall's edge is
+## about 1.6, so the answer comes out beside the stall rather than on it. On open
+## ground it changes nothing — the nearest point is still directly above.
+static func _street_point(map: RID, at: Vector3) -> Vector3:
+	var probe := Vector3(at.x, at.y - VetraioLayout.H_VAULT, at.z)
+	return NavigationServer3D.map_get_closest_point(map, probe)
+
+
+## Is `point` a sane answer for something asked for at `wanted`, near `anchor`?
+##
+## **`map_get_closest_point` IGNORES CONNECTIVITY, AND THAT PUT AN NPC ON A MARKET
+## STALL.** A stall counter is `H_VAULT` 0.9 m of flat, clearance-having surface,
+## so Recast bakes its top as a polygon; `NAV_MAX_CLIMB` leaves that polygon
+## *disconnected*, which stops anything pathing there — and does nothing at all to
+## stop the nearest-point query snapping onto it. Npc003 spent every run standing
+## on StallA at (38.3, 0.90, 18.6), on the navmesh, unable to leave it, which is
+## the precise failure this file's own docstring exists to prevent.
+##
+## The height gate is `H_VAULT` because that is the design's own line: 0.9 m is
+## what a player has to **vault** onto, and nothing a player has to vault onto is
+## somewhere a civilian was placed. The navmesh's own 0.4 m rise above the street
+## sits comfortably below it and a stall's 1.3 m comfortably above.
+static func _is_reasonable(point: Vector3, wanted: Vector3, anchor: Vector3) -> bool:
+	if point.distance_to(wanted) > MAX_SNAP:
+		return false
+	return absf(point.y - anchor.y) < VetraioLayout.H_VAULT

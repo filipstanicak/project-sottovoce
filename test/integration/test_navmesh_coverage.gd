@@ -173,6 +173,44 @@ func test_no_roof_is_navigable() -> void:
 	assert_eq(on_roof.size(), 0, "the navmesh reaches a roof:\n" + "\n".join(on_roof))
 
 
+func test_no_market_stall_can_be_walked_onto() -> void:
+	# **A STALL COUNTER IS `H_VAULT` 0.9 M AND GODOT'S DEFAULT `agent_max_climb` IS
+	# ALSO 0.9.** The baker therefore connected every stall top to the street and the
+	# crowd treated the market as furniture — found by watching an NPC finish a run
+	# standing on StallA at (38.3, 0.90, 18.6), which no test was asking about.
+	#
+	# Two reasons it must not: a civilian standing on a stall reads as a broken NPC,
+	# and 0.9–1.1 m is the **vault** band — the stalls are the things a player
+	# vaults, and a crowd that could stand on them would make being up there
+	# ordinary and quietly cost the elevation its meaning.
+	#
+	# **REACHABILITY, NOT EXISTENCE.** `NAV_MAX_CLIMB` 0.4 leaves the stall top baked
+	# as an island — it is a flat walkable surface with clearance, and Recast bakes
+	# what it is given — but disconnects it, so nothing can path there. That is the
+	# property that matters, and asserting the polygon's absence instead would demand
+	# a bake filter the level does not have.
+	await _ready_map()
+	var street := Vector3(38.0, VetraioLayout.STREET_Y, 15.0)
+	var reachable: PackedStringArray = []
+	for stall: Array in VetraioLayout.STALLS:
+		var top := Vector3(
+			float(stall[1]) + float(stall[3]) * 0.5,
+			VetraioLayout.H_VAULT,
+			float(stall[2]) + float(stall[4]) * 0.5
+		)
+		# **HEIGHT SEPARATES THE TWO ANSWERS CLEANLY, AND DISTANCE DOES NOT.** The
+		# navmesh sits 0.4 m above what it was baked from, so a path that stops on
+		# the street in front of a stall ends at y = 0.4 and one that climbs it would
+		# end at 1.3. A 3D distance tolerance conflates the two: the first version of
+		# this assertion called a path ending 1.4 m *short* of the stall a success at
+		# reaching it.
+		var path := NavigationServer3D.map_get_path(_map, street, top, true)
+		if path.size() > 0 and path[path.size() - 1].y >= VetraioLayout.H_VAULT:
+			reachable.append("%s top, path ends at %v" % [stall[0], path[path.size() - 1]])
+	var joined := "\n".join(reachable)
+	assert_eq(reachable.size(), 0, "the crowd can walk onto a market stall:\n" + joined)
+
+
 func test_the_balcony_is_not_navigable() -> void:
 	# The Loggia balcony is a `FLOORS` row like any other — the only thing keeping
 	# it off the mesh is the bake ceiling, so it is worth its own assertion.

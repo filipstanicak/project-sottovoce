@@ -121,6 +121,22 @@ static func _crowd_relations(p: TuningProfile) -> Array[String]:
 				% [p.crowd.gawk_duration, p.crowd.corpse_lifetime]
 			)
 		)
+	# 28. AN IDLE ANCHOR MUST FORM A VALID BLEND POCKET. NPCs stopping anywhere
+	# within the arrival radius are at most twice it apart, and that spread has to
+	# fit inside the radius TUN-BLEND-POCKET-MIN-NPC is counted in. Widen the
+	# arrival radius past this and anchors quietly stop producing pockets: nothing
+	# errors, and the game simply has fewer places to hide.
+	if p.crowd.anchor_arrive_radius * 2.0 > p.suspicion.blend_pocket_radius:
+		e.append(
+			(
+				(
+					"28. 2 x crowd.anchor_arrive_radius (%.2f) must be <= "
+					+ "suspicion.blend_pocket_radius (%.2f), or an idle anchor stops "
+					+ "forming a blend pocket"
+				)
+				% [p.crowd.anchor_arrive_radius, p.suspicion.blend_pocket_radius]
+			)
+		)
 	return e
 
 

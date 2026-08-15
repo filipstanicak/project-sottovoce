@@ -17,6 +17,7 @@ const MAP := "res://data/maps/map_vetraio.tres"
 @onready var snapshots: SnapshotBuilder = $NetServer/SnapshotBuilder
 @onready var lag_comp: LagCompRecorder = $NetServer/LagCompRecorder
 @onready var crowd: NpcPool = $World/Crowd
+@onready var crowd_director: CrowdDirector = $Systems/CrowdDirector
 
 
 func _ready() -> void:
@@ -94,18 +95,7 @@ func _stand_the_crowd_up() -> void:
 ## nobody anywhere a person would actually stand.
 func _place_the_crowd(count: int) -> void:
 	var map: RID = crowd.get_world_3d().navigation_map
-
-	# **WAIT FOR THE MAP, OR EVERY NPC LANDS AT THE ORIGIN.** A query before the
-	# navigation server's first synchronisation is an error, and the fallback
-	# answer is `Vector3.ZERO` — so the whole crowd would stack in one corner of
-	# the district and it would read as a placement bug rather than a timing one.
-	# Two iterations, measured: the first registers the region, the second
-	# rasterises it. Same wait as `test_navmesh_coverage.gd`, for the same reason.
-	var started: int = NavigationServer3D.map_get_iteration_id(map)
-	for _i: int in 120:
-		await get_tree().physics_frame
-		if NavigationServer3D.map_get_iteration_id(map) >= started + 2:
-			break
+	await _await_navigation_map(map)
 
 	var spots := CrowdPlacement.positions(
 		count, director.ctx.match_seed, director.ctx.map.idle_anchors, map
@@ -119,6 +109,32 @@ func _place_the_crowd(count: int) -> void:
 		),
 		&"crowd"
 	)
+
+	# **REGISTERED HERE, AND NOT A LINE EARLIER.** `MatchDirector.register()` is
+	# what puts a system into `SystemOrder`'s order — a `CrowdDirector` node
+	# sitting in the scene with nobody calling it would configure ninety agents and
+	# tick none of them, which is the exact shape of US-0039's ticked-but-false
+	# criterion. Registering it *after* placement matters too: a crowd ticked while
+	# still stacked at the origin would plan ninety paths from a corner and then be
+	# teleported off every one of them.
+	director.register(crowd_director)
+
+
+## **WAIT FOR THE MAP, OR EVERY NPC LANDS AT THE ORIGIN.** A query before the
+## navigation server's first synchronisation is an error, and the fallback answer
+## is `Vector3.ZERO` — so the whole crowd would stack in one corner of the
+## district, and it would read as a placement bug rather than a timing one.
+##
+## Two iterations, measured: the first registers the region, the second rasterises
+## it. `map_force_update()` on its own does nothing. Bounded, so a genuinely
+## broken map starts the server late rather than never. Same wait as
+## `test_navmesh_coverage.gd`, for the same reason.
+func _await_navigation_map(map: RID) -> void:
+	var started: int = NavigationServer3D.map_get_iteration_id(map)
+	for _i: int in 120:
+		await get_tree().physics_frame
+		if NavigationServer3D.map_get_iteration_id(map) >= started + 2:
+			break
 
 
 ## **EVERYTHING THAT ANSWERS "WHERE WAS THE WORLD AT TICK N".** Both consumers

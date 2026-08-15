@@ -63,6 +63,18 @@ const NAV_AGENT_HEIGHT := 1.8
 ## 35°, above the 30° stair angle so stairs are navigable and roofs are not.
 const NAV_MAX_SLOPE := 35.0
 
+## **HOW HIGH A STEP A CIVILIAN CAN TAKE, AND THE REASON MARKET STALLS ARE NOT
+## FURNITURE.** Godot's default is 0.9, which is exactly the height of a stall
+## counter — so the baker connected every stall top to the street and the crowd
+## treated them as walkable. Measured, not reasoned about: an NPC ended a run
+## standing on StallA at (38.3, 0.90, 18.6).
+##
+## An NPC standing on a market stall is wrong twice over. It reads as a broken
+## civilian, and 0.9–1.1 m is the **vault** band — the stalls are the things a
+## player vaults, and a crowd that could stand on them would quietly make being
+## up there ordinary. Two cells, so Recast's quantisation leaves it alone.
+const NAV_MAX_CLIMB := 0.4
+
 ## The band the navmesh may be baked from: the street stratum and nothing above
 ## it. **This is the same design fact as `TUN-SUSPICION-GAIN-ROOF`** — NPCs cannot
 ## reach roofs or balconies, which is precisely why standing there costs
