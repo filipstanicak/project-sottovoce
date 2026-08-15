@@ -220,9 +220,11 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 *Updated 2026-08-15. Keep this section current — it is the first thing a fresh
 session reads, and a stale one is worse than none.*
 
-**PICK UP HERE. M2 IS COMPLETE — ITS GATE IS RUN AND JUDGED.** Next is **M3, the
-crowd, starting at US-0039**. M3 retires six criteria that are unticked only for
-want of NPCs: US-0030's four culling ones and US-0031's two.
+**PICK UP HERE. M2 IS COMPLETE AND M3 HAS STARTED.** US-0039 is built: ninety
+NPC bodies are allocated once and their identities derive from the match seed.
+**Next is US-0040** — placing them. Nothing steers, animates or replicates the
+crowd yet, so US-0030's four culling criteria and US-0031's two still wait for
+NPCs *on the wire*, which is US-0040 at the earliest.
 
 **US-0095 CLOSED HALF THE GATE'S UPSTREAM FINDING.** `NET-C2S-INPUT` was going
 out as six loose RPC arguments — Godot variant-encodes those at **56 bytes**
@@ -737,7 +739,37 @@ already is** — that alone reaches 115 %, and costs nothing a player can feel.
   has yet depended on it being right.
 
 **M2 IS COMPLETE.** US-0025 to US-0038 are all built. US-0030's culling criteria
-and US-0031's two stay unticked — there is no crowd until M3.
+and US-0031's two stay unticked — there is no crowd on the wire until US-0040.
+
+**M3 HAS STARTED. US-0039 IS BUILT: NINETY BODIES, ALLOCATED ONCE.** Real
+`CharacterBody3D` nodes from `npc_server.tscn`, not array slots — **the cost this
+story moves off the hot path is the body**, and a pool that sized an array would
+satisfy the criterion's words while missing its point entirely. Instantiating one
+mid-match is a frame spike, and a frame spike in a game decided at 2.5 m is a
+lost kill.
+
+**THE ROSTER IS DERIVED, NEVER REPLICATED, AND ITS FAILURE MODE IS SILENT.** A
+roster that differed between peers would not error, crash or desync anything —
+NPC identity is *visual* and derived, so two clients would simply be looking at
+different cities. The symptom is a player saying **"I saw a Lucerna by the
+furnace" and being wrong**, which reads as a lying teammate rather than a bug.
+`CrowdRoster` is pure and in Core so parity is asked directly.
+
+- **The clone quota derives from existing tunables rather than a new ratio.**
+  TUNABLES calls 10/11/12 per persona "chosen"; BALANCE_MODEL calls them
+  "derived"; neither gives a rule. The rule used is TUNABLES' own prose — each
+  seat below a full lobby costs one clone — and it **reproduces all three
+  documented numbers exactly** from tunables that already exist. **No new
+  gameplay constant was invented**, which never-do #1 would have forbidden.
+- **The shuffle is not cosmetic.** The pool hands index 0 the first spawn point,
+  so an unshuffled roster would put every clone in one quarter of the district.
+  `Array.shuffle()` is banned here — it draws from the global RNG, which is both
+  rule 8 and non-deterministic. Fisher–Yates against the seeded generator.
+- **The seed is mixed, not used raw.** Adjacent seeds share **5 of 78 slots**;
+  used raw they would differ in one draw and every match in a session would look
+  like the last.
+- **The NPC capsule matches the pawn's on purpose.** A clone findable by walking
+  into it is exactly the silent discriminator `RISK-ANONYMITY-LEAK` names.
 
 **WHAT IS RUNNABLE AND WHAT IS NOT.** Three clients and a headless server hold a
 match: peers join, the server simulates their pawns, snapshots come back, each
@@ -929,7 +961,7 @@ US-0024 measures it against clips that do not exist.
 | | |
 |---|---|
 | CI | 7 jobs. **Running again as of 2026-08-07 after a two-day outage** — run `31200490320`, all seven green. The seven commits merged during the outage were never through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | **35 arch + 66 unit + 25 integration scripts**, holding 126 + 599 + 183 assertions. **One is `pending` by design** — `test_upstream_bandwidth.gd` reports the 253 % upstream miss rather than going red, the same choice `test_snapshot_size.gd` made. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
+| Tests | **35 arch + 67 unit + 26 integration scripts**, holding 126 + 611 + 193 assertions. **One is `pending` by design** — `test_upstream_bandwidth.gd` reports the 253 % upstream miss rather than going red, the same choice `test_snapshot_size.gd` made. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
 | Tuning | 280 tunables across 14 resource classes; all 26 cross-field invariants assert. **Eight IDs are deprecated** and recorded in TUNABLES §19 — never reused |
 | Autoloads | All eight. `Tuning` precomputes 86 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |

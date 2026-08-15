@@ -1,0 +1,33 @@
+[gd_scene load_steps=2 format=3 uid="uid://bs0ttovnpcserver"]
+
+; SERVER — no visuals, no camera, no audio, no state machine. TDD-08 §1.
+;
+; Ninety of these are instantiated during COUNTDOWN and never freed (US-0039).
+; Instantiating a CharacterBody3D mid-match is a frame spike, and a frame spike
+; in a game decided at 2.5 m inside a 0.4 s window is a lost kill.
+;
+; DELIBERATELY THINNER THAN pawn_server.tscn, and each omission is a story:
+;   - NavigationAgent3D  US-0042, with the navmesh and steering
+;   - NpcBrain (HFSM)    US-0041
+;   - any mesh           US-0046, and it must be the PERSONA's own mesh — a
+;                        clone that used an "NPC variant" material would be a
+;                        discriminator, GDD-03 §6.3 rule 1
+;
+; The capsule matches the pawn's on purpose. A clone whose collider differed
+; from a player's would be findable by walking into it, which is exactly the
+; kind of silent discriminator RISK-ANONYMITY-LEAK names.
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_npc"]
+radius = 0.35
+height = 1.8
+
+[node name="NpcServer" type="CharacterBody3D"]
+collision_layer = 2
+collision_mask = 1
+
+; Raised by half the capsule height so the BODY ORIGIN IS THE NPC'S FEET —
+; the same convention as the pawn, and for the same reason: spawn points and
+; every probe height in the project are measured from the ground.
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+shape = SubResource("CapsuleShape3D_npc")

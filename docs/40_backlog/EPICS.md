@@ -199,6 +199,11 @@ Pool, seeded personas, the five-state HFSM, navmesh, steering, spatial hash.
 **Done when:** 90 NPCs walk the district within `TUN-PERF-CROWD-BUDGET`, and three peers derive
 identical rosters from one seed.
 
+**SECOND CLAUSE MET, FIRST NOT STARTED** (US-0039 built). Ninety bodies are allocated once and
+their identities derive from the seed, asserted both purely and through two live pools. **Nothing
+walks yet** — placement is US-0040, the brain US-0041, navigation US-0042 — so the frame budget has
+not been measured and cannot be until something moves.
+
 ---
 
 ## 12. `EPIC-CROWD-BEHAVIOUR` — M3
