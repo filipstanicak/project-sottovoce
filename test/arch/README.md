@@ -36,6 +36,7 @@ That is a stop-and-ask condition in
 | `test_ids_are_stringname` | `"ID"` where `&"ID"` was meant | One character; behaviour is identical, allocation is not |
 | `test_ci_guards_refuse_empty_scan` | A CI guard reporting "clean" over zero files | It passes in the work tree, where anyone would test it; only the clean checkout is vacuous |
 | `test_protocol_docs_sync` | A message added to one protocol document and not its deliberate duplicate | Each table reads correctly on its own; the bible's header claimed this guard for two milestones before it existed |
+| `test_claude_md_counts_are_current` | The first file a fresh session reads going stale | A number in a table is not executed by anything; this one was wrong for twelve PRs |
 
 The last one is the pattern: these failures are all *individually defensible*
 and *collectively fatal*.

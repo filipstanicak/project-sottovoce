@@ -857,7 +857,7 @@ US-0024 measures it against clips that do not exist.
 | | |
 |---|---|
 | CI | 7 jobs. **Running again as of 2026-08-07 after a two-day outage** — run `31200490320`, all seven green. The seven commits merged during the outage were never through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | 119 architecture guards + 515 unit + 132 integration, all three counted in CI |
+| Tests | **35 arch + 64 unit + 25 integration scripts**, holding 126 + 583 + 183 assertions. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
 | Tuning | 280 tunables across 14 resource classes; all 26 cross-field invariants assert. **Eight IDs are deprecated** and recorded in TUNABLES §19 — never reused |
 | Autoloads | All eight. `Tuning` precomputes 86 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |
@@ -903,7 +903,7 @@ it as an unticked line; it is a missing *test*, not a missing tick.
 over a criterion that is not true makes the whole backlog unreadable as a status
 view.
 
-### Fourteen things that will cost you an hour if you do not know them
+### Fifteen things that will cost you an hour if you do not know them
 
 1. **Two things are GENERATED.** `scripts/core/ids.gd`, `scripts/core/tuning/*.gd`
    and `tuning_index.gd` come from `tools/tuning_codegen/run_all.py`; the map
@@ -1028,6 +1028,17 @@ view.
     empty, and **not run by CI**, so a suite placed there would never execute.
     **The claim is worse than the absence**, because the claim is what stops
     anybody checking by hand.
+15. **AN UNASSERTED `str.replace` REPORTS SUCCESS BY DOING NOTHING.** Most edits
+    to this corpus are scripted, and Python's `replace` against a string that has
+    already changed matches zero characters and returns happily. CLAUDE.md's
+    Tests row read `119 arch + 515 unit + 132 integration` for **twelve pull
+    requests** while the real counts climbed past it — three separate checkpoints
+    each "updated" it and each silently did nothing. **Assert every `old in s`
+    before replacing**, which is what the surviving edits in those same scripts
+    did and why only this one rotted. Trap 3's family in a text editor: an
+    operation whose failure mode is indistinguishable from its success.
+    `test_claude_md_counts_are_current.gd` now guards the script counts, which
+    are readable from disk; the assertion counts are a snapshot and say so.
 
 ### Local environment
 
