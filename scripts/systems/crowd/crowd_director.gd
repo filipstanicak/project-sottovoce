@@ -40,6 +40,11 @@ var _rng: RandomNumberGenerator = null
 var _steering := Steering.new()
 var _repath := RepathQueue.new()
 
+## Live positions, refilled each tick and handed to the spatial hash. A member
+## rather than a local, because the hash copies out of it and a fresh
+## `PackedVector3Array` every tick is ninety NPCs' worth of garbage a second.
+var _here: PackedVector3Array = PackedVector3Array()
+
 ## Where each NPC is walking, parallel to the pool. `NO_GOAL` means "needs one",
 ## which is what puts it in the repath queue.
 var _goals: PackedVector3Array = PackedVector3Array()
@@ -60,6 +65,8 @@ func setup(ctx: MatchContext) -> void:
 	if not Tuning.reloaded.is_connected(_steering.refresh):
 		Tuning.reloaded.connect(_steering.refresh)
 	_goals.resize(_pool.body_count())
+	_here.resize(_pool.body_count())
+	ctx.crowd_hash.setup(ctx.map.bounds if ctx.map != null else AABB(), _pool.body_count())
 	for index: int in _pool.body_count():
 		_goals[index] = NO_GOAL
 		var body := _pool.body_of(index)
@@ -76,12 +83,27 @@ func setup(ctx: MatchContext) -> void:
 ## **THE QUERIES ARE SERVED LAST, ON PURPOSE.** Requests made this tick are
 ## eligible this tick, so an NPC that just arrived somewhere is not made to wait
 ## a whole tick standing still before it is even considered.
-func tick(_ctx: MatchContext, dt: float) -> void:
+func tick(ctx: MatchContext, dt: float) -> void:
 	if _pool == null:
 		return
+	_reindex(ctx)
 	for index: int in _pool.active_count():
 		_advance(index, dt)
 	_serve_repaths()
+
+
+## **THE HASH IS BUILT BEFORE THE BRAINS, NOT AFTER.** TDD-08 §1's diagram feeds
+## it into them: startle propagation asks who is nearby (US-0044), and a hash
+## rebuilt afterwards would answer every brain with the previous tick's crowd
+## while every *system* downstream got this tick's. One of the two would be wrong
+## and neither would say so.
+func _reindex(ctx: MatchContext) -> void:
+	var active := _pool.active_count()
+	for index: int in active:
+		var body := _pool.body_of(index)
+		if body != null:
+			_here[index] = body.global_position
+	ctx.crowd_hash.rebuild(_here, _pool.roster, active)
 
 
 func teardown() -> void:

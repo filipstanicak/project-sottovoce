@@ -299,23 +299,50 @@ important optimisation because the naive alternative is O(pawns × NPCs) in thre
 | Gawk token issuance | 1 query per corpse | 90 each |
 
 ```gdscript
-## Uniform grid, cell size 6.0 m == TUN-SUSPICION-OPEN-RADIUS, so the most
-## frequent query (nearest-NPC-within-6 m) touches at most 4 cells.
+## Uniform grid, cell size == TUN-SUSPICION-OPEN-RADIUS, so the most frequent
+## query (nearest-NPC-within-6 m) touches at most 4 cells.
 ## Rebuilt each tick: 90 inserts, no allocation after warm-up.
 class_name SpatialHash
 extends RefCounted
 
-const CELL_SIZE: float = 6.0
+## READ FROM TUNING, NOT DECLARED. The requirement is that this equals
+## TUN-SUSPICION-OPEN-RADIUS; a literal 6.0 stops satisfying it the first time
+## the radius is retuned, and nothing would say so.
+var cell_size: float
 
-func rebuild(npcs: Array[NpcServer]) -> void
+func setup(bounds: AABB, capacity: int) -> void
+func rebuild(positions: PackedVector3Array, identities: Array, count: int) -> void
 func query(centre: Vector3, radius: float) -> PackedInt32Array
 func count_within(centre: Vector3, radius: float) -> int
 func count_persona(centre: Vector3, radius: float, persona: StringName) -> int
-func nearest_distance(centre: Vector3) -> float
+func nearest_distance(centre: Vector3, within: float) -> float
 ```
 
 Cell size is deliberately equal to `TUN-SUSPICION-OPEN-RADIUS` so the hottest query is a 2×2
 cell lookup rather than a radius sweep.
+
+### 6.1 Three amendments from US-0042, which built it
+
+**`rebuild()` takes plain arrays, not `NpcServer` nodes.** Same split as
+[`04_networking.md`](04_networking.md) §8's lag-comp ring: the structure is pure and
+`CrowdDirector` is what walks the world. A hash whose contents arrive through a node cannot be
+*asked a question* in a test — every assertion collapses to "there is nothing here", which stays
+true with the indexing deleted.
+
+**`nearest_distance()` takes a bound and returns `INF` outside it.** An unbounded nearest must
+widen its search until it finds somebody, and in the one case that matters — a player genuinely
+alone — that is a full scan of the crowd, per pawn, per tick. That is precisely the
+O(pawns × NPCs) cost this section exists to remove, arriving exactly when the district is
+emptiest. No consumer needs more: `TUN-SUSPICION-GAIN-OPEN` asks whether anybody is within
+`TUN-SUSPICION-OPEN-RADIUS`, and "further than that" is the whole answer.
+
+**Every distance is horizontal.** A player on the 3.5 m Loggia balcony is not in a blend pocket
+with the crowd below — but they are equally not *alone*, and the rule that charges them for being
+up there is `TUN-SUSPICION-GAIN-ROOF`. A 3D radius would charge it twice, quietly, from a system
+that never mentions elevation.
+
+**Measured:** a rebuild of 90 NPCs costs **0.0561 ms**, 37 % of §11.2's 0.15 ms line, over a
+thousand rebuilds.
 
 ---
 
@@ -455,6 +482,6 @@ cutting it trades the design's identity for frame time.
 |---|---|---|---|
 | 1 | Client crowd budget has 0.10 ms of margin (§11.1). Is that survivable on the reference machine? | Unknown until 90 NPCs exist. `test_crowd_perf.gd` is an M3 exit criterion, and the §11.3 ladder is the response | M3 |
 | 2 | Does `NavigationAgent3D` amortise well at 90 agents, or does path recalculation spike? | Mitigate by staggering repath requests across ticks (max 3 per tick) and giving Far-band agents longer path validity | M3 |
-| 3 | Should the spatial hash be double-buffered so systems read last tick's hash while this tick's rebuilds? | No. Ordering guarantee (TDD-07 §1.1) requires suspicion to see *this* tick's crowd. Rebuild is 0.15 ms; correctness is worth it | M3 |
+| 3 | ~~Should the spatial hash be double-buffered so systems read last tick's hash while this tick's rebuilds?~~ **Closed, US-0042.** | No. Ordering guarantee (TDD-07 §1.1) requires suspicion to see *this* tick's crowd. Rebuild was budgeted at 0.15 ms and **measures 0.0561 ms**, so correctness costs almost nothing | M3 |
 | 4 | `_rebalance_clones` re-routes toward under-served regions. Could that itself become a detectable pattern — clones converging on players? | Real risk. The 2 s interval and "nearest idle clone" selection are the mitigations. Watch for players reporting that clones "follow them". If it appears, retarget via circuit reassignment rather than direct pathing | M4 |
 | 5 | Startle propagation uses `ctx.rng`, so it is server-only and unpredictable by clients. Startle is visual-only, so this is fine — but if a future mechanic makes startle gameplay-relevant, it becomes a determinism problem. | Noted. Startle currently affects only NPC positions, which are replicated anyway | — |

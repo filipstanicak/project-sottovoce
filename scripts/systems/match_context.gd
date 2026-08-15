@@ -53,6 +53,16 @@ var slots := SlotTable.new()
 ## on it, so the M4 work is validation logic rather than infrastructure.
 var lag_comp := LagCompHistory.new()
 
+## **ONE GRID, SHARED BY FOUR CONSUMERS.** Rebuilt by `CrowdDirector` at the top
+## of the `crowd` stage (US-0042) and read by suspicion, blending, startle
+## propagation and gawk arbitration.
+##
+## It lives here rather than on the director for the reason the router learned
+## the hard way: a system whose answers come from another system's field cannot
+## be *asked a question* in a test. Suspicion runs after crowd precisely so that
+## what it reads is this tick's.
+var crowd_hash := SpatialHash.new()
+
 ## **THE CROWD.** Ninety pre-allocated NPC bodies and the roster derived for them
 ## (US-0039). Null until `server_root.gd` stands it up — a system must check,
 ## because the integration harness has no crowd and neither does a client.
