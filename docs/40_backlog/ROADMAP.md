@@ -370,10 +370,10 @@ No gameplay rules replicated — there are none yet. No NPCs. Movement only.
 
 | Delivers | |
 |---|---|
-| `NpcPool` — 90 pre-allocated, never instantiated mid-match | **Built, US-0039 — and NOT WIRED INTO THE SERVER.** Ninety real `CharacterBody3D` nodes, not array slots, because the cost this moves off the hot path is the body; `activate()` allocates nothing and **refuses to grow** rather than spiking. But `server_root.tscn` holds no `NpcPool` and nothing calls `preallocate()`, so the crowd is allocated in tests and nowhere else. **US-0040 wires it first.** US-0039's matching criterion is unticked |
+| `NpcPool` — 90 pre-allocated, never instantiated mid-match | **Done, US-0039; wired by US-0040.** Ninety real `CharacterBody3D` nodes, not array slots, because the cost this moves off the hot path is the body; `activate()` allocates nothing and **refuses to grow** rather than spiking. A running server logs `NpcPool: 90 bodies allocated` — the criterion was ticked on tests alone at first, unticked at a checkpoint, and re-ticked only once the server did it |
 | Seeded persona assignment; identical roster on every peer | **Done, US-0039.** `CrowdRoster` is pure and in Core, so parity is asked directly rather than by standing three peers up. **The clone quota derives from existing tunables** and reproduces TUNABLES' 10/11/12 exactly — TUNABLES called those numbers "chosen" and BALANCE_MODEL called them "derived", which was circular |
-| `NpcBrain` — the five-state HFSM with Startle as a global interrupt | |
-| Navmesh, navigation agents, steering | |
+| `NpcBrain` — the five-state HFSM with Startle as a global interrupt | **Done, US-0040.** All 35 state-event pairs present, deliberate no-ops written as `IGNORED` — the silent no-op is the classic FSM bug. `step()` is three operations and allocates nothing, **scanned rather than measured** because a flaky memory probe gets a wider threshold until it means nothing. **Nothing ticks a brain yet**: that needs something to steer, US-0041 |
+| Navmesh, navigation agents, steering | Open, US-0041 — **and placement lives here.** There is no spawn-distribution story in M3, because a position that is not on the navmesh is a position an agent cannot leave. The ninety NPCs currently stand at the origin |
 | `SpatialHash` — shared by four consumers | |
 | `CrowdDirector` — group slots, four circuits, clone redistribution | |
 | Startle propagation, gawk tokens, corpses | |

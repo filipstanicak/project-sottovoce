@@ -220,16 +220,16 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 *Updated 2026-08-15. Keep this section current — it is the first thing a fresh
 session reads, and a stale one is worse than none.*
 
-**PICK UP HERE. M2 IS COMPLETE AND M3 HAS STARTED.** US-0039 built `NpcPool` and
-`CrowdRoster`: ninety NPC bodies allocated once, identities derived from the
-match seed.
+**PICK UP HERE. M3 IS TWO STORIES IN.** US-0039 built the pool and roster;
+US-0040 built `NpcBrain` **and wired the pool into `server_root.tscn`**, which
+was US-0039's last open criterion. A real server now logs
+`NpcPool: 90 bodies allocated`.
 
-**BUT THE POOL IS NOT WIRED INTO `server_root.tscn`.** Nothing calls
-`preallocate()` in a running server, so the crowd exists in tests and not in the
-game. **US-0040's first job is that wiring**, before the spawn distribution it is
-actually about. US-0039's first criterion was ticked in its own PR on the
-strength of the tests and **unticked again at the next checkpoint** — the story
-says so.
+**NEXT IS US-0041 — the navmesh, agents and steering.** It matters more than its
+title suggests: **nothing ticks a brain yet**, and **placement lives there too**.
+There is no spawn-distribution story anywhere in M3, because a position that is
+not on the navmesh is a position an agent cannot leave — so the NPCs are
+allocated, identified and all standing at the origin.
 
 Nothing steers, animates or replicates the crowd, so US-0030's four culling
 criteria and US-0031's two still wait for NPCs *on the wire*.
@@ -778,11 +778,38 @@ furnace" and being wrong**, which reads as a lying teammate rather than a bug.
   like the last.
 - **The NPC capsule matches the pawn's on purpose.** A clone findable by walking
   into it is exactly the silent discriminator `RISK-ANONYMITY-LEAK` names.
-- **`NpcPool` IS IN NO SCENE.** `server_root.tscn` does not hold one and nothing
-  calls `preallocate()`, so ninety bodies are allocated in tests and nowhere
-  else. The story's first criterion is unticked for exactly this and **US-0040
-  must wire it before anything else** — a spawn distribution over a pool that is
-  never created would be a system with no subjects.
+- **The pool was in no scene until US-0040 wired it.** `server_root.tscn` held no
+  `NpcPool` and nothing called `preallocate()`, so ninety bodies were allocated in
+  tests and nowhere else — while the criterion saying so was ticked. **A criterion
+  can be true of a class and false of the game.**
+
+**US-0040 IS BUILT: FIVE STATES, ONE GLOBAL INTERRUPT.** A flat HFSM, not a
+behaviour tree — per-tick tree traversal across ninety agents in GDScript is
+thousands of virtual calls for five behaviours, and **the crowd is not required
+to be intelligent, only legible.**
+
+- **All 35 state-event pairs are present**, and the deliberate no-ops say
+  `IGNORED` rather than being absent. **The silent no-op is the classic FSM
+  bug**: a missing pair looks exactly like a handled one, and the symptom is an
+  NPC that never leaves Idle while nothing anywhere errors.
+- **`step()` is three operations** — one compare, one decrement, one small call —
+  and allocates nothing. The guard **scans rather than measures**: a runtime
+  memory probe would be flaky, and a flaky test gets a wider threshold until it
+  means nothing. Falsified against a planted `var scratch := []`.
+- **Two tunables were missing.** GDD-03 §6.1 specifies an idle pause of "8–25 s"
+  and nothing carried it, so the machine could not leave Idle.
+  `TUN-CROWD-IDLE-DURATION-MIN/-MAX` now exist **with the GDD's own numbers**,
+  plus invariant 27. 282 tunables, 27 invariants.
+- **Timers are net ticks — trap 9.** A brain is ticked by a system at 30 Hz, so
+  `step_ticks()` would halve every duration silently. The test asserts the right
+  converter *and* that the two differ, so it cannot pass by them agreeing.
+- **The seed is real now.** `--seed` had been parsed since M0 and only **logged**;
+  it reaches `MatchContext.match_seed` and the RNG. Without the flag the server
+  picks one and logs it, so a surprising match is reproducible. `SYS-MATCH` takes
+  this over at M4 and sends it in `NET-S2C-MATCH-START`, whose field already
+  exists.
+- **Nothing ticks a brain.** `NpcBrain` is a machine with no driver until
+  something can steer, which is US-0041's.
 
 **WHAT IS RUNNABLE AND WHAT IS NOT.** Three clients and a headless server hold a
 match: peers join, the server simulates their pawns, snapshots come back, each
@@ -974,8 +1001,8 @@ US-0024 measures it against clips that do not exist.
 | | |
 |---|---|
 | CI | 7 jobs. **Running again as of 2026-08-07 after a two-day outage** — run `31200490320`, all seven green. The seven commits merged during the outage were never through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | **35 arch + 67 unit + 26 integration scripts**, holding 126 + 611 + 193 assertions. **One is `pending` by design** — `test_upstream_bandwidth.gd` reports the 253 % upstream miss rather than going red, the same choice `test_snapshot_size.gd` made. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
-| Tuning | 280 tunables across 14 resource classes; all 26 cross-field invariants assert. **Eight IDs are deprecated** and recorded in TUNABLES §19 — never reused |
+| Tests | **36 arch + 68 unit + 26 integration scripts**, holding 130 + 627 + 193 assertions. **One is `pending` by design** — `test_upstream_bandwidth.gd` reports the 253 % upstream miss rather than going red, the same choice `test_snapshot_size.gd` made. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
+| Tuning | 282 tunables across 14 resource classes; all 27 cross-field invariants assert. **Eight IDs are deprecated** and recorded in TUNABLES §19 — never reused |
 | Autoloads | All eight. `Tuning` precomputes 86 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |
 | Boot | Branches on `--server`; 7 CLI flags parsed in pure Core; 5 export presets |
@@ -986,7 +1013,7 @@ US-0024 measures it against clips that do not exist.
 | Camera | Real spring arm: 2.6 m, **pawn centred** (US-0092 — the 0.45 m offset never changed the composition, because the rig aims at the pawn's own axis; `INPUT-SHOULDER` retired with it), occlusion that pulls **in** and never sideways, `WORLD`-masked so a crowd cannot push it. The FOV ladder is bound to the **state**, never to `ctx.velocity`: the rung is a consequence of the decision, not of the physics that follows it. Crowd-scan narrows to 48° and grants nothing. **Positive pitch LOWERS the arm** — the rig looks *at* the pivot, so a raised arm looks down; it shipped inverted from US-0021 until somebody played it |
 | Input | 20 `InputMap` actions from 14 live `INPUT-` IDs — `INPUT-SHOULDER` is retired via `InputActions.DEPRECATED`, still in the corpus and bound to nothing, KBM + pad. Chain GDD-02 → `Ids` → `InputActions` → `project.godot`, guarded on every hop, both directions. **Sampled once per physics frame by `LocalPawnDriver`, the only caller** — see trap 12. The mouse is **captured** on boot; `INPUT-MENU` releases, a click takes it back. **Only a mapped gamepad holds the joypad bindings** — `PadSelection`, applied through the one `InputMap` writer, because a set of sim pedals was steering |
 
-**Twenty-five criteria are deliberately unticked**, each blocked by something real. A
+**Nineteen criteria are deliberately unticked**, each blocked by something real. A
 prose count of these has now drifted three times, so they are a table — and the
 story files are the source of truth, not this. Regenerate the count rather than
 editing it:
@@ -1007,7 +1034,6 @@ grep -c '^- \[ \]' docs/40_backlog/stories/*.md
 | US-0030 | three culling criteria, plus `render_state` per observer | there is no crowd to cull until M3, and no `SYS-DETECTION` to compute a state until M3 |
 | US-0036 | "every netcode test runs at all four profiles" | true only of the harness's own agreement test; the rest are pure and have no wire to give a latency to |
 | US-0037 | match end below minimum players | `SYS-MATCH`'s, in M4. **The timeout criterion was ticked at the M2 gate** — a hard-killed client took the same `peer left` → `pawn freed` path across four real processes |
-| US-0039 | "all 90 allocated before the first PLAYING tick" | **the pool is in no scene.** `NpcPool` allocates ninety real bodies and is asserted doing it, but `server_root.tscn` does not instantiate one, so nothing allocates in a running server. US-0040's first job |
 | US-0038 | frame-rate independence; downstream "measured"; the 180 ms feel check | impossible headless (the structural substitute is accepted, not ticked); the entity counts in the projection need M3's crowd; the feel check is the owner's and needs a windowed client |
 | US-0031 | rate LOD beyond 45 m; downstream measured with 90 NPCs | there is no crowd until M3 — and **rate LOD is NPC-only by design**, since a *player* at 46 m at 10 Hz would be visibly coarse. The projection is 93.5 kbit/s, 97 %, but a projection is not a measurement |
 | US-0035 | NPC transforms recorded; memory "around 23 KB" | there is no crowd until M3. Memory measured at **28.1 KB** — 20 B per record, not §8.3's 16, because the entity id is stored rather than implied by slot. TDD-04 §8.3 amended |

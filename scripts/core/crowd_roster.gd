@@ -18,6 +18,20 @@
 class_name CrowdRoster
 extends RefCounted
 
+## The four playable personas. **Every one of them is a clone roster**, and the
+## order is part of the derivation for the same reason `ARCHETYPES`' is.
+##
+## Used as "everybody is in use" wherever the real loadouts are not known yet —
+## there is no lobby until M4. That is the safe direction: GDD-03 §6.3 rule 5
+## makes a player with no clones a marked man, while clones of a persona nobody
+## plays are explicitly harmless.
+const PLAYABLE: Array[StringName] = [
+	Ids.PERSONA_CANTATRICE,
+	Ids.PERSONA_LUCERNA,
+	Ids.PERSONA_PESATORE,
+	Ids.PERSONA_VETRAIO,
+]
+
 ## Filler archetypes, in a fixed order. **The order is part of the derivation** —
 ## reordering this array changes every roster every seed produces, which would
 ## not break anything and would silently invalidate every recorded playtest.

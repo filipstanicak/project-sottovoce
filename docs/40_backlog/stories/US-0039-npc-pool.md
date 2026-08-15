@@ -1,10 +1,10 @@
 ---
 id: US-0039
 title: NPC pool and seeded roster
-version: 1.0.0
-status: in-progress
+version: 1.1.0
+status: done
 owner: Technical Director
-last_updated: 2026-08-15
+last_updated: 2026-08-16
 depends_on: [ADR-0007, TDD-08-CROWD]
 ---
 
@@ -34,23 +34,29 @@ three peers up — which is also the only way to ask it across many seeds at onc
 
 ## Acceptance criteria
 
-> **Five of six. The first is unticked because the pool is not wired into the server scene** — see
-> below. Every other criterion is a property of `NpcPool` or `CrowdRoster` and is asserted against
-> live objects.
+> **All six, as of US-0040.** The first was unticked at the M3-start checkpoint because the pool
+> was in no scene; US-0040 wired it, and the allocation was then **verified by running the actual
+> server** rather than by a test.
 
-- [ ] **All 90 allocated before the first PLAYING tick, sized to the maximum regardless of player
-      count.** **Half true, and the half that is missing is the wiring.** `NpcPool` allocates
-      ninety real `CharacterBody3D` nodes from `npc_server.tscn` — not array slots, because the
-      cost this story moves off the hot path is the **body**, and a pool that sized an array would
-      satisfy the criterion's words while missing its point. `body_count()` reads the node list so
-      a test can tell the difference, and "sized to the maximum regardless of player count" is
-      asserted directly.
+- [x] **All 90 allocated before the first PLAYING tick, sized to the maximum regardless of player
+      count.** Ninety real `CharacterBody3D` nodes from `npc_server.tscn` — not array slots,
+      because the cost this story moves off the hot path is the **body**, and a pool that sized an
+      array would satisfy the criterion's words while missing its point. `body_count()` reads the
+      node list so a test can tell the difference.
 
-      **But nothing instantiates the pool in `server_root.tscn`**, so no allocation happens before
-      any tick of a real match. It is true of the class and not yet of the server. Wiring it is
-      US-0040's first job, alongside the spawn distribution that gives the bodies somewhere to be.
-      Ticked in this story's own PR on the strength of the tests; **caught and reverted at the
-      next checkpoint**, which is what a checkpoint is for.
+      **Wired into `server_root.tscn` by US-0040, and verified by running the server**, not by a
+      test — which is the only way this criterion could honestly be ticked:
+
+      ```
+      [info] [boot] seed 424242 (deterministic)
+      [info] [crowd] match seed 424242
+      [info] [crowd] NpcPool: 90 bodies allocated
+      ```
+
+      It was ticked in this story's own PR on the strength of the tests alone, and **unticked at
+      the next checkpoint** because `server_root.tscn` held no pool. A criterion can be true of a
+      class and false of the game; before ticking "X happens", check that something in a shipping
+      scene calls X.
 - [x] **No NPC is instantiated or freed between match start and end.** Asserted by **counting
       nodes** across three `activate()` calls at different crowd sizes, rather than by reading the
       source: the failure is a body appearing at runtime however it got there. `activate()` also
@@ -145,6 +151,8 @@ Appearance is derived rather than replicated so every peer agrees without spendi
 if two players saw different clone distributions, "I saw a Lucerna by the furnace" becomes a lie.
 
 **Nothing places, steers or animates these NPCs yet.** They are allocated, identified and parked
-at the origin. Placement is US-0040's, the brain US-0041's, navigation US-0042's. The crowd does
+at the origin. **There is no spawn-distribution story in M3 at all** — US-0040 is the brain,
+US-0041 the navmesh and steering, US-0042 the spatial hash. Placement arrives with the navmesh,
+because a position that is not on the navmesh is a position an agent cannot leave. The crowd does
 not appear in a snapshot yet either, so US-0030's culling criteria and US-0031's rate-LOD
 criterion stay unticked — they need NPCs *on the wire*, which is US-0040 at the earliest.

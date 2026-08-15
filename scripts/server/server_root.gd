@@ -16,11 +16,14 @@ const MAP := "res://data/maps/map_vetraio.tres"
 @onready var pawns: PawnHost = $World/Pawns
 @onready var snapshots: SnapshotBuilder = $NetServer/SnapshotBuilder
 @onready var lag_comp: LagCompRecorder = $NetServer/LagCompRecorder
+@onready var crowd: NpcPool = $World/Crowd
 
 
 func _ready() -> void:
 	director.ctx.map = load(MAP) as MapData
 	pawns.setup(director.ctx)
+	_seed_the_match()
+	_stand_the_crowd_up()
 
 	# **THE MATCH STARTS IMMEDIATELY, AND THAT IS A PLACEHOLDER.** `SYS-MATCH`
 	# owns the phase — lobby, warmup, the 8-minute clock and the final minute —
@@ -44,6 +47,41 @@ func _ready() -> void:
 	Net.peer_joined.connect(_on_peer_joined)
 	Net.peer_left.connect(_on_peer_left)
 	Log.info("server topology wired: net -> router -> director -> pawns -> snapshots", &"net")
+
+
+## **THE SEED, FROM `--seed` OR THE CLOCK.** `LaunchConfig` has parsed `--seed`
+## since M0 and, until now, only **logged** it — the flag existed and changed
+## nothing. It reaches `MatchContext` here, so a deterministic run is actually
+## deterministic.
+##
+## Without the flag the server picks one and **logs it**, which is what makes a
+## surprising match reproducible afterwards. `SYS-MATCH` will own this at M4 and
+## send it in `NET-S2C-MATCH-START`; the protocol already has the field.
+func _seed_the_match() -> void:
+	var config := LaunchConfig.parse(OS.get_cmdline_user_args(), Tuning.match_rules.max_players)
+	director.ctx.match_seed = (
+		config.seed_value if config.seed_value >= 0 else int(Time.get_unix_time_from_system())
+	)
+	director.ctx.rng = RandomNumberGenerator.new()
+	director.ctx.rng.seed = director.ctx.match_seed
+	Log.info("match seed %d" % director.ctx.match_seed, &"crowd")
+
+
+## **ALLOCATE THE CROWD BEFORE ANYTHING TICKS.** US-0039 built the pool and
+## nothing instantiated one, so ninety bodies existed in tests and nowhere else —
+## its first acceptance criterion was unticked for exactly that.
+##
+## `activate()` needs the personas players chose, and there is **no lobby**
+## (`NET-C2S-LOADOUT` is M4's), so every persona is treated as in use. That is
+## the safe direction: GDD-03 §6.3 rule 5 makes a player with no clones a marked
+## man, and clones of an unplayed persona are explicitly harmless.
+func _stand_the_crowd_up() -> void:
+	crowd.preallocate()
+	var players: int = Tuning.match_rules.max_players
+	crowd.activate(
+		Tuning.crowd.count_default_6p, director.ctx.match_seed, CrowdRoster.PLAYABLE, players
+	)
+	director.ctx.crowd = crowd
 
 
 ## **EVERYTHING THAT ANSWERS "WHERE WAS THE WORLD AT TICK N".** Both consumers

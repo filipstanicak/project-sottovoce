@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3 uid="uid://bs0ttovserverroot"]
+[gd_scene load_steps=9 format=3 uid="uid://bs0ttovserverroot"]
 
 [ext_resource type="PackedScene" path="res://scenes/map/map_vetraio_collision.tscn" id="1_map"]
 [ext_resource type="Script" path="res://scripts/server/match_director.gd" id="2_director"]
@@ -7,6 +7,7 @@
 [ext_resource type="Script" path="res://scripts/server/pawn_host.gd" id="5_pawns"]
 [ext_resource type="Script" path="res://scripts/net/server/snapshot_builder.gd" id="6_snap"]
 [ext_resource type="Script" path="res://scripts/net/server/lag_comp_recorder.gd" id="7_lagcomp"]
+[ext_resource type="Script" path="res://scripts/systems/crowd/npc_pool.gd" id="8_crowd"]
 
 ; Server topology. NO PRESENTATION NODES — the release server export excludes
 ; scripts/presentation/, scripts/mirrors/ and scenes/ui/ entirely, so anything
@@ -27,6 +28,10 @@ script = ExtResource("2_director")
 
 [node name="Pawns" type="Node3D" parent="World"]
 script = ExtResource("5_pawns")
+
+; Ninety NPC bodies, allocated once in _ready() and never freed. US-0039.
+[node name="Crowd" type="Node3D" parent="World"]
+script = ExtResource("8_crowd")
 
 [node name="NetServer" type="Node" parent="."]
 

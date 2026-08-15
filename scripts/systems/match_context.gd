@@ -53,6 +53,22 @@ var slots := SlotTable.new()
 ## on it, so the M4 work is validation logic rather than infrastructure.
 var lag_comp := LagCompHistory.new()
 
+## **THE CROWD.** Ninety pre-allocated NPC bodies and the roster derived for them
+## (US-0039). Null until `server_root.gd` stands it up — a system must check,
+## because the integration harness has no crowd and neither does a client.
+var crowd: NpcPool = null
+
+## **THE MATCH SEED.** Everything derived rather than replicated comes from this:
+## the crowd roster today (US-0039), and at M4 whatever else must agree on every
+## peer without spending bandwidth.
+##
+## **IT REACHES CLIENTS IN `NET-S2C-MATCH-START`, WHICH IS NOT SENT YET.** The
+## protocol already declares the field (`match_seed:u64`); `SYS-MATCH` sends it,
+## and that is M4's. Until then only the server has it, which is survivable
+## precisely because nothing client-side derives anything from it yet — the crowd
+## is not on the wire.
+var match_seed: int = 0
+
 ## The seeded RNG. **THE ONLY SOURCE OF GAMEPLAY RANDOMNESS**, server-side —
 ## `randf` and `randi` are banned outside `scripts/presentation/`, because a
 ## match must replay identically from its seed.

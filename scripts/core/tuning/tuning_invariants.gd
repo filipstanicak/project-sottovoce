@@ -330,6 +330,13 @@ static func _traversal_reach(p: TuningProfile) -> Array[String]:
 				% [p.movement.drop_min_height, p.movement.traverse_vault_max_height]
 			)
 		)
+	if p.crowd.idle_duration_min >= p.crowd.idle_duration_max:
+		e.append(
+			(
+				"27. crowd.idle_duration_min (%.1f) must be < idle_duration_max (%.1f)"
+				% [p.crowd.idle_duration_min, p.crowd.idle_duration_max]
+			)
+		)
 	return e
 
 
