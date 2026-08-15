@@ -72,6 +72,19 @@ extends Resource
 ## TUN-CROWD-GROUP-SPACING
 @export_range(1.0, 2.0, 0.1) var group_spacing: float = 1.3
 
+## Shortest time an NPC stands at an idle anchor before strolling on. The range is GDD-03 §6.1's
+## own "8–25 s", which the diagram specified and no tunable carried until US-0040 — the state
+## machine cannot leave Idle without it. Wide because a crowd whose pauses are all the same
+## length reads as a mechanism.
+## TUN-CROWD-IDLE-DURATION-MIN
+@export_range(5.0, 15.0, 0.1) var idle_duration_min: float = 8.0
+
+## Longest such pause. Must exceed the minimum (invariant §17.27). A long tail matters more than
+## the average: a few NPCs standing for twenty seconds is what makes an idle anchor read as a
+## place rather than a waypoint, and it is what gives a hiding player somebody to stand beside.
+## TUN-CROWD-IDLE-DURATION-MAX
+@export_range(15.0, 40.0, 0.1) var idle_duration_max: float = 25.0
+
 ## Conversation clusters.
 ## TUN-CROWD-IDLE-GROUP-SIZE-MIN
 @export var idle_group_size_min: int = 2
