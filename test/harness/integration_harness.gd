@@ -43,11 +43,19 @@ var ctx := MatchContext.new()
 var host: PawnHost
 var builder: SnapshotBuilder
 
+## **WHAT ACTUALLY WENT DOWN THE WIRE.** Delta encoding is only worth having if
+## it is measured, and only trustworthy if a test can tell a delta stream from a
+## stream of full snapshots that happens to pass every other assertion.
+var snapshot_bytes: int = 0
+var full_snapshots: int = 0
+var delta_snapshots: int = 0
+
 var _tree: SceneTree
 var _owner: Node
 var _clients: Dictionary = {}
 var _created: Array[Node] = []
 var _latency: int = 1
+var _frame: int = 0
 var _in_flight: Array = []
 
 
@@ -91,7 +99,16 @@ func add_client(peer: int) -> void:
 	server.reset_for_spawn(driver.ctx.position, driver.ctx.yaw)
 	(server.body as CharacterBody3D).global_position = server.position
 
-	_clients[peer] = {"root": root, "driver": driver, "reconciler": reconciler}
+	# **EACH CLIENT GETS ITS OWN ASSEMBLER**, because each acknowledges on its own
+	# schedule and a shared one would hand a peer a baseline only another received.
+	# In the shipping client this lives on `Net`; one process holds one of those,
+	# so the harness owns them per peer — the same reason the wire is synthetic.
+	_clients[peer] = {
+		"root": root,
+		"driver": driver,
+		"reconciler": reconciler,
+		"assembler": SnapshotAssembler.new(),
+	}
 	driver.command_sampled.connect(func(command: InputCommand) -> void: _uplink(peer, command))
 
 
@@ -112,6 +129,7 @@ func remove_client(peer: int) -> void:
 		return
 	host.despawn(peer)
 	ctx.slots.release(peer)
+	builder.forget(peer)
 	var root := _clients[peer]["root"] as Node
 	_clients.erase(peer)
 	_created.erase(root)
@@ -166,7 +184,12 @@ func tear_down() -> void:
 func _uplink(peer: int, command: InputCommand) -> void:
 	if not _clients.has(peer):
 		return
-	_in_flight.append([_latency, peer, command.duplicate_command(), true, null])
+	# **STAMPED AT SEND, NOT AT SAMPLE**, the same as `Net.send_input`: the
+	# acknowledged tick is a fact about the wire, and the command object is
+	# replayed during reconciliation.
+	var outgoing := command.duplicate_command()
+	outgoing.acked_tick = (_clients[peer]["assembler"] as SnapshotAssembler).newest_tick()
+	_in_flight.append([_latency, peer, outgoing, true, null])
 
 
 ## Deliver everything that has landed, and hold the rest one frame longer.
@@ -188,19 +211,31 @@ func _pump_wire() -> void:
 func _arrive_upstream(peer: int, command: InputCommand) -> void:
 	if not _clients.has(peer):
 		return
+	# **THE ACK RIDES THE INPUT**, exactly as `NET-C2S-INPUT` carries it, so the
+	# delta path here is the shipping one rather than a full send every tick.
+	builder.note_ack(peer, command.acked_tick)
 	host.apply_input(peer, command, MatchContext.step_dt())
 	var snapshot := builder.build_for(peer)
 	snapshot.last_acked_seq = command.seq
 	# **SERIALISED, NOT HANDED OVER.** The format is where the information rules
 	# live, so a harness that passed objects would prove nothing about what
 	# actually travels.
-	_in_flight.append([_latency, peer, null, false, snapshot.serialise()])
+	var bytes := snapshot.serialise()
+	snapshot_bytes += bytes.size()
+	if snapshot.baseline_age == Snapshot.FULL:
+		full_snapshots += 1
+	else:
+		delta_snapshots += 1
+	_in_flight.append([_latency, peer, null, false, bytes])
 
 
 func _arrive_downstream(peer: int, bytes: PackedByteArray) -> void:
 	if not _clients.has(peer):
 		return
-	var snapshot := Snapshot.deserialise(bytes)
+	# Assembled before anything sees it, the way `Net.s2c_snapshot` does — a
+	# partial snapshot must never reach gameplay code, here or in the client.
+	var assembler := _clients[peer]["assembler"] as SnapshotAssembler
+	var snapshot := assembler.assemble(Snapshot.deserialise(bytes))
 	if snapshot == null:
 		return
 	(_clients[peer]["reconciler"] as Reconciler)._on_snapshot_received(snapshot)
@@ -209,8 +244,28 @@ func _arrive_downstream(peer: int, bytes: PackedByteArray) -> void:
 ## Advance the whole system by `frames` physics frames, pumping the wire on each.
 func advance(frames: int) -> void:
 	for _i: int in frames:
+		_advance_server_clock()
 		_pump_wire()
 		await _tree.physics_frame
+
+
+## **THE SERVER'S CLOCK, DERIVED THE WAY `MatchDirector` DERIVES IT** — one net
+## tick every second physics frame, counted rather than timed.
+##
+## **IT DID NOT ADVANCE AT ALL UNTIL US-0031**, so every snapshot the harness
+## ever built carried `server_tick = 0`. Nothing depended on it and nothing
+## failed: the reconciler orders by `last_acked_seq`, not by tick. Delta encoding
+## was the first thing to read it, and it read a client whose newest assembled
+## tick was permanently zero — so the ack was zero, no baseline was ever usable,
+## and **the server sent a full snapshot every tick while the whole suite passed.**
+## Caught by `test_the_stream_really_contains_deltas` on its first run, which is
+## the only assertion in that file that could have caught it.
+func _advance_server_clock() -> void:
+	_frame += 1
+	if _frame < 2:
+		return
+	_frame = 0
+	ctx.tick += 1
 
 
 ## Hold an action down for `frames`, then release it. The harness's only way to

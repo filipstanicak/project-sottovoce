@@ -38,6 +38,9 @@ signal snapshot_received(snapshot: Snapshot)
 ## instantiating: systems exist ONLY server-side.
 var is_server: bool = false
 
+## Reassembles delta snapshots into whole ones. Public so a reconnect can clear it.
+var assembler := SnapshotAssembler.new()
+
 var _peer: ENetMultiplayerPeer = null
 var _peers := PeerRegistry.new()
 var _router: RpcRouter = null
@@ -331,7 +334,7 @@ func c2s_input(seq: int, move: Vector2, yaw: float, pitch: float, buttons: int, 
 	command.look_yaw = yaw
 	command.look_pitch = pitch
 	command.buttons = buttons
-	command.client_tick = tick
+	command.acked_tick = tick
 	_router.receive_input(peer, command)
 
 
@@ -358,14 +361,19 @@ func c2s_blend_request(target_id: int) -> void:
 func send_input(command: InputCommand) -> void:
 	if not is_client_connected():
 		return
-	c2s_input.rpc_id(
-		MultiplayerPeer.TARGET_PEER_SERVER,
-		command.seq,
-		command.move,
-		command.look_yaw,
-		command.look_pitch,
-		command.buttons,
-		command.client_tick
+	(
+		c2s_input
+		. rpc_id(
+			MultiplayerPeer.TARGET_PEER_SERVER,
+			command.seq,
+			command.move,
+			command.look_yaw,
+			command.look_pitch,
+			command.buttons,
+			# **FROM THE ASSEMBLER, NOT THE COMMAND.** The command is replayed during
+			# reconciliation; a network value stamped on it would enter replay input.
+			assembler.newest_tick()
+		)
 	)
 
 
@@ -384,7 +392,8 @@ func send_snapshot(peer: int, snapshot: Snapshot) -> void:
 ## decode is dropped in silence rather than applied partially.
 @rpc("authority", "call_remote", "unreliable", Messages.Channel.STATE)
 func s2c_snapshot(bytes: PackedByteArray) -> void:
-	var snapshot := Snapshot.deserialise(bytes)
+	# **ASSEMBLED FIRST**: delta encoding stops here. See `SnapshotAssembler`.
+	var snapshot := assembler.assemble(Snapshot.deserialise(bytes))
 	if snapshot == null:
 		return
 	snapshot_received.emit(snapshot)

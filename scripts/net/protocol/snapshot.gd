@@ -28,7 +28,9 @@ const NO_STATE := 255
 ## **THE MEASURED RECORD SIZES**, from the fields §4 declares. They are constants
 ## here because the bandwidth arithmetic depends on them and because §7.1's table
 ## quotes different numbers — see US-0029.
-const HEADER_BYTES := 7
+## **EIGHT SINCE US-0031** — `baseline_age:u8` joined the header. One byte at
+## 30 Hz is 30 B/s against a saving measured in thousands.
+const HEADER_BYTES := 8
 const OWN_BYTES := 43
 const REMOTE_BYTES := 10
 ## **EIGHT, NOT TEN.** An NPC's `y` is a byte at 5 cm rather than an `i16` at
@@ -39,13 +41,42 @@ const REMOTE_BYTES := 10
 ## NETWORK_PROTOCOL §4 and TDD-04 §7.1.
 const NPC_BYTES := 8
 
-## The two length fields: one byte of remote pawns, two of NPCs.
-const COUNT_BYTES := 3
+## The length fields: one byte of remote pawns, two of NPCs, plus the one-byte
+## **present-slot mask** US-0031 added beside the remote count.
+const COUNT_BYTES := 4
+
+## **HOW FAR BACK THE BASELINE IS, NOT WHICH TICK IT IS.** An age fits in a byte
+## where a tick needs four, and 255 ticks is 8.5 s — far past any baseline worth
+## delta-ing against.
+##
+## **Zero means a FULL snapshot**, which is why the header needs no flag bit for
+## it: "this is complete" and "the baseline is zero ticks ago" are the same
+## statement, and a format with two ways to say one thing eventually says both.
+const FULL := 0
+
+## Ceiling on `baseline_age`. Past this the server sends a full snapshot rather
+## than reaching for a baseline the client has almost certainly discarded.
+const MAX_BASELINE_AGE := 255
 
 # --- header ---
 var server_tick: int = 0
 var last_acked_seq: int = 0
 var flags: int = 0
+
+## Ticks back to the snapshot this one is a delta against. `FULL` (0) means the
+## snapshot is complete and stands alone. See `SnapshotDelta` (server) and
+## `SnapshotAssembler` (client).
+var baseline_age: int = FULL
+
+## **BITMASK OF EVERY SLOT PRESENT THIS TICK**, whether or not its record was
+## sent. Bit `n` is slot `n + 1`.
+##
+## Delta encoding breaks the rule that made this unnecessary: "absent from the
+## snapshot" used to mean "gone", and now it means "unchanged". Without a
+## separate statement of who exists, a player who disconnects while standing
+## still would be omitted for being unchanged and **never freed** — they would
+## stand in the district for the rest of the match.
+var present_slots: int = 0
 
 # --- own pawn: FULL, because this is what prediction is reconciled against ---
 var own_position: Vector3 = Vector3.ZERO
@@ -94,6 +125,31 @@ func add_npc(index: int, position: Vector3, yaw: float, anim_state: int, phase_b
 	npcs.append([index, position, yaw, anim_state, phase_bits])
 
 
+## **EXACTLY WHAT `_write_remotes` WOULD PUT ON THE WIRE**, as comparable values.
+##
+## Delta encoding omits a record whose state is unchanged, and §7.2 is precise
+## about which state: the **quantised** one. Comparing the `Vector3`s instead
+## would be wrong in both directions — two positions 3 mm apart round to the same
+## centimetre and would be sent as a change nobody could see, and a yaw crossing
+## a 1.4° boundary changes its byte while `is_equal_approx` says it did not.
+##
+## It lives here, beside the writer, so the two cannot come apart. If they ever
+## do, a record will be omitted as unchanged while its bytes differ, and the
+## client will render a player at a position the server never had —
+## `test_snapshot_delta.gd` asserts equal fingerprints serialise identically.
+static func remote_fingerprint(record: Array) -> Array:
+	var steps := Quantise.vector_to_i16(record[1] as Vector3)
+	return [
+		int(record[0]),
+		steps[0],
+		steps[1],
+		steps[2],
+		Quantise.yaw_to_u8(record[2]),
+		state_index(record[3]),
+		Quantise.pack(record[4], 6, record[5], 2),
+	]
+
+
 func serialise() -> PackedByteArray:
 	var buffer := StreamPeerBuffer.new()
 	buffer.big_endian = false
@@ -109,6 +165,7 @@ func _write_header(buffer: StreamPeerBuffer) -> void:
 	buffer.put_u32(server_tick)
 	buffer.put_u16(last_acked_seq)
 	buffer.put_u8(flags)
+	buffer.put_u8(clampi(baseline_age, FULL, MAX_BASELINE_AGE))
 
 
 ## The own-pawn block is **full floats, not quantised**. It is the authority the
@@ -148,6 +205,11 @@ func _write_compass_and_match(buffer: StreamPeerBuffer) -> void:
 
 
 func _write_remotes(buffer: StreamPeerBuffer) -> void:
+	# **WHO EXISTS, THEN WHO MOVED.** The mask is written even on a full snapshot,
+	# where it is derivable from the records. One byte buys a single decode path,
+	# and a format whose shape depends on a flag is a format that gets read wrong
+	# on the branch nobody tested.
+	buffer.put_u8(present_slots)
 	buffer.put_u8(remote_pawns.size())
 	for record: Array in remote_pawns:
 		buffer.put_u8(record[0])
@@ -210,6 +272,7 @@ static func deserialise(bytes: PackedByteArray) -> Snapshot:
 	snap.server_tick = buffer.get_u32()
 	snap.last_acked_seq = buffer.get_u16()
 	snap.flags = buffer.get_u8()
+	snap.baseline_age = buffer.get_u8()
 	snap._read_own(buffer)
 	snap._read_compass_and_match(buffer)
 	if not snap._read_remotes(buffer) or not snap._read_npcs(buffer):
@@ -247,6 +310,7 @@ func _read_compass_and_match(buffer: StreamPeerBuffer) -> void:
 
 
 func _read_remotes(buffer: StreamPeerBuffer) -> bool:
+	present_slots = buffer.get_u8()
 	var count := buffer.get_u8()
 	if buffer.get_available_bytes() < count * REMOTE_BYTES:
 		return false

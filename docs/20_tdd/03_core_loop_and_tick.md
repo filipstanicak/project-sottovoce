@@ -296,7 +296,7 @@ var buttons: int
 ## The client's tick when sampled. ADVISORY ONLY — used for diagnostics.
 ## NEVER used to order events or resolve contests: it is client-supplied and forgeable.
 ## Contest resolution uses the server receive tick (ADR-0010).
-var client_tick: int
+var acked_tick: int
 ```
 
 ```gdscript
@@ -401,4 +401,4 @@ that ASM-0020's decision — putting all gameplay on the net tick — actually h
 | 1 | Should the server run physics at 30 Hz instead of 60, halving pawn-step cost? It would require the client to predict at 30 Hz too, making input latency worse by up to 16 ms against an 80 ms budget. | Keep 60. The budget has room (0.30 ms of 8.0 ms) and input latency is the scarcer resource. | M2 |
 | 2 | Is a 32-command input buffer (`TUN-NET-INPUT-BUFFER-SIZE`, ~0.53 s at 60 Hz) enough? At 400 ms RTT it would overflow. | Enough for the target population. On overflow the client force-accepts the server state with a visible correction, which is the correct degradation. Revisit if telemetry shows overflow. | M2 |
 | 3 | Should NPC LOD bands be evaluated per net tick or on the `CrowdDirector`'s 2 s timer? Per-tick is 90 distance checks at 30 Hz; the 2 s timer risks a player sprinting past an NPC still in Far LOD. | Per net tick, but as a squared-distance check against a cached player position array — ~90 float compares, well inside budget. | M3 |
-| 4 | `InputCommand.client_tick` is advisory and forgeable. Should it be sent at all? | Keep for diagnostics; it is 2 bytes and it makes desync investigation far easier. The rule that it never orders events is enforced by `test_no_client_time_in_kill.gd` (ADR-0010 compliance). | M4 |
+| 4 | `InputCommand.client_tick` is advisory and forgeable. Should it be sent at all? | **Answered in US-0031: no.** It was provably a duplicate of `seq` — an integration test asserted the two identical — and those two bytes became `acked_tick`, the delta baseline, at no cost on a budget already at 112 % upstream. The forgeability rule is unchanged and still enforced by `test_no_client_time_in_kill.gd`. | Closed |

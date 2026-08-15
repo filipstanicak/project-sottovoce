@@ -55,6 +55,7 @@ func _ready() -> void:
 func _wire_end_of_tick() -> void:
 	snapshots.setup(director.ctx, pawns, router)
 	director.tick_completed.connect(snapshots.send_all)
+	router.snapshot_acked.connect(snapshots.note_ack)
 
 	# Recording only. Nothing reads the history until kill and stun exist in M4.
 	lag_comp.setup(director.ctx, pawns)
@@ -74,3 +75,4 @@ func _on_peer_left(peer: int) -> void:
 	pawns.despawn(peer)
 	router.forget(peer)
 	director.forget(peer)
+	snapshots.forget(peer)

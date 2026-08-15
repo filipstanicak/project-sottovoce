@@ -178,7 +178,7 @@ flowchart TD
     L --> M["ContractSystem.on_death — repair SAME TICK"]
 ```
 
-**Contest resolution uses the server receive tick, never `InputCommand.client_tick`**
+**Contest resolution uses the server receive tick, never a client-supplied number** (`client_tick` became `acked_tick` in US-0031 and is equally forbidden here)
 (ADR-0010). A low-ping player wins a genuine tie; the alternative is trivially forgeable.
 `TEL-CONTEST-RESOLVED` logs both RTTs so the skew is measurable.
 

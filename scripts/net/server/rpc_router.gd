@@ -23,6 +23,16 @@ extends Node
 ## An authorised input from a peer who owns a pawn, in sequence.
 signal input_received(peer: int, command: InputCommand)
 
+## The peer has told us which snapshot tick it holds, US-0031. Emitted from the
+## input path because that is where the ack rides — `NET-C2S-INPUT`'s
+## `acked_tick`, at 60 Hz, costing nothing it was not already spending.
+##
+## **EMITTED ONLY FOR A COMMAND THAT PASSED THE SEQUENCE GATE.** A stale command
+## carries a stale ack, and honouring it would walk a client's baseline
+## backwards — harmless, and silently doubling the delta for as long as it kept
+## happening.
+signal snapshot_acked(peer: int, tick: int)
+
 ## An authorised ability request. **A REQUEST, NEVER AN ACTIVATION** — the
 ## ability system decides, and may deny.
 signal ability_requested(peer: int, slot: int, aim_origin: Vector3, aim_dir: Vector3)
@@ -143,6 +153,7 @@ func last_acked_seq(peer: int) -> int:
 func receive_input(peer: int, command: InputCommand) -> bool:
 	if not _sequence.accept(peer, command.seq):
 		return false
+	snapshot_acked.emit(peer, command.acked_tick)
 	input_received.emit(peer, command)
 	return true
 
