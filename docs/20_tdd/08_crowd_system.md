@@ -398,11 +398,14 @@ corpus has already shipped three claims of the second kind that were the first.
 |---|---|---|
 | `scenes/npc/npc_server.tscn` | Capsule + agent | **Exists.** No brain node — `NpcBrain` is a `RefCounted` the pool owns, not a child |
 | `scenes/npc/npc_view.tscn` | Mesh + `AnimationTree`, inert | Not written. US-0046 |
-| `scripts/systems/crowd/crowd_director.gd` | `SYS-CROWD` | **Exists**, US-0041. Circuits, slots and rebalance are US-0043's |
+| `scripts/systems/crowd/crowd_director.gd` | `SYS-CROWD` | **Exists**, US-0041; the 2 s timer and the player-facing slot API added in US-0043. Clone redistribution is US-0047's |
 | `scripts/systems/crowd/npc_pool.gd` | Pre-allocation, seeded activation | **Exists**, US-0039 |
 | `scripts/systems/crowd/npc_brain.gd` | The five-state HFSM | **Exists**, US-0040 |
 | ~~`scripts/systems/crowd/npc_states/*.gd`~~ | ~~5 state handlers~~ | **Will not be written.** ADR-0003 chose a flat table over per-state objects: five handler files for five behaviours is five virtual calls per agent per tick, and §3's whole argument is that the crowd needs to be legible rather than clever. The directory was created empty in M0 and is removed |
 | `scripts/systems/crowd/steering.gd` | Avoidance + slot seeking; the §11 caching exception | **Exists**, US-0041 |
+| `scripts/systems/crowd/crowd_formations.gd` | The four walking groups and their slots | **Exists**, US-0043. Split from `CrowdDirector`, which §8 puts it on, because one file holding the tick, the brains, the steering *and* the formations passes 400 lines |
+| `scripts/systems/crowd/crowd_circuit.gd` | A closed route, parametrised by **distance** | **Exists**, US-0043. Not in the original table |
+| `scripts/systems/crowd/walking_group.gd` | One formation: slots, occupants, the joinable one | **Exists**, US-0043. Not in the original table |
 | `scripts/systems/crowd/repath_queue.gd` | The §12 Q2 stagger, capped at `TUN-PERF-CROWD-REPATH-PER-TICK` | **Exists**, US-0041. Not in the original table |
 | `scripts/systems/crowd/crowd_placement.gd` | Where the ninety start | **Exists**, US-0041. Not in the original table, and there is no spawn-distribution story anywhere in M3 |
 | `scripts/systems/crowd/crowd_context.gd` | What one brain can see | **Exists**, US-0040. Not in the original table |
@@ -438,6 +441,7 @@ a table saying "X asserts Y" is what stops anybody checking by hand.
 | `test_npc_speed_matches_blendwalk.gd` | `TUN-CROWD-NPC-SPEED-STROLL == TUN-SPEED-BLENDWALK` | Invariant 1 in `test/unit/core/tuning/test_tuning_ranges.gd`. **And measured on a walking crowd** by `test_crowd_moves.gd`, which is the half a tuning check cannot see |
 | `test_flee_slower_than_sprint.gd` | `TUN-CROWD-NPC-SPEED-FLEE < TUN-SPEED-SPRINT` | Invariant 14, same file |
 | `test_navmesh_coverage.gd` | Every street-level playable point is on the navmesh; no roof or balcony is | `test/integration/test_navmesh_coverage.gd`, **and** a same-named unit test of `MapData`'s declarations. Both exist and they check different things |
+| `test_circuit_separation.gd` (US-0043's own note) | Circuit periods, the empty plaza, and the 8 m separation rule | `test/unit/core/map/test_circuit_separation.gd`. **The separation rule is missed by 0.51 m and reported rather than failed** — CIRC-A and CIRC-B share the z=45 spine, so it is geometry rather than timing |
 | `test_npcview_is_inert.gd` | `NpcView` has no agent, no brain, no `step()` | Not written. **US-0045/0046** |
 | `test_no_midmatch_instantiate.gd` | No NPC is instantiated or freed between match start and end | Partly: `test/integration/test_npc_pool.gd` asserts `body_count()` never falls and that `activate()` refuses to grow |
 | `test_spatial_hash_correctness.gd` | Hash queries match brute-force results for 1000 random queries | `test/unit/systems/crowd/test_spatial_hash.gd` |
