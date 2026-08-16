@@ -225,6 +225,28 @@ Effective brain updates per tick, typical distribution:
 
 **A 2.6× reduction** — the difference between fitting the budget and not.
 
+**Measured, US-0045, on `MAP-VETRAIO` with six players at the spawn points: 6 of 78 brains step
+per tick, not 34 of 90.** The table above assumes ~20 NPCs within 20 m of somebody, which is a
+denser arrangement than six players spread across a 120 × 120 m district ever produce. The
+reduction is therefore **larger** than §4.1 claims and worth **less** than it claims, because
+US-0048 measured the brains at 0.046 ms before this was built. `CrowdDirector.tick()` went from
+**0.54 ms to 0.44 ms** — a real 20 %, and a fifth of a millisecond.
+
+**Two things LOD nearly changed that are not rates**, both caught by US-0045's own tests:
+
+1. **A banded brain's timers.** Stepped every fifteenth tick and decremented by one, an 8–25 s
+   idle pause becomes 120–375 s. `NpcBrain.step()` takes a `stride` for exactly this, and the
+   only symptom would have been a distant crowd standing unusually still — which reads as
+   atmosphere.
+2. **Events raised on a tick the brain did not think.** Clearing `CrowdContext` every tick
+   regardless wipes a `startle_flag` before anybody reads it, so **LOD would silently drop
+   startles and gawk tokens for two thirds of the crowd**. Startle is the one interrupt the
+   design requires to be *reliable*.
+
+Both are behaviour changes wearing a rate change's name, which is precisely what ADR-0003
+forbids. `test_lod_changes_rate_not_logic.gd` is the source scan; `test_crowd_lod.gd` holds the
+two above.
+
 ### 4.2 Animation LOD (client)
 
 | Band | Distance | Animation |
@@ -439,7 +461,7 @@ a table saying "X asserts Y" is what stops anybody checking by hand.
 | `test_clone_animation_parity.gd` | Every `anonymous_clip_names` entry exists in the clone library | Not written. **US-0046**, and there are no clips |
 | `test_clone_local_min.gd` | Over a 3-minute clustered match, every player always had ≥ 2 same-persona clones within 25 m | Not written. **US-0047**. `SpatialHash.count_persona()` is the query it needs and exists |
 | `test_anim_lod_silhouette.gd` | Silhouettes match across LOD band boundaries | Not written. **US-0045**, and it needs a rendered frame |
-| `test_lod_changes_rate_not_logic.gd` | **Source scan:** no distance check inside `NpcBrain.step()` | Not written. **US-0045**. There is no LOD at all yet |
+| `test_lod_changes_rate_not_logic.gd` | **Source scan:** no distance check inside `NpcBrain.step()` | `test/arch/test_lod_changes_rate_not_logic.gd`, US-0045 — and it also asserts the `stride` reaches the brain, which a distance scan cannot see |
 | `test_npc_speed_matches_blendwalk.gd` | `TUN-CROWD-NPC-SPEED-STROLL == TUN-SPEED-BLENDWALK` | Invariant 1 in `test/unit/core/tuning/test_tuning_ranges.gd`. **And measured on a walking crowd** by `test_crowd_moves.gd`, which is the half a tuning check cannot see |
 | `test_flee_slower_than_sprint.gd` | `TUN-CROWD-NPC-SPEED-FLEE < TUN-SPEED-SPRINT` | Invariant 14, same file |
 | `test_navmesh_coverage.gd` | Every street-level playable point is on the navmesh; no roof or balcony is | `test/integration/test_navmesh_coverage.gd`, **and** a same-named unit test of `MapData`'s declarations. Both exist and they check different things |
@@ -474,40 +496,49 @@ Clients run **no brain and no navigation** (ADR-0007), so client cost is animati
 | Spatial hash rebuild (90 inserts) | ≤ 0.15 ms | **0.054 ms** |
 | LOD band evaluation (90 squared-distance compares) | ≤ 0.05 ms | none exists yet (US-0045) |
 | `NpcBrain.step()` × ~34 effective | ≤ 0.50 ms | **0.046 ms for all 78** |
-| Steering + avoidance × ~34 | ≤ 0.60 ms | **5.69 ms per physics frame** — see §11.2.1 |
+| Steering + avoidance × ~34 | ≤ 0.60 ms | **not measurable** — see §11.2.1 |
 | `NavigationAgent3D` path queries (amortised) | ≤ 0.40 ms | inside the 0.54 ms tick below |
 | `CrowdDirector` rebalance (2 s timer, amortised) | ≤ 0.05 ms | inside the same |
-| Everything inside `CrowdDirector.tick()` | — | **mean 0.54 ms, p95 0.81, max 1.12** |
-| **Server total** | **≤ 1.75 ms of 8.0 ms** | **≈ 12 ms per net tick** |
+| Everything inside `CrowdDirector.tick()` | — | **mean 0.44 ms, p95 0.53, max 0.62** (0.54 before LOD) |
+| **Server total** | **≤ 1.75 ms of 8.0 ms** | tick is inside it; movement is unmeasured |
 
 ### 11.2.1 The measured cost is movement, and it is not where the budget put it
 
 `test_crowd_perf.gd` (US-0048, built before US-0045 on purpose) measures the crowd on the real
 map with `TUN-CROWD-COUNT-DEFAULT-6P` NPCs. Three things the table above got wrong:
 
-**The decisions are almost free and the movement is not.** Everything inside the crowd stage —
-hash rebuild, brains, goals, the repath queue, the formations — costs **0.54 ms a tick**, inside
-budget. Crowd *movement* costs **5.69 ms per physics frame** (2.97 avoidance + 2.72 bodies), and
-there are two physics frames per net tick, so the crowd's real cost is about **12 ms per tick**
-against a 1.75 ms line. Movement is outside `tick()` by necessity: `move_and_slide()` integrates
-by the physics delta, so driving bodies from the 30 Hz tick would halve every NPC's speed
-(US-0041).
+**The decisions are almost free.** Everything inside the crowd stage — hash rebuild, brains,
+goals, the repath queue, the formations — costs **0.44 ms a tick** after US-0045's LOD and
+0.54 before it. Comfortably inside budget, and reproducible to two decimal places across runs.
+
+**CROWD MOVEMENT COULD NOT BE MEASURED, AND THE FIGURE FIRST PUBLISHED HERE WAS WRONG.** Movement
+runs outside `tick()` by necessity — `move_and_slide()` integrates by the physics delta, so
+driving bodies from the 30 Hz tick would halve every NPC's speed (US-0041) — and the only
+instrument for it, `Performance.TIME_PHYSICS_PROCESS`, gives **incoherent answers**: 31 ms a
+frame in one arrangement, 5.69 in another, 24–28 in a third, all **inside a frame the wall clock
+says takes 16.73 ms**. A cost larger than the interval containing it is not a slow frame; it is a
+broken reading. **The 5.69 ms figure this section carried between US-0048 and US-0045 should not
+be quoted.**
+
+What *is* coherent, reproducible and load-bearing is the wall clock: a physics frame with the
+full crowd takes **16.73 ms**, against 16.56 with no crowd at all and a 16.67 ms deadline. The
+server keeps up. Getting a trustworthy per-item movement cost needs a profiler this project does
+not have — recorded as owed rather than estimated.
 
 **§4.1's LOD would save almost nothing as specified.** It bands the *brain* rate, and the brains
 are **0.046 ms** — under 1 % of the crowd's cost and a tenth of what this table budgets for a
 third as many of them. The lever that matters is avoidance and body movement, which no band in
 §4.1 touches. US-0045 should be designed against these numbers rather than against the table.
 
-**The server keeps up anyway, and that is the load-bearing fact.** Physics is paced to
-`TUN-NET-CLIENT-INPUT-RATE`; with the full crowd a physics frame still takes **16.77 ms of wall
-clock**, against 16.41 with avoidance off and 16.58 with no crowd at all. 5.69 ms of a 16.7 ms
-frame is a third of it, with headroom left. `TUN-PERF-SERVER-TICK-BUDGET` 8.0 ms is not being
-met; the frame deadline is.
+**§4.1's LOD is still worth building, for reasons that are not this table.** It bands the
+*brain* rate and the brains are 0.046 ms, so the saving is a fifth of a millisecond. What it
+actually buys is US-0041's far-band path validity, and a band number other systems can read.
+US-0045 says so rather than claiming a performance win it does not deliver.
 
-**And the instrument had to be checked before the number was believed.** The first version of the
-test asserted on `Performance.TIME_PHYSICS_PROCESS` alone and reported **31 ms per frame**, a 17×
-miss — while the wall clock, unmeasured at the time, was a flat 16.7 ms in every configuration.
-The monitor is not evidence on its own. Trap 3's family, in a profiler.
+**And the instrument had to be checked three times before it was discarded.** The monitor
+reported 31 ms, then 5.69, then 24–28 for arrangements whose wall clock never moved off 16.7 ms.
+**A reading that cannot be cross-checked reports whatever it reports** — trap 3's family, in a
+profiler, and the reason the assertion in `test_crowd_perf.gd` is on the wall clock alone.
 
 ### 11.3 The fallback ladder if `test_crowd_perf.gd` fails
 

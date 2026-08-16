@@ -68,6 +68,13 @@ func _stand_up() -> void:
 
 func _run(ticks: int) -> void:
 	for _tick: int in ticks:
+		# **THE TICK MUST ADVANCE, AND US-0045 IS THE FIRST THING THAT NOTICED.**
+		# `CrowdLod.due()` staggers each band across its own period by `(tick + index)`,
+		# so a harness whose `ctx.tick` stays 0 makes only every fifteenth NPC ever
+		# eligible to think — and the symptom was twelve NPCs holding formation slots
+		# with one of them in `WALKING_GROUP`. `IntegrationHarness` had exactly this
+		# defect from US-0036 to US-0031: **zero is a plausible tick.**
+		_ctx.tick += 1
 		_director.tick(_ctx, MatchContext.net_dt())
 		await get_tree().physics_frame
 		await get_tree().physics_frame
@@ -163,6 +170,7 @@ func test_a_group_never_outpaces_the_crowd() -> void:
 	var dt := MatchContext.net_dt()
 	for _tick: int in TICKS:
 		var before := groups[0].slot_position(0)
+		_ctx.tick += 1
 		_director.tick(_ctx, dt)
 		await get_tree().physics_frame
 		await get_tree().physics_frame

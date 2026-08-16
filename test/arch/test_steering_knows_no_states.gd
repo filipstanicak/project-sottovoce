@@ -18,7 +18,10 @@
 extends GutTest
 
 const STEERING := "res://scripts/systems/crowd/steering.gd"
-const DIRECTOR := "res://scripts/systems/crowd/crowd_director.gd"
+## Where a state becomes a point and a speed. It was `crowd_director.gd` until
+## US-0045 split the file at the 400-line limit; the responsibility did not move,
+## only its address.
+const DIRECTOR := "res://scripts/systems/crowd/crowd_intent.gd"
 
 ## Everything that would mean steering had learned about states.
 const FORBIDDEN: Array[String] = [
@@ -71,10 +74,10 @@ func test_the_director_is_the_one_that_knows() -> void:
 	# satisfied by deleting the knowledge entirely: somebody must map a state onto
 	# a point and a speed, and it has to be findable.
 	assert_true(
-		SourceScanner.code_contains(DIRECTOR, "func _speed_for"),
+		SourceScanner.code_contains(DIRECTOR, "func speed_for"),
 		"nothing turns a brain state into a speed — steering cannot be dumb on its own"
 	)
 	assert_true(
-		SourceScanner.code_contains(DIRECTOR, "func _goal_for"),
+		SourceScanner.code_contains(DIRECTOR, "func goal_for"),
 		"nothing turns a brain state into a destination"
 	)

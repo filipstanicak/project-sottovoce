@@ -137,6 +137,8 @@ func test_the_server_crowd_tick_against_the_budget() -> void:
 	# queries and the director's 2 s pass.
 	await _stand_up()
 	var stats := _stats(await _sample_ticks(TICKS))
+	var load := _director.lod_load()
+	gut.p("LOD: %d of %d brains stepped on the last tick" % [load.x, load.y])
 	(
 		gut
 		. p(
@@ -206,17 +208,24 @@ func test_the_brains_hold_theirs() -> void:
 	assert_gt(each, 0.0, "the clock measured nothing")
 
 
-func test_the_physics_frame_cost_the_tick_does_not_include() -> void:
-	# **THE CROWD SPENDS MOST OF ITS BUDGET OUTSIDE `tick()`.** `Steering` moves
+func test_the_physics_frame_still_fits_inside_its_deadline() -> void:
+	# **THE CROWD SPENDS MOST OF ITS TIME OUTSIDE `tick()`.** `Steering` moves
 	# bodies from `NavigationAgent3D`'s avoidance callback, on the **physics**
 	# frame — it has to, because `move_and_slide()` integrates by the physics delta
 	# and driving it from the 30 Hz tick would halve every NPC's speed (US-0041).
-	# So a measurement of the crowd stage alone misses RVO, the avoidance callback
-	# and ninety `move_and_slide()` calls, which is §11.2's largest line.
+	# So a measurement of the crowd stage alone misses RVO, the callback and
+	# seventy-eight `move_and_slide()` calls.
 	#
-	# Measured by difference: physics-frame time with the crowd active, then with
-	# it stood down. Crude, and the only instrument available without putting a
-	# profiler inside shipping code.
+	# **AND `Performance.TIME_PHYSICS_PROCESS` COULD NOT BE MADE TO MEASURE IT.**
+	# Three attempts, all incoherent: it reported 31 ms a frame in one arrangement
+	# and 24 ms of "crowd cost" in another — **inside a frame the wall clock says
+	# takes 16.73 ms**. A figure larger than the interval that contains it is not a
+	# slow frame, it is a broken instrument, and the earlier version of this file
+	# published 5.69 ms from it before the contradiction was noticed.
+	#
+	# So the monitor is printed and believed by nobody, and the assertion is on the
+	# **wall clock**, which is coherent, reproducible to two decimal places across
+	# runs, and answers the only question that matters: does the server keep up.
 	await _stand_up()
 	var full := await _physics_ms(40)
 	for index: int in int(Tuning.crowd.count_max):
@@ -227,34 +236,30 @@ func test_the_physics_frame_cost_the_tick_does_not_include() -> void:
 	_pool.deactivate_all()
 	var empty := await _physics_ms(40)
 
-	gut.p(
-		(
-			"physics frame, %d NPCs: full %.2f ms | no avoidance %.2f | no crowd %.2f (monitor)"
-			% [_count, full[0], no_rvo[0], empty[0]]
+	var deadline := 1000.0 / Tuning.net.client_input_rate
+	(
+		gut
+		. p(
+			(
+				"physics wall clock, %d NPCs: full %.2f | no avoidance %.2f | none %.2f (deadline %.2f) ms"
+				% [_count, full[1], no_rvo[1], empty[1], deadline]
+			)
 		)
 	)
-	gut.p(
-		(
-			"                       full %.2f ms | no avoidance %.2f | no crowd %.2f (wall clock)"
-			% [full[1], no_rvo[1], empty[1]]
+	(
+		gut
+		. p(
+			(
+				"TIME_PHYSICS_PROCESS says %.2f / %.2f / %.2f ms — INCOHERENT, it exceeds the frame it is in"
+				% [full[0], no_rvo[0], empty[0]]
+			)
 		)
 	)
-	gut.p(
-		(
-			"crowd movement costs %.2f ms a frame: %.2f avoidance + %.2f bodies"
-			% [full[0] - empty[0], full[0] - no_rvo[0], no_rvo[0] - empty[0]]
-		)
-	)
-	assert_gt(full[0], 0.0, "the physics monitor read nothing")
-
-	# **THE WALL CLOCK IS WHAT SAYS WHETHER THE SERVER KEEPS UP.** Physics is paced
-	# to `TUN-NET-CLIENT-INPUT-RATE`, so a frame that still takes 1/60 s of real
-	# time with the full crowd in it is a frame with headroom left, whatever the
-	# monitor reports.
+	assert_gt(full[1], 0.0, "the wall clock measured nothing")
 	assert_lt(
 		full[1],
-		1000.0 / Tuning.net.client_input_rate * 1.2,
-		"physics frames are running long with the full crowd — the server is not keeping up"
+		deadline * 1.2,
+		"physics frames run long with the full crowd — the server is not keeping up"
 	)
 
 

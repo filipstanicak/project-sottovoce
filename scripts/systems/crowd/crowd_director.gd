@@ -19,10 +19,12 @@
 ## because the steering layer is what US-0044 will hang off — but a crowd that
 ## only strolls and stands is what a server actually runs this milestone.
 ##
-## **THERE IS NO LOD.** Every active NPC steps every tick, which is 78 brains
-## rather than TDD-08 §4.1's ~34. The bands are US-0045's and inventing them here
-## would put a distance check inside the crowd's hot path that `test_lod_changes_
-## rate_not_logic.gd` will later have to find and remove.
+## **LOD BANDS THE BRAIN AND NOTHING ELSE**, US-0045. Steering, the formations and
+## the hash run every tick for every active NPC; only `NpcBrain.step()` is rated,
+## because that is what TDD-08 §4.1 specifies and what ADR-0003 permits. US-0048
+## measured what that is worth before it was built: the brains are 0.046 ms of a
+## 5.7 ms crowd, so the saving is under 1 % — see §11.2.1 for where the cost
+## actually is.
 class_name CrowdDirector
 extends GameSystem
 
@@ -40,12 +42,17 @@ var _rng: RandomNumberGenerator = null
 var _steering := Steering.new()
 var _repath := RepathQueue.new()
 var _formations := CrowdFormations.new()
+var _intent := CrowdIntent.new()
 var _alarm := CrowdAlarm.new()
 
 ## The shared grid, held from `setup()` so the public startle and corpse entry
 ## points can be called from outside a tick — `SYS-KILL` resolves a kill in the
 ## `combat` stage, which is four positions after `crowd` in `SystemOrder`.
 var _hash: SpatialHash = null
+
+## This tick's number, so `_advance` can ask whether an NPC is due without being
+## handed the whole context.
+var _tick: int = 0
 var _corpses := CorpseRegister.new()
 
 ## Net ticks between sprinter sweeps, from `TUN-CROWD-STARTLE-SPRINT-INTERVAL`.
@@ -64,6 +71,17 @@ var _rebalance_ticks: int = 60
 ## rather than a local, because the hash copies out of it and a fresh
 ## `PackedVector3Array` every tick is ninety NPCs' worth of garbage a second.
 var _here: PackedVector3Array = PackedVector3Array()
+
+## Where the players are, refilled each tick for the band evaluation. A member for
+## the same reason `_here` is one.
+var _watchers: PackedVector3Array = PackedVector3Array()
+
+## Each active NPC's band this tick, parallel to the pool.
+var _bands: PackedByteArray = PackedByteArray()
+
+## How many brains actually stepped last tick. §4.1 predicts ~34 of 90; there is
+## no other way to see the reduction from outside.
+var _stepped_last_tick: int = 0
 
 ## Where each NPC is walking, parallel to the pool. `NO_GOAL` means "needs one",
 ## which is what puts it in the repath queue.
@@ -85,11 +103,15 @@ func setup(ctx: MatchContext) -> void:
 		return
 	if not Tuning.reloaded.is_connected(_steering.refresh):
 		Tuning.reloaded.connect(_steering.refresh)
+	if not Tuning.reloaded.is_connected(_intent.refresh):
+		Tuning.reloaded.connect(_intent.refresh)
 	_rebalance_ticks = maxi(Tuning.ticks(&"TUN-CROWD-DIRECTOR-INTERVAL"), 1)
 	_sweep_ticks = maxi(Tuning.ticks(&"TUN-CROWD-STARTLE-SPRINT-INTERVAL"), 1)
 	_formations.setup(ctx.map)
+	_intent.setup(_pool, ctx.map, _rng, _formations, _corpses)
 	_goals.resize(_pool.body_count())
 	_here.resize(_pool.body_count())
+	_bands.resize(_pool.body_count())
 	ctx.crowd_hash.setup(ctx.map.bounds if ctx.map != null else AABB(), _pool.body_count())
 	for index: int in _pool.body_count():
 		_goals[index] = NO_GOAL
@@ -110,7 +132,9 @@ func setup(ctx: MatchContext) -> void:
 func tick(ctx: MatchContext, dt: float) -> void:
 	if _pool == null:
 		return
+	_tick = ctx.tick
 	_reindex(ctx)
+	_band_the_crowd(ctx)
 	# **THE 2 S TIMER RUNS BEFORE THE BRAINS**, so a slot assigned this tick is a
 	# `slot_assigned` flag the brain consumes this tick rather than next. GDD-05
 	# §5.2 makes the interval slow on purpose: visible re-forming is itself an
@@ -124,6 +148,7 @@ func tick(ctx: MatchContext, dt: float) -> void:
 	_corpses.expire(ctx.tick, _pool)
 	if ctx.tick % _sweep_ticks == 0:
 		_alarm.sweep_for_sprinters(ctx, ctx.crowd_hash, _pool)
+	_stepped_last_tick = 0
 	for index: int in _pool.active_count():
 		_advance(index, dt)
 	_serve_repaths()
@@ -146,6 +171,32 @@ func _reindex(ctx: MatchContext) -> void:
 	ctx.crowd_hash.rebuild(_here, _pool.roster, active)
 
 
+## §4.1's band evaluation: ninety squared-distance compares against the players.
+##
+## **RUN EVERY TICK, DELIBERATELY.** Banding on the 2 s pass instead would be
+## cheaper and would mean a player walking into a plaza waits up to two seconds
+## for the crowd around them to start thinking at full rate — which is a crowd
+## that behaves differently *because you just arrived*, and therefore a tell.
+func _band_the_crowd(ctx: MatchContext) -> void:
+	_watchers = CrowdLod.player_points(ctx.pawns, _watchers)
+	for index: int in _pool.active_count():
+		var body := _pool.body_of(index)
+		if body != null:
+			_bands[index] = CrowdLod.band_of(body.global_position, _watchers)
+
+
+## How many brains stepped on the last tick, and how many were active. §4.1's
+## table predicts about 34 of 90.
+func lod_load() -> Vector2i:
+	return Vector2i(_stepped_last_tick, _pool.active_count() if _pool != null else 0)
+
+
+## The band `index` is in right now. Read by `test_crowd_lod.gd`, and by US-0041's
+## far-band path validity.
+func band_of(index: int) -> int:
+	return _bands[index] if index >= 0 and index < _bands.size() else CrowdLod.Band.FAR
+
+
 func teardown() -> void:
 	_repath.clear()
 	_corpses.clear()
@@ -153,6 +204,11 @@ func teardown() -> void:
 
 
 ## One NPC: deliver what happened to it, step it, then ask for what it now needs.
+##
+## **LOD RATES THE BRAIN AND ONLY THE BRAIN.** Goals, the repath request and
+## steering run every tick for every NPC — a body driven at a third of the rate
+## would move at a third of the speed, and `TUN-CROWD-NPC-SPEED-STROLL` is the one
+## number the crowd cannot get wrong.
 func _advance(index: int, dt: float) -> void:
 	var brain := _pool.brain_of(index)
 	var cctx := _pool.context_of(index)
@@ -169,15 +225,13 @@ func _advance(index: int, dt: float) -> void:
 		_goals[index] = NO_GOAL
 
 	var before: int = brain.state
-	brain.step(cctx, dt)
-	_dispatch(brain, cctx)
-	cctx.clear_events()
+	_think(index, brain, cctx, dt)
 
 	# A state change invalidates wherever it was going: a startled NPC must stop
 	# walking to the bench it had picked.
 	if brain.state != before:
 		_goals[index] = NO_GOAL
-	if _goals[index] == NO_GOAL and _travels(brain.state):
+	if _goals[index] == NO_GOAL and _intent.travels(brain.state):
 		_repath.request(index)
 
 	# **A GROUP MEMBER IS STEERED BY ITS FORMATION, NOT BY A PATH.** Returning here
@@ -185,7 +239,22 @@ func _advance(index: int, dt: float) -> void:
 	# get two desired velocities a tick and take whichever was set last.
 	if brain.state == NpcBrain.State.WALKING_GROUP:
 		return
-	_steering.drive(_pool.body_of(index), agent, _speed_for(brain.state))
+	_steering.drive(_pool.body_of(index), agent, _intent.speed_for(brain.state))
+
+
+## **EVENTS ARE CLEARED ONLY WHEN SOMEBODY READ THEM.** Clearing every tick
+## regardless is the exact failure ADR-0003 forbids: a `startle_flag` raised on a
+## tick a Far NPC was not due to think would be wiped unseen, so **LOD would
+## silently drop startles and gawk tokens** for two thirds of the crowd. Trap 11
+## note: this docstring is charged to `_advance` above, so it stays short.
+func _think(index: int, brain: NpcBrain, cctx: CrowdContext, dt: float) -> void:
+	var band := _bands[index] as CrowdLod.Band
+	if not CrowdLod.due(band, _tick, index):
+		return
+	_stepped_last_tick += 1
+	brain.step(cctx, dt, CrowdLod.stride_of(band))
+	_dispatch(brain, cctx)
+	cctx.clear_events()
 
 
 ## **THE FLAGS `NpcBrain.step()` DOES NOT READ.** Its hot path is three
@@ -212,7 +281,7 @@ func _serve_repaths() -> void:
 	served_last_tick = served.size()
 	for index: int in served:
 		var brain := _pool.brain_of(index)
-		var goal := _goal_for(index, brain.state)
+		var goal := _intent.goal_for(index, brain.state)
 		_goals[index] = goal
 		if goal != NO_GOAL:
 			_steering.aim(_pool.agent_of(index), goal)
@@ -220,100 +289,6 @@ func _serve_repaths() -> void:
 
 ## Does this state move? Idle stands still by definition; the other two that do
 ## not travel are waiting for the systems that would tell them where to go.
-## Does this state need a navigation target? Everything except `IDLE`, which
-## stands still by definition.
-##
-## `WALKING_GROUP` does, and for a reason that is not pathing: **an agent that has
-## arrived stops avoiding**, answering `velocity_computed` with exactly zero
-## however it was driven. Its target is therefore a point one rebalance interval
-## *ahead* on the circuit rather than its slot — see `CrowdFormations.lookahead_for`
-## — which keeps the agent unfinished while costing the repath budget about a
-## third of a query per tick instead of sixteen.
-func _travels(state: int) -> bool:
-	return state != NpcBrain.State.IDLE
-
-
-## Metres per second for a state. **Stroll is `TUN-CROWD-NPC-SPEED-STROLL`, which
-## invariant 1 forces to equal `TUN-SPEED-BLENDWALK`** — a crowd moving at any
-## other speed is a crowd a blend-walking player cannot hide in.
-func _speed_for(state: int) -> float:
-	match state:
-		NpcBrain.State.STROLL, NpcBrain.State.WALKING_GROUP, NpcBrain.State.GAWK:
-			return _steering.stroll_speed
-		NpcBrain.State.STARTLE:
-			return _steering.flee_speed
-		_:
-			return 0.0
-
-
-## Where a state wants to be.
-##
-## Stroll picks an idle anchor from the seeded generator — anchors rather than
-## open ground, because GDD-05 puts them where a city would actually gather, and
-## a crowd walking between benches reads as a district while a crowd walking
-## between random points reads as a screensaver.
-func _goal_for(index: int, state: int) -> Vector3:
-	match state:
-		NpcBrain.State.STROLL:
-			return _an_anchor()
-		NpcBrain.State.STARTLE:
-			return _away_from(index)
-		NpcBrain.State.WALKING_GROUP:
-			return _formations.lookahead_for(index, _lookahead())
-		NpcBrain.State.GAWK:
-			return _toward_the_body(index)
-		_:
-			return NO_GOAL
-
-
-## How far ahead of its slot a group member aims: what the formation covers
-## between two rebalances, so the agent finishes roughly once per
-## `TUN-CROWD-DIRECTOR-INTERVAL` and asks for one more.
-func _lookahead() -> float:
-	return _steering.stroll_speed * Tuning.crowd.director_interval
-
-
-## **A GAWKER WALKS TO THE BODY.** Without this the cluster never forms: six NPCs
-## granted a token would stand exactly where they were, and the "cluster of six
-## staring at a point" a distant player is supposed to read at 25 m would be six
-## people standing where they already stood.
-##
-## It is also what makes `TUN-CROWD-GAWK-MAX` mean anything. The cap exists so a
-## corpse cannot depopulate a blend pocket — and a gawker that never left the
-## pocket could not depopulate it however many tokens went out.
-func _toward_the_body(index: int) -> Vector3:
-	var corpse := _corpses.corpse_for(index)
-	return NO_GOAL if corpse == null else corpse.position
-
-
-func _an_anchor() -> Vector3:
-	if _map == null or _map.idle_anchors.is_empty():
-		return NO_GOAL
-	var pick: int = (
-		_rng.randi_range(0, _map.idle_anchors.size() - 1)
-		if _rng != null
-		else _map.idle_anchors.size() / 2
-	)
-	return _map.idle_anchors[pick]
-
-
-## Directly away from whatever caused the scare, as far as the flee lasts.
-##
-## **AWAY FROM, NOT TOWARDS SAFETY.** A startle wave is read by distant players
-## as a *direction*, and NPCs that all converged on the nearest safe corner would
-## point at the corner instead of at the violence — the wave would still exist
-## and would say the wrong thing, which is worse than saying nothing.
-func _away_from(index: int) -> Vector3:
-	var cctx := _pool.context_of(index)
-	var here := _pool.body_of(index).global_position
-	var away := here - cctx.startle_origin
-	away.y = 0.0
-	if away.length_squared() < 0.000001:
-		away = Vector3.FORWARD
-	var reach: float = _steering.flee_speed * Tuning.crowd.startle_duration
-	return here + away.normalized() * reach
-
-
 ## **THE PLAYER-FACING HALF OF A FORMATION SLOT.** `SYS-BLEND` (US-0053) is what
 ## will call these when `INPUT-BLEND` arrives within `TUN-BLEND-GROUP-JOIN-RADIUS`
 ## of a group; until it exists, nothing in a shipping scene does, and US-0043 says

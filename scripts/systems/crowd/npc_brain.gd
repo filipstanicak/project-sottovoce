@@ -115,14 +115,21 @@ var timer_ticks: int = 0
 var has_propagated: bool = false
 
 
-## One tick. **Three operations on the hot path**; everything else happens on an
+## One step. **Three operations on the hot path**; everything else happens on an
 ## event, and events are rare.
-func step(ctx: CrowdContext, _dt: float) -> void:
+##
+## **`stride` IS HOW MANY TICKS THIS STEP STANDS FOR**, US-0045. Under LOD a Far
+## brain is stepped every fifteenth tick, and a timer decremented by one each time
+## would make an 8–25 s idle pause last 120–375 s. That is not a rate change; it
+## is a *behaviour* change wearing a rate change's name, and ADR-0003's whole
+## claim is that LOD changes the rate and never the logic. Defaulting to 1 keeps
+## every existing caller correct.
+func step(ctx: CrowdContext, _dt: float, stride: int = 1) -> void:
 	if ctx.startle_flag:
 		handle(Event.STARTLED, ctx)
 		return
 	if timer_ticks > 0:
-		timer_ticks -= 1
+		timer_ticks = maxi(timer_ticks - maxi(stride, 1), 0)
 		if timer_ticks == 0:
 			handle(Event.TIMER_EXPIRED, ctx)
 
