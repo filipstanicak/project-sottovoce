@@ -236,12 +236,47 @@ and it is the cheapest open crowd item left — a Far agent wants a larger
 `NavigationAgent3D.path_max_distance` so it recomputes less often. Nobody has
 written that line.
 
-**PICK UP AT US-0046** (clone meshes and animation parity). It is now the
-single biggest unblocker in the project: **five criteria across three stories**
-wait on it — US-0045's three client-LOD lines, US-0044's "startle waves read
-directionally *to a human observer*", and the whole animation-parity layer that
-GDD-03 §6.3 calls a release blocker. Nothing in the project has a mesh, an
-`AnimationTree` or an `NpcView`.
+**PICK UP AT US-0047** (clone local minimum) — `SpatialHash.count_persona()` has
+been waiting for it since US-0042, it needs no art, and TDD-08 §5.1 calls it
+"the one that actually matters": global sufficiency with a local hole is the
+failure a player cannot see. It is also **layer 4 of the four US-0046 half-built**.
+
+**US-0046 IS THREE OF SEVEN, AND IT CONTAINED SOMETHING IT NEVER MENTIONED.**
+Four documents point at US-0046 for "the meshes" — US-0039's omission table,
+US-0044, US-0045 and TDD-08 §11.1 — while ART_BIBLE §6.1 says the four greybox
+personas belong to **US-0039**, which shipped without them. `SCOPE_FENCE` IN #3
+makes them an **M3 deliverable**. So they were owned by no story's acceptance
+criteria, which is how a scope item goes missing without anything failing. They
+are built now, as `PersonaBody`: procedural from primitives, one per §6.1 row.
+
+**NOTHING WEARS ONE YET, AND THAT IS THE HONEST HEADLINE.** The pawn still wears
+`GreyboxBody`, because nothing chooses a persona for a player — there is no lobby
+and `NET-C2S-LOADOUT` is M4's — and **no NPC is on the wire**, so there is no
+client-side NPC to dress. The four exist and render; the district is still empty
+on every client.
+
+**THE FIRST RENDER OF THEM FOUND A DEFECT NO ASSERTION WOULD HAVE.** Lucerna's
+pole floated detached beside the figure: §6.1 says "cylinder pole 0.9 m above
+head", which is where its *top* goes, and a 0.9 m cylinder put the whole thing in
+the air. It runs from hand height now. `tools/persona_lineup.gd` produces that
+picture and **refuses to run headless**, because a blank PNG reads exactly like a
+bad model — trap 13. Run it after any change to a persona:
+
+```bash
+godot --path . -s res://tools/persona_lineup.gd
+```
+
+**AND §6.1 MAKES TWO DIFFERENT WIDTH CLAIMS THAT MUST NOT BE CONFLATED.** Vetraio
+is `LOW_BROAD` — ×1.4 at the **shoulders**, 0.98 m against Cantatrice's 0.43.
+Cantatrice is `FLOOR_TRIANGLE` — widest at the **ground**, 1.05 m against
+Vetraio's 0.70. The first silhouette test asked which figure was widest *overall*,
+got Cantatrice, and read like a modelling error; the assertion was too crude.
+
+**Still blocked on art that no story authors:** US-0045's three client-LOD lines,
+US-0044's "reads directionally *to a human observer*", US-0046's own layer 3 (no
+`AnimationTree` to hook), the idle cycler, and footstep parity (`Audio.play()` is
+a stub until US-0075). **There are no animation clips in this project on either
+rig**, and ANIMATION_SPEC §8 costs the parity set alone at 14 × 4 × 2.
 
 **WHAT THE MEASUREMENTS SAY, AFTER TWO STORIES OF MEASURING:**
 
@@ -1254,7 +1289,7 @@ US-0024 measures it against clips that do not exist.
 | | |
 |---|---|
 | CI | 7 jobs. **Running again as of 2026-08-07 after a two-day outage** — run `31200490320`, all seven green. The seven commits merged during the outage were never through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | **40 arch + 78 unit + 30 integration scripts**, holding 150 + 711 + 225 tests and 234 + 5849 + 598 assertions. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **151.9 s** of the 180 s it is allowed, up from 87.7 s at M2 and **close enough to the ceiling that the next crowd test has to justify itself** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **One is `pending` by design** — `test_upstream_bandwidth.gd` reports the 253 % upstream miss rather than going red, the same choice `test_snapshot_size.gd` made. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
+| Tests | **41 arch + 79 unit + 31 integration scripts**, holding 154 + 719 + 230 tests and 239 + 5903 + 626 assertions. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **152.1 s** of the 180 s it is allowed, up from 87.7 s at M2 and **close enough to the ceiling that the next crowd test has to justify itself** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **One is `pending` by design** — `test_upstream_bandwidth.gd` reports the 253 % upstream miss rather than going red, the same choice `test_snapshot_size.gd` made. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
 | Tuning | 285 tunables across 14 resource classes; all 28 cross-field invariants assert. **Eight IDs are deprecated** and recorded in TUNABLES §19 — never reused |
 | Autoloads | All eight. `Tuning` precomputes 89 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |
@@ -1267,7 +1302,7 @@ US-0024 measures it against clips that do not exist.
 | Camera | Real spring arm: 2.6 m, **pawn centred** (US-0092 — the 0.45 m offset never changed the composition, because the rig aims at the pawn's own axis; `INPUT-SHOULDER` retired with it), occlusion that pulls **in** and never sideways, `WORLD`-masked so a crowd cannot push it. The FOV ladder is bound to the **state**, never to `ctx.velocity`: the rung is a consequence of the decision, not of the physics that follows it. Crowd-scan narrows to 48° and grants nothing. **Positive pitch LOWERS the arm** — the rig looks *at* the pivot, so a raised arm looks down; it shipped inverted from US-0021 until somebody played it |
 | Input | 20 `InputMap` actions from 14 live `INPUT-` IDs — `INPUT-SHOULDER` is retired via `InputActions.DEPRECATED`, still in the corpus and bound to nothing, KBM + pad. Chain GDD-02 → `Ids` → `InputActions` → `project.godot`, guarded on every hop, both directions. **Sampled once per physics frame by `LocalPawnDriver`, the only caller** — see trap 12. The mouse is **captured** on boot; `INPUT-MENU` releases, a click takes it back. **Only a mapped gamepad holds the joypad bindings** — `PadSelection`, applied through the one `InputMap` writer, because a set of sim pedals was steering |
 
-**Forty criteria are deliberately unticked**, each blocked by something real — counted
+**Forty-five criteria are deliberately unticked**, each blocked by something real — counted
 from the `done` and `in-progress` stories on 2026-08-16. **Nine of them arrived at once**:
 US-0048 moved from `draft` to `in-progress` when its first instrument was built, so the M3
 gate's own checklist now counts. That is the honest direction — a story with work in it is
@@ -1291,6 +1326,7 @@ grep -c '^- \[ \]' docs/40_backlog/stories/*.md
 | US-0030 | three culling criteria, plus `render_state` per observer | there is no crowd to cull until M3, and no `SYS-DETECTION` to compute a state until M3 |
 | US-0036 | "every netcode test runs at all four profiles" | true only of the harness's own agreement test; the rest are pure and have no wire to give a latency to |
 | US-0037 | match end below minimum players | `SYS-MATCH`'s, in M4. **The timeout criterion was ticked at the M2 gate** — a hard-killed client took the same `peer left` → `pawn freed` path across four real processes |
+| US-0046 | layers 2 and 3, footstep parity, the idle cycler | **there are no animation clips in this project, on either rig.** Layer 2's declaration half asserts and its library half reports; layer 3's check exists with no call site because a call site needs an `AnimationTree`; footsteps need `Audio.play()`, a stub until US-0075. ANIMATION_SPEC §8 costs the parity set at 14 × 4 personas × 2 rigs |
 | US-0045 | the three client-LOD lines | **US-0046.** There is no `NpcView`, no mesh and no `AnimationTree` in the project, so animation LOD, the silhouette-fairness check and mesh LOD have nothing to band |
 | US-0048 | nine of the ten M3 gate lines | the gate is **not run**; one instrument is built. `test_crowd_perf.gd` exists and passes, and the other nine wait on US-0045 (LOD), US-0046 (clone meshes and animation parity), US-0047 (clone local minimum) and an owner at a windowed client |
 | US-0044 | startle waves read directionally **to a human observer** | needs rendered clones and an owner at a windowed client. **NPC meshes are US-0046.** The mechanical half is measured — 13 of 13 startled NPCs sent away from the violence — and the criterion is not rounded up on it |

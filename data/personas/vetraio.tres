@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="PersonaData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/core/persona_data.gd" id="1_persona"]
+
+[resource]
+script = ExtResource("1_persona")
+id = &"PERSONA-VETRAIO"
+display_key = &"persona.vetraio"
+silhouette = 0
+stand_height = 1.68
+width_scale = 1.4
+mesh = null
+animation_library = null
+identity_hue = Color(0.42, 0.58, 0.62, 1)
+anonymous_clip_names = PackedStringArray("ANIM-IDLE-BASE", "ANIM-IDLE-VAR-A", "ANIM-IDLE-VAR-B", "ANIM-IDLE-VAR-C", "ANIM-TURN-L", "ANIM-TURN-R", "ANIM-BLENDWALK-LOOP", "ANIM-BLENDWALK-START", "ANIM-BLENDWALK-STOP", "ANIM-STROLL-LOOP", "ANIM-BLEND-SIT", "ANIM-BLEND-LEAN", "ANIM-BLEND-STAND", "ANIM-BLEND-GROUP")
