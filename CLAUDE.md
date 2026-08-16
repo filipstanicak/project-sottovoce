@@ -217,7 +217,7 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 
 ## Where the work is right now
 
-*Updated 2026-08-16. Keep this section current — it is the first thing a fresh
+*Updated 2026-08-16 (checkpoint after #96). Keep this section current — it is the first thing a fresh
 session reads, and a stale one is worse than none.*
 
 **PICK UP HERE. M3 IS SEVEN STORIES IN AND THE SERVER CROWD IS FEATURE-COMPLETE.**
@@ -229,8 +229,12 @@ had a number to move rather than a hope. A server logs `NpcPool: 90 bodies alloc
 `crowd placed: 78 NPCs across 62 anchors`, and the seventy-eight now stroll
 between idle anchors, stand at them for 8–25 s, and walk round each other.
 
-**US-0041 IS DONE BAR ONE LINE, AND THAT ONE IS BLOCKED**, not unstarted:
-far-band path validity needs the Near/Mid/Far bands, which are US-0045's.
+**US-0041 IS DONE BAR ONE LINE, AND THAT LINE IS NOW UNBLOCKED.** Far-band path
+validity needed the Near/Mid/Far bands; US-0045 built them, and
+`CrowdDirector.band_of(index)` answers. **It is unstarted rather than blocked**,
+and it is the cheapest open crowd item left — a Far agent wants a larger
+`NavigationAgent3D.path_max_distance` so it recomputes less often. Nobody has
+written that line.
 
 **PICK UP AT US-0046** (clone meshes and animation parity). It is now the
 single biggest unblocker in the project: **five criteria across three stories**
@@ -1291,7 +1295,7 @@ grep -c '^- \[ \]' docs/40_backlog/stories/*.md
 | US-0048 | nine of the ten M3 gate lines | the gate is **not run**; one instrument is built. `test_crowd_perf.gd` exists and passes, and the other nine wait on US-0045 (LOD), US-0046 (clone meshes and animation parity), US-0047 (clone local minimum) and an owner at a windowed client |
 | US-0044 | startle waves read directionally **to a human observer** | needs rendered clones and an owner at a windowed client. **NPC meshes are US-0046.** The mechanical half is measured — 13 of 13 startled NPCs sent away from the violence — and the criterion is not rounded up on it |
 | US-0043 | the circuits' declared periods; the 8 m circuit separation | **both are the level's, not the code's.** The routes are 150–237 m, so 55–75 s implies 2.6–3.2 m/s; and CIRC-A and CIRC-B share the z=45 spine, passing within **0.51 m** against a rule of 8 m — geometry, so no re-timing fixes it. Re-authoring four routes against six competing rules is the owner's |
-| US-0041 | far-band path validity | **blocked**, not unstarted: it needs the Near/Mid/Far LOD bands, which are US-0045's. Steering and the repath stagger are done — the crowd walks at exactly `TUN-CROWD-NPC-SPEED-STROLL` and no tick issues more than three path queries |
+| US-0041 | far-band path validity | **no longer blocked — unstarted.** US-0045 built the bands and `CrowdDirector.band_of()` answers; nothing yet gives a Far agent a larger `path_max_distance`. The cheapest open crowd item in the backlog |
 | US-0038 | frame-rate independence; downstream "measured"; the 180 ms feel check | impossible headless (the structural substitute is accepted, not ticked); the entity counts in the projection need M3's crowd; the feel check is the owner's and needs a windowed client |
 | US-0031 | rate LOD beyond 45 m; downstream measured with 90 NPCs | there is no crowd until M3 — and **rate LOD is NPC-only by design**, since a *player* at 46 m at 10 Hz would be visibly coarse. The projection is 93.5 kbit/s, 97 %, but a projection is not a measurement |
 | US-0035 | NPC transforms recorded; memory "around 23 KB" | there is no crowd until M3. Memory measured at **28.1 KB** — 20 B per record, not §8.3's 16, because the entity id is stored rather than implied by slot. TDD-04 §8.3 amended |

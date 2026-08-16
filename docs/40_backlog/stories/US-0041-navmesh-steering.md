@@ -25,7 +25,8 @@ formation-slot seeking, with no knowledge of states.
 
 ## Acceptance criteria
 
-> **Five of six. The one that is not ticked is blocked on US-0045, not unstarted.**
+> **Five of six. The one that is not ticked was blocked on US-0045 and is now merely
+> unstarted** — the bands exist as of 2026-08-16.
 
 - [x] **Agent radius 0.4 m, height 1.8 m, max slope 35 degrees.** And they **survived
       quantisation**, which is the part that nearly went wrong — see below.
@@ -44,9 +45,11 @@ formation-slot seeking, with no knowledge of states.
 - [x] **Repath requests are staggered, at most 3 per tick.** `RepathQueue` is pure and FIFO, and
       `TUN-PERF-CROWD-REPATH-PER-TICK` is the cap. A 90-NPC crowd is served in exactly 30 ticks,
       asserted; so is "everybody exactly once", which is the starvation half.
-- [ ] **Far-band agents get longer path validity.** Needs the LOD bands, which are
-      **US-0045's** — TDD-08 §4.1 defines Near/Mid/Far at 20/45/70 m and nothing computes them
-      yet. Blocked rather than merely unstarted.
+- [ ] **Far-band agents get longer path validity.** **No longer blocked — unstarted.**
+      US-0045 built the bands and `CrowdDirector.band_of(index)` answers; what is missing is one
+      line giving a Far agent a larger `NavigationAgent3D.path_max_distance` so it recomputes its
+      route less often. Left undone rather than slipped into US-0045, which had no criterion for
+      it.
 
 ## The crowd walks at 1.400 m/s against a stroll of 1.400
 
