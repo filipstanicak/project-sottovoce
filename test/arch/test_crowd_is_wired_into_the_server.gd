@@ -82,6 +82,18 @@ func test_the_director_rebuilds_the_shared_hash() -> void:
 	)
 
 
+func test_the_server_stands_the_processions_up() -> void:
+	# **THE FOUR WALKING GROUPS DO NOT FORM THEMSELVES.** `CrowdFormations.form()` is
+	# what puts NPCs in slots at match start; recruitment alone takes a lap of a
+	# circuit — over a minute of an eight-minute match — to fill one group. Without
+	# this call `WALKING_GROUP` stays a state nothing enters, which is exactly what
+	# it was before US-0043, and every unit test of the formation still passes.
+	assert_true(
+		SourceScanner.code_contains(SERVER_ROOT, "crowd_director.form_groups()"),
+		"server_root.gd never forms the walking groups"
+	)
+
+
 func test_the_director_claims_the_crowd_stage() -> void:
 	# And that the stage it claims is one a system may occupy at all — `ingest`,
 	# `pawn` and `snapshot` are positions in the order, and the director refuses

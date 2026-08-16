@@ -39,6 +39,12 @@ var _map: MapData = null
 var _rng: RandomNumberGenerator = null
 var _steering := Steering.new()
 var _repath := RepathQueue.new()
+var _formations := CrowdFormations.new()
+
+## Net ticks between rebalances, from `TUN-CROWD-DIRECTOR-INTERVAL`. **Derived
+## from the tick, never accumulated** — the same rule `MatchDirector` follows, and
+## for the same reason: an accumulator drifts and fires twice after a hitch.
+var _rebalance_ticks: int = 60
 
 ## Live positions, refilled each tick and handed to the spatial hash. A member
 ## rather than a local, because the hash copies out of it and a fresh
@@ -64,6 +70,8 @@ func setup(ctx: MatchContext) -> void:
 		return
 	if not Tuning.reloaded.is_connected(_steering.refresh):
 		Tuning.reloaded.connect(_steering.refresh)
+	_rebalance_ticks = maxi(Tuning.ticks(&"TUN-CROWD-DIRECTOR-INTERVAL"), 1)
+	_formations.setup(ctx.map)
 	_goals.resize(_pool.body_count())
 	_here.resize(_pool.body_count())
 	ctx.crowd_hash.setup(ctx.map.bounds if ctx.map != null else AABB(), _pool.body_count())
@@ -87,9 +95,18 @@ func tick(ctx: MatchContext, dt: float) -> void:
 	if _pool == null:
 		return
 	_reindex(ctx)
+	# **THE 2 S TIMER RUNS BEFORE THE BRAINS**, so a slot assigned this tick is a
+	# `slot_assigned` flag the brain consumes this tick rather than next. GDD-05
+	# §5.2 makes the interval slow on purpose: visible re-forming is itself an
+	# information leak.
+	if ctx.tick % _rebalance_ticks == 0:
+		_formations.rebalance(ctx.crowd_hash, _pool)
 	for index: int in _pool.active_count():
 		_advance(index, dt)
 	_serve_repaths()
+	# Last, because a formation slot is where an NPC must be *after* its brain has
+	# decided it is still in the group.
+	_formations.advance(_pool, _steering, dt)
 
 
 ## **THE HASH IS BUILT BEFORE THE BRAINS, NOT AFTER.** TDD-08 §1's diagram feeds
@@ -139,6 +156,11 @@ func _advance(index: int, dt: float) -> void:
 	if _goals[index] == NO_GOAL and _travels(brain.state):
 		_repath.request(index)
 
+	# **A GROUP MEMBER IS STEERED BY ITS FORMATION, NOT BY A PATH.** Returning here
+	# is what keeps the two out of each other's way: driven from both, an NPC would
+	# get two desired velocities a tick and take whichever was set last.
+	if brain.state == NpcBrain.State.WALKING_GROUP:
+		return
 	_steering.drive(_pool.body_of(index), agent, _speed_for(brain.state))
 
 
@@ -174,8 +196,20 @@ func _serve_repaths() -> void:
 
 ## Does this state move? Idle stands still by definition; the other two that do
 ## not travel are waiting for the systems that would tell them where to go.
+## Does this state need a navigation target?
+##
+## `WALKING_GROUP` does, and for a reason that is not pathing: **an agent that has
+## arrived stops avoiding**, answering `velocity_computed` with exactly zero
+## however it was driven. Its target is therefore a point one rebalance interval
+## *ahead* on the circuit rather than its slot — see `CrowdFormations.lookahead_for`
+## — which keeps the agent unfinished while costing the repath budget about a
+## third of a query per tick instead of sixteen.
 func _travels(state: int) -> bool:
-	return state == NpcBrain.State.STROLL or state == NpcBrain.State.STARTLE
+	return (
+		state == NpcBrain.State.STROLL
+		or state == NpcBrain.State.STARTLE
+		or state == NpcBrain.State.WALKING_GROUP
+	)
 
 
 ## Metres per second for a state. **Stroll is `TUN-CROWD-NPC-SPEED-STROLL`, which
@@ -183,7 +217,7 @@ func _travels(state: int) -> bool:
 ## other speed is a crowd a blend-walking player cannot hide in.
 func _speed_for(state: int) -> float:
 	match state:
-		NpcBrain.State.STROLL:
+		NpcBrain.State.STROLL, NpcBrain.State.WALKING_GROUP:
 			return _steering.stroll_speed
 		NpcBrain.State.STARTLE:
 			return _steering.flee_speed
@@ -203,8 +237,17 @@ func _goal_for(index: int, state: int) -> Vector3:
 			return _an_anchor()
 		NpcBrain.State.STARTLE:
 			return _away_from(index)
+		NpcBrain.State.WALKING_GROUP:
+			return _formations.lookahead_for(index, _lookahead())
 		_:
 			return NO_GOAL
+
+
+## How far ahead of its slot a group member aims: what the formation covers
+## between two rebalances, so the agent finishes roughly once per
+## `TUN-CROWD-DIRECTOR-INTERVAL` and asks for one more.
+func _lookahead() -> float:
+	return _steering.stroll_speed * Tuning.crowd.director_interval
 
 
 func _an_anchor() -> Vector3:
@@ -233,3 +276,38 @@ func _away_from(index: int) -> Vector3:
 		away = Vector3.FORWARD
 	var reach: float = _steering.flee_speed * Tuning.crowd.startle_duration
 	return here + away.normalized() * reach
+
+
+## **THE PLAYER-FACING HALF OF A FORMATION SLOT.** `SYS-BLEND` (US-0053) is what
+## will call these when `INPUT-BLEND` arrives within `TUN-BLEND-GROUP-JOIN-RADIUS`
+## of a group; until it exists, nothing in a shipping scene does, and US-0043 says
+## so rather than implying otherwise.
+func joinable_group(point: Vector3) -> int:
+	return _formations.joinable_group(point, Tuning.suspicion.blend_group_join_radius)
+
+
+func claim_slot(peer: int, group: int) -> bool:
+	return _formations.claim(peer, group)
+
+
+## Called on leaving the blend **and on disconnect**: ENet reuses peer ids, so a
+## slot left held is a slot the next joiner inherits.
+func release_slot(peer: int) -> void:
+	_formations.release(peer)
+
+
+## Where `peer` must stand to keep the blend, or `Vector3.INF`.
+func slot_position_of(peer: int) -> Vector3:
+	return _formations.slot_position_of(peer)
+
+
+## The formations themselves, for tests and for US-0047's clone redistribution.
+func formations() -> CrowdFormations:
+	return _formations
+
+
+## Stand the four processions up. Called once, **after** the crowd is placed:
+## `server_root.gd` does it at the end of `_place_the_crowd`.
+func form_groups() -> void:
+	if _pool != null:
+		_formations.form(_pool)

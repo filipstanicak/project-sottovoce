@@ -132,6 +132,33 @@ func drive(body: CharacterBody3D, agent: NavigationAgent3D, speed: float) -> voi
 	agent.set_velocity(toward.normalized() * speed)
 
 
+## **SLOT SEEKING**, the other half of TDD-08 §8's description of this layer.
+##
+## Straight at a point, with no path query at all — and the absence is the
+## design. A formation slot moves every tick, so pathing to one would ask the
+## navigation server for a fresh route sixteen times a tick against a budget of
+## three (`TUN-PERF-CROWD-REPATH-PER-TICK`), and the queue would starve every
+## strolling NPC in the district to serve four groups. It is safe because the slot
+## is a couple of metres away on a route that is itself on the navmesh: RVO still
+## steers round neighbours, and the body still collides with the world.
+func drive_to(
+	body: CharacterBody3D, agent: NavigationAgent3D, point: Vector3, speed: float
+) -> void:
+	agent.max_speed = maxf(speed, IDLE_SHUFFLE)
+	var toward := point - body.global_position
+	toward.y = 0.0
+	if speed <= 0.0 or toward.length_squared() < 0.000001:
+		agent.set_velocity(Vector3.ZERO)
+		return
+	# **NEVER OVERSHOOT THE SLOT.** Inside one tick's travel of it, ask for exactly
+	# the distance remaining: a group member driven at full stroll into a slot it
+	# is already standing in oscillates across it every frame, which reads as a
+	# civilian fidgeting and is visible from across a plaza.
+	var step := speed * MatchContext.net_dt()
+	var wanted := speed if toward.length() > step else toward.length() / MatchContext.net_dt()
+	agent.set_velocity(toward.normalized() * wanted)
+
+
 ## The avoidance result, applied. **Runs on the physics frame, not the net tick**
 ## — see the class note.
 ##

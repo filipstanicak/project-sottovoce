@@ -370,15 +370,14 @@ No gameplay rules replicated — there are none yet. No NPCs. Movement only.
 
 **Exit:** 80 NPCs with clones, blend groups, startle/gawk, ≤ 2 ms/frame.
 
-> **Status at the 2026-08-16 checkpoint: FOUR OF TEN STORIES DONE** — US-0039, US-0040, US-0042
-> and US-0041 bar one blocked criterion. A headless server holds 78 walking NPCs on a baked
+> **Status at the 2026-08-16 checkpoint: FIVE OF TEN STORIES DONE** — US-0039, US-0040, US-0042,
+> and US-0041 and US-0043 bar their open criteria. A headless server holds 78 walking NPCs on a baked
 > navmesh, indexed by a shared grid.
 >
-> **What the crowd cannot do yet, said plainly.** Only **Stroll** and **Idle** are reachable:
-> nothing assigns a formation slot (US-0043), nothing grants a gawk token or sets `startle_flag`
-> (US-0044), there is **no LOD at all** (US-0045), and **no NPC is on the wire** (US-0030's four
-> culling criteria and US-0031's two are still waiting on that). The crowd is real on the server
-> and invisible to every client.
+> **What the crowd cannot do yet, said plainly.** **Stroll**, **Idle** and **WalkingGroup** are
+> reachable; nothing grants a gawk token or sets `startle_flag` (US-0044), there is **no LOD at
+> all** (US-0045), and **no NPC is on the wire** (US-0030's four culling criteria and US-0031's
+> two are still waiting on that). The crowd is real on the server and invisible to every client.
 >
 > **The gate below cannot be attempted yet.** `test_crowd_perf.gd` does not exist, three of its
 > five lines depend on stories not started, and one — startle waves reading directionally to a
@@ -391,7 +390,7 @@ No gameplay rules replicated — there are none yet. No NPCs. Movement only.
 | `NpcBrain` — the five-state HFSM with Startle as a global interrupt | **Done, US-0040.** All 35 state-event pairs present, deliberate no-ops written as `IGNORED` — the silent no-op is the classic FSM bug. `step()` is three operations and allocates nothing, **scanned rather than measured** because a flaky memory probe gets a wider threshold until it means nothing. `CrowdDirector` ticks them at the `crowd` stage as of US-0041, and translates the five `CrowdContext` flags `step()` deliberately does not read into `handle()` calls |
 | Navmesh, navigation agents, steering | **Done bar one blocked line, US-0041.** The navmesh is **baked at build time and committed** — TDD-08 §7's "never rebaked at runtime" — closing a bake US-0012 ticked while its own note called it owed. 195 polygons; 2011 street points sampled, 17 uncovered. `CrowdDirector` ticks every active brain at the `crowd` stage and `Steering` moves the bodies; **the crowd walks at 1.400 m/s against a documented stroll of 1.400**, which is the number that matters, because invariant 1 makes it the same speed a blending player moves at. Repath is capped at `TUN-PERF-CROWD-REPATH-PER-TICK` 3 and FIFO, so nobody starves. **Far-band path validity is blocked** on US-0045's LOD bands |
 | `SpatialHash` — shared by four consumers | **Done, US-0042.** A counting sort over buffers sized once, so a rebuild allocates nothing: **0.0561 ms for 90 NPCs against a 0.15 ms budget**. The cell size is read from `TUN-SUSPICION-OPEN-RADIUS` rather than declared as 6.0, because the criterion is that the two are the *same number*. Agreement with brute force is asserted over 1000 random queries — and each comparison counts how often it found anybody, because two empty answers agree. `nearest_distance` takes a **bound**, deviating from TDD-08 §6: unbounded, it degenerates to a full scan exactly when the district is emptiest |
-| `CrowdDirector` — group slots, four circuits, clone redistribution | **Half.** The class exists and ticks the crowd (US-0041); **slots, circuits and the 2 s rebalance are US-0043 and unstarted**, which is why `WALKING_GROUP` is a state nothing can enter |
+| `CrowdDirector` — group slots, four circuits, clone redistribution | **Done bar two level-data findings, US-0043.** Four formations walk their circuits, `WALKING_GROUP` is reachable (a real server logs `processions formed: 16 NPCs across 4 of 4 circuits`), the joinable slot is never given to an NPC, and a player can claim, hold, travel with and release one. The 2 s timer is derived from the tick. **Two criteria stay unticked and both are the level's, not the code's**: the routes are 150–237 m so their declared 55–75 s periods imply 2.6–3.2 m/s, and CIRC-A and CIRC-B share the z=45 spine so they pass within **0.51 m** against a rule of 8 m. **Clone redistribution is US-0047's**, where its acceptance criteria are |
 | Startle propagation, gawk tokens, corpses | **Not started, US-0044.** The *machinery* is in place — Startle is a global interrupt in the table, `Steering` flees away from an origin, and `SpatialHash.query()` is the neighbour lookup propagation needs — but nothing sets `startle_flag`, so a startle can only be triggered by hand in a test |
 | LOD bands: update-rate (server) and animation (client) | **Not started, US-0045.** Every active NPC steps every tick — 78 brains against TDD-08 §4.1's ~34. **This also blocks US-0041's last criterion**, far-band path validity |
 | **Clone-parity enforcement: all four layers** | |

@@ -110,14 +110,23 @@ func _place_the_crowd(count: int) -> void:
 		&"crowd"
 	)
 
-	# **REGISTERED HERE, AND NOT A LINE EARLIER.** `MatchDirector.register()` is
-	# what puts a system into `SystemOrder`'s order — a `CrowdDirector` node
-	# sitting in the scene with nobody calling it would configure ninety agents and
-	# tick none of them, which is the exact shape of US-0039's ticked-but-false
-	# criterion. Registering it *after* placement matters too: a crowd ticked while
-	# still stacked at the origin would plan ninety paths from a corner and then be
-	# teleported off every one of them.
+	_start_the_crowd_system()
+
+
+## **REGISTERED HERE, AND NOT A LINE EARLIER.** `MatchDirector.register()` is what
+## puts a system into `SystemOrder`'s order — a `CrowdDirector` node sitting in the
+## scene with nobody calling it would configure ninety agents and tick none of
+## them, which is the exact shape of US-0039's ticked-but-false criterion.
+## Registering it *after* placement matters too: a crowd ticked while still
+## stacked at the origin would plan ninety paths from a corner and then be
+## teleported off every one of them.
+##
+## **AND THE PROCESSIONS SET OFF.** After registration, because `setup()` is what
+## builds the circuits from `MapData`; after placement, because a group forms
+## around whoever is nearest its slots.
+func _start_the_crowd_system() -> void:
 	director.register(crowd_director)
+	crowd_director.form_groups()
 
 
 ## **WAIT FOR THE MAP, OR EVERY NPC LANDS AT THE ORIGIN.** A query before the
