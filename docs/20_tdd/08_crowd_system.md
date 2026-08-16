@@ -273,8 +273,8 @@ be deleted eventually by someone who did not understand it.
 
 | # | Layer | Catches |
 |---|---|---|
-| 1 | **Data**: `PersonaData.anonymous_clip_names` declares the parity set | Authoring drift |
-| 2 | **Test**: `test_clone_animation_parity.gd` asserts every clip in that set exists in the clone's `AnimationLibrary`, for all four personas | A player animation added without a clone equivalent |
+| 1 | **Data**: `PersonaData.anonymous_clip_names` declares the parity set | Authoring drift. **Built, US-0046** — `data/personas/*.tres`, and the set is one `const` rather than four copies |
+| 2 | **Test**: `test_clone_animation_parity.gd` asserts every clip in that set exists in the clone's `AnimationLibrary`, for all four personas | A player animation added without a clone equivalent. **Half-built, US-0046**: the declaration is asserted, the library **reported**, because no clip exists on either rig |
 | 3 | **Runtime assert (debug)**: when a player pawn enters an Anonymous-reachable state, assert the clip it plays is in the parity set | A state playing an off-list clip |
 | 4 | **Director**: `TUN-CROWD-CLONE-LOCAL-MIN` 2 clones of each in-use persona within 25 m of every player | **Local** depletion — global sufficiency with a local hole |
 
