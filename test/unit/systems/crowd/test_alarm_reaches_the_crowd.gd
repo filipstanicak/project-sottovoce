@@ -39,6 +39,17 @@ func before_each() -> void:
 	# A line along +X so "how far did it reach" is a number a reader can count.
 	for index: int in CROWD:
 		_pool.set_position(index, Vector3(float(index), 0.0, 0.0))
+
+	# **SOMEBODY HAS TO BE WATCHING, OR THE CROWD IS ALL FAR BAND.** With no players
+	# in the context every NPC is banded Far and steps every fifteenth tick
+	# (US-0045), so a test that ticks twice would be measuring LOD rather than the
+	# alarm. A stationary observer is also the honest setup: a startle nobody can
+	# see is a startle that does not have to be prompt.
+	var observer := CharacterBody3D.new()
+	add_child_autofree(observer)
+	observer.global_position = Vector3(float(CROWD) * 0.5, 0.0, 0.0)
+	_ctx.pawns[1] = observer
+
 	_director.setup(_ctx)
 
 

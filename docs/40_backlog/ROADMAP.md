@@ -370,23 +370,28 @@ No gameplay rules replicated — there are none yet. No NPCs. Movement only.
 
 **Exit:** 80 NPCs with clones, blend groups, startle/gawk, ≤ 2 ms/frame.
 
-> **Status at the 2026-08-16 checkpoint: SIX OF TEN STORIES DONE** — US-0039, US-0040, US-0042,
-> and US-0041, US-0043 and US-0044 bar their open criteria. A headless server holds 78 walking NPCs on a baked
+> **Status at the 2026-08-16 checkpoint: SEVEN OF TEN STORIES DONE** — US-0039, US-0040, US-0042,
+> and US-0041, US-0043, US-0044 and US-0045 bar their open criteria. **US-0046 (clone meshes and
+> animation parity) now blocks five criteria across three stories**, and is the next thing that
+> unblocks anything. A headless server holds 78 walking NPCs on a baked
 > navmesh, indexed by a shared grid.
 >
-> **What the crowd cannot do yet, said plainly.** **All five states are reachable.** There is
-> **no LOD at all** (US-0045), so 78 brains step every tick against §4.1's ~34; **no NPC is on
-> the wire** (US-0030's four culling criteria and US-0031's two are still waiting on that); and
-> **no violence** to startle anybody, since kill and stun are M4 — the sprinting-player half of
-> the startle is the only source a live match has. The crowd is real on the server and invisible
-> to every client.
+> **What the crowd cannot do yet, said plainly.** All five states are reachable and the server
+> half of LOD is live. **No NPC is on the wire** (US-0030's four culling criteria and US-0031's
+> two are still waiting on that); there are **no clone meshes or animations** (US-0046), which
+> blocks the client half of LOD, the animation-parity layer and the two criteria that need a
+> human to look at something; and there is **no violence** to startle anybody, since kill and
+> stun are M4. The crowd is real on the server and invisible to every client.
 >
-> **`test_crowd_perf.gd` EXISTS AND HAS BEEN RUN**, ahead of US-0045 so LOD has a number to move
-> rather than a hope. **The crowd stage costs 0.54 ms a tick and crowd *movement* costs 5.69 ms a
-> physics frame** — about 12 ms a tick against §11.2's 1.75, while the wall clock says a physics
-> frame with the full crowd still takes 16.77 ms against 16.58 with no crowd at all. **The brains
-> are 0.046 ms**, so §4.1's brain-rate LOD would save under 1 % of the crowd's cost; US-0045 has
-> to be redesigned against the measurement. §11.2 is amended with the figures.
+> **`test_crowd_perf.gd` EXISTS AND HAS BEEN RUN**, ahead of US-0045 so LOD had a number to move
+> rather than a hope. **The crowd stage costs 0.44 ms a tick** with LOD live, 0.54 without — well
+> inside §11.2's 1.75 ms, and reproducible to two decimal places. **Crowd *movement* could not be
+> measured**: `Performance.TIME_PHYSICS_PROCESS` gave 31, then 5.69, then 24–28 ms for
+> arrangements whose wall clock never moved off 16.73 ms, and a cost larger than the frame
+> containing it is a broken instrument rather than a slow frame. What is coherent is that a
+> physics frame with the full crowd takes **16.73 ms against a 16.67 ms deadline and 16.56 ms
+> with no crowd at all** — the server keeps up. §11.2.1 carries the correction; the 5.69 ms
+> figure it briefly published should not be quoted.
 >
 > The rest of the gate still cannot be attempted: three of its lines depend on stories not
 > started, and one — startle waves reading directionally to a human observer — needs a windowed
@@ -401,7 +406,7 @@ No gameplay rules replicated — there are none yet. No NPCs. Movement only.
 | `SpatialHash` — shared by four consumers | **Done, US-0042.** A counting sort over buffers sized once, so a rebuild allocates nothing: **0.0561 ms for 90 NPCs against a 0.15 ms budget**. The cell size is read from `TUN-SUSPICION-OPEN-RADIUS` rather than declared as 6.0, because the criterion is that the two are the *same number*. Agreement with brute force is asserted over 1000 random queries — and each comparison counts how often it found anybody, because two empty answers agree. `nearest_distance` takes a **bound**, deviating from TDD-08 §6: unbounded, it degenerates to a full scan exactly when the district is emptiest |
 | `CrowdDirector` — group slots, four circuits, clone redistribution | **Done bar two level-data findings, US-0043.** Four formations walk their circuits, `WALKING_GROUP` is reachable (a real server logs `processions formed: 16 NPCs across 4 of 4 circuits`), the joinable slot is never given to an NPC, and a player can claim, hold, travel with and release one. The 2 s timer is derived from the tick. **Two criteria stay unticked and both are the level's, not the code's**: the routes are 150–237 m so their declared 55–75 s periods imply 2.6–3.2 m/s, and CIRC-A and CIRC-B share the z=45 spine so they pass within **0.51 m** against a rule of 8 m. **Clone redistribution is US-0047's**, where its acceptance criteria are |
 | Startle propagation, gawk tokens, corpses | **Done bar one observer, US-0044.** Two explicit rounds rather than §3.2's recursion, which caps each *agent* but not the wave; `has_propagated` clears on leaving `STARTLE`, or an NPC would propagate once per **match**. **A sprinting player startles the crowd in a live match** — the sweep runs once a second on the director's own tick, at `TUN-CROWD-STARTLE-SPRINT-INTERVAL`; violence has an entry point and no caller until `SYS-KILL` at M4. Gawk is capped at six, nearest first, fleeing skipped, and **a gawker walks to the body** — without which the cap would be vacuous, since an NPC that never left a pocket could not depopulate it. **The one unticked criterion needs a human at a windowed client**, and NPC meshes are US-0046 |
-| LOD bands: update-rate (server) and animation (client) | **Not started, US-0045 — and it needs redesigning before it is built.** §4.1 bands the *brain* rate; US-0048's measurement puts the brains at **0.046 ms of a 5.7 ms crowd**, so as specified it would save under 1 %. The cost is avoidance and body movement, which no band in §4.1 touches. It still blocks US-0041's last criterion, far-band path validity |
+| LOD bands: update-rate (server) and animation (client) | **Server half done, US-0045; client half blocked on US-0046.** Bands at 20/45/70 m, strides 1/3/15, staggered by index. **Measured at 6 of 78 effective brain steps, not §4.1's ~34 of 90**, and `CrowdDirector.tick()` went 0.54 → 0.44 ms — a real 20 % and a fifth of a millisecond, because the brains were 0.046 ms to begin with. Built for ADR-0003 and to **unblock US-0041's far-band path validity**, not for the frame time §4.1 promises. It nearly changed behaviour twice: a banded brain's timers run 15× slow without a `stride`, and events cleared on a tick the brain did not think would have **silently dropped startles for two thirds of the crowd** |
 | **Clone-parity enforcement: all four layers** | |
 
 ### 5.1 The M3 gate — the project's hardest

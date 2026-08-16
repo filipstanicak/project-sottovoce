@@ -104,6 +104,13 @@ func _run(ticks: int) -> Array:
 	var dt := MatchContext.net_dt()
 	for _tick: int in ticks:
 		var before := _positions()
+		# **THE TICK MUST ADVANCE, AND US-0045 IS THE FIRST THING THAT NOTICED.**
+		# `CrowdLod.due()` staggers each band across its own period by `(tick + index)`,
+		# so a harness whose `ctx.tick` stays 0 makes only every fifteenth NPC ever
+		# eligible to think — and the symptom was twelve NPCs holding formation slots
+		# with one of them in `WALKING_GROUP`. `IntegrationHarness` had exactly this
+		# defect from US-0036 to US-0031: **zero is a plausible tick.**
+		_ctx.tick += 1
 		_director.tick(_ctx, dt)
 		most_repaths = maxi(most_repaths, _director.served_last_tick)
 		await get_tree().physics_frame
@@ -267,13 +274,22 @@ func test_a_startled_npc_is_sent_away_from_what_scared_it() -> void:
 	cctx.startle_origin = here + Vector3(5.0, 0.0, 0.0)
 	cctx.startle_flag = true
 
-	_director.tick(_ctx, MatchContext.net_dt())
+	# **A FAR NPC DOES NOT THINK EVERY TICK, AND THAT IS US-0045 WORKING.** Nobody is
+	# in `ctx.pawns` here, so the whole crowd is banded Far and steps every
+	# fifteenth tick. The flag survives until it does — which is the property
+	# `test_crowd_lod.gd` exists to hold, because clearing it meanwhile would drop
+	# startles for two thirds of the crowd.
+	await _run(CrowdLod.stride_of(CrowdLod.Band.FAR) + 1)
 	assert_eq(_pool.brain_of(0).state, NpcBrain.State.STARTLE, "the interrupt did not land")
 
+	# The NPC has been fleeing for a few ticks by now, so its own position has
+	# moved; the flee goal is measured from where it was scared, not from where it
+	# started the test.
 	var goal := _pool.agent_of(0).target_position
-	assert_lt(goal.x, here.x, "the startled NPC was sent toward what scared it")
+	var scared_by := _pool.context_of(0).startle_origin
+	assert_lt(goal.x, scared_by.x, "the startled NPC was sent toward what scared it")
 	assert_gt(
-		goal.distance_to(here),
+		goal.distance_to(scared_by),
 		Tuning.crowd.npc_speed_flee * Tuning.crowd.startle_duration * 0.9,
 		"the flee goal is closer than a full flee would carry it"
 	)
