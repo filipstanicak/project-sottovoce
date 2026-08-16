@@ -427,7 +427,7 @@ a table saying "X asserts Y" is what stops anybody checking by hand.
 
 | Named test | Asserts | Where it actually lives |
 |---|---|---|
-| `test_crowd_perf.gd` | 90 NPCs headless within `TUN-PERF-CROWD-BUDGET`. **The chapter's gate** | Not written. **US-0048**, the M3 gate |
+| `test_crowd_perf.gd` | 90 NPCs headless within `TUN-PERF-CROWD-BUDGET`. **The chapter's gate** | `test/integration/test_crowd_perf.gd`, written ahead of US-0045 so LOD has a number to move. It measures the **server**; §11.1's client half is animation-dominated and there is no `NpcView`, so that is not estimated |
 | `test_npc_no_alloc.gd` | `NpcBrain.step()` allocates nothing after warm-up | `test/arch/test_npc_brain_no_alloc.gd`, and `test_spatial_hash_no_alloc.gd` beside it |
 | `test_npc_transition_table.gd` | Every (state, event) pair is handled or explicitly `IGNORED` — the classic silent-FSM bug | `test/unit/systems/crowd/test_npc_brain.gd` |
 | `test_startle_global_interrupt.gd` | Startle is entered from all four other states | `test_npc_brain.gd`; the wave that produces it is `test_startle_wave.gd`, US-0044 |
@@ -469,15 +469,45 @@ Clients run **no brain and no navigation** (ADR-0007), so client cost is animati
 
 ### 11.2 Server — against `TUN-PERF-SERVER-TICK-BUDGET` 8.0 ms per 33 ms tick
 
-| Item | Budget |
-|---|---|
-| Spatial hash rebuild (90 inserts) | ≤ 0.15 ms |
-| LOD band evaluation (90 squared-distance compares) | ≤ 0.05 ms |
-| `NpcBrain.step()` × ~34 effective | ≤ 0.50 ms |
-| Steering + avoidance × ~34 | ≤ 0.60 ms |
-| `NavigationAgent3D` path queries (amortised) | ≤ 0.40 ms |
-| `CrowdDirector` rebalance (2 s timer, amortised) | ≤ 0.05 ms |
-| **Server total** | **≤ 1.75 ms of 8.0 ms** |
+| Item | Budget | **Measured, US-0048, 78 NPCs, no LOD** |
+|---|---|---|
+| Spatial hash rebuild (90 inserts) | ≤ 0.15 ms | **0.054 ms** |
+| LOD band evaluation (90 squared-distance compares) | ≤ 0.05 ms | none exists yet (US-0045) |
+| `NpcBrain.step()` × ~34 effective | ≤ 0.50 ms | **0.046 ms for all 78** |
+| Steering + avoidance × ~34 | ≤ 0.60 ms | **5.69 ms per physics frame** — see §11.2.1 |
+| `NavigationAgent3D` path queries (amortised) | ≤ 0.40 ms | inside the 0.54 ms tick below |
+| `CrowdDirector` rebalance (2 s timer, amortised) | ≤ 0.05 ms | inside the same |
+| Everything inside `CrowdDirector.tick()` | — | **mean 0.54 ms, p95 0.81, max 1.12** |
+| **Server total** | **≤ 1.75 ms of 8.0 ms** | **≈ 12 ms per net tick** |
+
+### 11.2.1 The measured cost is movement, and it is not where the budget put it
+
+`test_crowd_perf.gd` (US-0048, built before US-0045 on purpose) measures the crowd on the real
+map with `TUN-CROWD-COUNT-DEFAULT-6P` NPCs. Three things the table above got wrong:
+
+**The decisions are almost free and the movement is not.** Everything inside the crowd stage —
+hash rebuild, brains, goals, the repath queue, the formations — costs **0.54 ms a tick**, inside
+budget. Crowd *movement* costs **5.69 ms per physics frame** (2.97 avoidance + 2.72 bodies), and
+there are two physics frames per net tick, so the crowd's real cost is about **12 ms per tick**
+against a 1.75 ms line. Movement is outside `tick()` by necessity: `move_and_slide()` integrates
+by the physics delta, so driving bodies from the 30 Hz tick would halve every NPC's speed
+(US-0041).
+
+**§4.1's LOD would save almost nothing as specified.** It bands the *brain* rate, and the brains
+are **0.046 ms** — under 1 % of the crowd's cost and a tenth of what this table budgets for a
+third as many of them. The lever that matters is avoidance and body movement, which no band in
+§4.1 touches. US-0045 should be designed against these numbers rather than against the table.
+
+**The server keeps up anyway, and that is the load-bearing fact.** Physics is paced to
+`TUN-NET-CLIENT-INPUT-RATE`; with the full crowd a physics frame still takes **16.77 ms of wall
+clock**, against 16.41 with avoidance off and 16.58 with no crowd at all. 5.69 ms of a 16.7 ms
+frame is a third of it, with headroom left. `TUN-PERF-SERVER-TICK-BUDGET` 8.0 ms is not being
+met; the frame deadline is.
+
+**And the instrument had to be checked before the number was believed.** The first version of the
+test asserted on `Performance.TIME_PHYSICS_PROCESS` alone and reported **31 ms per frame**, a 17×
+miss — while the wall clock, unmeasured at the time, was a flat 16.7 ms in every configuration.
+The monitor is not evidence on its own. Trap 3's family, in a profiler.
 
 ### 11.3 The fallback ladder if `test_crowd_perf.gd` fails
 

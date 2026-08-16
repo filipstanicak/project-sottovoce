@@ -230,12 +230,43 @@ between idle anchors, stand at them for 8–25 s, and walk round each other.
 **US-0041 IS DONE BAR ONE LINE, AND THAT ONE IS BLOCKED**, not unstarted:
 far-band path validity needs the Near/Mid/Far bands, which are US-0045's.
 
-**PICK UP AT US-0045** (crowd LOD): Near/Mid/Far at 20/45/70 m, brains stepping
-every tick / every third / every fifteenth, **rate only and never logic**. It is
-the last unstarted crowd story before the M3 gate, and it **unblocks US-0041's
-one open criterion** (far-band path validity). Note before starting: nothing
-measures `TUN-PERF-CROWD-BUDGET` yet, so optimising is blind until
-`test_crowd_perf.gd` exists — which is US-0048's, the gate.
+**PICK UP AT US-0045 (crowd LOD) — AND REDESIGN IT BEFORE BUILDING IT.**
+`test_crowd_perf.gd` now exists and has been run, ahead of US-0045 on purpose,
+and it says §4.1's design would not work:
+
+| | §11.2 budget | **Measured**, 78 NPCs, no LOD |
+|---|---|---|
+| Spatial hash rebuild | ≤ 0.15 ms | **0.054 ms** |
+| `NpcBrain.step()` × all 78 | ≤ 0.50 ms for ~34 | **0.046 ms** |
+| Everything inside `CrowdDirector.tick()` | — | **mean 0.54, p95 0.81, max 1.12 ms** |
+| Crowd movement, per **physics** frame | ≤ 0.60 ms for ~34 | **5.69 ms** (2.97 avoidance + 2.72 bodies) |
+| **Server total per net tick** | **≤ 1.75 ms** | **≈ 12 ms** |
+| Physics frame, **wall clock** | — | **16.77 ms** full, 16.58 with no crowd |
+
+**THE DECISIONS ARE ALMOST FREE AND THE MOVEMENT IS NOT.** The whole crowd stage
+— hash, brains, goals, repath queue, formations — is half a millisecond. Movement
+is 5.69 ms a physics frame and there are two per tick, because
+`move_and_slide()` integrates by the physics delta and driving bodies from the
+30 Hz tick would halve every NPC's speed (US-0041).
+
+**SO §4.1's LOD WOULD SAVE UNDER 1 %.** It bands the *brain* rate, and the brains
+are 0.046 ms — a tenth of what §11.2 budgets for a third as many of them. The
+lever that matters is avoidance and body movement, which no band in §4.1 touches.
+US-0045 still **unblocks US-0041's last criterion** (far-band path validity), so
+it is still the right next story — but its *performance* rationale has to be
+rewritten against these numbers first.
+
+**THE SERVER KEEPS UP, WHICH IS THE LOAD-BEARING FACT.** §11.2's accounting is
+missed by 7×; the frame deadline is met with a third of the frame to spare.
+§11.2 is amended with the measured figures rather than reworded.
+
+**AND THE INSTRUMENT LIED BEFORE IT WAS CROSS-CHECKED.** The first version
+asserted on `Performance.TIME_PHYSICS_PROCESS` alone and reported **31 ms a
+frame**, a 17× miss and entirely plausible — while the wall clock, unmeasured at
+the time, was a flat 16.7 ms in *every* configuration including no crowd at all.
+A decomposition run (full / no avoidance / no crowd) gave 7.0 / 4.1 / 1.4 ms
+against the same 16.7 ms wall clock in all three. **Trap 3's family, in a
+profiler: a reading that cannot be cross-checked reports whatever it reports.**
 
 **WHAT THE CROWD CANNOT DO YET.** All five states are reachable. There is **no
 LOD at all** (US-0045), so 78 brains step every tick against TDD-08 §4.1's ~34;
@@ -1193,7 +1224,7 @@ US-0024 measures it against clips that do not exist.
 | | |
 |---|---|
 | CI | 7 jobs. **Running again as of 2026-08-07 after a two-day outage** — run `31200490320`, all seven green. The seven commits merged during the outage were never through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | **39 arch + 77 unit + 29 integration scripts**, holding 146 + 701 + 219 tests and 229 + 5511 + 588 assertions. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **140.9 s** of the 180 s it is allowed, up from 87.7 s at M2 and **closing on the ceiling** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **One is `pending` by design** — `test_upstream_bandwidth.gd` reports the 253 % upstream miss rather than going red, the same choice `test_snapshot_size.gd` made. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
+| Tests | **39 arch + 77 unit + 30 integration scripts**, holding 146 + 701 + 225 tests and 229 + 5511 + 598 assertions. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **151.8 s** of the 180 s it is allowed, up from 87.7 s at M2 and **close enough to the ceiling that the next crowd test has to justify itself** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **One is `pending` by design** — `test_upstream_bandwidth.gd` reports the 253 % upstream miss rather than going red, the same choice `test_snapshot_size.gd` made. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
 | Tuning | 285 tunables across 14 resource classes; all 28 cross-field invariants assert. **Eight IDs are deprecated** and recorded in TUNABLES §19 — never reused |
 | Autoloads | All eight. `Tuning` precomputes 89 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |
@@ -1206,8 +1237,11 @@ US-0024 measures it against clips that do not exist.
 | Camera | Real spring arm: 2.6 m, **pawn centred** (US-0092 — the 0.45 m offset never changed the composition, because the rig aims at the pawn's own axis; `INPUT-SHOULDER` retired with it), occlusion that pulls **in** and never sideways, `WORLD`-masked so a crowd cannot push it. The FOV ladder is bound to the **state**, never to `ctx.velocity`: the rung is a consequence of the decision, not of the physics that follows it. Crowd-scan narrows to 48° and grants nothing. **Positive pitch LOWERS the arm** — the rig looks *at* the pivot, so a raised arm looks down; it shipped inverted from US-0021 until somebody played it |
 | Input | 20 `InputMap` actions from 14 live `INPUT-` IDs — `INPUT-SHOULDER` is retired via `InputActions.DEPRECATED`, still in the corpus and bound to nothing, KBM + pad. Chain GDD-02 → `Ids` → `InputActions` → `project.godot`, guarded on every hop, both directions. **Sampled once per physics frame by `LocalPawnDriver`, the only caller** — see trap 12. The mouse is **captured** on boot; `INPUT-MENU` releases, a click takes it back. **Only a mapped gamepad holds the joypad bindings** — `PadSelection`, applied through the one `InputMap` writer, because a set of sim pedals was steering |
 
-**Twenty-eight criteria are deliberately unticked**, each blocked by something real — counted
-from the `done` and `in-progress` stories on 2026-08-16. A prose count of these has now drifted four times, so they are a table — and the
+**Thirty-seven criteria are deliberately unticked**, each blocked by something real — counted
+from the `done` and `in-progress` stories on 2026-08-16. **Nine of them arrived at once**:
+US-0048 moved from `draft` to `in-progress` when its first instrument was built, so the M3
+gate's own checklist now counts. That is the honest direction — a story with work in it is
+not a draft — but the nine are gate lines waiting on US-0045, 0046 and 0047, not stalled work. A prose count of these has now drifted four times, so they are a table — and the
 story files are the source of truth, not this. Regenerate the count rather than
 editing it:
 
@@ -1227,6 +1261,7 @@ grep -c '^- \[ \]' docs/40_backlog/stories/*.md
 | US-0030 | three culling criteria, plus `render_state` per observer | there is no crowd to cull until M3, and no `SYS-DETECTION` to compute a state until M3 |
 | US-0036 | "every netcode test runs at all four profiles" | true only of the harness's own agreement test; the rest are pure and have no wire to give a latency to |
 | US-0037 | match end below minimum players | `SYS-MATCH`'s, in M4. **The timeout criterion was ticked at the M2 gate** — a hard-killed client took the same `peer left` → `pawn freed` path across four real processes |
+| US-0048 | nine of the ten M3 gate lines | the gate is **not run**; one instrument is built. `test_crowd_perf.gd` exists and passes, and the other nine wait on US-0045 (LOD), US-0046 (clone meshes and animation parity), US-0047 (clone local minimum) and an owner at a windowed client |
 | US-0044 | startle waves read directionally **to a human observer** | needs rendered clones and an owner at a windowed client. **NPC meshes are US-0046.** The mechanical half is measured — 13 of 13 startled NPCs sent away from the violence — and the criterion is not rounded up on it |
 | US-0043 | the circuits' declared periods; the 8 m circuit separation | **both are the level's, not the code's.** The routes are 150–237 m, so 55–75 s implies 2.6–3.2 m/s; and CIRC-A and CIRC-B share the z=45 spine, passing within **0.51 m** against a rule of 8 m — geometry, so no re-timing fixes it. Re-authoring four routes against six competing rules is the owner's |
 | US-0041 | far-band path validity | **blocked**, not unstarted: it needs the Near/Mid/Far LOD bands, which are US-0045's. Steering and the repath stagger are done — the crowd walks at exactly `TUN-CROWD-NPC-SPEED-STROLL` and no tick issues more than three path queries |
