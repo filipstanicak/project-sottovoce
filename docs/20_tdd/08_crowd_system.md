@@ -410,7 +410,9 @@ corpus has already shipped three claims of the second kind that were the first.
 | `scripts/systems/crowd/crowd_placement.gd` | Where the ninety start | **Exists**, US-0041. Not in the original table, and there is no spawn-distribution story anywhere in M3 |
 | `scripts/systems/crowd/crowd_context.gd` | What one brain can see | **Exists**, US-0040. Not in the original table |
 | `scripts/systems/crowd/spatial_hash.gd` | Shared grid | **Exists**, US-0042 |
-| `scripts/systems/crowd/corpse.gd` | `SYS-CORPSE` | Not written. US-0044 |
+| `scripts/systems/crowd/corpse.gd` | `SYS-CORPSE`: one body, two information phases | **Exists**, US-0044 |
+| `scripts/systems/crowd/corpse_register.gd` | Every body, and who is looking at it | **Exists**, US-0044. Not in the original table |
+| `scripts/systems/crowd/crowd_alarm.gd` | Startle waves and the sprinter sweep | **Exists**, US-0044. Not in the original table |
 | `scripts/presentation/npc_view.gd` | Client-side view | Not written. US-0045/0046 |
 | `scripts/core/crowd_roster.gd` | The derived roster | **Exists**, US-0039. In Core, not here, because both peers derive it |
 
@@ -428,11 +430,11 @@ a table saying "X asserts Y" is what stops anybody checking by hand.
 | `test_crowd_perf.gd` | 90 NPCs headless within `TUN-PERF-CROWD-BUDGET`. **The chapter's gate** | Not written. **US-0048**, the M3 gate |
 | `test_npc_no_alloc.gd` | `NpcBrain.step()` allocates nothing after warm-up | `test/arch/test_npc_brain_no_alloc.gd`, and `test_spatial_hash_no_alloc.gd` beside it |
 | `test_npc_transition_table.gd` | Every (state, event) pair is handled or explicitly `IGNORED` — the classic silent-FSM bug | `test/unit/systems/crowd/test_npc_brain.gd` |
-| `test_startle_global_interrupt.gd` | Startle is entered from all four other states | `test_npc_brain.gd`. The *wave* is US-0044's |
-| `test_startle_propagation.gd` | No cascade beyond 2 hops in a 90-NPC dense cluster | Not written. **US-0044** — nothing sets `startle_flag` yet |
-| `test_startle_directional.gd` | A wave from an off-centre origin is measurably lopsided | Not written. **US-0044**. The flee *direction* is asserted in `test_crowd_moves.gd` |
-| `test_gawk_pocket_preservation.gd` | A corpse beside a 6-anchor pocket never drops it below `TUN-BLEND-POCKET-MIN-NPC` | Not written. **US-0044** |
-| `test_gawk_corpse_phases.gd` | Cluster disperses at 6 s; corpse persists to 20 s | Not written. **US-0044** |
+| `test_startle_global_interrupt.gd` | Startle is entered from all four other states | `test_npc_brain.gd`; the wave that produces it is `test_startle_wave.gd`, US-0044 |
+| `test_startle_propagation.gd` | No cascade beyond 2 hops in a 90-NPC dense cluster | `test/unit/systems/crowd/test_startle_wave.gd`, US-0044. **Two explicit rounds** rather than §3.2's recursion, which caps each agent but not the wave |
+| `test_startle_directional.gd` | A wave from an off-centre origin is measurably lopsided | `test_alarm_reaches_the_crowd.gd`, US-0044: 13 of 13 startled NPCs sent away from the violence. **The direction lives in the flee vectors, not in the shape of the set** — and the *human observer* half of the criterion is unticked, because NPC meshes are US-0046 |
+| `test_gawk_pocket_preservation.gd` | A corpse beside a 6-anchor pocket never drops it below `TUN-BLEND-POCKET-MIN-NPC` | `test/unit/systems/crowd/test_gawk_and_corpses.gd`, US-0044 — **with the counterfactual**: it asserts more NPCs were eligible than the cap allows, or it proves nothing about the cap |
+| `test_gawk_corpse_phases.gd` | Cluster disperses at 6 s; corpse persists to 20 s | `test_gawk_and_corpses.gd`, US-0044 |
 | `test_clone_roster_parity.gd` | Three peers derive identical rosters from one seed | `test/unit/core/test_crowd_roster.gd` — the roster is pure, so parity is asked directly rather than across peers |
 | `test_clone_animation_parity.gd` | Every `anonymous_clip_names` entry exists in the clone library | Not written. **US-0046**, and there are no clips |
 | `test_clone_local_min.gd` | Over a 3-minute clustered match, every player always had ≥ 2 same-persona clones within 25 m | Not written. **US-0047**. `SpatialHash.count_persona()` is the query it needs and exists |
