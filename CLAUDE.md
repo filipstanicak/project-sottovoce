@@ -217,7 +217,7 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 
 ## Where the work is right now
 
-*Updated 2026-08-16 (checkpoint after #96). Keep this section current — it is the first thing a fresh
+*Updated 2026-08-16 (checkpoint after #98). Keep this section current — it is the first thing a fresh
 session reads, and a stale one is worse than none.*
 
 **PICK UP HERE. M3 IS SEVEN STORIES IN AND THE SERVER CROWD IS FEATURE-COMPLETE.**

@@ -352,15 +352,19 @@ copy here would mean two places to change one number.
 
 ### 4.2 `PersonaData`
 
+Built in US-0046; `data/personas/*.tres`.
+
 | Field | Type | Notes |
 |---|---|---|
 | `id` | `StringName` | `PERSONA-*` |
 | `display_key` | `StringName` | |
 | `silhouette` | enum | `LOW_BROAD` · `FLOOR_TRIANGLE` · `TALL_THIN` · `ROUND_MID`. **The four MVP personas must be mutually distinct** |
-| `mesh` | `PackedScene` | |
-| `animation_library` | `AnimationLibrary` | |
-| `identity_hue` | `Color` | Reserved by the colour-language law |
-| `anonymous_clip_names` | `PackedStringArray` | **The clone-parity set.** Every entry must exist in the clone's library |
+| `stand_height` | `float` | ART_BIBLE §6.1's drawn height. **Added in US-0046, not in the original table.** Deliberately *not* the collider: every persona shares one 1.8 m capsule so no clone is findable by walking into it, and these differ so none is findable by looking — the same anonymity rule from opposite ends |
+| `width_scale` | `float` | Horizontal scale of the drawn capsule. Vetraio's ×1.4 and Lucerna's ×0.8 *are* their silhouette claim. Added in US-0046 |
+| `mesh` | `PackedScene` | **Null on all four, and expected to stay so.** IP_GUARDRAILS §4 forbids a downloaded model entering this repository, so `PersonaBody` builds §6.1's constructions from primitives at runtime instead |
+| `animation_library` | `AnimationLibrary` | **Null on all four.** There are no animation clips in this project on either rig, which is what leaves parity layer 2's library half reporting rather than asserting |
+| `identity_hue` | `Color` | Reserved by the colour-language law. Asserted mutually distinct |
+| `anonymous_clip_names` | `PackedStringArray` | **The clone-parity set.** Every entry must exist in the clone's library. The canonical fourteen live as `PersonaData.PARITY_SET` — one `const`, not four copies, because ANIMATION_SPEC §7.1's table has a tick in every cell and four copies is four places to drift invisibly |
 
 ### 4.3 `MapData`
 
@@ -434,6 +438,6 @@ Twenty invariants beyond per-field ranges, asserted at load by `validate()` and 
 - [ ] `compute_hash()` is stable across files with identical values.
 - [ ] `deserialise(serialise(p))` round-trips field-for-field.
 - [ ] Every `AbilityData` fills ≥ 2 tell channels with ≥ 1 environmental/audio.
-- [ ] The four `PersonaData` have four distinct `silhouette` values.
+- [x] The four `PersonaData` have four distinct `silhouette` values. Asserted by `test_clone_animation_parity.gd`, US-0046, along with four distinct identity hues.
 - [ ] Every `FeatureFlags` field names its removal story.
 - [ ] Every `display_key` resolves in `data/strings/en.csv`.
