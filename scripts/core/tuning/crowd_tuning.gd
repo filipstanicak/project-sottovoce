@@ -107,6 +107,16 @@ extends Resource
 ## TUN-CROWD-STARTLE-RADIUS-SPRINT
 @export_range(3.0, 8.0, 0.1) var startle_radius_sprint: float = 5.0
 
+## How often the crowd looks for a sprinting player to be startled by. GDD-03 §6.4's own
+## "evaluated once per second, not per tick", which no tunable carried until US-0044. It is a
+## gameplay number rather than a sampling detail: a sprinter crossing a 5 m radius at TUN-SPEED-
+## SPRINT is inside it for about 1.6 s, so at this interval they are caught once or twice — the
+## ripple marks the path without every stride firing a fresh wave. Longer and a fast player can
+## cross a crowd unremarked; shorter and sprinting past a market produces one continuous scatter,
+## which reads as a radius rather than as a trail.
+## TUN-CROWD-STARTLE-SPRINT-INTERVAL
+@export_range(0.5, 2.0, 0.1) var startle_sprint_interval: float = 1.0
+
 ## A startled NPC startles others within TUN-CROWD-STARTLE-RADIUS-SPRINT with this probability,
 ## once. Produces a decaying wave rather than a hard-edged circle, which reads as organic and —
 ## more usefully — gives the wave a direction a distant player can read.

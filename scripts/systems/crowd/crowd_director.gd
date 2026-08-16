@@ -40,6 +40,20 @@ var _rng: RandomNumberGenerator = null
 var _steering := Steering.new()
 var _repath := RepathQueue.new()
 var _formations := CrowdFormations.new()
+var _alarm := CrowdAlarm.new()
+
+## The shared grid, held from `setup()` so the public startle and corpse entry
+## points can be called from outside a tick — `SYS-KILL` resolves a kill in the
+## `combat` stage, which is four positions after `crowd` in `SystemOrder`.
+var _hash: SpatialHash = null
+var _corpses := CorpseRegister.new()
+
+## Net ticks between sprinter sweeps, from `TUN-CROWD-STARTLE-SPRINT-INTERVAL`.
+## GDD-03 §6.4 evaluates the sprint startle **once per second, not per tick**: at
+## 30 Hz, a player running past a market would otherwise fire thirty overlapping
+## waves a second and the crowd would scatter as a solid radius rather than as a
+## trail.
+var _sweep_ticks: int = 30
 
 ## Net ticks between rebalances, from `TUN-CROWD-DIRECTOR-INTERVAL`. **Derived
 ## from the tick, never accumulated** — the same rule `MatchDirector` follows, and
@@ -66,11 +80,13 @@ func setup(ctx: MatchContext) -> void:
 	_pool = ctx.crowd
 	_map = ctx.map
 	_rng = ctx.rng
+	_hash = ctx.crowd_hash
 	if _pool == null:
 		return
 	if not Tuning.reloaded.is_connected(_steering.refresh):
 		Tuning.reloaded.connect(_steering.refresh)
 	_rebalance_ticks = maxi(Tuning.ticks(&"TUN-CROWD-DIRECTOR-INTERVAL"), 1)
+	_sweep_ticks = maxi(Tuning.ticks(&"TUN-CROWD-STARTLE-SPRINT-INTERVAL"), 1)
 	_formations.setup(ctx.map)
 	_goals.resize(_pool.body_count())
 	_here.resize(_pool.body_count())
@@ -101,6 +117,13 @@ func tick(ctx: MatchContext, dt: float) -> void:
 	# information leak.
 	if ctx.tick % _rebalance_ticks == 0:
 		_formations.rebalance(ctx.crowd_hash, _pool)
+		_corpses.forget_departed(_pool)
+	# **BODIES AGE ON THE TICK, NOT ON THE 2 S PASS.** `TUN-CORPSE-LIFETIME` is 20 s
+	# and the two information phases it produces are 6 s and 14 s long; checking
+	# every two seconds would blur a boundary players are meant to read.
+	_corpses.expire(ctx.tick, _pool)
+	if ctx.tick % _sweep_ticks == 0:
+		_alarm.sweep_for_sprinters(ctx, ctx.crowd_hash, _pool)
 	for index: int in _pool.active_count():
 		_advance(index, dt)
 	_serve_repaths()
@@ -125,6 +148,7 @@ func _reindex(ctx: MatchContext) -> void:
 
 func teardown() -> void:
 	_repath.clear()
+	_corpses.clear()
 	_goals.resize(0)
 
 
@@ -196,7 +220,8 @@ func _serve_repaths() -> void:
 
 ## Does this state move? Idle stands still by definition; the other two that do
 ## not travel are waiting for the systems that would tell them where to go.
-## Does this state need a navigation target?
+## Does this state need a navigation target? Everything except `IDLE`, which
+## stands still by definition.
 ##
 ## `WALKING_GROUP` does, and for a reason that is not pathing: **an agent that has
 ## arrived stops avoiding**, answering `velocity_computed` with exactly zero
@@ -205,11 +230,7 @@ func _serve_repaths() -> void:
 ## — which keeps the agent unfinished while costing the repath budget about a
 ## third of a query per tick instead of sixteen.
 func _travels(state: int) -> bool:
-	return (
-		state == NpcBrain.State.STROLL
-		or state == NpcBrain.State.STARTLE
-		or state == NpcBrain.State.WALKING_GROUP
-	)
+	return state != NpcBrain.State.IDLE
 
 
 ## Metres per second for a state. **Stroll is `TUN-CROWD-NPC-SPEED-STROLL`, which
@@ -217,7 +238,7 @@ func _travels(state: int) -> bool:
 ## other speed is a crowd a blend-walking player cannot hide in.
 func _speed_for(state: int) -> float:
 	match state:
-		NpcBrain.State.STROLL, NpcBrain.State.WALKING_GROUP:
+		NpcBrain.State.STROLL, NpcBrain.State.WALKING_GROUP, NpcBrain.State.GAWK:
 			return _steering.stroll_speed
 		NpcBrain.State.STARTLE:
 			return _steering.flee_speed
@@ -239,6 +260,8 @@ func _goal_for(index: int, state: int) -> Vector3:
 			return _away_from(index)
 		NpcBrain.State.WALKING_GROUP:
 			return _formations.lookahead_for(index, _lookahead())
+		NpcBrain.State.GAWK:
+			return _toward_the_body(index)
 		_:
 			return NO_GOAL
 
@@ -248,6 +271,19 @@ func _goal_for(index: int, state: int) -> Vector3:
 ## `TUN-CROWD-DIRECTOR-INTERVAL` and asks for one more.
 func _lookahead() -> float:
 	return _steering.stroll_speed * Tuning.crowd.director_interval
+
+
+## **A GAWKER WALKS TO THE BODY.** Without this the cluster never forms: six NPCs
+## granted a token would stand exactly where they were, and the "cluster of six
+## staring at a point" a distant player is supposed to read at 25 m would be six
+## people standing where they already stood.
+##
+## It is also what makes `TUN-CROWD-GAWK-MAX` mean anything. The cap exists so a
+## corpse cannot depopulate a blend pocket — and a gawker that never left the
+## pocket could not depopulate it however many tokens went out.
+func _toward_the_body(index: int) -> Vector3:
+	var corpse := _corpses.corpse_for(index)
+	return NO_GOAL if corpse == null else corpse.position
 
 
 func _an_anchor() -> Vector3:
@@ -311,3 +347,41 @@ func formations() -> CrowdFormations:
 func form_groups() -> void:
 	if _pool != null:
 		_formations.form(_pool)
+
+
+## **VIOLENCE HAPPENED HERE.** `SYS-KILL` and `SYS-STUN` call this at M4;
+## `Whisperbolt` will too. Returns how many NPCs it startled, across both hops.
+##
+## **NOTHING IN A SHIPPING SCENE CALLS IT YET** — kill and stun are M4 — and
+## US-0044 says so rather than implying otherwise. The *sprinting* half of the
+## same mechanic is fully wired and runs every second.
+##
+## **IT QUERIES THIS TICK'S GRID, SO IT MUST BE CALLED AFTER ONE.** `_reindex`
+## rebuilds the shared hash at the top of the `crowd` stage; called before the
+## first tick of a match it finds an empty grid and startles nobody, silently.
+## That is safe in production for a reason worth stating rather than relying on:
+## `SYS-KILL` and `SYS-STUN` resolve at the `combat` stage, which `SystemOrder`
+## puts four positions *after* `crowd`.
+func startle_at(origin: Vector3, radius: float = -1.0) -> int:
+	if _pool == null or _hash == null:
+		return 0
+	var reach := radius if radius > 0.0 else Tuning.crowd.startle_radius_violence
+	return _alarm.startle_at(origin, reach, _hash, _pool)
+
+
+## Put a body on the ground and send the crowd to look at it. `SYS-KILL`'s, at M4.
+func register_corpse(where: Vector3, tick: int, victim_peer: int = 0) -> Corpse:
+	if _pool == null or _hash == null:
+		return null
+	var corpse := Corpse.at(where, tick, victim_peer)
+	_corpses.add(corpse, _hash, _pool)
+	return corpse
+
+
+## The alarm and the register, for tests and for the systems that will drive them.
+func alarm() -> CrowdAlarm:
+	return _alarm
+
+
+func corpses() -> CorpseRegister:
+	return _corpses

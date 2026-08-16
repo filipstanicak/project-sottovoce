@@ -94,6 +94,23 @@ func test_the_server_stands_the_processions_up() -> void:
 	)
 
 
+func test_the_director_sweeps_for_sprinters_and_ages_bodies() -> void:
+	# **THE ONE HALF OF THE STARTLE MECHANIC THAT HAS A SOURCE TODAY.** Violence is
+	# M4's, so `startle_at` waits for a caller — but a sprinting player exists now,
+	# and the sweep that notices them is on the director's own tick. Without the
+	# call, `CrowdAlarm` is a correct class nothing runs, and both its suite and the
+	# crowd's stay green: US-0039's defect, exactly.
+	var director := "res://scripts/systems/crowd/crowd_director.gd"
+	assert_true(
+		SourceScanner.code_contains(director, "_alarm.sweep_for_sprinters("),
+		"nothing sweeps for sprinting players — startle has no source at all"
+	)
+	assert_true(
+		SourceScanner.code_contains(director, "_corpses.expire("),
+		"nothing ages a corpse — TUN-CORPSE-LIFETIME would never elapse"
+	)
+
+
 func test_the_director_claims_the_crowd_stage() -> void:
 	# And that the stage it claims is one a system may occupy at all — `ingest`,
 	# `pawn` and `snapshot` are positions in the order, and the director refuses

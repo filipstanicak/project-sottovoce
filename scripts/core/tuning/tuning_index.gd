@@ -159,6 +159,7 @@ const FIELD := {
 	&"TUN-CROWD-STARTLE-DURATION": ["crowd", "startle_duration", "s"],
 	&"TUN-CROWD-STARTLE-RADIUS-VIOLENCE": ["crowd", "startle_radius_violence", "m"],
 	&"TUN-CROWD-STARTLE-RADIUS-SPRINT": ["crowd", "startle_radius_sprint", "m"],
+	&"TUN-CROWD-STARTLE-SPRINT-INTERVAL": ["crowd", "startle_sprint_interval", "s"],
 	&"TUN-CROWD-STARTLE-PROPAGATION": ["crowd", "startle_propagation", "×"],
 	&"TUN-CROWD-GAWK-DURATION": ["crowd", "gawk_duration", "s"],
 	&"TUN-CROWD-GAWK-RADIUS": ["crowd", "gawk_radius", "m"],

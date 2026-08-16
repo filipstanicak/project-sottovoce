@@ -150,6 +150,13 @@ func handle(event: Event, ctx: CrowdContext) -> bool:
 ## while already fleeing should flee for the full duration from the second
 ## scare, not finish the first one.
 func _enter(next: State, ctx: CrowdContext) -> void:
+	# **THE PROPAGATION FLAG CLEARS WHEN THE FLEEING STOPS, NOT WHEN IT STARTS.**
+	# US-0044. Set once per wave so an NPC cannot scare its neighbours twice; kept
+	# while it is still running, so a re-startle does not buy a second round; and
+	# cleared on the way out, or an NPC would propagate exactly once per **match**
+	# and every wave after the first would die at its first hop.
+	if next != State.STARTLE:
+		has_propagated = false
 	state = next
 	timer_ticks = _duration_ticks(next, ctx)
 
