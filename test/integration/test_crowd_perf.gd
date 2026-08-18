@@ -60,8 +60,20 @@ func before_each() -> void:
 
 
 ## **THE FULL CROWD, NOT A CONVENIENT ONE.** `TUN-CROWD-COUNT-MAX` bodies
-## allocated and `TUN-CROWD-COUNT-DEFAULT-6P` of them active, which is the
-## standard scenario US-0048 names: a six-player match at peak density.
+## allocated and `TUN-CROWD-COUNT-DEFAULT-6P` of them active.
+##
+## **BUT THERE ARE NO PLAYERS IN IT, AND THAT IS NOT THE SCENARIO US-0048 NAMES.**
+## Found in US-0047. `MatchContext.pawns` is empty here, so `CrowdLod.band_of`
+## answers **Far for every NPC** — which is why the run reports 6 of 78 brains
+## stepping, and it is a property of having no observers rather than of how six
+## players spread over a district. Everything measured here is therefore the
+## **cheapest** case: the crowd nobody is watching. The 2 s pass is affected the
+## same way — `CloneBalance` holds and fetches against player positions, so with
+## none it does nothing at all and its cost is **not measured by this file**.
+##
+## Adding six pawns changes the number the M3 gate is judged against, so it is
+## US-0048's call rather than US-0047's. The observer count is printed on every
+## run so the gap cannot be read as a measurement.
 func _stand_up() -> void:
 	var started: int = NavigationServer3D.map_get_iteration_id(_map)
 	for _i: int in 120:
@@ -138,7 +150,12 @@ func test_the_server_crowd_tick_against_the_budget() -> void:
 	await _stand_up()
 	var stats := _stats(await _sample_ticks(TICKS))
 	var load := _director.lod_load()
-	gut.p("LOD: %d of %d brains stepped on the last tick" % [load.x, load.y])
+	gut.p(
+		(
+			"LOD: %d of %d brains stepped on the last tick, with %d players watching"
+			% [load.x, load.y, _ctx.pawns.size()]
+		)
+	)
 	(
 		gut
 		. p(

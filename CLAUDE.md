@@ -369,10 +369,13 @@ profiler this project does not have — owed, not estimated. What is coherent: t
 server keeps up, with the full crowd, against a 16.67 ms deadline.
 
 **§4.1's LOD SAVES A FIFTH OF A MILLISECOND, AND IS STILL WORTH BUILDING.** The
-reduction is bigger than §4.1 claims — **6 of 78 effective brain steps, not ~34
-of 90**, because six players on a 120 × 120 m map put far fewer NPCs inside 20 m
-than the table assumes — and worth less, because the brains were 0.046 ms to
-begin with. It is built for ADR-0003, and because it **unblocks US-0041's
+reduction *looks* bigger than §4.1 claims — 6 of 78 effective brain steps against
+~34 of 90 — but **that reading is an artefact and US-0047 found out why**:
+`test_crowd_perf.gd` stands up **no pawns at all**, so `CrowdLod.band_of` answers
+Far for every NPC and the whole measurement is the crowd nobody is watching.
+§4.1's ~34 of 90 may well be right with six real players; nothing here has tested
+it. What is certainly true is that LOD is worth *less* than §4.1 hoped, because
+the brains were 0.046 ms to begin with. It is built for ADR-0003, and because it **unblocks US-0041's
 far-band path validity**. US-0045 says that rather than claiming a win it does not
 deliver.
 

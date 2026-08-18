@@ -565,6 +565,17 @@ Clients run **no brain and no navigation** (ADR-0007), so client cost is animati
 
 ### 11.2.1 The measured cost is movement, and it is not where the budget put it
 
+**AND EVERY NUMBER IN §11.2 IS THE CROWD NOBODY IS WATCHING.** Found in US-0047:
+`test_crowd_perf.gd` stands up the full 78-NPC crowd and **no pawns**, so
+`MatchContext.pawns` is empty, `CrowdLod.band_of` answers **Far for every NPC**, and the
+run's "6 of 78 brains stepped" is a property of having no observers rather than of how six
+players spread over a 120 × 120 m district. §4.1's ~34 of 90 has therefore never been
+tested against players; it may be right. The same gap applies to the 2 s pass: `CloneBalance`
+counts clones against player positions, so with none it does nothing and its cost is
+unmeasured. Adding six pawns moves the number the M3 gate is judged against, which is
+**US-0048's call**; the test prints the observer count on every run so the gap cannot be
+misread as a measurement.
+
 `test_crowd_perf.gd` (US-0048, built before US-0045 on purpose) measures the crowd on the real
 map with `TUN-CROWD-COUNT-DEFAULT-6P` NPCs. Three things the table above got wrong:
 
