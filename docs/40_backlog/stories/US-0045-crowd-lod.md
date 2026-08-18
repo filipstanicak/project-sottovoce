@@ -31,10 +31,10 @@ Distance-banded update-rate LOD on the server and animation LOD on the client.
       as squared-distance compares against the nearest player. **No players means Far**, because
       an empty server has nobody to be fooled by a slow crowd and the other way round would make
       the emptiest server the most expensive one.
-- [x] **Brain rate: every tick near, every third mid, every fifteenth far.** Measured at **6 of 78
-      effective**, not §4.1's ~34 of 90 — see below. Staggered by NPC index, or a third of the
-      crowd would think on the same tick and the *spike* would be worse than the flat cost it
-      replaced.
+- [x] **Brain rate: every tick near, every third mid, every fifteenth far.** Measured at **46 of
+      78 effective** with six players at the spawn points — see below; this story published
+      6 of 78, which was an empty district. Staggered by NPC index, or a third of the crowd would
+      think on the same tick and the *spike* would be worse than the flat cost it replaced.
 - [x] **LOD changes RATE only. No distance check appears inside `NpcBrain.step()`.**
       `test_lod_changes_rate_not_logic.gd` scans for `CrowdLod`, `Band`, `distance`, `players`,
       `pawns` and `global_position`, and is falsified against a planted violation. It also asserts
@@ -45,19 +45,28 @@ Distance-banded update-rate LOD on the server and animation LOD on the client.
       blocker, and it needs rendered frames to compare.
 - [ ] **Mesh LOD at 100, 50 and 20 percent triangle counts.** Same blocker; there are no meshes.
 
-## §4.1's saving is real, larger than it claims, and worth less than it claims
+## §4.1's saving is real, smaller than this story first claimed, and worth less than either
 
 `test_crowd_perf.gd` was built **before** this story, deliberately, so LOD had a number to move.
 
-| | §4.1 | Measured |
-|---|---|---|
-| Effective brain steps | ~34 of 90 | **6 of 78** |
-| `CrowdDirector.tick()` | — | **0.54 ms → 0.44 ms** |
+**THIS STORY'S FIRST FIGURE WAS MEASURED ON A DISTRICT WITH NOBODY IN IT.** It reported 6 of 78
+effective brain steps and explained it as six players spreading thinly over 120 × 120 m. There
+were no players: `test_crowd_perf.gd` ran with `MatchContext.pawns` empty, so `CrowdLod.band_of`
+answered Far for everything and 6 is 78 divided by the Far stride of 15. Found in US-0047, fixed
+in US-0041's last line, and corrected here rather than quietly left.
 
-The table assumes ~20 NPCs within 20 m of somebody, which six players spread across a
-120 × 120 m district never produce. So the *reduction* is bigger than claimed — and the
-*saving* is a fifth of a millisecond, because US-0048 measured the brains at **0.046 ms of the
-crowd's cost** before this was built.
+| | §4.1 | First published | **Measured, six players at the spawn points** |
+|---|---|---|---|
+| Effective brain steps | ~34 of 90 | 6 of 78 | **46 of 78** |
+| Near / Mid / Far | ~20 / ~35 / ~35 | 0 / 0 / 78 | **30 / 48 / 0** |
+| `CrowdDirector.tick()` | — | 0.54 → 0.44 ms | **0.54–0.57 ms** |
+
+**THERE IS NO FAR BAND AT MATCH START.** Six spawn points on this map leave nothing beyond
+`TUN-PERF-CROWD-LOD-MID` 45 m of somebody, so the reduction is 78 → 46 — **1.7×, against §4.1's
+2.6× and against the 13× the empty run implied** — and the fifteen-tick stride only applies once
+players cluster and leave part of the district unwatched. The *saving* remains a fifth of a
+millisecond either way, because US-0048 measured the brains at **0.046 ms of the crowd's cost**
+before this was built.
 
 §4.1 calls the reduction "the difference between fitting the budget and not". It is not. It is
 built because ADR-0003 requires it, because it **unblocks US-0041's far-band path validity**, and
