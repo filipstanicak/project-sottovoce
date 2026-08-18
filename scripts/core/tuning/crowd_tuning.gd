@@ -46,6 +46,17 @@ extends Resource
 ## TUN-CROWD-CLONE-LOCAL-MIN
 @export_range(1, 4, 1) var clone_local_min: int = 2
 
+## The radius TUN-CROWD-CLONE-LOCAL-MIN is counted in. GDD-03 §6.3 rule 3 and TDD-08 §5.1 both
+## say "within 25 m" and no tunable carried it until US-0047 — the same omission TUN-CROWD-IDLE-
+## DURATION-MIN/-MAX had, and the number here is the documents' own. It is a gameplay number
+## rather than a query parameter: it is the distance at which a player can be told apart from the
+## clones around them, so it decides how large a hole in the crowd must be before it counts as
+## one. Larger and local depletion goes undetected until it is severe; smaller and the director
+## re-routes constantly, and visible re-routing is itself the leak. Must not exceed TUN-NET-NPC-
+## CULL-RADIUS (invariant §17.29).
+## TUN-CROWD-CLONE-LOCAL-RADIUS
+@export_range(15.0, 40.0, 0.1) var clone_local_radius: float = 25.0
+
 ## How often the crowd director rebalances clone distribution. Slow, because visible re-routing
 ## is itself an information leak.
 ## TUN-CROWD-DIRECTOR-INTERVAL

@@ -97,7 +97,7 @@ static func _section_fingerprint(res: Resource) -> String:
 	return String(",").join(parts)
 
 
-## Every field within its documented range, plus the 22 cross-field invariants
+## Every field within its documented range, plus the 29 cross-field invariants
 ## from TUNABLES.md §17. Empty array means valid.
 func validate() -> Array[String]:
 	var errors: Array[String] = []

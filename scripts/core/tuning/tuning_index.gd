@@ -146,6 +146,7 @@ const FIELD := {
 	&"TUN-CROWD-CLONES-PER-PERSONA-MIN": ["crowd", "clones_per_persona_min", "count"],
 	&"TUN-CROWD-CLONES-PER-PERSONA-MAX": ["crowd", "clones_per_persona_max", "count"],
 	&"TUN-CROWD-CLONE-LOCAL-MIN": ["crowd", "clone_local_min", "count"],
+	&"TUN-CROWD-CLONE-LOCAL-RADIUS": ["crowd", "clone_local_radius", "m"],
 	&"TUN-CROWD-DIRECTOR-INTERVAL": ["crowd", "director_interval", "s"],
 	&"TUN-CROWD-NPC-SPEED-STROLL": ["crowd", "npc_speed_stroll", "m/s"],
 	&"TUN-CROWD-NPC-SPEED-FLEE": ["crowd", "npc_speed_flee", "m/s"],

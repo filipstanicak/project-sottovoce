@@ -276,7 +276,7 @@ be deleted eventually by someone who did not understand it.
 | 1 | **Data**: `PersonaData.anonymous_clip_names` declares the parity set | Authoring drift. **Built, US-0046** — `data/personas/*.tres`, and the set is one `const` rather than four copies |
 | 2 | **Test**: `test_clone_animation_parity.gd` asserts every clip in that set exists in the clone's `AnimationLibrary`, for all four personas | A player animation added without a clone equivalent. **Half-built, US-0046**: the declaration is asserted, the library **reported**, because no clip exists on either rig |
 | 3 | **Runtime assert (debug)**: when a player pawn enters an Anonymous-reachable state, assert the clip it plays is in the parity set | A state playing an off-list clip |
-| 4 | **Director**: `TUN-CROWD-CLONE-LOCAL-MIN` 2 clones of each in-use persona within 25 m of every player | **Local** depletion — global sufficiency with a local hole |
+| 4 | **Director**: `TUN-CROWD-CLONE-LOCAL-MIN` 2 clones of each in-use persona within `TUN-CROWD-CLONE-LOCAL-RADIUS` of every player | **Local** depletion — global sufficiency with a local hole. **Built, US-0047** — `scripts/systems/crowd/clone_balance.gd`, on the 2 s director pass |
 
 ### 5.1 Why layer 4 is the one that actually matters
 
@@ -303,8 +303,67 @@ func _rebalance_clones(ctx: CrowdContext) -> void:
                 _retarget_nearest_idle_clone(persona, toward = player.position)
 ```
 
-**`test_clone_local_min.gd`** runs a 3-minute headless match with players deliberately clustered
-in one zone and asserts every player always had ≥ 2 clones of their persona within 25 m.
+### 5.1.1 What was built, and the three places the sketch was not enough
+
+US-0047 built this as `CloneBalance`, called from `CrowdDirector._rebalance_clones` on the same
+2 s pass the formations use. The shape above survived; three things had to be added, and each
+was found by measuring rather than by reading.
+
+**FETCHING ALONE CANNOT HOLD A FLOOR, AND MEASURED IT LEFT A PLAYER AT ZERO.** A clone crosses
+the 25 m radius in about **eighteen seconds**; a hole opens the instant somebody walks out of
+one. A rule that can only *fetch* is therefore eighteen seconds behind every churn in the crowd
+— over a 3-minute clustered match it left a player with **zero** clones of an in-use persona.
+So each pass now **holds** first: a clone of a thin persona that is already inside the region is
+given an anchor on this side of it, which costs no travel time at all. Fetching recovers from a
+hole; holding is what stops one opening. Holding is also the cheaper half by far, and it is the
+half the sketch does not contain.
+
+**IDLE CLONES ARE RESERVED WITHOUT BEING WOKEN.** Holding only the clones that are *walking*
+leaves a two-second window every pass: an idle clone near the edge finishes its pause, picks a
+far anchor and is outside before anybody looks again. That measured **91 readings of 12 960**
+under the floor. A reservation an idle clone simply *finds waiting* when its own pause ends
+costs it nothing and closes the window; cutting the pause short instead would be motion the
+region did not need, and motion is what reads.
+
+**THE DESTINATION IS KEPT A PASS'S WALK INSIDE THE BOUNDARY.** An anchor at 24.8 m is inside one
+player's radius and outside their neighbour's, and it leaves the region the moment either of
+them takes a step. The margin is `TUN-CROWD-NPC-SPEED-STROLL` × `TUN-CROWD-DIRECTOR-INTERVAL`
+— about 2.8 m, one pass of walking, which is exactly how long nobody is looking. Derived from
+two existing tunables rather than chosen, so retuning either moves it. This one change took the
+breach count from 75 to **2**.
+
+**AND THE STREAM IS PREVENTED BY ACCOUNTING, NOT BY A THROTTLE.** Eighteen seconds is nine
+passes, so a rule counting only *arrived* clones sends nine to fix a hole one deep — which is
+precisely the "stream of Lucerna walking toward a market" the story warns about. A clone already
+walking into the region counts toward the minimum while it is on its way. Measured: **8 fetched
+on the first pass of a starved district, 0 over the next five.** No cap was needed once the
+arithmetic was right, and a cap would have hidden the fact that it was not.
+
+### 5.1.2 Measured, and the one reading that is not "always"
+
+`test/unit/systems/crowd/test_clone_local_min.gd`, 78 NPCs, six players clustered in one zone,
+5 400 net ticks, sampled every third of a second — 12 960 readings of (player × persona).
+
+| | Without the pass | With it |
+|---|---|---|
+| Worst count of an in-use persona within 25 m | **0** | 1 |
+| Readings under `TUN-CROWD-CLONE-LOCAL-MIN` | many | **2 of 12 960** |
+| … of those, after the crowd settles (20 s) | — | **0** |
+
+**Both breaches are in the first twenty seconds, and they are `CrowdPlacement`'s rather than
+this rule's.** The crowd is dealt round-robin over the map's idle anchors with **no persona
+awareness at all**, so a match can begin with a local hole; nothing that re-routes rather than
+teleporting can close one before a clone has walked. US-0047's fourth criterion says *always*,
+so it is **left unticked** with these numbers rather than rounded up. Making it literally true
+needs persona-aware initial placement, which is `CrowdPlacement`'s and has no story.
+
+**A UNIT TEST RUNS THE THREE-MINUTE MATCH, DELIBERATELY.** The integration suite is at 152 s of
+its 180 s budget and 5 400 ticks of *physics* would not fit. The crowd in that test is real —
+real `NpcBrain`s, real pool bodies, the real `SpatialHash` — and only the navigation is modelled,
+as a straight line at stroll speed. That model is optimistic about travel time and cannot
+flatter the rule, which is the shipped code unchanged. `test_director_runs_layer_four.gd` is the
+other half: it asks the real `CrowdDirector` whether it calls any of this, because every
+assertion about `CloneBalance` would stay green with the director never calling it.
 
 ---
 
@@ -420,7 +479,7 @@ corpus has already shipped three claims of the second kind that were the first.
 |---|---|---|
 | `scenes/npc/npc_server.tscn` | Capsule + agent | **Exists.** No brain node — `NpcBrain` is a `RefCounted` the pool owns, not a child |
 | `scenes/npc/npc_view.tscn` | Mesh + `AnimationTree`, inert | Not written. US-0046 |
-| `scripts/systems/crowd/crowd_director.gd` | `SYS-CROWD` | **Exists**, US-0041; the 2 s timer and the player-facing slot API added in US-0043. Clone redistribution is US-0047's |
+| `scripts/systems/crowd/crowd_director.gd` | `SYS-CROWD` | **Exists**, US-0041; the 2 s timer and the player-facing slot API added in US-0043, clone redistribution hung off the same timer in US-0047 |
 | `scripts/systems/crowd/npc_pool.gd` | Pre-allocation, seeded activation | **Exists**, US-0039 |
 | `scripts/systems/crowd/npc_brain.gd` | The five-state HFSM | **Exists**, US-0040 |
 | ~~`scripts/systems/crowd/npc_states/*.gd`~~ | ~~5 state handlers~~ | **Will not be written.** ADR-0003 chose a flat table over per-state objects: five handler files for five behaviours is five virtual calls per agent per tick, and §3's whole argument is that the crowd needs to be legible rather than clever. The directory was created empty in M0 and is removed |
@@ -435,6 +494,7 @@ corpus has already shipped three claims of the second kind that were the first.
 | `scripts/systems/crowd/corpse.gd` | `SYS-CORPSE`: one body, two information phases | **Exists**, US-0044 |
 | `scripts/systems/crowd/corpse_register.gd` | Every body, and who is looking at it | **Exists**, US-0044. Not in the original table |
 | `scripts/systems/crowd/crowd_alarm.gd` | Startle waves and the sprinter sweep | **Exists**, US-0044. Not in the original table |
+| `scripts/systems/crowd/clone_balance.gd` | §5 layer 4: hold and fetch clones against `TUN-CROWD-CLONE-LOCAL-MIN` | **Exists**, US-0047. Not in the original table — §5.1 sketched it as a method on the director, and it is its own object so a test can ask it a question without standing a director up |
 | `scripts/presentation/npc_view.gd` | Client-side view | Not written. US-0045/0046 |
 | `scripts/core/crowd_roster.gd` | The derived roster | **Exists**, US-0039. In Core, not here, because both peers derive it |
 
@@ -459,7 +519,8 @@ a table saying "X asserts Y" is what stops anybody checking by hand.
 | `test_gawk_corpse_phases.gd` | Cluster disperses at 6 s; corpse persists to 20 s | `test_gawk_and_corpses.gd`, US-0044 |
 | `test_clone_roster_parity.gd` | Three peers derive identical rosters from one seed | `test/unit/core/test_crowd_roster.gd` — the roster is pure, so parity is asked directly rather than across peers |
 | `test_clone_animation_parity.gd` | Every `anonymous_clip_names` entry exists in the clone library | Not written. **US-0046**, and there are no clips |
-| `test_clone_local_min.gd` | Over a 3-minute clustered match, every player always had ≥ 2 same-persona clones within 25 m | Not written. **US-0047**. `SpatialHash.count_persona()` is the query it needs and exists |
+| `test_clone_local_min.gd` | Over a 3-minute clustered match, every player always had ≥ 2 same-persona clones within 25 m | `test/unit/systems/crowd/test_clone_local_min.gd`, US-0047 — a **unit** test, because 5 400 ticks of physics do not fit the integration budget; see §5.1.2. **2 readings of 12 960 under the floor, both before the crowd settles**, so the criterion is reported rather than ticked. Its counterfactual runs first and requires the starvation to actually happen |
+| `test_director_runs_layer_four.gd` | The shipped `CrowdDirector` really calls layer 4, on the 2 s timer, and `CrowdIntent` really prefers the reservation | `test/unit/systems/crowd/test_director_runs_layer_four.gd`, US-0047. Not in the original table. **A criterion can be true of a class and false of the game**, which is what happened to US-0039's pool |
 | `test_anim_lod_silhouette.gd` | Silhouettes match across LOD band boundaries | Not written. **US-0045**, and it needs a rendered frame |
 | `test_lod_changes_rate_not_logic.gd` | **Source scan:** no distance check inside `NpcBrain.step()` | `test/arch/test_lod_changes_rate_not_logic.gd`, US-0045 — and it also asserts the `stride` reaches the brain, which a distance scan cannot see |
 | `test_npc_speed_matches_blendwalk.gd` | `TUN-CROWD-NPC-SPEED-STROLL == TUN-SPEED-BLENDWALK` | Invariant 1 in `test/unit/core/tuning/test_tuning_ranges.gd`. **And measured on a walking crowd** by `test_crowd_moves.gd`, which is the half a tuning check cannot see |

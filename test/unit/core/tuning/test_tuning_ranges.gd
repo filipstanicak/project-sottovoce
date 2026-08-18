@@ -1,4 +1,4 @@
-## Every shipped value is inside its own documented range, and the 22 cross-field
+## Every shipped value is inside its own documented range, and the 29 cross-field
 ## invariants from TUNABLES.md §17 hold.
 ##
 ## The range half catches a typo. The invariant half catches the subtler thing: a

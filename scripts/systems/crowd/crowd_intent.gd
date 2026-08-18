@@ -18,6 +18,7 @@ var _map: MapData = null
 var _rng: RandomNumberGenerator = null
 var _formations: CrowdFormations = null
 var _corpses: CorpseRegister = null
+var _clones: CloneBalance = null
 var _stroll: float = 1.4
 var _flee: float = 5.0
 
@@ -27,13 +28,15 @@ func setup(
 	map: MapData,
 	rng: RandomNumberGenerator,
 	formations: CrowdFormations,
-	corpses: CorpseRegister
+	corpses: CorpseRegister,
+	clones: CloneBalance
 ) -> void:
 	_pool = pool
 	_map = map
 	_rng = rng
 	_formations = formations
 	_corpses = corpses
+	_clones = clones
 	refresh()
 
 
@@ -79,7 +82,7 @@ func speed_for(state: int) -> float:
 func goal_for(index: int, state: int) -> Vector3:
 	match state:
 		NpcBrain.State.STROLL:
-			return _an_anchor()
+			return _an_anchor(index)
 		NpcBrain.State.STARTLE:
 			return _away_from(index)
 		NpcBrain.State.WALKING_GROUP:
@@ -110,7 +113,16 @@ func _toward_the_body(index: int) -> Vector3:
 	return CrowdDirector.NO_GOAL if corpse == null else corpse.position
 
 
-func _an_anchor() -> Vector3:
+## **THE ONE PLACE US-0047 TOUCHES BEHAVIOUR AT ALL.** A strolling clone picks
+## its next anchor at random; `CloneBalance` may have picked one for it, and the
+## difference between those two sentences is the whole of layer 4. Nothing else
+## about the NPC changes — not its speed, not its state, not how it walks — which
+## is why re-routing cannot read as clones following anybody.
+func _an_anchor(index: int) -> Vector3:
+	if _clones != null:
+		var directed := _clones.take(index)
+		if directed != CrowdDirector.NO_GOAL:
+			return directed
 	if _map == null or _map.idle_anchors.is_empty():
 		return CrowdDirector.NO_GOAL
 	var pick: int = (
