@@ -379,6 +379,42 @@ flatter the rule, which is the shipped code unchanged. `test_director_runs_layer
 other half: it asks the real `CrowdDirector` whether it calls any of this, because every
 assertion about `CloneBalance` would stay green with the director never calling it.
 
+
+### 5.1.3 The opening arrangement, and three spawn points that cannot satisfy rule 3
+
+**LAYER 4 CLOSES A HOLE IN ABOUT EIGHTEEN SECONDS, SO A MATCH THAT *BEGINS* WITH ONE IS EIGHTEEN
+SECONDS IT CANNOT COVER.** That is where US-0047's two breaches of 12 960 came from, and they
+were `CrowdPlacement`'s: it deals round-robin over idle anchors with no persona awareness, while
+`CrowdRoster` derives identities with no idea where anybody stands. Both are seeded and both are
+correct; **nothing joined them.** US-0096's `CrowdSeating` is that join — a **permutation** of the
+placement, so the multiset of positions is unchanged and every property `CrowdPlacement` was
+tested for survives by construction.
+
+**Filler is the currency, and it is what makes the pass terminate.** About thirty of seventy-eight
+are archetypes with no local requirement anywhere, so a spawn point short of Lucerna trades a
+nearby filler for a distant one. Both ends of the trade need the same guard — the give side had it
+first and the take side did not, which left the last spawn points processed picking over a
+district already stripped: **7 feasible shortfalls went to 2, then to 0 once the take side
+refused to conscript somebody else's minimum.**
+
+**AND THE MAP CANNOT SATISFY RULE 3 AT THREE OF ITS SIX SPAWN POINTS.** Four personas at
+`TUN-CROWD-CLONE-LOCAL-MIN` need **eight clone seats** inside the radius:
+
+| Spawn point | NPC seats within 25 m |
+|---|---|
+| (12, 36) · (20, 70) · (88, 14) | 12 · 15 · 10 |
+| (6, 97.5) | **3** |
+| (100, 70) | **6** |
+| (114, 97.5) | **0** |
+
+A permutation cannot conjure a seat that is not there. **(114, 97.5) can see no NPC at all**, so a
+player spawning there begins the match with zero clones *and* on open ground for
+`TUN-SUSPICION-GAIN-OPEN` — alone, uniquely identifiable, before they can move. GDD-03 §6.3 rule 3
+is a release blocker, and it is the **idle anchors** that fail it: that corner has none within
+25 m of its spawn point. Re-authoring them is level design with an owner, so
+`test_crowd_seating.gd` asserts what the code owes — **zero shortfalls where there is room** — and
+prints the census, exactly as `test_circuit_separation.gd` reports US-0043's 0.51 m.
+
 ---
 
 ## 6. The spatial hash
@@ -509,6 +545,7 @@ corpus has already shipped three claims of the second kind that were the first.
 | `scripts/systems/crowd/corpse_register.gd` | Every body, and who is looking at it | **Exists**, US-0044. Not in the original table |
 | `scripts/systems/crowd/crowd_alarm.gd` | Startle waves and the sprinter sweep | **Exists**, US-0044. Not in the original table |
 | `scripts/systems/crowd/crowd_bands.gd` | Which band each NPC is in, and the path tolerance a band buys | **Exists**, US-0045 as logic and US-0041's last line as the side effect; split from `CrowdDirector` in US-0041 when the file passed 400 lines again. Not in the original table |
+| `scripts/systems/crowd/crowd_seating.gd` | Which NPC stands at which starting position: the join between the roster and the placement | **Exists**, US-0096. Not in the original table — nothing joined `CrowdPlacement`'s slots to `CrowdRoster`'s identities, so a match could open with every clone of a persona on the wrong side of the district |
 | `scripts/systems/crowd/clone_balance.gd` | §5 layer 4: hold and fetch clones against `TUN-CROWD-CLONE-LOCAL-MIN` | **Exists**, US-0047. Not in the original table — §5.1 sketched it as a method on the director, and it is its own object so a test can ask it a question without standing a director up |
 | `scripts/presentation/npc_view.gd` | Client-side view | Not written. US-0045/0046 |
 | `scripts/core/crowd_roster.gd` | The derived roster | **Exists**, US-0039. In Core, not here, because both peers derive it |
@@ -535,6 +572,7 @@ a table saying "X asserts Y" is what stops anybody checking by hand.
 | `test_clone_roster_parity.gd` | Three peers derive identical rosters from one seed | `test/unit/core/test_crowd_roster.gd` — the roster is pure, so parity is asked directly rather than across peers |
 | `test_clone_animation_parity.gd` | Every `anonymous_clip_names` entry exists in the clone library | Not written. **US-0046**, and there are no clips |
 | `test_clone_local_min.gd` | Over a 3-minute clustered match, every player always had ≥ 2 same-persona clones within 25 m | `test/unit/systems/crowd/test_clone_local_min.gd`, US-0047 — a **unit** test, because 5 400 ticks of physics do not fit the integration budget; see §5.1.2. **2 readings of 12 960 under the floor, both before the crowd settles**, so the criterion is reported rather than ticked. Its counterfactual runs first and requires the starvation to actually happen |
+| `test_crowd_seating.gd` | The opening arrangement satisfies the local minimum at every spawn point that has room, and is a permutation of the placement | `test/unit/systems/crowd/test_crowd_seating.gd`, US-0096. Not in the original table. **It prints a seat census**, because three of six spawn points cannot hold the minimum at any arrangement — see §5.1.3 |
 | `test_director_runs_layer_four.gd` | The shipped `CrowdDirector` really calls layer 4, on the 2 s timer, and `CrowdIntent` really prefers the reservation | `test/unit/systems/crowd/test_director_runs_layer_four.gd`, US-0047. Not in the original table. **A criterion can be true of a class and false of the game**, which is what happened to US-0039's pool |
 | `test_anim_lod_silhouette.gd` | Silhouettes match across LOD band boundaries | Not written. **US-0045**, and it needs a rendered frame |
 | `test_lod_changes_rate_not_logic.gd` | **Source scan:** no distance check inside `NpcBrain.step()` | `test/arch/test_lod_changes_rate_not_logic.gd`, US-0045 — and it also asserts the `stride` reaches the brain, which a distance scan cannot see |
