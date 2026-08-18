@@ -4,7 +4,7 @@ title: M3 gate — crowd performance and anonymity
 version: 0.1.0
 status: in-progress
 owner: Technical Director
-last_updated: 2026-08-16
+last_updated: 2026-08-18
 depends_on: [BACKLOG-ROADMAP, BIBLE-PERF-BUDGET, BIBLE-RISK-REGISTER]
 ---
 
@@ -47,20 +47,27 @@ US-0041's far-band path validity and §4.1's 15-tick stride only apply once play
 
 ## Acceptance criteria
 
-> **THE GATE IS NOT RUN. ONE OF ITS INSTRUMENTS IS BUILT.** `test_crowd_perf.gd` was written
+> **THE GATE IS NOT RUN. TWO OF ITS INSTRUMENTS ARE BUILT.** `test_crowd_perf.gd` was written
 > ahead of US-0045 on purpose: LOD exists to buy frame time, and optimising against a budget
 > nobody has measured is how the upstream bandwidth miss reached 253 % while a document said
-> 112 %. Everything else below still waits for US-0045, US-0046 and US-0047.
+> 112 %. `test_clone_local_min.gd` arrived with US-0047. Everything else below still waits for
+> US-0046 and for an owner at a windowed client.
 
 - [x] **`test_crowd_perf.gd` passes with 90 NPCs**, in the standard scenario — ninety allocated,
-      `TUN-CROWD-COUNT-DEFAULT-6P` active, on the real map with the real navmesh. **It passes on
-      the frame deadline and misses TDD-08 §11.2's table**, which is amended with the measured
-      figures rather than reworded. See below.
+      `TUN-CROWD-COUNT-DEFAULT-6P` active, on the real map with the real navmesh, **and six
+      players at the map's own spawn points since US-0041**. It ran with *no* players until then,
+      which made every figure §11.2 published a best case; see above. It passes on the frame
+      deadline and on p95, and TDD-08 §11.2's table is amended with the measured figures rather
+      than reworded.
 - [ ] p99 client frame time at or under 16.6 ms with peak crowd density.
 - [ ] Server tick p99 at or under 8.0 ms.
 - [ ] `test_crowd_bandwidth.gd` within 96 kbit/s down.
 - [ ] `test_clone_animation_parity.gd` and `test_footstep_parity.gd` pass for all four personas.
-- [ ] `test_clone_local_min.gd` passes over a clustered 3-minute match.
+- [x] `test_clone_local_min.gd` passes over a clustered 3-minute match. **US-0047.** A unit
+      test, because 5 400 ticks of physics do not fit the integration budget. **Passing is not the
+      same as the guarantee holding always**: it reports 2 readings of 12 960 under the floor, both
+      inside the first twenty seconds, and US-0047's own "always" criterion is unticked on exactly
+      that. The gate should read the number, not the tick.
 - [ ] Startle waves read directionally to a human observer.
 - [ ] Feel check: the crowd feels alive — a tester still looks at NPCs unprompted after minute 4.
 - [ ] Risk register re-scored: RISK-CROWD-PERF, RISK-ANONYMITY-LEAK, RISK-ANIM-SCOPE.

@@ -87,7 +87,7 @@ the tightest in the corpus.
 **Trigger.** `test_crowd_perf.gd` fails, or p99 frame time exceeds 16.6 ms in the standard
 scenario.
 
-**Mitigations.** Update-rate LOD (~34 effective brain updates per tick instead of 90 — a 2.6×
+**Mitigations.** Update-rate LOD (**measured at 46 effective brain updates per tick of 78, not the ~34 of 90 this line assumed** — a 1.7×, not a 2.6×
 reduction); flat HFSM rather than behaviour trees; zero allocation in `step()`; a shared spatial
 hash serving four consumers; server-side simulation only, so clients pay animation cost alone.
 
