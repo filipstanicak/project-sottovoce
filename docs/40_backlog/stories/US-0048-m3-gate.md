@@ -40,10 +40,15 @@ moved, and they moved the way an honest correction moves them:**
 | max over 90 ticks | 0.686 ms | **2.16–2.43 ms** |
 | Brains stepping | 6 of 78 | **46 of 78** — 30 Near, 48 Mid, **no Far** |
 
-**Two things for this gate to judge rather than inherit.** The max exceeds the 1.75 ms budget
-on one tick in ninety while p95 sits comfortably under it — the right statistic for a gate, and
-still a spike nobody has isolated. And there is **no Far band at all** at match start, so
-US-0041's far-band path validity and §4.1's 15-tick stride only apply once players cluster.
+**The spike is isolated and fixed; one thing is left for this gate to judge.** The max was
+2.16–2.43 ms against a 1.75 ms budget, and it was entirely the 2 s director pass — 1.925 ms on a
+pass tick against 0.500 on an ordinary one. `CloneBalance` was asking the grid and the anchor list
+once per persona rather than once per player; hoisting both took the pass to 0.71 ms and the
+whole-tick max to **1.26–1.29 ms, inside budget with the max included**. TDD-08 §11.2.2 records it.
+
+What is left: there is **no Far band at all** at match start, so US-0041's far-band path validity
+and §4.1's 15-tick stride only apply once players cluster — which means the crowd is at its most
+expensive exactly when the district is most evenly occupied.
 
 ## Acceptance criteria
 

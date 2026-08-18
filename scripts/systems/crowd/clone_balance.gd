@@ -86,6 +86,13 @@ var _watchers: PackedVector3Array = PackedVector3Array()
 var _radius: float = 25.0
 var _least: int = 2
 
+# Per watcher, recomputed once for each and read by all four personas. The region
+# a player stands in does not depend on which persona is being served, and asking
+# the grid four times for one answer is what made the 2 s pass the frame's spike.
+var _nearby: Array[Vector3] = []
+var _inside: PackedInt32Array = PackedInt32Array()
+var _tally: Dictionary = {}
+
 
 func setup(map: MapData, rng: RandomNumberGenerator) -> void:
 	_map = map
@@ -117,10 +124,31 @@ func rebalance(
 	_radius = Tuning.crowd.clone_local_radius
 	_least = int(Tuning.crowd.clone_local_min)
 	_retire_the_finished_and_the_stuck()
+	# **THE ANCHOR LIST IS PER PLAYER, NOT PER CLONE.** Which anchors sit inside a
+	# region does not depend on the persona being served or on who is being sent
+	# there, so scanning 62 anchors inside the innermost loop did that work
+	# hundreds of times for one answer — measured as most of a 1.9 ms pass against
+	# TDD-08 §11.2's 0.05 ms budget for the whole thing.
 	for centre: Vector3 in watchers:
+		_survey(centre)
 		for persona: StringName in personas:
 			_serve(centre, persona, sent)
 	return sent
+
+
+## Everything about one player's region that every persona then reads: the anchors
+## inside it, who is standing in it, and how many of each identity that is.
+##
+## **ONE GRID QUERY PER PLAYER, NOT PER PERSONA.** A 25 m query walks about eighty
+## cells of a 6 m grid; doing that four times for the same region, plus four
+## `count_persona` walks over the same cells, was eight scans where one does.
+func _survey(centre: Vector3) -> void:
+	_nearby = _anchors_for(centre)
+	_inside = _hash.query(centre, _radius)
+	_tally = {}
+	for index: int in _inside:
+		var who := _pool.identity_of(index)
+		_tally[who] = int(_tally.get(who, 0)) + 1
 
 
 ## The anchor chosen for `index`, or `NO_GOAL`. **A peek, deliberately** — see
@@ -131,13 +159,13 @@ func take(index: int) -> Vector3:
 
 ## One player, one persona: hold what is there, then fetch what is missing.
 func _serve(centre: Vector3, persona: StringName, sent: Dictionary) -> void:
-	var near := _hash.count_persona(centre, _radius, persona)
+	var near: int = _tally.get(persona, 0)
 	if near <= _least:
-		_hold_the_insiders(centre, persona, sent)
+		_hold_the_insiders(persona, sent)
 	if near + _inbound(persona, centre) >= _least:
 		return
 	deficits_last_pass += 1
-	var target := _anchor_near(centre)
+	var target := _pick(_nearby)
 	if target == CrowdDirector.NO_GOAL:
 		return
 	var who := _nearest_spare(persona, target)
@@ -161,19 +189,20 @@ func _serve(centre: Vector3, persona: StringName, sent: Dictionary) -> void:
 ## floor. A reservation costs it nothing now and is simply what `CrowdIntent`
 ## hands it when its pause ends on its own. Cutting the pause short instead would
 ## be motion the region did not need, and motion is the thing that reads.
-func _hold_the_insiders(centre: Vector3, persona: StringName, sent: Dictionary) -> void:
-	for index: int in _pool.active_count():
+## **ASKS THE GRID RATHER THAN THE WHOLE CROWD.** `SpatialHash.query()` answers
+## "who is inside this region" from a cell range; scanning all ninety and throwing
+## away the ones outside is the O(pawns x NPCs) cost US-0042 exists to remove,
+## and doing it once per player *per persona* did it twenty-four times a pass.
+func _hold_the_insiders(persona: StringName, sent: Dictionary) -> void:
+	if _nearby.is_empty():
+		return
+	for index: int in _inside:
 		if _pool.identity_of(index) != persona or pending.has(index):
 			continue
 		var brain := _pool.brain_of(index)
-		var body := _pool.body_of(index)
-		if brain == null or body == null or not _is_spare(brain):
+		if brain == null or not _is_spare(brain):
 			continue
-		if _flat_distance(body.global_position, centre) > _radius:
-			continue
-		var target := _anchor_near(centre)
-		if target == CrowdDirector.NO_GOAL:
-			return
+		var target := _pick(_nearby)
 		pending[index] = target
 		if brain.state == NpcBrain.State.STROLL:
 			sent[index] = target
@@ -201,13 +230,14 @@ func _reserve(index: int, target: Vector3, sent: Dictionary) -> void:
 ## clone no closer than it was a whole pass ago is not going to get there.
 func _retire_the_finished_and_the_stuck() -> void:
 	var arrive: float = Tuning.crowd.anchor_arrive_radius
+	arrive *= arrive
 	for index: int in pending.keys():
 		var brain := _pool.brain_of(index)
 		var body := _pool.body_of(index)
 		if brain == null or body == null or not _pool.is_active(index) or not _is_spare(brain):
 			_forget(index)
 			continue
-		var gap := _flat_distance(body.global_position, pending[index])
+		var gap := _flat_squared(body.global_position, pending[index])
 		if gap <= arrive:
 			_forget(index)
 			continue
@@ -231,13 +261,14 @@ func _forget(index: int) -> void:
 ## Counting the ones already inside would double-count them against the hash.
 func _inbound(persona: StringName, centre: Vector3) -> int:
 	var coming := 0
+	var reach := _radius * _radius
 	for index: int in pending:
 		if _pool.identity_of(index) != persona:
 			continue
-		if _flat_distance(pending[index], centre) > _radius:
+		if _flat_squared(pending[index], centre) > reach:
 			continue
 		var body := _pool.body_of(index)
-		if body != null and _flat_distance(body.global_position, centre) > _radius:
+		if body != null and _flat_squared(body.global_position, centre) > reach:
 			coming += 1
 	return coming
 
@@ -256,24 +287,28 @@ func _inbound(persona: StringName, centre: Vector3) -> int:
 ## because one pass is exactly how long nobody is looking. Derived, so retuning
 ## either number moves it. The full radius is used when nothing is nearer, since
 ## an anchor on the edge still beats no anchor at all.
-func _anchor_near(centre: Vector3) -> Vector3:
+func _anchors_for(centre: Vector3) -> Array[Vector3]:
 	if _map == null or _map.idle_anchors.is_empty():
-		return CrowdDirector.NO_GOAL
+		return []
 	var margin: float = Tuning.crowd.npc_speed_stroll * Tuning.crowd.director_interval
 	var inside := _anchors_within(centre, maxf(_radius - margin, _radius * 0.5))
-	if inside.is_empty():
-		inside = _anchors_within(centre, _radius)
-	if inside.is_empty():
+	return inside if not inside.is_empty() else _anchors_within(centre, _radius)
+
+
+## One of them, from the seeded generator. Never `randf` — rule 8.
+func _pick(anchors: Array[Vector3]) -> Vector3:
+	if anchors.is_empty():
 		return CrowdDirector.NO_GOAL
 	if _rng == null:
-		return inside[0]
-	return inside[_rng.randi_range(0, inside.size() - 1)]
+		return anchors[0]
+	return anchors[_rng.randi_range(0, anchors.size() - 1)]
 
 
 func _anchors_within(centre: Vector3, reach: float) -> Array[Vector3]:
 	var found: Array[Vector3] = []
+	var limit := reach * reach
 	for anchor: Vector3 in _map.idle_anchors:
-		if _flat_distance(anchor, centre) <= reach:
+		if _flat_squared(anchor, centre) <= limit:
 			found.append(anchor)
 	return found
 
@@ -303,7 +338,7 @@ func _nearest_spare(persona: StringName, target: Vector3) -> int:
 			continue
 		if _is_somebodys_minimum(body.global_position):
 			continue
-		var gap := _flat_distance(body.global_position, target)
+		var gap := _flat_squared(body.global_position, target)
 		if brain.state == NpcBrain.State.STROLL and gap < walker_gap:
 			walker = index
 			walker_gap = gap
@@ -314,15 +349,21 @@ func _nearest_spare(persona: StringName, target: Vector3) -> int:
 
 
 func _is_somebodys_minimum(point: Vector3) -> bool:
+	var reach := _radius * _radius
 	for centre: Vector3 in _watchers:
-		if _flat_distance(point, centre) <= _radius:
+		if _flat_squared(point, centre) <= reach:
 			return true
 	return false
 
 
 ## Horizontal, like every other radius in this design: a clone on a 3.5 m balcony
 ## is not further from the player below in any sense anonymity cares about.
-static func _flat_distance(a: Vector3, b: Vector3) -> float:
+##
+## **SQUARED, BECAUSE NOTHING HERE WANTS A DISTANCE.** Every caller compares — to a
+## radius, to an arrival tolerance, or to another candidate — and an ordering is
+## the same under the square. `SpatialHash` made the same choice for the same
+## reason, and this file runs its comparisons thousands of times a pass.
+static func _flat_squared(a: Vector3, b: Vector3) -> float:
 	var dx := a.x - b.x
 	var dz := a.z - b.z
-	return sqrt(dx * dx + dz * dz)
+	return dx * dx + dz * dz

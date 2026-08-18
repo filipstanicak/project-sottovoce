@@ -300,17 +300,33 @@ every number the corpus published from that test has moved:
 
 | | Empty district | **Six players** |
 |---|---|---|
-| `CrowdDirector.tick()` mean | 0.439 ms | **0.54–0.57 ms** |
-| p95 (the asserted line, budget 1.75) | 0.521 ms | **0.67–0.71 ms** |
-| max over 90 ticks | 0.686 ms | **2.16–2.43 ms** |
+| `CrowdDirector.tick()` mean | 0.439 ms | **0.52 ms** |
+| p95 (the asserted line, budget 1.75) | 0.521 ms | **0.59–0.64 ms** |
+| max over 90 ticks | 0.686 ms | **1.26–1.29 ms** — was 2.16–2.43 before the spike was found |
 | Brains stepping | 6 of 78 | **46 of 78** |
 | Bands | 0 / 0 / 78 | **30 Near, 48 Mid, 0 Far** |
 
 **THERE IS NO FAR BAND AT MATCH START**, so §4.1's fifteen-tick stride and US-0041's
 longer path validity only apply once players cluster. The reduction is **1.7×, not
-§4.1's 2.6× and not the 13× the empty run implied**. And **the max exceeds the 1.75 ms
-budget on one tick in ninety** while p95 sits comfortably under it — the right statistic
-for a gate, and still a spike nobody has isolated. US-0048 carries both.
+§4.1's 2.6× and not the 13× the empty run implied**. US-0048 carries that.
+
+**AND THE SPIKE WAS ISOLATED: IT WAS THE 2 S PASS, AND IT WAS THIS SESSION'S OWN CODE.**
+A max over budget with p95 under it is one expensive tick, and exactly one thing happens
+on some ticks and not others. Partitioning the samples *while they are taken* — so the
+two subsets sum to the whole — put pass ticks at **1.925 ms against ordinary ticks'
+0.500**. `CloneBalance` was asking the same question twenty-four times for six answers:
+which anchors are in a region, who is standing in it and how many of each identity are
+all properties of the **region**, not of the persona being served. Hoisting the anchor
+list and the grid query to one per player took the pass to **0.71 ms** and the whole-tick
+max to **1.26–1.29 ms — inside budget, max included**. An A/B against `personas_in_use`
+puts layer 4 at about 0.46 ms of that 0.71.
+
+**A THIRD CHANGE BOUGHT NOTHING AND IS RECORDED ANYWAY.** Squared distances throughout,
+matching `SpatialHash`: 0.710 → 0.712 ms, inside run-to-run noise. Kept because it is
+correct and cheaper in principle; written down because a change that was expected to help
+and did not is worth as much as one that did. **§11.2's 0.05 ms row for the pass is still
+missed by 14× and is amended rather than chased** — it was written before formations,
+corpses or clone balancing existed, and the number that matters is the total.
 
 **M3'S REMAINING WORK IS US-0048, THE GATE**, and eight of its ten lines are still
 blocked on things that do not exist — clone meshes on the wire, animation clips, and an
@@ -1393,7 +1409,7 @@ US-0024 measures it against clips that do not exist.
 | | |
 |---|---|
 | CI | 7 jobs. **Running again as of 2026-08-07 after a two-day outage** — run `31200490320`, all seven green. The seven commits merged during the outage were never through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | **41 arch + 82 unit + 31 integration scripts**, holding 154 + 738 + 230 tests and 239 + 6060 + 626 assertions. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **152.1 s** of the 180 s it is allowed, up from 87.7 s at M2 and **close enough to the ceiling that the next crowd test has to justify itself** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **One is `pending` by design** — `test_upstream_bandwidth.gd` reports the 253 % upstream miss rather than going red, the same choice `test_snapshot_size.gd` made. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
+| Tests | **41 arch + 82 unit + 31 integration scripts**, holding 154 + 738 + 231 tests and 239 + 6060 + 629 assertions. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **159.2 s** of the 180 s it is allowed, up from 87.7 s at M2 and from 152.1 s before the 2 s pass attribution, which samples ninety ticks **twice** for its A/B — **21 s of headroom left, and the next crowd test has to justify itself against that** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **One is `pending` by design** — `test_upstream_bandwidth.gd` reports the 253 % upstream miss rather than going red, the same choice `test_snapshot_size.gd` made. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
 | Tuning | 286 tunables across 14 resource classes; all 29 cross-field invariants assert. **Eight IDs are deprecated** and recorded in TUNABLES §19 — never reused |
 | Autoloads | All eight. `Tuning` precomputes 89 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |

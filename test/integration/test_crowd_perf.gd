@@ -2,11 +2,9 @@
 ## §11.2, ADR-0001, `RISK-CROWD-PERF`.
 ##
 ## Godot 4.7.1's GDScript across ninety agents is the thing ADR-0001 accepted a
-## risk on and gave a fallback ladder to. Until this file existed, no number in
-## the corpus about crowd cost had ever been measured — §11.2's table is a set of
-## budgets, and this project has now twice found a budget table that described
-## its author's expectations rather than the program (TDD-04 §7.1 and §7.3, both
-## wrong, in opposite directions).
+## risk on. Until this file existed, no number in the corpus about crowd cost had
+## ever been measured — and this project has twice found a budget table that
+## described its author's expectations rather than the program (TDD-04 §7.1, §7.3).
 ##
 ## **BUILT BEFORE US-0045's LOD, DELIBERATELY.** LOD exists to buy frame time, and
 ## optimising against a budget nobody has measured is how the bandwidth miss
@@ -14,9 +12,8 @@
 ## the **no-LOD** cost: 78 brains stepping every tick against §4.1's ~34.
 ##
 ## **IT MEASURES THE SERVER AND SAYS SO.** §11.1's client budget is
-## animation-dominated — an `AnimationTree` per NPC, LOD-weighted — and there is
-## no `NpcView`, no mesh and no animation in the project at all. That half is
-## US-0045 and US-0046's, and it is not estimated here.
+## animation-dominated and there is no `NpcView`, mesh or animation in the project
+## at all. That half is US-0046's, and it is not estimated here.
 extends GutTest
 
 const MAP_COLLISION := "res://scenes/map/map_vetraio_collision.tscn"
@@ -39,6 +36,12 @@ var _ctx: MatchContext
 var _map: RID
 var _count: int = 0
 
+## The last run's samples, split by whether the 2 s director pass fired on that
+## tick. Members rather than a return value because `_sample_ticks` is already the
+## thing every test awaits.
+var _on_pass: PackedFloat32Array = PackedFloat32Array()
+var _off_pass: PackedFloat32Array = PackedFloat32Array()
+
 
 func before_each() -> void:
 	_world = Node3D.new()
@@ -59,21 +62,14 @@ func before_each() -> void:
 	_ctx.crowd = _pool
 
 
-## **THE FULL CROWD, NOT A CONVENIENT ONE.** `TUN-CROWD-COUNT-MAX` bodies
-## allocated and `TUN-CROWD-COUNT-DEFAULT-6P` of them active.
+## **THE FULL CROWD, NOT A CONVENIENT ONE**, and six players in it.
 ##
 ## **AND SIX PLAYERS IN IT, WHICH IT DID NOT HAVE UNTIL US-0041's LAST LINE.**
-## `MatchContext.pawns` was empty, so `CrowdLod.band_of` answered **Far for every
-## NPC**: the old run's "6 of 78 brains stepped" was 78 divided by the Far stride
-## of 15, a property of having no observers rather than of how six players spread
-## over a district. Everything §11.2 recorded was the **cheapest** case, the crowd
-## nobody is watching, and two whole subsystems did nothing in it — `CloneBalance`
-## counts against player positions and the sprinter sweep reads pawn velocity.
-##
-## Six pawns now stand at the map's own spawn points, which is what
-## `TUN-SPAWN-POINT-COUNT` exists for and what a real match starts as. The
-## observer count is printed on every run, because the whole reason this was
-## missed is that nothing said the scenario was empty.
+## `MatchContext.pawns` was empty, so every NPC banded Far and two subsystems did
+## nothing in the measurement — `CloneBalance` counts against player positions and
+## the sprinter sweep reads pawn velocity. TDD-08 §11.2.1 records what that cost.
+## The observer count is printed on every run, because the reason it went
+## unnoticed for two stories is that nothing said the scenario was empty.
 func _stand_up() -> void:
 	var started: int = NavigationServer3D.map_get_iteration_id(_map)
 	for _i: int in 120:
@@ -120,12 +116,25 @@ func _seat_the_players() -> void:
 
 ## Milliseconds spent inside `CrowdDirector.tick()`, one sample per net tick.
 func _sample_ticks(count: int) -> PackedFloat32Array:
+	_on_pass = PackedFloat32Array()
+	_off_pass = PackedFloat32Array()
+	var interval := maxi(Tuning.ticks(&"TUN-CROWD-DIRECTOR-INTERVAL"), 1)
 	var samples := PackedFloat32Array()
 	for _i: int in count:
 		_ctx.tick += 1
 		var started := Time.get_ticks_usec()
 		_director.tick(_ctx, MatchContext.net_dt())
-		samples.append(float(Time.get_ticks_usec() - started) / 1000.0)
+		var spent := float(Time.get_ticks_usec() - started) / 1000.0
+		samples.append(spent)
+		# **PARTITIONED WHILE IT IS BEING MEASURED**, not reconstructed afterwards.
+		# The 2 s pass is the only thing that happens on some ticks and not others,
+		# so it is the only thing a max-versus-p95 gap can be attributed to — and
+		# the two subsets sum to the whole, which is what makes that attribution
+		# checkable rather than a story about a number.
+		if _ctx.tick % interval == 0:
+			_on_pass.append(spent)
+		else:
+			_off_pass.append(spent)
 		await get_tree().physics_frame
 		await get_tree().physics_frame
 	return samples
@@ -211,6 +220,60 @@ func test_the_server_crowd_tick_against_the_budget() -> void:
 			"the crowd is over TDD-08 §11.2's server budget. Work §11.3's ladder IN ORDER; "
 			+ "reducing TUN-CROWD-COUNT-MAX is last and never below TUN-CROWD-COUNT-MIN."
 		)
+	)
+
+
+## §11.2 budgets 0.05 ms for the 2 s pass and its measured column said "inside the
+## same", which is not a measurement — and it is the one row that can hide a spike.
+func test_the_two_second_pass_is_what_the_max_is() -> void:
+	# A max over budget with p95 under it is one expensive tick, not a slow crowd,
+	# and the 2 s pass is the only work that happens on some ticks and not others.
+	await _stand_up()
+	await _sample_ticks(TICKS)
+	assert_gt(_on_pass.size(), 0, "no 2 s pass fell inside the sample — nothing to attribute")
+	assert_gt(_off_pass.size(), 0, "every tick was a pass tick — the partition is broken")
+	var busy := _stats(_on_pass)
+	var quiet := _stats(_off_pass)
+	gut.p(
+		(
+			"2 s pass ticks (%d): mean %.3f max %.3f ms | ordinary ticks (%d): mean %.3f max %.3f"
+			% [
+				_on_pass.size(),
+				busy["mean"],
+				busy["max"],
+				_off_pass.size(),
+				quiet["mean"],
+				quiet["max"]
+			]
+		)
+	)
+	var attributable: float = float(busy["max"]) >= float(quiet["max"])
+	var whole := float(busy["mean"]) - float(quiet["mean"])
+	# **AND WHICH HALF OF THE PASS.** Emptying `personas_in_use` makes layer 4 a
+	# no-op without touching the formations or the corpse sweep, so the difference
+	# is `CloneBalance`'s own share. An A/B against a field that already exists,
+	# rather than a timer threaded through three objects to answer one question.
+	_director.personas_in_use = []
+	await _sample_ticks(TICKS)
+	var without := _stats(_on_pass)
+	gut.p(
+		(
+			(
+				"pass costs %.3f ms over an ordinary tick (§11.2 budgets 0.05); "
+				+ "without layer 4 it is %.3f ms, so clone balancing is about %.3f of it"
+			)
+			% [
+				whole,
+				float(without["mean"]) - float(quiet["mean"]),
+				float(busy["mean"]) - float(without["mean"])
+			]
+		)
+	)
+	# **REPORTED, NOT ASSERTED: TWO SAMPLES CANNOT SUPPORT A PERCENTILE.** What this
+	# refuses to allow is the attribution going unrecorded.
+	assert_true(
+		attributable or float(quiet["max"]) < SERVER_BUDGET_MS,
+		"an ordinary tick, with no 2 s pass in it, exceeded the server budget"
 	)
 
 

@@ -578,9 +578,50 @@ before then as a best case.
 | `NpcBrain.step()` × ~34 effective | ≤ 0.50 ms | **0.046 ms for all 78 unbanded; 46 of 78 step** |
 | Steering + avoidance × ~34 | ≤ 0.60 ms | **not measurable** — see §11.2.1 |
 | `NavigationAgent3D` path queries (amortised) | ≤ 0.40 ms | inside the tick below |
-| `CrowdDirector` rebalance (2 s timer, amortised) | ≤ 0.05 ms | inside the same |
-| Everything inside `CrowdDirector.tick()` | — | **mean 0.54–0.57 ms, p95 0.67–0.71, max 2.16–2.43** |
-| **Server total** | **≤ 1.75 ms of 8.0 ms** | p95 is inside it; **one tick in ninety is not**, and movement is unmeasured |
+| `CrowdDirector` rebalance (2 s timer) | ≤ 0.05 ms | **0.71 ms on the tick it fires** — 14× the row, and the row was written before any of it existed. See §11.2.2 |
+| Everything inside `CrowdDirector.tick()` | — | **mean 0.52 ms, p95 0.59–0.64, max 1.26–1.29** |
+| **Server total** | **≤ 1.75 ms of 8.0 ms** | **inside it, max included**, since §11.2.2; movement is still unmeasured |
+
+### 11.2.2 The spike was the 2 s pass, and it was this chapter's own new code
+
+**A MAX OVER BUDGET WITH p95 UNDER IT IS ONE EXPENSIVE TICK, NOT A SLOW CROWD.** Once
+`test_crowd_perf.gd` had six players in it (§11.2.1) the tick max came in at **2.16–2.43 ms
+against a 1.75 ms budget** while p95 sat at 0.67–0.71. There is exactly one thing that happens on
+some ticks and not others — the director's 2 s pass — and ninety sampled ticks contain one or two
+of them.
+
+**Partitioning the samples while they are taken settles it, and the two subsets sum to the
+whole**, which is what makes the attribution checkable rather than a story about a number:
+
+| | Before | After |
+|---|---|---|
+| 2 s pass ticks | **1.925 ms** mean | **1.21 ms** |
+| Ordinary ticks | 0.500 ms | 0.498 ms |
+| The pass's own cost | **1.425 ms** | **0.71 ms** |
+| Whole-tick max | 2.16–2.43 ms | **1.26–1.29 ms** |
+
+**AND THE PASS WAS ASKED THE SAME QUESTION TWENTY-FOUR TIMES FOR SIX ANSWERS.** `CloneBalance`
+loops six players by four personas. Which anchors sit inside a region, who is standing in it, and
+how many of each identity that is are all properties of the *region* — none of them depend on the
+persona being served. Two hoists, no behaviour change:
+
+- **The anchor list is per player.** `_anchor_near` rescanned all 62 anchors for every clone it
+  held, inside the innermost loop.
+- **One grid query and one identity tally per player**, replacing four `SpatialHash.query()` walks
+  and four `count_persona()` walks over the same eighty cells of the same region.
+
+A third change — squared distances throughout, matching what `SpatialHash` already does —
+**bought nothing measurable** (0.710 → 0.712 ms, inside run-to-run noise). It is kept because it
+is correct and cheaper in principle, and recorded because a change that was expected to help and
+did not is worth as much as one that did.
+
+**§11.2's 0.05 ms row for the rebalance is still missed by 14×, and that row is amended rather
+than chased.** It was written before formations, corpses or clone balancing existed, and nothing
+derives it; **the number that matters is the total, which is now inside budget with the max
+included.** An A/B against `personas_in_use` puts layer 4 at about **0.46 ms of the 0.71**, so the
+pre-existing formations and corpse sweep are the other 0.25.
+
+---
 
 ### 11.2.1 The measured cost is movement, and it is not where the budget put it
 
