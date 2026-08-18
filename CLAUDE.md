@@ -220,10 +220,46 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 *Updated 2026-08-18 (checkpoint after #105). Keep this section current — it is the first thing a fresh
 session reads, and a stale one is worse than none.*
 
-**PICK UP HERE. EVERY M3 STORY BUT THE GATE IS BUILT.** US-0039 to US-0047 plus
-US-0096; **US-0048, the gate, is the only one left**, and eight of its ten lines are
+**PICK UP HERE. THE M3 GATE IS RUN, AND IT FOUND A BUDGET MISS NOBODY WAS LOOKING
+FOR.** Three of US-0048's ten lines are met, **one is a measured miss**, and six are
 blocked on clone meshes on the wire, animation clips and an owner at a windowed
-client. The two that pass are `test_crowd_perf.gd` and `test_clone_local_min.gd`.
+client. **The tag is not pushed — that is the owner's call and the outstanding
+items are listed in the story.**
+
+**DOWNSTREAM BANDWIDTH IS 112 % OF BUDGET, NOT THE 97 % THIS CORPUS HAS PUBLISHED
+SINCE US-0029.** `test_crowd_bandwidth.gd` did not exist — exactly as
+`test_upstream_bandwidth.gd` did not exist at the M2 gate — and writing it measured
+**108.0 kbit/s against 96**. §7.1's head-counts were very nearly right (41.0 near
+against ~45, 29.2 far against ~30). **Its two change fractions were not: 0.776 and
+0.761 measured, against 0.55 and 0.70 assumed**, and those two decide the total.
+
+**THE RECORD WAS NEVER THE PROBLEM AND THE MULTIPLIER ALWAYS WAS.** US-0029 shrank
+the NPC record 10 B → 8 B on the strength of that table and `0.55` sat unquestioned
+inside it both times it was re-derived, because it looks like an assumption about
+the *network* and is not one. **It is the crowd's idle duty cycle.** A strolling NPC
+covers 4.7 cm per tick against a **1 cm position quantum**, so every NPC that walks
+at all changes its record every tick; the fraction is simply how much of the crowd
+is walking, which follows from `TUN-CROWD-IDLE-DURATION-MIN..MAX` and could not have
+been known before US-0040. **And 112 % is a lower bound** — modelled navigation is
+shorter than a navmesh path, so it understates how often an NPC is walking.
+TDD-04 §7.1.1.
+
+**THE GATE ALSO NAMES AN INSTRUMENT THAT STILL DOES NOT EXIST.** "Server tick p99
+≤ 8.0 ms" has never been measured: `test_crowd_perf.gd` times
+`CrowdDirector.tick()`, which is one row of PERFORMANCE_BUDGET §2's eight. It **is**
+measurable — `MatchDirector` emits `net_ticked` before the stages and
+`tick_completed` after them, so the two bracket exactly the thing under budget — and
+summing the rows that *have* been measured would be a projection, which is the
+mistake this gate has now caught twice. Left unticked and unbuilt, deliberately.
+
+**THREE OF THE FOUR RISKS RE-SCORED WENT UP.** `RISK-ANONYMITY-LEAK` Low → Medium
+(a live instance in the level data, not a hypothesis about an animator);
+`RISK-ANIM-SCOPE` Medium → High (**the clip count in this project is zero**, on
+either rig, with three stories blocked behind it); `RISK-BANDWIDTH` impact Low →
+Medium (downstream's fix is culling or ADR-0007, neither free, where upstream's was
+cheap). **`RISK-CROWD-PERF` did not move, and that is the finding**: the server half
+is measured and comfortable, and the 0.10 ms margin is on the **client**, which has
+no `NpcView` to measure.
 
 **READ THIS BEFORE TRUSTING ANY NUMBER BELOW.** Six PRs landed on 2026-08-18 and
 **three of them existed to correct figures this same corpus had published**: US-0045's
@@ -1457,7 +1493,7 @@ US-0024 measures it against clips that do not exist.
 | | |
 |---|---|
 | CI | 7 jobs. **Running again as of 2026-08-07 after a two-day outage** — run `31200490320`, all seven green. The seven commits merged during the outage were never through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | **41 arch + 83 unit + 31 integration scripts**, holding 154 + 748 + 231 tests and 239 + 6205 + 631 assertions, **all green from a `git archive HEAD` extraction at the #105 checkpoint**. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **159.2 s** of the 180 s it is allowed, up from 87.7 s at M2 and from 152.1 s before the 2 s pass attribution, which samples ninety ticks **twice** for its A/B — **21 s of headroom left, and the next crowd test has to justify itself against that** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **Three are `pending` by design, all in the unit suite** — `test_upstream_bandwidth.gd` reports the 145 % upstream miss, `test_circuit_separation.gd` reports US-0043's 0.51 m circuits, and `test_clone_animation_parity.gd` reports the missing clip library. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
+| Tests | **41 arch + 84 unit + 31 integration scripts**, holding 154 + 753 + 231 tests and 239 + 6215 + 631 assertions, **all green from a `git archive HEAD` extraction at the M3 gate**. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **159.2 s** of the 180 s it is allowed, up from 87.7 s at M2 and from 152.1 s before the 2 s pass attribution, which samples ninety ticks **twice** for its A/B — **21 s of headroom left, and the next crowd test has to justify itself against that** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **Four are `pending` by design, all in the unit suite** — `test_upstream_bandwidth.gd` reports the 145 % upstream miss, **`test_crowd_bandwidth.gd` the 112 % downstream one**, `test_circuit_separation.gd` US-0043's 0.51 m circuits, and `test_clone_animation_parity.gd` the missing clip library. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
 | Tuning | 286 tunables across 14 resource classes; all 29 cross-field invariants assert. **Eight IDs are deprecated** and recorded in TUNABLES §19 — never reused |
 | Autoloads | All eight. `Tuning` precomputes 89 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |

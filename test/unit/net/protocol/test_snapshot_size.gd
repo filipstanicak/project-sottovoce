@@ -16,6 +16,18 @@
 extends GutTest
 
 ## §7.1's worst case, unchanged.
+##
+## **TWO OF THESE ARE NOW KNOWN TO BE WRONG, AND THEY ARE THE TWO THAT DECIDE THE
+## TOTAL.** `test_crowd_bandwidth.gd` (US-0048) measured them against a real crowd:
+## the head-counts are very nearly right (41.0 near, 29.2 far), and the change
+## fractions are **0.776 and 0.761** against the 0.55 and 0.70 below — which takes
+## the projection from 93.5 kbit/s to **108.0, 112 % of budget**.
+##
+## **THEY ARE LEFT AS THEY ARE ON PURPOSE.** This file's subject is the *format*:
+## it exists so that a record growing by a byte is caught immediately, and it does
+## that by holding §7.1's inputs fixed. Quietly substituting measured values here
+## would make the two files agree and leave nothing pointing at the fact that the
+## document is wrong. TDD-04 §7.1.1 carries the measured table.
 const NEAR_NPCS := 45
 const NEAR_CHANGED := 0.55
 const FAR_NPCS := 30
