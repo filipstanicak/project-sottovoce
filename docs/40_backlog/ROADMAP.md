@@ -370,6 +370,12 @@ No gameplay rules replicated — there are none yet. No NPCs. Movement only.
 
 **Exit:** 80 NPCs with clones, blend groups, startle/gawk, ≤ 2 ms/frame.
 
+> **Status after the M3 gate, 2026-08-18: EVERY STORY IS BUILT AND THE GATE IS RUN.**
+> Three of US-0048's ten lines are met, **one is a measured miss — downstream bandwidth at 112 %
+> of budget, where this corpus has said 97 % since US-0029** — and six are blocked on clone meshes,
+> animation clips and a human at a windowed client. **The `m3-crowd` tag is not pushed; that is the
+> owner's call** and US-0048 lists what is outstanding at the moment of it.
+>
 > **Status at the 2026-08-18 checkpoint: NINE OF TEN STORIES DONE, PLUS US-0096, AND ONLY THE GATE IS LEFT.**
 > US-0039, US-0040, US-0041 and US-0042 are `done`; US-0043 to US-0047 are built bar their open
 > criteria. **US-0048, the gate, is the last story in the milestone, and eight of its ten lines are

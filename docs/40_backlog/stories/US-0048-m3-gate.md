@@ -52,6 +52,14 @@ expensive exactly when the district is most evenly occupied.
 
 ## Acceptance criteria
 
+> **THE GATE IS RUN, AND IT FOUND A BUDGET MISS NOBODY WAS LOOKING FOR.** Three of its ten lines
+> are met, one is a **measured miss**, and six are blocked by things that do not exist. The line
+> that moved is bandwidth: `test_crowd_bandwidth.gd` did not exist, exactly as
+> `test_upstream_bandwidth.gd` did not exist at the M2 gate, and writing it put downstream at
+> **112 % of budget** against the 97 % the corpus has published since US-0029. **A gate's value is
+> checking that the things it names exist and measure what they claim to** — that is now twice in
+> a row that the answer was no.
+>
 > **THE GATE IS NOT RUN. TWO OF ITS INSTRUMENTS ARE BUILT.** `test_crowd_perf.gd` was written
 > ahead of US-0045 on purpose: LOD exists to buy frame time, and optimising against a budget
 > nobody has measured is how the upstream bandwidth miss reached 253 % while a document said
@@ -66,7 +74,21 @@ expensive exactly when the district is most evenly occupied.
       than reworded.
 - [ ] p99 client frame time at or under 16.6 ms with peak crowd density.
 - [ ] Server tick p99 at or under 8.0 ms.
+      — **NO INSTRUMENT EXISTS AND THIS LINE NAMES ONE.** `test_crowd_perf.gd` measures
+      `CrowdDirector.tick()`, which is one row of §2's eight, and the whole stage loop has never
+      been timed. It is measurable — `MatchDirector` emits `net_ticked` before the stages and
+      `tick_completed` after them, so the two bracket exactly the thing under budget — and it is
+      **not measured**, so the line is not ticked. **Summing the rows that have been measured
+      would be a projection**, which is the mistake this gate exists to catch and has now caught
+      twice. Note also that p99 of the 90 samples the perf test takes *is* its max; a real p99
+      needs a few hundred, and the integration suite has 21 s of headroom.
 - [ ] `test_crowd_bandwidth.gd` within 96 kbit/s down.
+      — **WRITTEN AT THIS GATE, AND IT MEASURES 108.0 kbit/s — 112 %.** Not blocked any more:
+      **missed, on a measurement.** §7.1's head-counts were very nearly right (41.0 near against
+      ~45, 29.2 far against ~30) and its two **change fractions** were not — 0.776 and 0.761
+      measured against 0.55 and 0.70 assumed. Those two decide the total and were the only inputs
+      never checked; US-0029 shrank the NPC record 10 B → 8 B on the strength of this table while
+      `0.55` sat unquestioned inside it. **The record was never the problem.** TDD-04 §7.1.1.
 - [ ] `test_clone_animation_parity.gd` and `test_footstep_parity.gd` pass for all four personas.
 - [x] `test_clone_local_min.gd` passes over a clustered 3-minute match. **US-0047.** A unit
       test, because 5 400 ticks of physics do not fit the integration budget. **Passing is not the
@@ -80,8 +102,21 @@ expensive exactly when the district is most evenly occupied.
       and this line is the reason that sentence is in the story. TDD-08 §5.1.4.
 - [ ] Startle waves read directionally to a human observer.
 - [ ] Feel check: the crowd feels alive — a tester still looks at NPCs unprompted after minute 4.
-- [ ] Risk register re-scored: RISK-CROWD-PERF, RISK-ANONYMITY-LEAK, RISK-ANIM-SCOPE.
+- [x] **Risk register re-scored: RISK-CROWD-PERF, RISK-ANONYMITY-LEAK, RISK-ANIM-SCOPE** — and
+      `RISK-BANDWIDTH`, which the gate did not name and which moved most. **Three of the four went
+      up.** `RISK-ANONYMITY-LEAK` Low → **Medium** (a live instance in the level data, not a
+      hypothesis about an animator); `RISK-ANIM-SCOPE` Medium → **High** (the clip count in this
+      project is **zero**, on either rig, with three stories blocked behind it);
+      `RISK-BANDWIDTH` impact Low → **Medium** (downstream's fix is culling or ADR-0007, neither
+      free, where upstream's was cheap). `RISK-CROWD-PERF` **did not move, and the reason is the
+      finding**: the server half is measured and comfortable, and the 0.10 ms margin is on the
+      *client*, which has no `NpcView` to measure.
 - [ ] Tag `m3-crowd` pushed.
+      — **the owner's call, and deliberately not taken here.** M1 and M2 were both tagged over
+      unticked lines, so precedent does not block it; what is new is a **measured** budget miss
+      rather than an absence. Outstanding at the moment of the tag: downstream 112 %, six lines
+      blocked on clone meshes / animation clips / a human at a windowed client, and one line
+      (server tick p99) whose instrument is buildable and unbuilt.
 
 ## What the first measurement of the project's largest assumption says
 
@@ -92,16 +127,33 @@ the first time it has been measured.
 |---|---|---|
 | Spatial hash rebuild | ≤ 0.15 ms | **0.054 ms** |
 | `NpcBrain.step()` × all 78 | ≤ 0.50 ms for ~34 | **0.046 ms** |
-| Everything inside `CrowdDirector.tick()` | — | **mean 0.54, p95 0.81, max 1.12 ms** |
-| Crowd movement, per **physics** frame | ≤ 0.60 ms for ~34 | **5.69 ms** (2.97 avoidance + 2.72 bodies) |
-| **Server total per net tick** | **≤ 1.75 ms** | **≈ 12 ms** |
+| Everything inside `CrowdDirector.tick()` | — | **SUPERSEDED — no players in the district; see below** |
+| Crowd movement, per **physics** frame | ≤ 0.60 ms for ~34 | **RETRACTED — see below** |
+| **Server total per net tick** | **≤ 1.75 ms** | **RETRACTED — derived from the row above** |
 | Physics frame, wall clock | — | **16.77 ms** full, 16.58 with no crowd at all |
+
+> **TWO ROWS OF THIS TABLE ARE WITHDRAWN AND THE REST OF IT IS SUPERSEDED.** The movement figure
+> came from `Performance.TIME_PHYSICS_PROCESS`, which reported **31 ms, then 5.69, then 24–28** for
+> arrangements whose wall clock never moved off 16.7 ms — **a cost larger than the frame
+> containing it is a broken instrument, not a slow frame**. PR #95 published 5.69 before the
+> contradiction was spotted; TDD-08 §11.2.1 carries the retraction and **the number should not be
+> quoted**. The "≈ 12 ms server total" is arithmetic on it and goes with it.
+>
+> The `CrowdDirector.tick()` row is superseded for a different reason: it was measured on a
+> district with **no players in it**, so every NPC banded Far and two subsystems did nothing. With
+> six players at the map's own spawn points it is **0.52 mean / 0.59–0.64 p95 / 1.26–1.29 max**,
+> and the brains step **46 of 78**, not 6. TDD-08 §11.2.
+>
+> The wall-clock row is the one that survived all of it, and it is the one that mattered: the
+> server keeps up, with the full crowd, against a 16.67 ms deadline.
 
 **Three findings, in the order they matter.**
 
-**1. The decisions are almost free; the movement is not.** The whole crowd stage — hash, brains,
-goals, repath queue, formations — is 0.54 ms and inside budget. Movement is 5.69 ms a physics
-frame and there are two per tick.
+**1. The decisions are almost free.** The whole crowd stage — hash, brains, goals, repath queue,
+formations — is **0.52 ms mean and 1.26–1.29 ms at worst** with six players in the district, well
+inside §11.2's 1.75 ms. **What movement costs is still unknown**: the instrument that reported
+5.69 ms was broken, and getting a trustworthy per-item figure needs a profiler this project does
+not have. Owed, not estimated.
 
 **2. US-0045's LOD as specified would save almost nothing.** TDD-08 §4.1 bands the *brain* rate,
 and the brains are **0.046 ms** — under 1 % of the crowd's cost, and a tenth of what §11.2

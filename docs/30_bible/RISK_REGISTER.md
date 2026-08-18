@@ -22,15 +22,15 @@ depends_on: [ADR-0001, ADR-0002, ADR-0007, BIBLE-PERF-BUDGET, BIBLE-DOD, GDD-08-
 | ID | Risk | Prob | Impact | Exposure | First measurable |
 |---|---|---|---|---|---|
 | `RISK-POPULATION` | Nobody can assemble a lobby | **High** | **High** | **Critical** | M6 |
-| `RISK-CROWD-PERF` | 90 NPCs do not fit 2.0 ms | **Medium** | **High** | **High** | M3 |
+| `RISK-CROWD-PERF` | 90 NPCs do not fit 2.0 ms | **Medium** | **High** | **High** | M3 — **re-scored at the gate: the SERVER half is measured and comfortable; the CLIENT half, which is where the 0.10 ms margin lives, has never been measured and cannot be** |
 | `RISK-NETCODE` | Prediction/reconciliation instability | Medium | Medium | Medium | M2 — **re-scored down at the gate** |
 | `RISK-AGENT-DRIFT` | Docs and code diverge | **High** | Medium | **High** | Continuous |
 | `RISK-NOT-FUN-SOLO` | The loop needs 6 humans to be fun | Medium | **High** | **High** | M4 |
-| `RISK-ANIM-SCOPE` | Clone parity doubles animation cost | Medium | Medium | Medium | M3 |
+| `RISK-ANIM-SCOPE` | Clone parity doubles animation cost | **High** | Medium | **High** | M3 — **re-scored UP at the gate: zero clips exist on either rig, and three stories are blocked behind that** |
 | `RISK-BALANCE-UNFALSIFIABLE` | Too few playtests to settle the model | **High** | Low | Medium | M6 |
 | `RISK-ART-SCOPE` | Art exceeds a small team's capacity | Medium | Medium | Medium | M6 |
-| `RISK-ANONYMITY-LEAK` | A silent discriminator ships | Low | **High** | Medium | M3 |
-| `RISK-BANDWIDTH` | Upstream/downstream budgets missed | **High** | Low | Medium | M2 — **re-scored UP at the gate; upstream is 253 %** |
+| `RISK-ANONYMITY-LEAK` | A silent discriminator ships | **Medium** | **High** | **High** | M3 — **re-scored UP at the gate: a live instance is in the map data, not hypothetical** |
+| `RISK-BANDWIDTH` | Upstream/downstream budgets missed | **High** | **Medium** | **High** | M3 — **re-scored UP again at the M3 gate: DOWNSTREAM is 112 %, measured. Upstream is 145 %** |
 | `RISK-IP` | A franchise term or asset reaches a public build | Low | **High** | Medium | Continuous |
 | `RISK-SCOPE-CREEP` | The fence erodes | Medium | Medium | Medium | Continuous |
 
@@ -76,9 +76,23 @@ as a genuine decision point rather than a formality.
 
 | | |
 |---|---|
-| **Probability** | Medium |
+| **Probability** | Medium — unchanged, and the reason is worth reading |
 | **Impact** | High — crowd density is the game's substrate |
 | **Exposure** | High |
+
+> **RE-SCORED AT THE M3 GATE (US-0048), AND IT DID NOT MOVE — BUT WHAT IT MEANS DID.** ADR-0001's
+> assumption has now been measured on the **server** and it is comfortable:
+> `CrowdDirector.tick()` runs at **0.52 ms mean, 0.59–0.64 p95, 1.26–1.29 max** against §11.2's
+> 1.75 ms, with a full physics frame at 16.73 ms against a 16.67 ms deadline.
+>
+> **THE 0.10 MS MARGIN IS NOT ON THE SERVER, AND THAT HALF IS STILL UNMEASURED.** §11.1's client
+> budget is animation-dominated — 1.20 ms of its 1.90 is `AnimationTree` updates — and there is no
+> `NpcView`, no mesh and no `AnimationTree` in the project. Any client figure today would measure
+> the absence of the expensive part, which is why `test_crowd_perf.gd` asserts that absence
+> explicitly and goes red the day `npc_view.tscn` lands.
+>
+> **So the probability stays Medium on the strength of the half that has not been measured**, and
+> rounding it down on the half that has would be exactly the mistake the M2 gate refused.
 
 **Why.** 90 animated agents in GDScript inside `TUN-PERF-CROWD-BUDGET` 2.0 ms/frame is the
 hardest technical requirement in the project. Current allocation leaves **0.10 ms of margin** —
@@ -199,9 +213,20 @@ information properties are analysed at every count
 
 | | |
 |---|---|
-| **Probability** | Medium |
+| **Probability** | **High** — was Medium. Re-scored at the M3 gate, 2026-08-18 |
 | **Impact** | Medium |
-| **Exposure** | Medium |
+| **Exposure** | **High** — was Medium |
+
+> **RE-SCORED UP AT THE M3 GATE (US-0048): THE COUNT OF CLIPS IN THIS PROJECT IS ZERO.** Not "the
+> parity set is incomplete" — there is no clip on either rig, and M3 is otherwise finished. That
+> is not a slip against a schedule, it is a body of work nobody has started, and **three stories
+> are already blocked behind it**: US-0046's layers 2 and 3, US-0045's three client-LOD lines, and
+> US-0024's input→animation measurement, which has been open since M1.
+>
+> Probability moves to High because the mitigation below — "greybox primitives are sufficient to
+> playtest the entire anonymity system" — is now doing more work than it can bear: greybox
+> primitives are sufficient to playtest *movement*, and the anonymity system's two animation
+> layers cannot be playtested with no animation at all.
 
 **Why.** The 14-clip parity set must exist **twice** — player rig and clone rig — and match
 exactly. 56 clips of the ~195 total carry a 2× multiplier. A fifth persona costs **+14 clips × 2
@@ -274,9 +299,25 @@ asked.
 
 | | |
 |---|---|
-| **Probability** | Low |
+| **Probability** | **Medium** — was Low. Re-scored at the M3 gate, 2026-08-18 |
 | **Impact** | **High** — it breaks the core promise |
-| **Exposure** | Medium |
+| **Exposure** | **High** — was Medium |
+
+> **RE-SCORED UP AT THE M3 GATE (US-0048): THERE IS A LIVE INSTANCE, AND IT IS IN THE LEVEL DATA.**
+> This risk was written about an animator adding a clip. The instance that actually arrived is
+> geometric and was found by US-0096: **three of `MAP-VETRAIO`'s six spawn points cannot hold
+> `TUN-CROWD-CLONE-LOCAL-MIN`**, and **(114, 97.5) can see no NPC at all**. A player spawning
+> there begins alone, uniquely identifiable, and on open ground for `TUN-SUSPICION-GAIN-OPEN`
+> before they can move.
+>
+> It is a **release blocker** against GDD-03 §6.3 rule 3, it is the **idle anchors** that fail it
+> rather than any code, and `tools/anchor_census.gd` grades a change to them in one run.
+> Probability moves off Low because this is no longer hypothetical.
+>
+> **AND THE FOUR-LAYER MITIGATION IS TWO LAYERS SHORT.** Layers 2 and 3 are animation parity, and
+> there are **no animation clips in this project on either rig** — see `RISK-ANIM-SCOPE`, which
+> moved up for the same reason. A defence-in-depth argument with half its depth unbuilt is worth
+> saying out loud rather than counting.
 
 **Why.** This is the failure mode that **fails silently**. An animator adds a charming idle
 variation on the player rig; nothing breaks, no test fails, crowd count is unchanged. Three weeks
@@ -317,8 +358,30 @@ Plus `test_footstep_parity.gd` for the audio equivalent, and the no-per-instance
 | | |
 |---|---|
 | **Probability** | **High** — was Medium. Re-scored at the M2 gate, 2026-08-15 |
-| **Impact** | Low |
-| **Exposure** | **Medium** — was Low |
+| **Impact** | **Medium** — was Low. Re-scored at the M3 gate, 2026-08-18 |
+| **Exposure** | **High** — was Medium, was Low |
+
+> **RE-SCORED AGAIN AT THE M3 GATE (US-0048), AND IT GOT WORSE A SECOND TIME.** `test_crowd_bandwidth.gd`
+> — which the M2 gate recorded as "not written, needs the crowd" — now exists, and **downstream is
+> 108.0 kbit/s, 112 % of budget**, not the 93.5 kbit/s / 97 % this register has carried since
+> US-0029.
+>
+> **THE RECORD SIZE WAS NEVER THE PROBLEM.** §7.1's head-counts were very nearly right (41.0 near
+> against ~45, 29.2 far against ~30). Its two **change fractions** were not: 0.776 and 0.761
+> measured, against 0.55 and 0.70 assumed. Those two numbers decide the total, and they were the
+> only inputs never checked — US-0029 shrank the NPC record 10 B → 8 B on the strength of this
+> table while `0.55` sat unquestioned in it.
+>
+> **IT IS THE CROWD'S IDLE DUTY CYCLE WEARING A NETWORK NUMBER'S NAME.** A strolling NPC moves
+> 4.7 cm per tick against a 1 cm quantum, so every NPC that walks at all changes its record every
+> tick; the fraction is simply how much of the crowd is walking, and that follows from
+> `TUN-CROWD-IDLE-DURATION-MIN..MAX`. It could not have been known before US-0040.
+>
+> **Impact moves to Medium because the fix is no longer free.** Upstream's fix was known, bounded
+> and cost nothing a player feels. Downstream's are culling (US-0030, unbuilt — the worst observer
+> currently has **70.2 of 78 NPCs** replicated to them) and ADR-0007's seed-derived far crowd,
+> which is a design change. **And 112 % is a lower bound**: modelled navigation understates how
+> often an NPC is walking.
 
 > **RE-SCORED AT THE M2 GATE (US-0038), AND IT IS THE ONE RISK THAT GOT WORSE.** Upstream is
 > **253 % of budget, not the 112 % §7.3 predicted** — measured, not projected, by
@@ -337,12 +400,14 @@ Plus `test_footstep_parity.gd` for the audio equivalent, and the no-per-instance
 diagnosis. **US-0095 hand-serialised the command and brought it to 23.2 kbit/s, 145 %.** What
 remains *is* packet overhead: 28 B × 60 Hz is 84 % of the budget on its own, and coalescing —
 §7.3's original proposal, right about the mechanism and wrong about which term dominated — would
-close it at 91 %. Downstream
-projects at **93.5 kbit/s, 97 %** of budget with 3 % headroom, itself re-derived in US-0029 from
-an original claim of 87 %.
+close it at 91 %. Downstream **measures at 108.0 kbit/s, 112 %** on real crowd counts — the 93.5 kbit/s / 97 %
+figure carried since US-0029 was a projection on two unmeasured multipliers, and it was itself a
+re-derivation of an original claim of 87 %. **Three successive versions of this number, each
+believed until somebody measured the next thing down.** TDD-04 §7.1.1.
 
 **Trigger.** `test_upstream_bandwidth.gd` (**written at the M2 gate; reports `pending` with the
-number**); `test_crowd_bandwidth.gd` (not written — needs the crowd, M3); real playtest 95th
+number**); `test_crowd_bandwidth.gd` (**written at the M3 gate; reports `pending` with the
+number**); real playtest 95th
 percentile above 90 kbit/s down.
 
 **Mitigations.** Four downstream mechanisms — culling, quantisation to **8 B/NPC**, delta encoding

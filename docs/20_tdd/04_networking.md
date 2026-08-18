@@ -387,9 +387,57 @@ Against `TUN-NET-BANDWIDTH-BUDGET-DOWN` **96 kbit/s** and `-UP` **16 kbit/s** pe
 | ENet + UDP/IP overhead (~28 B × 30 packets/s) | | 840 |
 | **Total** | | **11 690 B/s ≈ 93.5 kbit/s** |
 
-**97 % of budget. 3 % headroom.** Thin — thinner than the 13 % this section claimed before the
-format was built and measured — which is why the ADR-0007 fallback (replicate near NPCs,
-seed-derive far ones) remains designed, documented and unbuilt.
+**97 % of budget on those inputs — AND FOUR OF THE INPUTS HAVE NOW BEEN MEASURED AGAINST A REAL
+CROWD, WHICH TAKES IT TO 112 %.** See §7.1.1. The table above is kept as written because it is
+what the *record sizes* were re-derived against and those are still right; what was never
+measured until US-0048 is the two change fractions, and they are the numbers the total turns on.
+
+Thin either way — thinner than the 13 % this section claimed before the format was built and
+measured — which is why the ADR-0007 fallback (replicate near NPCs, seed-derive far ones)
+remains designed, documented and unbuilt.
+
+### 7.1.1 The same table on measured crowd counts — 112 %, not 97 %
+
+`test_crowd_bandwidth.gd` (US-0048) walks the real crowd — real `NpcBrain`s deciding who strolls
+and who stands, navigation modelled as a straight line — and counts, **per observer**, how many
+NPC records actually change per tick. It charges the budget to the **most expensive observer**,
+because a budget met on average is a budget missed by somebody.
+
+| §7.1 assumes | Measured | |
+|---|---|---|
+| ~45 near NPCs | **41.0** | — the head-counts were very nearly right |
+| ~30 far NPCs | **29.2** | — likewise |
+| **55 % of near changed per tick** | **77.6 %** | — **wrong by 41 %** |
+| **70 % of far changed per tick** | **76.1 %** | — wrong by 9 % |
+| 93.5 kbit/s, 97 % | **108.0 kbit/s, 112 %** | |
+
+**THE RECORD WAS NEVER THE PROBLEM AND THE MULTIPLIER ALWAYS WAS.** This table was re-derived
+twice against measured record sizes — US-0029 shrank the NPC record 10 B → 8 B on the strength of
+it — and on both occasions `0.55` went unquestioned, because it looks like an assumption about
+the *network* and is not one.
+
+**IT IS THE CROWD'S IDLE DUTY CYCLE, AND IT COULD NOT HAVE BEEN KNOWN BEFORE US-0040.** A
+strolling NPC covers `TUN-CROWD-NPC-SPEED-STROLL` / 30 = **4.7 cm per tick against a 1 cm position
+quantum**, so *every NPC that is walking at all changes its record every tick*. The only NPCs that
+do not are the ones standing at an anchor for `TUN-CROWD-IDLE-DURATION-MIN..MAX`. So the fraction
+is not a delta rate to be tuned — it is "what proportion of the crowd is walking right now", and
+it follows from two crowd tunables that had no values until US-0040 gave them the GDD's own.
+
+**AND 112 % IS A LOWER BOUND.** A straight line is shorter than a navmesh path, so a modelled NPC
+arrives sooner and stands still longer than a real one. Real navigation moves this number up.
+
+**WHAT THIS DOES NOT SAY.** No NPC is on the wire — `SnapshotBuilder` never calls `add_npc`, which
+the test asserts rather than assumes — so this is the **format** measured against a real crowd,
+not the wire measured at all. US-0030's four culling criteria are what would close that, and
+culling is also the first place to look for the missing 12 %: the worst observer has **70.2 of 78
+NPCs** replicated to them, because `TUN-NET-NPC-CULL-RADIUS` is 70 m on a 120 × 120 m map.
+
+**§7.2's RATE-LOD NUMBERS HAVE NO `TUN-` IDS.** The 45 m boundary and the 10 Hz far rate are bare
+numbers in prose here, because rate LOD is US-0031's unticked criterion and nothing has ever had
+to read them. The test takes the boundary from `TUN-PERF-CROWD-LOD-MID`, which carries the same
+45 m; **if those ever diverge, rate LOD needs its own tunable and the test is measuring the wrong
+one.** Recorded rather than invented — never-do #1 forbids the constant, and US-0031 owns the
+feature.
 
 > **THIS TABLE WAS RE-DERIVED IN US-0029, AND THE FIRST VERSION OF IT DID NOT SURVIVE
 > MEASUREMENT.** It budgeted 7 bytes per NPC against a §4 record whose index and position alone
