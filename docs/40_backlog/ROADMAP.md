@@ -370,11 +370,12 @@ No gameplay rules replicated — there are none yet. No NPCs. Movement only.
 
 **Exit:** 80 NPCs with clones, blend groups, startle/gawk, ≤ 2 ms/frame.
 
-> **Status at the 2026-08-16 checkpoint: SEVEN OF TEN STORIES DONE** — US-0039, US-0040, US-0042,
-> and US-0041, US-0043, US-0044 and US-0045 bar their open criteria. **US-0046 (clone meshes and
-> animation parity) now blocks five criteria across three stories**, and is the next thing that
-> unblocks anything. A headless server holds 78 walking NPCs on a baked
-> navmesh, indexed by a shared grid.
+> **Status at the 2026-08-18 checkpoint: NINE OF TEN STORIES DONE, AND ONLY THE GATE IS LEFT.**
+> US-0039, US-0040, US-0041 and US-0042 are `done`; US-0043 to US-0047 are built bar their open
+> criteria. **US-0048, the gate, is the last story in the milestone, and nine of its ten lines are
+> blocked** on clone meshes on the wire, animation clips, and an owner at a windowed client — all
+> of which are US-0046's or nobody's. A headless server holds 78 walking NPCs on a baked navmesh,
+> indexed by a shared grid, with clone-parity layer 4 holding a local minimum around every player.
 >
 > **What the crowd cannot do yet, said plainly.** All five states are reachable and the server
 > half of LOD is live. **No NPC is on the wire** (US-0030's four culling criteria and US-0031's
@@ -383,9 +384,16 @@ No gameplay rules replicated — there are none yet. No NPCs. Movement only.
 > human to look at something; and there is **no violence** to startle anybody, since kill and
 > stun are M4. The crowd is real on the server and invisible to every client.
 >
-> **`test_crowd_perf.gd` EXISTS AND HAS BEEN RUN**, ahead of US-0045 so LOD had a number to move
-> rather than a hope. **The crowd stage costs 0.44 ms a tick** with LOD live, 0.54 without — well
-> inside §11.2's 1.75 ms, and reproducible to two decimal places. **Crowd *movement* could not be
+> **`test_crowd_perf.gd` EXISTS, HAS BEEN RUN, AND SPENT TWO STORIES MEASURING THE WRONG
+> SCENARIO.** It stood up the full crowd and **no players**, so every NPC banded Far,
+> `CloneBalance` did nothing and the sprinter sweep did nothing — found in US-0047, fixed in
+> US-0041. With six players at the map's own spawn points the crowd stage costs **0.54–0.57 ms a
+> tick, p95 0.67–0.71**, inside §11.2's 1.75 ms and reproducible across runs; the empty district's
+> 0.44 ms was a best case. **The max is 2.16–2.43 ms — over the budget on one tick in ninety** —
+> and nothing has isolated it; the gate is asserted on p95, which is the right statistic and is not
+> the whole story. **Effective brain steps are 46 of 78, not the 6 of 78 US-0045 published**, and
+> there is **no Far band at all** at match start, so LOD's reduction is 1.7× rather than §4.1's
+> 2.6×. **Crowd *movement* could not be
 > measured**: `Performance.TIME_PHYSICS_PROCESS` gave 31, then 5.69, then 24–28 ms for
 > arrangements whose wall clock never moved off 16.73 ms, and a cost larger than the frame
 > containing it is a broken instrument rather than a slow frame. What is coherent is that a
@@ -406,7 +414,7 @@ No gameplay rules replicated — there are none yet. No NPCs. Movement only.
 | `SpatialHash` — shared by four consumers | **Done, US-0042.** A counting sort over buffers sized once, so a rebuild allocates nothing: **0.0561 ms for 90 NPCs against a 0.15 ms budget**. The cell size is read from `TUN-SUSPICION-OPEN-RADIUS` rather than declared as 6.0, because the criterion is that the two are the *same number*. Agreement with brute force is asserted over 1000 random queries — and each comparison counts how often it found anybody, because two empty answers agree. `nearest_distance` takes a **bound**, deviating from TDD-08 §6: unbounded, it degenerates to a full scan exactly when the district is emptiest |
 | `CrowdDirector` — group slots, four circuits, clone redistribution | **Done bar two level-data findings, US-0043.** Four formations walk their circuits, `WALKING_GROUP` is reachable (a real server logs `processions formed: 16 NPCs across 4 of 4 circuits`), the joinable slot is never given to an NPC, and a player can claim, hold, travel with and release one. The 2 s timer is derived from the tick. **Two criteria stay unticked and both are the level's, not the code's**: the routes are 150–237 m so their declared 55–75 s periods imply 2.6–3.2 m/s, and CIRC-A and CIRC-B share the z=45 spine so they pass within **0.51 m** against a rule of 8 m. **Clone redistribution landed in US-0047**, on this same 2 s timer |
 | Startle propagation, gawk tokens, corpses | **Done bar one observer, US-0044.** Two explicit rounds rather than §3.2's recursion, which caps each *agent* but not the wave; `has_propagated` clears on leaving `STARTLE`, or an NPC would propagate once per **match**. **A sprinting player startles the crowd in a live match** — the sweep runs once a second on the director's own tick, at `TUN-CROWD-STARTLE-SPRINT-INTERVAL`; violence has an entry point and no caller until `SYS-KILL` at M4. Gawk is capped at six, nearest first, fleeing skipped, and **a gawker walks to the body** — without which the cap would be vacuous, since an NPC that never left a pocket could not depopulate it. **The one unticked criterion needs a human at a windowed client**, and NPC meshes are US-0046 |
-| LOD bands: update-rate (server) and animation (client) | **Server half done, US-0045; client half blocked on US-0046.** Bands at 20/45/70 m, strides 1/3/15, staggered by index. **Measured at 6 of 78 effective brain steps, not §4.1's ~34 of 90**, and `CrowdDirector.tick()` went 0.54 → 0.44 ms — a real 20 % and a fifth of a millisecond, because the brains were 0.046 ms to begin with. Built for ADR-0003 and to **unblock US-0041's far-band path validity**, not for the frame time §4.1 promises. It nearly changed behaviour twice: a banded brain's timers run 15× slow without a `stride`, and events cleared on a tick the brain did not think would have **silently dropped startles for two thirds of the crowd** |
+| LOD bands: update-rate (server) and animation (client) | **Server half done, US-0045; client half blocked on US-0046.** Bands at 20/45/70 m, strides 1/3/15, staggered by index, **and each agent's `path_max_distance` scaled by its own stride** (US-0041's last line) — Near 5.0 m, Mid 15.0, Far 75.0, which is the one path query `RepathQueue` does not stagger. **This story published "6 of 78 effective brain steps" and that was an empty district**: with six players it is **46 of 78 — 30 Near, 48 Mid, no Far** — so the reduction is 1.7×, not §4.1's 2.6× and not the 13× the empty run implied. The saving is a fifth of a millisecond either way, because the brains were 0.046 ms to begin with. Built for ADR-0003 and to unblock US-0041's far-band path validity, not for the frame time §4.1 promises. It nearly changed behaviour twice: a banded brain's timers run 15× slow without a `stride`, and events cleared on a tick the brain did not think would have **silently dropped startles for two thirds of the crowd** |
 | **Clone-parity enforcement: all four layers** | **Three of four, US-0046 and US-0047.** Layer 1 is `PersonaData.anonymous_clip_names` — the fourteen-clip set as a `const`, not four copies. **Layer 4 is built, US-0047**: `CloneBalance` on the 2 s director pass, holding the clones already near a player and fetching one when a persona is short. It holds the floor on **12 958 of 12 960** readings of a three-minute clustered match; the two misses are inside the first twenty seconds and belong to `CrowdPlacement`, which deals the crowd with no persona awareness — so the *always* criterion is reported rather than ticked, and persona-aware initial placement has no story. Layers 2 and 3 are **half-built and honest about it**: the declaration half of the parity test asserts, the library half reports, because there are **no animation clips in this project on either rig**; layer 3's check exists with no call site, because a call site needs an `AnimationTree`. **And the four greybox personas were built here** — `SCOPE_FENCE` IN #3 makes them an M3 deliverable and no story's criteria owned them. Their first render found Lucerna's pole floating detached, which no assertion would have caught |
 
 ### 5.1 The M3 gate — the project's hardest

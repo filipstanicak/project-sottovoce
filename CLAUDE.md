@@ -217,7 +217,7 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 
 ## Where the work is right now
 
-*Updated 2026-08-18 (after US-0047). Keep this section current — it is the first thing a fresh
+*Updated 2026-08-18 (checkpoint after #101). Keep this section current — it is the first thing a fresh
 session reads, and a stale one is worse than none.*
 
 **PICK UP HERE. M3 IS NINE STORIES IN, AND THE ONLY THING LEFT IN IT IS THE GATE.**
@@ -318,7 +318,7 @@ owner at a windowed client.
 
 ---
 
-**M3 IS SEVEN STORIES IN AND THE SERVER CROWD IS FEATURE-COMPLETE.**
+**EARLIER, AND STILL TRUE: THE SERVER CROWD IS FEATURE-COMPLETE.**
 US-0039 built the pool and roster, US-0040 the brain, US-0041 the navmesh and the
 steering under it, US-0042 the shared spatial hash, US-0043 the four walking
 groups, US-0044 the startle wave, the gawk cluster and the corpse, US-0045 the
@@ -1392,7 +1392,7 @@ US-0024 measures it against clips that do not exist.
 | | |
 |---|---|
 | CI | 7 jobs. **Running again as of 2026-08-07 after a two-day outage** — run `31200490320`, all seven green. The seven commits merged during the outage were never through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | **41 arch + 82 unit + 31 integration scripts**, holding 154 + 719 + 230 tests and 239 + 5903 + 626 assertions. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **152.1 s** of the 180 s it is allowed, up from 87.7 s at M2 and **close enough to the ceiling that the next crowd test has to justify itself** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **One is `pending` by design** — `test_upstream_bandwidth.gd` reports the 253 % upstream miss rather than going red, the same choice `test_snapshot_size.gd` made. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
+| Tests | **41 arch + 82 unit + 31 integration scripts**, holding 154 + 738 + 230 tests and 239 + 6060 + 626 assertions. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **152.1 s** of the 180 s it is allowed, up from 87.7 s at M2 and **close enough to the ceiling that the next crowd test has to justify itself** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **One is `pending` by design** — `test_upstream_bandwidth.gd` reports the 253 % upstream miss rather than going red, the same choice `test_snapshot_size.gd` made. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
 | Tuning | 286 tunables across 14 resource classes; all 29 cross-field invariants assert. **Eight IDs are deprecated** and recorded in TUNABLES §19 — never reused |
 | Autoloads | All eight. `Tuning` precomputes 89 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |
