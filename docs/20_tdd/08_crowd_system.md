@@ -612,8 +612,11 @@ that one tick in ninety is not.
 map with `TUN-CROWD-COUNT-DEFAULT-6P` NPCs. Three things the table above got wrong:
 
 **The decisions are almost free.** Everything inside the crowd stage — hash rebuild, brains,
-goals, the repath queue, the formations — costs **0.44 ms a tick** after US-0045's LOD and
-0.54 before it. Comfortably inside budget, and reproducible to two decimal places across runs.
+goals, the repath queue, the formations and the 2 s pass — costs **0.54–0.57 ms a tick, p95
+0.67–0.71**, with six players at the map's spawn points. Comfortably inside §11.2's 1.75 ms and
+reproducible across runs. **The 0.44 ms this section used to quote was an empty district** and is
+the same measurement error §11.2.1 records; the *max* is 2.16–2.43 ms, which is over the budget
+on one tick in ninety and is not something this paragraph should round away.
 
 **CROWD MOVEMENT COULD NOT BE MEASURED, AND THE FIGURE FIRST PUBLISHED HERE WAS WRONG.** Movement
 runs outside `tick()` by necessity — `move_and_slide()` integrates by the physics delta, so
