@@ -372,9 +372,10 @@ No gameplay rules replicated — there are none yet. No NPCs. Movement only.
 
 > **Status at the 2026-08-18 checkpoint: NINE OF TEN STORIES DONE, AND ONLY THE GATE IS LEFT.**
 > US-0039, US-0040, US-0041 and US-0042 are `done`; US-0043 to US-0047 are built bar their open
-> criteria. **US-0048, the gate, is the last story in the milestone, and nine of its ten lines are
+> criteria. **US-0048, the gate, is the last story in the milestone, and eight of its ten lines are
 > blocked** on clone meshes on the wire, animation clips, and an owner at a windowed client — all
-> of which are US-0046's or nobody's. A headless server holds 78 walking NPCs on a baked navmesh,
+> of which are US-0046's or nobody's. The two that pass are `test_crowd_perf.gd` and
+> `test_clone_local_min.gd`. A headless server holds 78 walking NPCs on a baked navmesh,
 > indexed by a shared grid, with clone-parity layer 4 holding a local minimum around every player.
 >
 > **What the crowd cannot do yet, said plainly.** All five states are reachable and the server
