@@ -4,7 +4,7 @@ title: SnapshotBuilder — culling and quantisation
 version: 1.0.0
 status: in-progress
 owner: Technical Director
-last_updated: 2026-08-14
+last_updated: 2026-08-18
 depends_on: [ADR-0007, TDD-04-NET]
 ---
 
@@ -96,11 +96,17 @@ authorise no input and simulate nothing, so `server_root.gd` sets `ACTIVE` and s
 
 - [x] One snapshot built per client per tick — from `MatchDirector.net_ticked`, at the `snapshot`
       stage, **last**, so every record carries the position the tick ended at.
-- [ ] **Entities beyond the 70 m cull radius are omitted for that client.** Not built. There are
-      six players and no crowd until M3, so culling has nothing to remove and could not be tested
-      against anything real.
-- [ ] The cull radius is ≥ compass range, asserted as an invariant. Waits on the same.
-- [ ] Culling is POSITIONAL, not visual. Waits on the same.
+- [x] **Entities beyond the `TUN-NET-NPC-CULL-RADIUS` cull radius are omitted for that client.**
+      Built against the real crowd. `test_snapshot_culling.gd` asserts it, and **the counterfactual
+      first**: a scenario with NPCs only on one side of the line satisfies the rule vacuously, and
+      so does a builder that sends nothing at all — which is what this one did for two
+      milestones, with these three criteria unticked and nothing red. Falsified both ways against
+      a planted defect.
+- [x] The cull radius is ≥ compass range, asserted as an invariant. **Invariant 17**, and it has
+      asserted since M0 — this criterion was already true and merely unticked.
+- [x] Culling is POSITIONAL, not visual. Asserted by turning the observer through 180° and
+      requiring the same set. **A visual cull would let a player infer, from an NPC popping in,
+      that they had just been handed a fresh piece of the district.**
 - [ ] **`render_state` computed per observer pair.** The loop is already per observer — which is
       the whole reason this is not a broadcast — and the field is filled with `PLAIN` for
       everyone until `SYS-DETECTION` lands in M3. Unticked because "computed" is not "carried".
