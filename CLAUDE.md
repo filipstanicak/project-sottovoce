@@ -217,10 +217,32 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 
 ## Where the work is right now
 
-*Updated 2026-08-18 (checkpoint after #101). Keep this section current — it is the first thing a fresh
+*Updated 2026-08-18 (checkpoint after #105). Keep this section current — it is the first thing a fresh
 session reads, and a stale one is worse than none.*
 
-**PICK UP HERE. M3 IS NINE STORIES IN, AND THE ONLY THING LEFT IN IT IS THE GATE.**
+**PICK UP HERE. EVERY M3 STORY BUT THE GATE IS BUILT.** US-0039 to US-0047 plus
+US-0096; **US-0048, the gate, is the only one left**, and eight of its ten lines are
+blocked on clone meshes on the wire, animation clips and an owner at a windowed
+client. The two that pass are `test_crowd_perf.gd` and `test_clone_local_min.gd`.
+
+**READ THIS BEFORE TRUSTING ANY NUMBER BELOW.** Six PRs landed on 2026-08-18 and
+**three of them existed to correct figures this same corpus had published**: US-0045's
+"6 of 78 brains stepped" (measured on a district with no players in it), US-0047's
+"12 958 of 12 960" floor (a property of one anchor arrangement), and TDD-04 §7.3's
+115 % upstream projection. Every one was found by measuring the thing the sentence
+actually named. The numbers here are the corrected ones and were verified from a
+`git archive HEAD` extraction at this checkpoint — arch 41/154/239, unit
+83/748/6205 with three `pending` by design, integration 31/231/631 at 159.2 s, and
+both generated artefacts reproduced byte-identical (67 anchors, 195 navmesh polygons).
+
+**THE OPEN LEVEL-DATA BLOCKER, WHICH NO STORY OWNS.** Three of `MAP-VETRAIO`'s six
+spawn points cannot hold `TUN-CROWD-CLONE-LOCAL-MIN`; **(114, 97.5) can see no NPC at
+all.** GDD-03 §6.3 rule 3 is a release blocker and it is the **idle anchors** that
+fail it, not the code. `tools/anchor_census.gd` grades any change to them in one run.
+Re-authoring them is the owner's, like US-0043's circuits.
+
+---
+
 US-0047 built clone-parity **layer 4** — the one TDD-08 §5.1 calls the one that actually
 matters. `CloneBalance` runs on the same 2 s director pass as the formations, counts
 clones of each in-use persona within `TUN-CROWD-CLONE-LOCAL-RADIUS` of every player,
@@ -1435,7 +1457,7 @@ US-0024 measures it against clips that do not exist.
 | | |
 |---|---|
 | CI | 7 jobs. **Running again as of 2026-08-07 after a two-day outage** — run `31200490320`, all seven green. The seven commits merged during the outage were never through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | **41 arch + 83 unit + 31 integration scripts**, holding 154 + 747 + 231 tests and 239 + 6074 + 629 assertions. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **159.2 s** of the 180 s it is allowed, up from 87.7 s at M2 and from 152.1 s before the 2 s pass attribution, which samples ninety ticks **twice** for its A/B — **21 s of headroom left, and the next crowd test has to justify itself against that** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **One is `pending` by design** — `test_upstream_bandwidth.gd` reports the 253 % upstream miss rather than going red, the same choice `test_snapshot_size.gd` made. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
+| Tests | **41 arch + 83 unit + 31 integration scripts**, holding 154 + 748 + 231 tests and 239 + 6205 + 631 assertions, **all green from a `git archive HEAD` extraction at the #105 checkpoint**. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **159.2 s** of the 180 s it is allowed, up from 87.7 s at M2 and from 152.1 s before the 2 s pass attribution, which samples ninety ticks **twice** for its A/B — **21 s of headroom left, and the next crowd test has to justify itself against that** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **Three are `pending` by design, all in the unit suite** — `test_upstream_bandwidth.gd` reports the 145 % upstream miss, `test_circuit_separation.gd` reports US-0043's 0.51 m circuits, and `test_clone_animation_parity.gd` reports the missing clip library. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
 | Tuning | 286 tunables across 14 resource classes; all 29 cross-field invariants assert. **Eight IDs are deprecated** and recorded in TUNABLES §19 — never reused |
 | Autoloads | All eight. `Tuning` precomputes 89 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |
