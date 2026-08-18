@@ -353,11 +353,10 @@ func _build_data() -> MapData:
 
 
 ## Idle anchors per zone at GDD-05 §4.4's density; a theatre gets none.
-## **A ZONE THINNER THAN ITS CELL GOT NOTHING, SILENTLY** — `Fondaco`, 120 x 3 m
-## at 8.49 spacing, began its row past its own end, so the district's northern
-## street had no crowd (US-0096). One row down the middle now, at the declared
-## count; the square pitch, which makes a DENSE zone a blend pocket, is kept where
-## a cell fits.
+## **A ZONE THINNER THAN ITS CELL GOT NOTHING, SILENTLY** — `Fondaco`, 120 x 3 m at
+## 8.49 spacing began its row past its own end, so the district's northern street
+## had no crowd (US-0096). One row down the middle now, at the declared count; the
+## square pitch, which makes a DENSE zone a blend pocket, is kept where a cell fits.
 func _place_anchors(zones: Array[MapZone]) -> Array[Vector3]:
 	var out: Array[Vector3] = []
 	for zone: MapZone in zones:

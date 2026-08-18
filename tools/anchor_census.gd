@@ -16,21 +16,28 @@ func _init() -> void:
 
 func _run() -> void:
 	var data := load("res://data/maps/map_vetraio.tres") as MapData
+	_report_zones(data)
+	_report_spawns(data)
+	_search_for_spawn_sites(data)
+	quit()
+
+
+## What each zone asked GDD-05 §4.4 for, against what the grid gave it.
+func _report_zones(data: MapData) -> void:
 	print("--- zones: wanted vs placed ---")
-	var placed_total := 0
 	for zone: MapZone in data.zones:
 		var wanted := zone.expected_anchors()
 		var placed := 0
 		for anchor: Vector3 in data.idle_anchors:
 			if zone.bounds.has_point(Vector3(anchor.x, zone.bounds.position.y, anchor.z)):
 				placed += 1
-		placed_total += placed
 		var spacing := 0.0
 		if wanted > 0:
 			spacing = sqrt((zone.bounds.size.x * zone.bounds.size.z) / float(wanted))
+		var thin := wanted > 0 and spacing > minf(zone.bounds.size.x, zone.bounds.size.z)
 		print(
 			(
-				"  %-18s %6.0f x %-5.0f m  wanted %3d  placed %3d  spacing %5.2f m%s"
+				"  %-18s %5.0f x %-5.0f m  wanted %3d  placed %3d  spacing %5.2f m%s"
 				% [
 					zone.zone_name,
 					zone.bounds.size.x,
@@ -38,21 +45,15 @@ func _run() -> void:
 					wanted,
 					placed,
 					spacing,
-					(
-						"   <-- SPACING EXCEEDS THE SHORT SIDE"
-						if wanted > 0 and spacing > minf(zone.bounds.size.x, zone.bounds.size.z)
-						else ""
-					)
+					"   <-- thinner than its own cell" if thin else ""
 				]
 			)
 		)
-	print(
-		(
-			"  total placed: %d of %d anchors in the resource"
-			% [placed_total, data.idle_anchors.size()]
-		)
-	)
+	print("  %d anchors in the resource" % data.idle_anchors.size())
 
+
+## What each spawn point can see, which is what US-0096 measures the crowd by.
+func _report_spawns(data: MapData) -> void:
 	print("--- spawn points: anchors within the local radius ---")
 	var radius := 25.0
 	for at: Vector3 in data.spawn_points:
@@ -70,9 +71,6 @@ func _run() -> void:
 			)
 		)
 
-	_search_for_spawn_sites(data)
-	quit()
-
 
 ## **IS THERE ANYWHERE LEGAL TO PUT A STARVED SPAWN POINT?** GDD-05 §2.7 rule 1 is
 ## 30 m spawn-to-spawn and rule 5 is street level outside Piazza Secca; US-0096
@@ -81,46 +79,48 @@ func _run() -> void:
 ## turns "moving it will not help" from an opinion into a count.
 func _search_for_spawn_sites(data: MapData) -> void:
 	print("--- legal relocations for a starved spawn, 2 m grid over every street floor ---")
-	var seats_needed := 8
 	for slot: int in data.spawn_points.size():
 		var here: Vector3 = data.spawn_points[slot]
 		var others: Array[Vector3] = []
 		for other: int in data.spawn_points.size():
 			if other != slot:
 				others.append(data.spawn_points[other])
-		var found := 0
-		var best := 0
-		# **THE NEAREST LEGAL SITE, NOT THE BEST ONE.** GDD-05 §2.7 names where each
-		# spawn is and its anti-spawn-camp analysis assumes they are spread; dragging
-		# them all to the anchor-rich centre would satisfy the seat count and quietly
-		# put three of them inside one camper's 40 m.
-		var nearest := Vector3.INF
-		var nearest_gap := INF
-		for floor_row: Array in VetraioLayout.FLOORS:
-			if floor_row[5] != VetraioLayout.STREET_Y or String(floor_row[0]) == "PiazzaSecca":
-				continue
-			var x: float = floor_row[1]
-			while x < float(floor_row[1]) + float(floor_row[3]):
-				var z: float = floor_row[2]
-				while z < float(floor_row[2]) + float(floor_row[4]):
-					var at := Vector3(x, 0.0, z)
-					if _far_enough(at, others):
-						var seats := _seats_at(at, data)
-						best = maxi(best, seats)
-						if seats >= seats_needed:
-							found += 1
-							var gap := Vector2(at.x - here.x, at.z - here.z).length()
-							if gap < nearest_gap:
-								nearest_gap = gap
-								nearest = at
-					z += 2.0
-				x += 2.0
+		var result := _sites_for(here, others, data)
 		print(
 			(
-				"  spawn (%6.1f, %6.1f): %2d anchors now | %d legal sites with %d+ | nearest such %v at %.1f m"
-				% [here.x, here.z, _seats_at(here, data), found, seats_needed, nearest, nearest_gap]
+				"  spawn (%6.1f, %6.1f): %2d anchors now | %d legal sites with 8+ | nearest %v"
+				% [here.x, here.z, _seats_at(here, data), result[0], result[1]]
 			)
 		)
+
+
+## `[how many legal 8+-seat sites exist, the nearest one to `here`]`.
+##
+## **THE NEAREST LEGAL SITE, NOT THE BEST ONE.** GDD-05 §2.7 names where each spawn
+## is and its anti-spawn-camp analysis assumes they are spread; dragging them all
+## to the anchor-rich centre would satisfy the seat count and quietly put three of
+## them inside one camper's 40 m.
+func _sites_for(here: Vector3, others: Array[Vector3], data: MapData) -> Array:
+	var found := 0
+	var nearest := Vector3.INF
+	var nearest_gap := INF
+	for floor_row: Array in VetraioLayout.FLOORS:
+		if floor_row[5] != VetraioLayout.STREET_Y or String(floor_row[0]) == "PiazzaSecca":
+			continue
+		var x: float = floor_row[1]
+		while x < float(floor_row[1]) + float(floor_row[3]):
+			var z: float = floor_row[2]
+			while z < float(floor_row[2]) + float(floor_row[4]):
+				var at := Vector3(x, 0.0, z)
+				if _far_enough(at, others) and _seats_at(at, data) >= 8:
+					found += 1
+					var gap := Vector2(at.x - here.x, at.z - here.z).length()
+					if gap < nearest_gap:
+						nearest_gap = gap
+						nearest = at
+				z += 2.0
+			x += 2.0
+	return [found, nearest]
 
 
 func _far_enough(at: Vector3, others: Array[Vector3]) -> bool:

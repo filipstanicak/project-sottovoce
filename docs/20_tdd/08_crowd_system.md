@@ -415,6 +415,48 @@ is a release blocker, and it is the **idle anchors** that fail it: that corner h
 `test_crowd_seating.gd` asserts what the code owes — **zero shortfalls where there is room** — and
 prints the census, exactly as `test_circuit_separation.gd` reports US-0043's 0.51 m.
 
+
+### 5.1.4 What the floor actually guarantees, and why it is not "always"
+
+§5.1.2 published **2 readings of 12 960** under the floor and called the rule all but exact.
+That number was true of one anchor arrangement and of nothing else. Fixing an unrelated
+level-data bug — `Fondaco` received **zero** idle anchors because its grid cell was wider than
+the zone (US-0096) — moved the crowd from 62 anchors to 67 and took the same code, on the same
+scenario, from 2 breaches to **248**.
+
+**THE GUARANTEE WAS MARGINAL AND THE CORPUS DID NOT SAY SO.** That is the finding, and it is
+worth more than the number it replaces.
+
+**THE CAUSE IS THE JOURNEY, NOT THE SUPPLY.** Four hypotheses were measured and three died:
+
+| Hypothesis | Measurement | |
+|---|---|---|
+| Stale reservations mask the breach | pending 3, inbound-shaped **0** | no |
+| The spatial hash is lying | **0** disagreements against brute force | no |
+| Holds counted as journeys | fixed; the numbers did not move | no |
+| The pass never sees the breach | **the pass saw 41** | no |
+
+The pass saw 41 short pairs and acted on 3, because `near + _inbound >= _least` credited clones
+that had set off but not arrived. **A clone credited at departure satisfies the minimum in
+expectation while the player is short in fact for eighteen seconds**, and with six players three
+metres apart sharing one region, one clone in flight credits all six at once.
+
+**THE FLOOR IS NOW DECIDED ON ARRIVALS AND THE FETCH TARGETS ONE ABOVE IT**, so an arrival lands
+before the next departure takes the region back under. That halved it: **219 breaches after
+settling to 100**, and 3 fetches to 6.
+
+**WHAT IS LEFT IS PHYSICS.** Supply is not the constraint — the clustered region holds **23.9
+NPCs and 4.27 clones of each persona on average** against a floor of 2 — so the residual is
+transient troughs where clones happen to leave together, with help already walking. Of 21 short
+pairs the pass saw, **18 already had a clone on its way and 6 were dispatched**.
+
+So the rule's guarantee is not "the floor never breaks". It is **"a breach is never ignored"**,
+and that is what `test_clone_local_min.gd` now asserts, alongside a worst that never falls more
+than one below the floor and a breach rate under 1 % of readings. US-0047's *always* criterion
+stays unticked, as it always was.
+
+---
+
 ---
 
 ## 6. The spatial hash

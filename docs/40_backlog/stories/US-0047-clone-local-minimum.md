@@ -29,11 +29,14 @@ by re-routing existing clones.
 - [x] Re-ROUTES existing clones; never respawns or re-personas them.
 - [x] Retargets the nearest idle clone toward an under-served region.
 - [ ] Over a 3-minute clustered match, every player always had at least 2 same-persona clones within 25 m.
-      — **2 readings of 12 960 fell to 1, both inside the first twenty seconds and neither
-      after the crowd settles.** Not *always*, so not ticked. Both are `CrowdPlacement`'s: the
-      crowd is dealt round-robin over the idle anchors with no persona awareness, so a match can
-      begin with a local hole, and nothing that re-routes rather than teleporting can close one
-      before a clone has walked. See TDD-08 §5.1.2.
+      — **Not achievable, and the reason is a walk rather than a shortage.** A fetched clone
+      crosses 25 m in about eighteen seconds, so a player who loses one is short for that whole
+      walk however promptly help is dispatched. Supply is not the constraint: the clustered region
+      holds **23.9 NPCs and 4.27 clones of each persona on average** against a floor of 2.
+      Measured at **100 readings of 12 960 under the floor after settling**, never below 1, and
+      **of 21 short pairs the pass saw, 18 already had a clone on its way and 6 were dispatched**
+      — the rule never ignores a breach. That last property *is* asserted; "always" is not, and
+      is not ticked. See TDD-08 §5.1.4.
 - [ ] Re-routing does not read as clones following players.
       — the mechanical half is asserted and the readable half cannot be judged: **no NPC is on
       the wire**, so no client has ever rendered a clone. Same treatment as US-0044's directional
