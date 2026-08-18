@@ -4,7 +4,7 @@ title: Delta encoding and rate LOD
 version: 1.0.0
 status: in-progress
 owner: Technical Director
-last_updated: 2026-08-15
+last_updated: 2026-08-18
 depends_on: [ADR-0007, TDD-04-NET, BIBLE-PERF-BUDGET]
 ---
 
@@ -81,15 +81,23 @@ whose shape depends on a flag is a format that gets read wrong on the branch nob
       30 Hz with no LOD, and §7.2 justifies the 10 Hz tier by *"those NPCs are outside all
       gameplay radii anyway"*, which is not true of a **player** at 46 m. Applying this criterion
       to players as written would be a design error. It lands with `SYS-CROWD` in M3.
+      — **AND IT IS NOW THE GAP, MEASURED.** The crowd went on the wire in US-0030 and is
+      culled; priced on the real builder's bytes that is **148.6 kbit/s, 155 % of budget**, with
+      the cull removing only 11 of 78 NPCs. §7.1's 112 % projection assumes this criterion **and**
+      an NPC delta. **The distance between 155 % and 112 % is what these two are worth**, which
+      this story could not have known before there was a crowd to price. TDD-04 §7.1.2.
 - [x] **A lost ack degrades to a full send rather than corrupting state.** Both ends. The server
       falls back to full when the baseline is unknown, too old, or discarded; the client **drops**
       a delta whose baseline it lacks rather than assembling a plausible wrong world — and a
       dropped snapshot never becomes an ack, so the error cannot fail to converge.
-- [ ] **Measured downstream is within 96 kbit/s at 6 players and 90 NPCs.** There is no crowd
-      until M3. `test_snapshot_size.gd` projects **93.5 kbit/s, 97 % of budget**, up from 93.0 —
-      the two new header bytes cost 0.5 kbit/s. The projection already priced delta encoding in
-      (§7.1 assumes 55 % of near NPCs changed), so building it did not move the number; what
-      moved it was the header. Left unticked: a projection is not a measurement.
+- [ ] **Measured downstream is within 96 kbit/s at 6 players and 90 NPCs.** **Now measured, and
+      missed: 148.6 kbit/s, 155 %** (`test_crowd_wire_cost.gd`, on the real builder's serialised
+      bytes at the worst spawn point). The 93.5 kbit/s / 97 % this line used to carry was a
+      projection whose two change fractions had never met a crowd — measured, they are 0.776 and
+      0.761 against 0.55 and 0.70, which is 112 % **even with** the two mechanisms above built.
+      **Delta encoding for NPCs needs a protocol change, not just a builder change**: remote pawns
+      carry `present_slots` so *absent* can mean "unchanged" rather than "gone", and the NPC block
+      has no equivalent. TDD-04 §7.1.1 and §7.1.2.
 
 ## What building it found
 

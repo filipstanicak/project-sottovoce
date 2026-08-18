@@ -8,17 +8,18 @@
 ## everyone's answer to everyone, which is the leak GDD-03 §2.1 is built to
 ## prevent.
 ##
-## **DELIBERATELY MINIMAL.** Culling is US-0030's, delta encoding is US-0031's,
-## and there is no crowd to cull until M3. What this does is the part the rest
-## depends on: walk the pawns, fill a `Snapshot`, hand it to `Net`. Every
-## omission below is a story, not an oversight:
+## **THE CROWD IS ON THE WIRE AND CULLED AS OF US-0030**, and what that cost was
+## measured rather than assumed: `test_crowd_wire_cost.gd` prices one client at
+## **148.6 kbit/s against a 96 budget — 155 %**, with the cull removing 11 of 78
+## NPCs. **Culling was not the lever**; §7.1's projection assumes an NPC delta and
+## rate LOD and neither is built for NPCs. TDD-04 §7.1.1.
+##
+## Every omission below is a story, not an oversight:
 ##
 ## | Missing | Whose |
 ## |---|---|
-## | Distance culling and rate LOD | US-0030 |
-## | Delta against the client's last ack | US-0031 |
+## | Delta and rate LOD **for NPCs** | US-0031 — and it is now the whole gap |
 ## | Suspicion, tier, compass, render state | M3 and M4's systems — the fields exist and read zero |
-## | NPCs | `SYS-CROWD`, M3 |
 class_name SnapshotBuilder
 extends Node
 
@@ -77,7 +78,59 @@ func build_for(peer: int) -> Snapshot:
 		snapshot.last_acked_seq = maxi(_router.last_acked_seq(peer), 0)
 	_fill_own(snapshot, peer)
 	_fill_remotes(snapshot, peer)
+	_fill_crowd(snapshot, peer)
 	return snapshot
+
+
+## **THE CROWD THIS OBSERVER CAN REACH, AND NOBODY ELSE'S.** US-0030.
+##
+## **POSITIONAL, NEVER VISUAL**, which is a design law and not an optimisation.
+## Culling on line of sight would make the set of NPCs a client holds depend on
+## where they are looking, so an NPC would pop into existence when a player turns
+## their head — and worse, a player could infer *from the popping* that they had
+## just been given a fresh piece of world. Distance is a fact about the district;
+## facing is a fact about the player, and GDD-03 §2.1 keeps those apart.
+##
+## Horizontal and squared, like every other radius in this project: a clone on a
+## balcony is not further away in any sense replication cares about, and nothing
+## here wants a distance — only an ordering against a radius.
+##
+## **THE INDEX IS THE POOL'S OWN, NOT A COMPACTED ONE.** A client that received
+## "the third NPC near me" could not tell the same NPC apart between two ticks,
+## which is exactly what interpolation needs to do. `u8` holds the pool's index up
+## to 255 and `TUN-CROWD-COUNT-MAX` is 90.
+func _fill_crowd(snapshot: Snapshot, peer: int) -> void:
+	var crowd: NpcPool = _ctx.crowd
+	var own := _pawns.context_for(peer)
+	if crowd == null or own == null:
+		return
+	var reach: float = Tuning.net.npc_cull_radius
+	var beyond := reach * reach
+	for index: int in crowd.active_count():
+		var at := crowd.position_of(index)
+		var dx := at.x - own.position.x
+		var dz := at.z - own.position.z
+		if dx * dx + dz * dz > beyond:
+			continue
+		snapshot.add_npc(index, at, _yaw_of(crowd, index), _anim_of(crowd, index), 0)
+
+
+## The brain's state stands in for the animation state, and the phase is zero.
+##
+## **SAID RATHER THAN LEFT TO BE DISCOVERED.** The wire carries `u3 + u5` — a
+## state and a phase within it — and there is **no animation in this project on
+## either rig**, so there is no phase to send and nothing on the client to play
+## one. The state is real and is what a clone's `AnimationTree` would be driven
+## from; the phase is a zero that will stop being one in US-0046. Sending the
+## state now is what lets a client interpolate a crowd at all.
+func _anim_of(crowd: NpcPool, index: int) -> int:
+	var brain := crowd.brain_of(index)
+	return int(brain.state) if brain != null else 0
+
+
+func _yaw_of(crowd: NpcPool, index: int) -> float:
+	var body := crowd.body_of(index)
+	return body.global_rotation.y if body != null else 0.0
 
 
 ## The observer's own pawn, in full. **NOT QUANTISED** — this is the authority

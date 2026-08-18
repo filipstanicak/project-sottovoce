@@ -6,30 +6,23 @@
 ## of each changing per tick. Those four numbers decide the whole downstream
 ## projection, and until US-0039 there was no crowd to check them against.
 ##
-## **THIS PROJECT HAS BEEN WRONG ABOUT EXACTLY THIS TWICE.** §7.1's per-record
-## sizes were unreachable from §4's own field list (113 %, not the 87 % claimed),
-## and §7.3's upstream arithmetic was correct for a format nothing used (253 %,
-## not 112 %). Both were caught only by measuring. A projection is not a
-## measurement, and the two surviving unmeasured numbers in the downstream budget
-## are the two multipliers, not the record.
+## **THIS PROJECT HAS BEEN WRONG ABOUT EXACTLY THIS TWICE**, both times caught
+## only by measuring: §7.1's per-record sizes were unreachable from §4's own field
+## list, and §7.3's upstream arithmetic was correct for a format nothing used.
 ##
-## **THE CROWD IS REAL AND THE NAVIGATION IS MODELLED**, exactly as
-## `test_clone_local_min.gd` does it and for the same reason: the integration
-## suite has 21 s of headroom and this needs hundreds of ticks. Real brains decide
-## who is walking and who is standing, which is the number that actually matters —
-## a strolling NPC covers 4.7 cm per tick against a 1 cm quantum, so *whether* it
-## moves is the whole question and *how well it steers* is not.
+## **THE CROWD IS REAL AND ONLY THE NAVIGATION IS MODELLED**, as a straight line at
+## stroll, exactly as `test_clone_local_min.gd` does it. Real brains decide who
+## walks and who stands, which is the number that matters: a strolling NPC covers
+## 4.7 cm per tick against a 1 cm quantum, so *whether* it moves is the whole
+## question. **And a straight line is shorter than a navmesh path**, so a modelled
+## NPC arrives sooner and stands still longer — every figure below is a **lower
+## bound**, and the model cannot flatter the finding.
 ##
-## **AND THE MODEL CANNOT FLATTER THE FINDING, WHICH IS WHY IT IS USABLE.** A
-## straight line is *shorter* than the path a navmesh would produce, so a modelled
-## NPC arrives sooner, stands still longer, and changes its record less often. The
-## measured change fraction is therefore a **lower bound**, and so is the kbit/s
-## figure derived from it. Real navigation moves it up, never down.
-##
-## **IT MEASURES THE FORMAT, NOT THE WIRE.** `SnapshotBuilder` never calls
-## `add_npc`, so no NPC has ever been replicated to anybody. That is asserted here
-## rather than assumed, so the day culling lands this file says what it is now
-## measuring instead of quietly changing meaning.
+## **THIS FILE IS THE PROJECTION; `test_crowd_wire_cost.gd` IS THE WIRE.** What is
+## measured here is what the budget would be with §7.1's mechanisms in place. What
+## the shipped builder actually charges a client today — NPCs culled by US-0030,
+## but neither delta-encoded nor rate-LOD'd — is measured beside the builder,
+## because that number is a property of the builder rather than of the format.
 extends GutTest
 
 const SEED := 20260818
@@ -374,20 +367,3 @@ func _report(kbit: float, near_npcs: float, far_npcs: float) -> void:
 		)
 		return
 	assert_lt(kbit, budget, "downstream is over TUN-NET-BANDWIDTH-BUDGET-DOWN")
-
-
-## **NO NPC HAS EVER BEEN REPLICATED TO ANYBODY**, and the figure above is
-## therefore a measurement of the *format* against a real crowd, not of the wire.
-## Asserted rather than written in a comment, so this file cannot keep describing
-## itself the same way after culling lands. US-0030's four criteria are the ones
-## that close this.
-func test_the_builder_still_puts_no_npc_on_the_wire() -> void:
-	var source := FileAccess.get_file_as_string("res://scripts/net/server/snapshot_builder.gd")
-	assert_false(source.is_empty(), "the snapshot builder could not be read")
-	assert_false(
-		source.contains("add_npc"),
-		(
-			"`SnapshotBuilder` now emits NPCs, so this file measures the format against a "
-			+ "crowd nobody sends. Re-point it at the real snapshot and retire this guard."
-		)
-	)

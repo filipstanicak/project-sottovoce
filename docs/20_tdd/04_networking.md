@@ -432,6 +432,37 @@ not the wire measured at all. US-0030's four culling criteria are what would clo
 culling is also the first place to look for the missing 12 %: the worst observer has **70.2 of 78
 NPCs** replicated to them, because `TUN-NET-NPC-CULL-RADIUS` is 70 m on a 120 × 120 m map.
 
+### 7.1.2 And what the wire actually costs, now that the crowd is on it — 155 %
+
+US-0030 put the crowd on the wire and culled it positionally. `test_crowd_wire_cost.gd` prices
+the real `SnapshotBuilder`'s serialised output at the most expensive of `MAP-VETRAIO`'s six spawn
+points:
+
+| | |
+|---|---|
+| Snapshot carrying 67 of 78 NPCs | **591 B** |
+| At `TUN-NET-SNAPSHOT-RATE` + 28 B packet overhead | **148.6 kbit/s** |
+| Against `TUN-NET-BANDWIDTH-BUDGET-DOWN` 96 | **155 %** |
+| NPCs the cull removes, worst spawn point | **11 of 78 — 14 %** |
+
+**CULLING WAS NOT THE LEVER, AND THAT IS WORTH KNOWING BEFORE THE NEXT ONE IS CHOSEN.**
+`TUN-NET-NPC-CULL-RADIUS` is 70 m and `MAP-VETRAIO` is 120 × 120 m, so most of the district is
+within reach of most of it. Culling is still correct — it is a per-observer rule the protocol
+requires and US-0030's criteria are met by it — but the money is not there.
+
+**THE GAP IS US-0031's, AND IT IS NOW A MEASURED GAP RATHER THAN AN INTENDED ONE.** §7.1's
+projection assumes an NPC **delta** and **rate LOD**; neither is applied to NPCs, so every visible
+NPC is sent every tick at full size. The distance between 155 % as built and 112 % projected is
+exactly what those two mechanisms are worth, and it is the first time this corpus has been able to
+state that as a number instead of an intention.
+
+**AND THE PROTOCOL CANNOT EXPRESS AN UNCHANGED NPC.** Remote pawns carry `present_slots` precisely
+so that *absent* can mean "unchanged" rather than "gone"; the NPC block is a count followed by
+records and has no equivalent. **An NPC delta therefore needs a protocol change, not just a
+builder change** — which is why US-0030 stopped at the cull rather than continuing into it.
+
+---
+
 **§7.2's RATE-LOD NUMBERS HAVE NO `TUN-` IDS.** The 45 m boundary and the 10 Hz far rate are bare
 numbers in prose here, because rate LOD is US-0031's unticked criterion and nothing has ever had
 to read them. The test takes the boundary from `TUN-PERF-CROWD-LOD-MID`, which carries the same
