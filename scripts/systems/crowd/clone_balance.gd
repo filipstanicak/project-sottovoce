@@ -51,6 +51,10 @@ var pending: Dictionary = {}
 ## What the last pass found and did. There is no other way to see from outside
 ## that this ran at all, and "it never re-routed anybody" satisfies every claim
 ## about re-routing being unobtrusive.
+## (player, persona) pairs whose count was under the floor when the pass looked,
+## **before** any inbound reservation is credited. `deficits_last_pass` is what
+## survives that credit; the gap between them is what the accounting is doing.
+var short_last_pass: int = 0
 var deficits_last_pass: int = 0
 var rerouted_last_pass: int = 0
 var held_last_pass: int = 0
@@ -77,6 +81,15 @@ var _rng: RandomNumberGenerator = null
 ## would be a local minimum quietly held at one instead of two.
 var _closing: Dictionary = {}
 
+## **WHICH RESERVATIONS ARE ACTUALLY A JOURNEY.** A hold and a fetch both land in
+## `pending`, and only a fetch is somebody walking in from outside. Counting a
+## held clone as inbound is not a rounding error: with six players three metres
+## apart, a clone held for one of them stands 24 m from that player and 27 m from
+## their neighbour, so to the neighbour it looks exactly like an arrival that is
+## never going to happen — and it masks a real breach for as long as it stands
+## there. Measured: 41 breaches at pass ticks, 3 of them detected.
+var _travelling: Dictionary = {}
+
 # Pass scope: constant for the whole of one `rebalance()`, and held rather than
 # threaded, because passing five unchanging arguments through four helpers makes
 # every signature longer than the rule it serves.
@@ -99,6 +112,7 @@ func setup(map: MapData, rng: RandomNumberGenerator) -> void:
 	_rng = rng
 	pending.clear()
 	_closing.clear()
+	_travelling.clear()
 
 
 ## One pass of the 2 s director timer. Returns index -> anchor for every clone
@@ -111,6 +125,7 @@ func rebalance(
 	hash: SpatialHash, pool: NpcPool, watchers: PackedVector3Array, personas: Array
 ) -> Dictionary:
 	var sent: Dictionary = {}
+	short_last_pass = 0
 	deficits_last_pass = 0
 	rerouted_last_pass = 0
 	held_last_pass = 0
@@ -160,6 +175,8 @@ func take(index: int) -> Vector3:
 ## One player, one persona: hold what is there, then fetch what is missing.
 func _serve(centre: Vector3, persona: StringName, sent: Dictionary) -> void:
 	var near: int = _tally.get(persona, 0)
+	if near < _least:
+		short_last_pass += 1
 	if near <= _least:
 		_hold_the_insiders(persona, sent)
 	if near + _inbound(persona, centre) >= _least:
@@ -172,6 +189,7 @@ func _serve(centre: Vector3, persona: StringName, sent: Dictionary) -> void:
 	if who == NOBODY:
 		return
 	_reserve(who, target, sent)
+	_travelling[who] = true
 	fetched[who] = target
 	rerouted_last_pass += 1
 	rerouted_total += 1
@@ -255,15 +273,18 @@ func _retire_the_finished_and_the_stuck() -> void:
 func _forget(index: int) -> void:
 	pending.erase(index)
 	_closing.erase(index)
+	_travelling.erase(index)
 
 
-## Clones of `persona` walking into this region that are not standing in it yet.
-## Counting the ones already inside would double-count them against the hash.
+## Clones of `persona` **walking into** this region that are not standing in it
+## yet. Counting the ones already inside would double-count them against the hash,
+## and counting the ones merely *held* elsewhere would credit the region an
+## arrival that is never coming — see `_travelling`.
 func _inbound(persona: StringName, centre: Vector3) -> int:
 	var coming := 0
 	var reach := _radius * _radius
 	for index: int in pending:
-		if _pool.identity_of(index) != persona:
+		if not _travelling.has(index) or _pool.identity_of(index) != persona:
 			continue
 		if _flat_squared(pending[index], centre) > reach:
 			continue

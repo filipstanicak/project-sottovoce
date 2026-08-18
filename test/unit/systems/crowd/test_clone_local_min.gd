@@ -40,6 +40,10 @@ var _map: MapData
 var _rng: RandomNumberGenerator
 var _balance: CloneBalance
 var _watchers: PackedVector3Array
+var _breach_at_pass: int = 0
+var _short_seen: int = 0
+var _deficits_seen: int = 0
+var _held_seen: int = 0
 var _goals: PackedVector3Array
 
 
@@ -143,8 +147,13 @@ func _apply(sent: Dictionary) -> void:
 ## The worst count any player had of any in-use persona, sampled through the run.
 ## Returns [worst, worst_settled, samples, breaches, settle_ticks, late_breaches].
 func _run_the_match(rebalancing: bool) -> Array:
+	_deficits_seen = 0
+	_held_seen = 0
+	_breach_at_pass = 0
+	_short_seen = 0
 	var interval := maxi(Tuning.ticks(&"TUN-CROWD-DIRECTOR-INTERVAL"), 1)
 	var radius: float = Tuning.crowd.clone_local_radius
+	var floor_needed := int(Tuning.crowd.clone_local_min)
 	var worst := 99
 	var worst_settled := 99
 	var samples := 0
@@ -159,6 +168,16 @@ func _run_the_match(rebalancing: bool) -> Array:
 		_reindex()
 		if rebalancing and tick % interval == 0:
 			_apply(_balance.rebalance(_hash, _pool, _watchers, CrowdRoster.PLAYABLE))
+			_deficits_seen += _balance.deficits_last_pass
+			_short_seen += _balance.short_last_pass
+			_held_seen += _balance.held_last_pass
+			# **BREACHES SEEN AT THE EXACT MOMENT THE PASS LOOKS.** If the floor is
+			# whole here and broken between passes, the rule is too slow. If it is
+			# broken here and no deficit was counted, the rule is blind.
+			for centre: Vector3 in _watchers:
+				for persona: StringName in CrowdRoster.PLAYABLE:
+					if _hash.count_persona(centre, radius, persona) < floor_needed:
+						_breach_at_pass += 1
 		if tick % SAMPLE_EVERY != 0:
 			continue
 		samples += 1
@@ -220,6 +239,15 @@ func test_the_local_minimum_holds_over_a_clustered_match() -> void:
 				_balance.rerouted_total,
 				_balance.passes
 			]
+		)
+	)
+	gut.p(
+		(
+			(
+				"the pass SAW %d short (player x persona) pairs and counted %d deficits; "
+				+ "%d breaches at pass ticks, %d fetches, %d holds"
+			)
+			% [_short_seen, _deficits_seen, _breach_at_pass, _balance.rerouted_total, _held_seen]
 		)
 	)
 	assert_gt(_balance.rerouted_total, 0, "nothing was ever fetched — the rule is inert")
