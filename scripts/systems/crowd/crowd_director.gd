@@ -36,6 +36,13 @@ const NO_GOAL := Vector3.INF
 ## assert the stagger; there is no other way to observe a cap from outside.
 var served_last_tick: int = 0
 
+## **WHICH PERSONAS THE LOCAL MINIMUM IS HELD FOR**, GDD-03 §6.3 rule 3. Nothing
+## chooses a persona for a player yet — no lobby, `NET-C2S-LOADOUT` is M4's — so
+## every pawn's is `&""`, and all four are treated as in use exactly as
+## `server_root` already does for `NpcPool.activate`. `SYS-MATCH` narrows it to
+## the real loadouts at M4, which makes the rule cheaper and never weaker.
+var personas_in_use: Array[StringName] = CrowdRoster.PLAYABLE.duplicate()
+
 var _pool: NpcPool = null
 var _map: MapData = null
 var _rng: RandomNumberGenerator = null
@@ -44,6 +51,7 @@ var _repath := RepathQueue.new()
 var _formations := CrowdFormations.new()
 var _intent := CrowdIntent.new()
 var _alarm := CrowdAlarm.new()
+var _clones := CloneBalance.new()
 
 ## The shared grid, held from `setup()` so the public startle and corpse entry
 ## points can be called from outside a tick — `SYS-KILL` resolves a kill in the
@@ -108,7 +116,8 @@ func setup(ctx: MatchContext) -> void:
 	_rebalance_ticks = maxi(Tuning.ticks(&"TUN-CROWD-DIRECTOR-INTERVAL"), 1)
 	_sweep_ticks = maxi(Tuning.ticks(&"TUN-CROWD-STARTLE-SPRINT-INTERVAL"), 1)
 	_formations.setup(ctx.map)
-	_intent.setup(_pool, ctx.map, _rng, _formations, _corpses)
+	_clones.setup(ctx.map, _rng)
+	_intent.setup(_pool, ctx.map, _rng, _formations, _corpses, _clones)
 	_goals.resize(_pool.body_count())
 	_here.resize(_pool.body_count())
 	_bands.resize(_pool.body_count())
@@ -142,6 +151,7 @@ func tick(ctx: MatchContext, dt: float) -> void:
 	if ctx.tick % _rebalance_ticks == 0:
 		_formations.rebalance(ctx.crowd_hash, _pool)
 		_corpses.forget_departed(_pool)
+		_rebalance_clones(ctx)
 	# **BODIES AGE ON THE TICK, NOT ON THE 2 S PASS.** `TUN-CORPSE-LIFETIME` is 20 s
 	# and the two information phases it produces are 6 s and 14 s long; checking
 	# every two seconds would blur a boundary players are meant to read.
@@ -189,6 +199,27 @@ func _band_the_crowd(ctx: MatchContext) -> void:
 ## table predicts about 34 of 90.
 func lod_load() -> Vector2i:
 	return Vector2i(_stepped_last_tick, _pool.active_count() if _pool != null else 0)
+
+
+## **LAYER 4 OF FOUR**, TDD-08 §5.1. `CloneBalance` holds the whole decision;
+## this applies it, and applying it is three lines.
+##
+## **THE GOAL IS CLEARED, NOT OVERWRITTEN.** `_advance` asks for a path only when
+## the goal is `NO_GOAL`, so writing the anchor in directly would leave the agent
+## aimed where it already was and the re-route unserved until the clone arrived
+## somewhere else — a minute away. Cleared, the ordinary repath runs and
+## `CrowdIntent` answers it with the reservation.
+func _rebalance_clones(ctx: MatchContext) -> void:
+	var sent := _clones.rebalance(ctx.crowd_hash, _pool, _watchers, personas_in_use)
+	for index: int in sent:
+		var brain := _pool.brain_of(index)
+		if brain == null:
+			continue
+		_goals[index] = NO_GOAL
+		# **ONLY A FETCHED IDLE CLONE IS WOKEN.** A held one keeps its reservation
+		# and its pause; a fetched one has somewhere to be.
+		if brain.state == NpcBrain.State.IDLE:
+			brain.handle(NpcBrain.Event.TIMER_EXPIRED, _pool.context_of(index))
 
 
 ## The band `index` is in right now. Read by `test_crowd_lod.gd`, and by US-0041's
@@ -315,6 +346,11 @@ func slot_position_of(peer: int) -> Vector3:
 ## The formations themselves, for tests and for US-0047's clone redistribution.
 func formations() -> CrowdFormations:
 	return _formations
+
+
+## Layer 4's own bookkeeping, for the tests that ask whether it did anything.
+func clones() -> CloneBalance:
+	return _clones
 
 
 ## Stand the four processions up. Called once, **after** the crowd is placed:

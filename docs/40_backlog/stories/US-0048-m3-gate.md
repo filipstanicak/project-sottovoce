@@ -22,6 +22,18 @@ depends_on: [BACKLOG-ROADMAP, BIBLE-PERF-BUDGET, BIBLE-RISK-REGISTER]
 
 Run and log the M3 exit verification. The hardest gate in the project.
 
+## A decision this gate now owns, found in US-0047
+
+**`test_crowd_perf.gd` measures a crowd with no players in it.** `MatchContext.pawns` is
+empty, so `CrowdLod.band_of` answers Far for every NPC — which is why the run reports 6 of
+78 brains stepping, and it is a property of having no observers rather than of six players
+on a 120 x 120 m map. Everything §11.2 records is therefore the **cheapest** case, and
+US-0047's 2 s clone pass does nothing at all in it, so its cost is unmeasured.
+
+Adding six pawns changes the number this gate is judged against, which is why US-0047 did
+not do it. The observer count is printed on every run. **This gate has to either measure the
+scenario it names or say plainly that it did not.**
+
 ## Acceptance criteria
 
 > **THE GATE IS NOT RUN. ONE OF ITS INSTRUMENTS IS BUILT.** `test_crowd_perf.gd` was written

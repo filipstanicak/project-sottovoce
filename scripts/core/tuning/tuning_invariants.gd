@@ -1,13 +1,12 @@
-## The 23 cross-field invariants from TUNABLES.md §17.
+## The 29 cross-field invariants from TUNABLES.md §17.
 ##
-## A value can be inside its own documented range and still be wrong, because
-## what matters is its relationship to another value. Invariant 1 is the clearest
-## case: blend-walk and the NPC stroll are both legal anywhere in 1.2–1.6, and
-## the game is broken unless they are the SAME number.
+## A value can be inside its own documented range and still be wrong, because what
+## matters is its relationship to another. Invariant 1 is the clearest case:
+## blend-walk and the NPC stroll are both legal anywhere in 1.2–1.6, and the game
+## is broken unless they are the SAME number.
 ##
-## Separated from TuningProfile so the list reads as a list. Each check returns a
-## sentence naming both operands and their actual values — an invariant failure
-## that says only "invariant 7 failed" costs the reader the same lookup twice.
+## Separated from TuningProfile so the list reads as a list. Each check names both
+## operands and their values: "invariant 7 failed" costs the reader two lookups.
 class_name TuningInvariants
 extends RefCounted
 
@@ -286,6 +285,14 @@ static func _net(p: TuningProfile) -> Array[String]:
 			(
 				"17. net.npc_cull_radius (%.1f) must be >= compass.range_max (%.1f)"
 				% [p.net.npc_cull_radius, p.compass.range_max]
+			)
+		)
+	# 29. A clone kept near a player must be one that player can see.
+	if p.crowd.clone_local_radius > p.net.npc_cull_radius:
+		e.append(
+			(
+				"29. crowd.clone_local_radius (%.1f) must be <= net.npc_cull_radius (%.1f)"
+				% [p.crowd.clone_local_radius, p.net.npc_cull_radius]
 			)
 		)
 	return e
