@@ -107,6 +107,39 @@ func test_the_two_theatre_spaces_exist() -> void:
 	assert_eq(_data().theatre_spaces.size(), 2, "GDD-05 §5.3 specifies two")
 
 
+func test_every_zone_that_asks_for_anchors_gets_some() -> void:
+	# **THE MIRROR OF THE THEATRE RULE, AND IT WAS MISSING FOR A MILESTONE.** A
+	# theatre must have none; everything else must have some. `_place_anchors`
+	# derived one square spacing from the zone's *area* and stepped both axes by
+	# it, so `Fondaco` — 120 x 3 m asking for five — got a spacing of 8.49 m
+	# against a 3 m short side, started its first row past its own end, and
+	# received **zero**. No error, no warning: the district's entire 120 m northern
+	# street had no crowd in it, and it took US-0096 measuring spawn points from
+	# the other end to notice.
+	var d := _data()
+	var starved: PackedStringArray = []
+	for zone: MapZone in d.zones:
+		if zone.is_theatre or zone.expected_anchors() <= 0:
+			continue
+		var placed := 0
+		for anchor: Vector3 in d.idle_anchors:
+			if zone.bounds.has_point(Vector3(anchor.x, zone.bounds.position.y, anchor.z)):
+				placed += 1
+		if placed == 0:
+			starved.append(String(zone.zone_name))
+	assert_eq(
+		starved.size(),
+		0,
+		(
+			(
+				"%s asked GDD-05 §4.4 for anchors and got none — a zone with no anchors is a "
+				+ "part of the district with no crowd, which nothing else reports"
+			)
+			% String(", ").join(starved)
+		)
+	)
+
+
 func test_a_theatre_space_has_no_idle_anchors() -> void:
 	# An audience needs an unobstructed stage. Anchors in Piazza Secca would give
 	# a crossing player cover in the space whose emptiness IS the mechanic.

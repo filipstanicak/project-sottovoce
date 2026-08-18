@@ -1,41 +1,33 @@
 ## **LAYER 4 OF FOUR, AND TDD-08 §5.1 CALLS IT THE ONE THAT ACTUALLY MATTERS.**
 ## TDD-08 §5, GDD-03 §6.3 rule 3, US-0047. SERVER ONLY.
 ##
-## Layers 1 to 3 catch authoring mistakes, which are visible in review. This
-## catches the failure that is **invisible**: all twelve Lucerna drift to the
-## north plaza, the Lucerna player in the south market is now unique, every rule
-## in the game still works, the crowd count is still 78, nothing is broken — and
+## Layers 1 to 3 catch authoring mistakes, which review can see. This catches the
+## **invisible** one: all twelve Lucerna drift north, the Lucerna player in the
+## south market is now unique, every rule still works, the count is still 78, and
 ## they are simply, silently, findable.
 ##
-## **IT RE-ROUTES AND NEVER RESPAWNS.** A clone popping into existence is a worse
-## tell than the depletion it fixes, and re-personaing one would break GDD-03
-## §6.3 rule 4: identities are derived from `match_seed` on every peer, so a
-## server that changed one would be describing a different city from the one its
-## clients drew.
+## **IT RE-ROUTES AND NEVER RESPAWNS.** A clone appearing is a worse tell than the
+## depletion it fixes, and re-personaing one breaks GDD-03 §6.3 rule 4 — a server
+## describing a different city from the one its clients drew.
 ##
 ## **THE RE-ROUTE IS INVISIBLE BY CONSTRUCTION, NOT BY BEING RARE.** A strolling
-## clone already walks to an idle anchor chosen at random; all this does is choose
-## *which* anchor. The destination is a fixed piece of city furniture, never the
-## player — so a re-routed clone walks to a bench and stands at it like everybody
-## else, and it does not re-aim when the player moves. That is what the story
-## means by "must not read as clones following players", and it is a property of
-## the target rather than of the rate.
+## clone already walks to a random idle anchor; this only chooses *which*. The
+## destination is city furniture, never the player, and it does not re-aim when the
+## player moves — which is what "must not read as clones following players" means,
+## and it is a property of the target rather than the rate.
 ##
 ## **HOLDING BEATS FETCHING, AND THE ARITHMETIC IS WHY.** A clone crosses the
-## local radius in about eighteen seconds. A hole opens the instant somebody walks
-## out of one. A rule that could only *fetch* would therefore sit eighteen seconds
-## below the minimum every time the crowd churned — measured, and it left a
-## clustered player at zero. So the first thing each pass does is stop the clones
-## already in a thin region from wandering out of it: that costs no travel time at
-## all and changes nothing observable, because the clone walks to a bench either
-## way. Fetching recovers from a hole; holding is what stops one opening.
+## radius in about eighteen seconds and a hole opens the instant somebody walks out
+## of one, so a fetch-only rule sat eighteen seconds under the minimum on every
+## churn — measured, at zero. Each pass therefore first stops the clones already in
+## a thin region from wandering out, at no travel cost. Fetching recovers from a
+## hole; holding stops one opening.
 ##
-## **THE STREAM IS PREVENTED BY ACCOUNTING, NOT BY A THROTTLE.** Eighteen seconds
-## is nine director passes, so a rule that counted only *arrived* clones would
-## send nine to fix a hole one deep — and nine Lucerna converging on a market is
-## exactly the leak the story warns about. A clone already walking into the region
-## counts toward the minimum while it is on its way. No cap is needed once the
-## arithmetic is right, and a cap would have hidden the fact that it was not.
+## **THE STREAM IS BOUNDED BY ACCOUNTING, NOT BY A THROTTLE.** Nine passes per
+## journey, so counting only *arrived* clones would send nine for a hole one deep —
+## nine Lucerna converging on a market, the leak the story warns about. A clone on
+## its way is counted against the fetch target, though **not** against the floor
+## itself: see `_serve`.
 class_name CloneBalance
 extends RefCounted
 
@@ -51,6 +43,13 @@ var pending: Dictionary = {}
 ## What the last pass found and did. There is no other way to see from outside
 ## that this ran at all, and "it never re-routed anybody" satisfies every claim
 ## about re-routing being unobtrusive.
+## (player, persona) pairs whose count was under the floor when the pass looked,
+## **before** any inbound reservation is credited. `deficits_last_pass` is what
+## survives that credit; the gap between them is what the accounting is doing.
+var short_last_pass: int = 0
+
+## Short pairs that had at least one clone already on its way to them.
+var suppressed_last_pass: int = 0
 var deficits_last_pass: int = 0
 var rerouted_last_pass: int = 0
 var held_last_pass: int = 0
@@ -77,6 +76,12 @@ var _rng: RandomNumberGenerator = null
 ## would be a local minimum quietly held at one instead of two.
 var _closing: Dictionary = {}
 
+## **WHICH RESERVATIONS ARE ACTUALLY A JOURNEY.** A hold and a fetch both land in
+## `pending` and only a fetch is walking in from outside. A clone held for one
+## player stands 24 m from them and 27 m from their neighbour, so to the neighbour
+## it looks like an arrival that is never coming.
+var _travelling: Dictionary = {}
+
 # Pass scope: constant for the whole of one `rebalance()`, and held rather than
 # threaded, because passing five unchanging arguments through four helpers makes
 # every signature longer than the rule it serves.
@@ -99,6 +104,7 @@ func setup(map: MapData, rng: RandomNumberGenerator) -> void:
 	_rng = rng
 	pending.clear()
 	_closing.clear()
+	_travelling.clear()
 
 
 ## One pass of the 2 s director timer. Returns index -> anchor for every clone
@@ -111,6 +117,8 @@ func rebalance(
 	hash: SpatialHash, pool: NpcPool, watchers: PackedVector3Array, personas: Array
 ) -> Dictionary:
 	var sent: Dictionary = {}
+	short_last_pass = 0
+	suppressed_last_pass = 0
 	deficits_last_pass = 0
 	rerouted_last_pass = 0
 	held_last_pass = 0
@@ -158,12 +166,30 @@ func take(index: int) -> Vector3:
 
 
 ## One player, one persona: hold what is there, then fetch what is missing.
+##
+## **THE FLOOR IS DECIDED ON CLONES THAT HAVE ARRIVED.** Crediting one still
+## walking satisfies the minimum in expectation while the player is short in fact
+## for the whole eighteen-second journey — measured, the pass saw 41 short pairs
+## and acted on 3. `_inbound` still bounds the stream; it no longer decides whether
+## there is a problem. **And the fetch targets one above the floor**, so an arrival
+## lands before the next departure takes the region back under.
 func _serve(centre: Vector3, persona: StringName, sent: Dictionary) -> void:
 	var near: int = _tally.get(persona, 0)
+	if near < _least:
+		short_last_pass += 1
 	if near <= _least:
 		_hold_the_insiders(persona, sent)
-	if near + _inbound(persona, centre) >= _least:
+	if near >= _least:
 		return
+	var coming := _inbound(persona, centre)
+	if coming > 0:
+		suppressed_last_pass += 1
+	if near + coming <= _least:
+		_fetch_one(persona, sent)
+
+
+## Send the nearest spare clone of `persona` to an anchor in this region.
+func _fetch_one(persona: StringName, sent: Dictionary) -> void:
 	deficits_last_pass += 1
 	var target := _pick(_nearby)
 	if target == CrowdDirector.NO_GOAL:
@@ -172,6 +198,7 @@ func _serve(centre: Vector3, persona: StringName, sent: Dictionary) -> void:
 	if who == NOBODY:
 		return
 	_reserve(who, target, sent)
+	_travelling[who] = true
 	fetched[who] = target
 	rerouted_last_pass += 1
 	rerouted_total += 1
@@ -255,15 +282,18 @@ func _retire_the_finished_and_the_stuck() -> void:
 func _forget(index: int) -> void:
 	pending.erase(index)
 	_closing.erase(index)
+	_travelling.erase(index)
 
 
-## Clones of `persona` walking into this region that are not standing in it yet.
-## Counting the ones already inside would double-count them against the hash.
+## Clones of `persona` **walking into** this region that are not standing in it
+## yet. Counting the ones already inside would double-count them against the hash,
+## and counting the ones merely *held* elsewhere would credit the region an
+## arrival that is never coming — see `_travelling`.
 func _inbound(persona: StringName, centre: Vector3) -> int:
 	var coming := 0
 	var reach := _radius * _radius
 	for index: int in pending:
-		if _pool.identity_of(index) != persona:
+		if not _travelling.has(index) or _pool.identity_of(index) != persona:
 			continue
 		if _flat_squared(pending[index], centre) > reach:
 			continue

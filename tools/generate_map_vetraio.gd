@@ -352,9 +352,11 @@ func _build_data() -> MapData:
 	return data
 
 
-## Idle anchors on a grid inside each zone, at the density GDD-05 §4.4 requires.
-## A theatre space gets none — an audience needs an unobstructed stage, and the
-## emptiness of Piazza Secca is its entire function.
+## Idle anchors per zone at GDD-05 §4.4's density; a theatre gets none.
+## **A ZONE THINNER THAN ITS CELL GOT NOTHING, SILENTLY** — `Fondaco`, 120 x 3 m at
+## 8.49 spacing began its row past its own end, so the district's northern street
+## had no crowd (US-0096). One row down the middle now, at the declared count; the
+## square pitch, which makes a DENSE zone a blend pocket, is kept where a cell fits.
 func _place_anchors(zones: Array[MapZone]) -> Array[Vector3]:
 	var out: Array[Vector3] = []
 	for zone: MapZone in zones:
@@ -363,14 +365,17 @@ func _place_anchors(zones: Array[MapZone]) -> Array[Vector3]:
 		var wanted := zone.expected_anchors()
 		if wanted <= 0:
 			continue
-		var spacing := sqrt((zone.bounds.size.x * zone.bounds.size.z) / float(wanted))
-		var x := zone.bounds.position.x + spacing * 0.5
+		var span := Vector2(zone.bounds.size.x, zone.bounds.size.z)
+		var spacing := sqrt((span.x * span.y) / float(wanted))
+		var thin := span.y < spacing
+		var step := Vector2(span.x / float(wanted), span.y) if thin else Vector2(spacing, spacing)
+		var x := zone.bounds.position.x + minf(step.x, span.x) * 0.5
 		while x < zone.bounds.end.x:
-			var z := zone.bounds.position.z + spacing * 0.5
+			var z := zone.bounds.position.z + minf(step.y, span.y) * 0.5
 			while z < zone.bounds.end.z:
 				out.append(Vector3(x, 0.0, z))
-				z += spacing
-			x += spacing
+				z += step.y
+			x += step.x
 	return out
 
 
