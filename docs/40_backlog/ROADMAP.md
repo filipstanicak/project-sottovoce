@@ -388,11 +388,11 @@ No gameplay rules replicated — there are none yet. No NPCs. Movement only.
 > **`test_crowd_perf.gd` EXISTS, HAS BEEN RUN, AND SPENT TWO STORIES MEASURING THE WRONG
 > SCENARIO.** It stood up the full crowd and **no players**, so every NPC banded Far,
 > `CloneBalance` did nothing and the sprinter sweep did nothing — found in US-0047, fixed in
-> US-0041. With six players at the map's own spawn points the crowd stage costs **0.54–0.57 ms a
-> tick, p95 0.67–0.71**, inside §11.2's 1.75 ms and reproducible across runs; the empty district's
-> 0.44 ms was a best case. **The max is 2.16–2.43 ms — over the budget on one tick in ninety** —
-> and nothing has isolated it; the gate is asserted on p95, which is the right statistic and is not
-> the whole story. **Effective brain steps are 46 of 78, not the 6 of 78 US-0045 published**, and
+> US-0041. With six players at the map's own spawn points the crowd stage costs **0.52 ms a tick,
+> p95 0.59–0.64, max 1.26–1.29** — inside §11.2's 1.75 ms with the max included, and reproducible
+> across runs; the empty district's 0.44 ms was a best case. **The max was 2.16–2.43 ms until the
+> spike was isolated to the 2 s director pass** (§11.2.2): `CloneBalance` asked the grid and the
+> anchor list once per *persona* rather than once per *player*, twenty-four times for six answers. **Effective brain steps are 46 of 78, not the 6 of 78 US-0045 published**, and
 > there is **no Far band at all** at match start, so LOD's reduction is 1.7× rather than §4.1's
 > 2.6×. **Crowd *movement* could not be
 > measured**: `Performance.TIME_PHYSICS_PROCESS` gave 31, then 5.69, then 24–28 ms for
