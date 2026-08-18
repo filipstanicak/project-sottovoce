@@ -25,8 +25,12 @@ match does not begin with a local hole that US-0047's director then spends twent
 
 ## Why this exists
 
-US-0047 measured its own guarantee at **12 958 of 12 960** readings over a three-minute clustered
-match. The two misses are both inside the first twenty seconds, and they are not the director's:
+US-0047 first measured its guarantee at **12 958 of 12 960** readings over a three-minute
+clustered match, with both misses inside the first twenty seconds. **That figure is retracted**
+— the anchor fix in this very story took the same code to 248 breaches, which is how the corpus
+learned the guarantee was a property of one anchor arrangement rather than of the rule (TDD-08
+§5.1.4). What survives the retraction is the *reason* this story exists, which was never about
+the size of the number:
 
 > `CrowdPlacement` deals the crowd round-robin over the map's idle anchors with **no persona
 > awareness at all**. The roster is derived from `match_seed`; the positions are derived from

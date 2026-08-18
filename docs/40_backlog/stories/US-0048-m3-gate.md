@@ -70,9 +70,14 @@ expensive exactly when the district is most evenly occupied.
 - [ ] `test_clone_animation_parity.gd` and `test_footstep_parity.gd` pass for all four personas.
 - [x] `test_clone_local_min.gd` passes over a clustered 3-minute match. **US-0047.** A unit
       test, because 5 400 ticks of physics do not fit the integration budget. **Passing is not the
-      same as the guarantee holding always**: it reports 2 readings of 12 960 under the floor, both
-      inside the first twenty seconds, and US-0047's own "always" criterion is unticked on exactly
-      that. The gate should read the number, not the tick.
+      same as the guarantee holding always**, and the number this line first published was
+      **wrong**: it said 2 readings of 12 960, which was a property of one anchor arrangement
+      rather than of the rule. Fixing an unrelated level bug (US-0096) took the same code to 248,
+      and crediting the floor to *arrived* clones rather than departed ones brought it to
+      **100 of 12 960**. What the test asserts now is that a breach is never ignored — of 21
+      short pairs, 18 already had a clone walking and 6 were dispatched. US-0047's "always"
+      criterion is unticked on exactly that. **The gate should read the number, not the tick**,
+      and this line is the reason that sentence is in the story. TDD-08 §5.1.4.
 - [ ] Startle waves read directionally to a human observer.
 - [ ] Feel check: the crowd feels alive — a tester still looks at NPCs unprompted after minute 4.
 - [ ] Risk register re-scored: RISK-CROWD-PERF, RISK-ANONYMITY-LEAK, RISK-ANIM-SCOPE.
