@@ -328,6 +328,29 @@ and did not is worth as much as one that did. **§11.2's 0.05 ms row for the pas
 missed by 14× and is amended rather than chased** — it was written before formations,
 corpses or clone balancing existed, and the number that matters is the total.
 
+**US-0096 SEATS THE CROWD, AND FOUND THE MAP CANNOT SATISFY RULE 3.** `CrowdPlacement`
+deals round-robin over idle anchors with no persona awareness; `CrowdRoster` derives
+identities with no idea where anybody stands. Both are seeded, both correct, and
+**nothing joined them** — so a match could open with every Lucerna in the north and a
+Lucerna player spawning in the south. `CrowdSeating` is that join, as a **permutation**:
+the multiset of positions is unchanged, so the navmesh snapping, the anchor round-robin
+and the scatter bound cannot regress. 18 short (spawn × persona) pairs become 9.
+
+**THE NINE THAT REMAIN ARE PHYSICALLY IMPOSSIBLE, AND THAT IS THE REAL FINDING.** Four
+personas at the minimum need **eight clone seats** within 25 m. `MAP-VETRAIO` offers
+12, 15 and 10 at three spawn points — and **3, 6 and ZERO** at the other three.
+**(114, 97.5) can see no NPC at all**, so a player spawning there starts with zero clones
+*and* on open ground for `TUN-SUSPICION-GAIN-OPEN`: alone, uniquely identifiable, before
+they can move. GDD-03 §6.3 rule 3 is a **release blocker** and it is the **idle anchors**
+that fail it. Reported rather than failed, like US-0043's 0.51 m circuits — re-authoring
+anchors is the owner's. `test_crowd_seating.gd` asserts **zero shortfalls where there is
+room** (7 → 0) and prints the seat census every run.
+
+**AND THE TAKE SIDE NEEDED THE SAME GUARD AS THE GIVE SIDE.** The first working version
+left 2 of 7, both at the last spawn points processed: the give side refused to hand over
+a clone somebody else depended on, the take side happily conscripted one. Same asymmetry
+`CloneBalance._nearest_spare` was designed against, written the wrong way anyway.
+
 **M3'S REMAINING WORK IS US-0048, THE GATE**, and eight of its ten lines are still
 blocked on things that do not exist — clone meshes on the wire, animation clips, and an
 owner at a windowed client. The two that pass are `test_crowd_perf.gd` and
@@ -1409,7 +1432,7 @@ US-0024 measures it against clips that do not exist.
 | | |
 |---|---|
 | CI | 7 jobs. **Running again as of 2026-08-07 after a two-day outage** — run `31200490320`, all seven green. The seven commits merged during the outage were never through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | **41 arch + 82 unit + 31 integration scripts**, holding 154 + 738 + 231 tests and 239 + 6060 + 629 assertions. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **159.2 s** of the 180 s it is allowed, up from 87.7 s at M2 and from 152.1 s before the 2 s pass attribution, which samples ninety ticks **twice** for its A/B — **21 s of headroom left, and the next crowd test has to justify itself against that** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **One is `pending` by design** — `test_upstream_bandwidth.gd` reports the 253 % upstream miss rather than going red, the same choice `test_snapshot_size.gd` made. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
+| Tests | **41 arch + 83 unit + 31 integration scripts**, holding 154 + 747 + 231 tests and 239 + 6074 + 629 assertions. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **159.2 s** of the 180 s it is allowed, up from 87.7 s at M2 and from 152.1 s before the 2 s pass attribution, which samples ninety ticks **twice** for its A/B — **21 s of headroom left, and the next crowd test has to justify itself against that** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **One is `pending` by design** — `test_upstream_bandwidth.gd` reports the 253 % upstream miss rather than going red, the same choice `test_snapshot_size.gd` made. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
 | Tuning | 286 tunables across 14 resource classes; all 29 cross-field invariants assert. **Eight IDs are deprecated** and recorded in TUNABLES §19 — never reused |
 | Autoloads | All eight. `Tuning` precomputes 89 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |
@@ -1422,7 +1445,7 @@ US-0024 measures it against clips that do not exist.
 | Camera | Real spring arm: 2.6 m, **pawn centred** (US-0092 — the 0.45 m offset never changed the composition, because the rig aims at the pawn's own axis; `INPUT-SHOULDER` retired with it), occlusion that pulls **in** and never sideways, `WORLD`-masked so a crowd cannot push it. The FOV ladder is bound to the **state**, never to `ctx.velocity`: the rung is a consequence of the decision, not of the physics that follows it. Crowd-scan narrows to 48° and grants nothing. **Positive pitch LOWERS the arm** — the rig looks *at* the pivot, so a raised arm looks down; it shipped inverted from US-0021 until somebody played it |
 | Input | 20 `InputMap` actions from 14 live `INPUT-` IDs — `INPUT-SHOULDER` is retired via `InputActions.DEPRECATED`, still in the corpus and bound to nothing, KBM + pad. Chain GDD-02 → `Ids` → `InputActions` → `project.godot`, guarded on every hop, both directions. **Sampled once per physics frame by `LocalPawnDriver`, the only caller** — see trap 12. The mouse is **captured** on boot; `INPUT-MENU` releases, a click takes it back. **Only a mapped gamepad holds the joypad bindings** — `PadSelection`, applied through the one `InputMap` writer, because a set of sim pedals was steering |
 
-**Forty-five criteria are deliberately unticked**, each blocked by something real — counted
+**Forty-six criteria are deliberately unticked**, each blocked by something real — counted
 from the `done` and `in-progress` stories on 2026-08-16. **Nine of them arrived at once**:
 US-0048 moved from `draft` to `in-progress` when its first instrument was built, so the M3
 gate's own checklist now counts. That is the honest direction — a story with work in it is

@@ -293,9 +293,18 @@ identifying players "somehow"; `TEL-FIRST-CONTACT-OUTCOME` above 40 % correct id
 | 1 | `PersonaData.anonymous_clip_names` declares the parity set | Authoring drift |
 | 2 | `test_clone_animation_parity.gd` | A player animation with no clone equivalent |
 | 3 | Debug runtime assert on entering an Anonymous-reachable state | A state playing an off-list clip |
-| 4 | `TUN-CROWD-CLONE-LOCAL-MIN` | **Local depletion** — global sufficiency with a local hole |
+| 4 | `TUN-CROWD-CLONE-LOCAL-MIN` | **Local depletion** — global sufficiency with a local hole. Built, US-0047 (`CloneBalance`, the 2 s director pass) and US-0096 (the opening arrangement) |
 
 Plus `test_footstep_parity.gd` for the audio equivalent, and the no-per-instance-variation rule.
+
+> **A LIVE INSTANCE OF THIS RISK IS OPEN, AND IT IS THE LEVEL'S.** US-0096 measured how many NPC
+> seats each spawn point can see within `TUN-CROWD-CLONE-LOCAL-RADIUS`: four personas at the
+> minimum need eight, and three of `MAP-VETRAIO`'s six spawn points offer **3, 6 and zero**.
+> **A player spawning at (114, 97.5) begins the match with no clone of their persona and no NPC
+> of any kind within 25 m** — uniquely identifiable, and on open ground for
+> `TUN-SUSPICION-GAIN-OPEN`, before they can move. No arrangement of the crowd fixes it; the idle
+> anchors in that corner do not exist. **This is the probability moving off "Low" until the
+> anchors are re-authored**, and `test_crowd_seating.gd` prints the census on every run.
 
 > **Layer 4 is the one that matters.** Layers 1–3 catch authoring mistakes, which are visible in
 > review. Layer 4 catches all twelve Lucerna clones drifting north while the Lucerna player in

@@ -100,6 +100,14 @@ func _place_the_crowd(count: int) -> void:
 	var spots := CrowdPlacement.positions(
 		count, director.ctx.match_seed, director.ctx.map.idle_anchors, map
 	)
+	# **THE PLACEMENT DOES NOT KNOW WHO ANYBODY IS, AND THE ROSTER DOES NOT KNOW
+	# WHERE ANYBODY STANDS.** Both are derived from the seed and both are right;
+	# nothing joined them until US-0096, so a match could open with every Lucerna
+	# in the north and a Lucerna player spawning in the south. `CrowdSeating`
+	# permutes the assignment, never the positions.
+	spots = CrowdSeating.seat(
+		spots, crowd.roster, director.ctx.map.spawn_points, director.ctx.match_seed
+	)
 	for index: int in spots.size():
 		crowd.set_position(index, spots[index])
 	Log.info(
