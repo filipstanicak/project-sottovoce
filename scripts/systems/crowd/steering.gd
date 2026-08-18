@@ -36,6 +36,13 @@ var flee_speed: float = 0.0
 var arrive_radius: float = 0.0
 var neighbour_distance: float = 0.0
 
+## **THE ENGINE'S OWN `path_max_distance`, CAPTURED RATHER THAN DECLARED.** It is
+## 5.0 m in Godot 4.7.1, and writing that number here would be a constant nobody
+## could change from `TUNABLES.md` and a silent lie the day the engine's default
+## moves. Captured at `configure()`, so a Near-band agent keeps exactly the
+## behaviour it had before US-0041's last line existed.
+var _base_drift: float = 0.0
+
 
 func _init() -> void:
 	refresh()
@@ -81,6 +88,22 @@ func configure(body: CharacterBody3D, agent: NavigationAgent3D, active: bool) ->
 	agent.path_desired_distance = capsule.x * 2.0
 	agent.target_desired_distance = arrive_radius
 	agent.avoidance_enabled = active
+	if _base_drift <= 0.0:
+		_base_drift = agent.path_max_distance
+
+
+## **HOW FAR THIS AGENT MAY WANDER OFF ITS PATH BEFORE RECOMPUTING IT.**
+## US-0041's last criterion, TDD-08 §12 Q2.
+##
+## `path_max_distance` is the one path query the `RepathQueue` does **not**
+## stagger: the agent recalculates on its own, whenever avoidance has pushed it
+## further off its route than this, and ninety agents doing that on the same
+## crowded tick is exactly the spike §12 Q2 asks about.
+##
+## Takes a plain multiple and nothing else — this file knows about points,
+## speeds and numbers, never about bands or states.
+func tolerate_drift(agent: NavigationAgent3D, multiple: int) -> void:
+	agent.path_max_distance = _base_drift * maxf(float(multiple), 1.0)
 
 
 ## Connect an agent's avoidance result to its body. Idempotent, because the pool

@@ -2,9 +2,9 @@
 id: US-0041
 title: Navmesh, agents and steering
 version: 1.0.0
-status: in-progress
+status: done
 owner: Technical Director
-last_updated: 2026-08-16
+last_updated: 2026-08-18
 depends_on: [TDD-08-CROWD, GDD-05-LEVEL]
 ---
 
@@ -45,11 +45,30 @@ formation-slot seeking, with no knowledge of states.
 - [x] **Repath requests are staggered, at most 3 per tick.** `RepathQueue` is pure and FIFO, and
       `TUN-PERF-CROWD-REPATH-PER-TICK` is the cap. A 90-NPC crowd is served in exactly 30 ticks,
       asserted; so is "everybody exactly once", which is the starvation half.
-- [ ] **Far-band agents get longer path validity.** **No longer blocked — unstarted.**
-      US-0045 built the bands and `CrowdDirector.band_of(index)` answers; what is missing is one
-      line giving a Far agent a larger `NavigationAgent3D.path_max_distance` so it recomputes its
-      route less often. Left undone rather than slipped into US-0045, which had no criterion for
-      it.
+- [x] **Far-band agents get longer path validity.** `Steering.tolerate_drift()` scales
+      `NavigationAgent3D.path_max_distance` by the band's own **stride** — Near 5.0 m, Mid 15.0,
+      Far 75.0, measured. **The stride is the multiplier rather than a new number**: how often an
+      agent is thought about and how far it may wander off its path are the same question asked
+      twice. `path_max_distance` is the one path query `RepathQueue` does *not* stagger — the
+      agent recalculates on its own — which is precisely the spike TDD-08 §12 Q2 asks about.
+      **Near keeps the engine's own default**, captured rather than declared, so the agents a
+      player can watch behave exactly as they did.
+
+## The two ways the last line nearly shipped inert
+
+Both found by its own test, and both are the same defect wearing different clothes.
+
+**A SEED THAT AGREES WITH THE ANSWER IS NOT A SEED.** `CrowdBands` records each NPC's band and
+retunes the agent only when it *changes*. Seeded to Far and left there, an NPC that was
+genuinely Far compared equal on the first evaluation and was skipped — so **the whole Far band
+kept the Near tolerance**, and the one band this criterion exists for was the only one that
+never got it. Measured as Near 5.0, Mid 15.0, **Far 5.0**. The seed is written through to the
+agents now, not merely recorded.
+
+**AND THE BASE HAS TO EXIST BEFORE IT IS MULTIPLIED.** `Steering` captures the engine's
+`path_max_distance` in `configure()`. Seeding before that loop multiplies a base of **zero** and
+hands every agent a tolerance of 0 m — not a subtle failure, but a silent one, because an agent
+that repaths every frame still walks at the right speed to the right place.
 
 ## The crowd walks at 1.400 m/s against a stroll of 1.400
 

@@ -22,17 +22,28 @@ depends_on: [BACKLOG-ROADMAP, BIBLE-PERF-BUDGET, BIBLE-RISK-REGISTER]
 
 Run and log the M3 exit verification. The hardest gate in the project.
 
-## A decision this gate now owns, found in US-0047
+## The gate's own instrument was measuring the wrong scenario, and now is not
 
-**`test_crowd_perf.gd` measures a crowd with no players in it.** `MatchContext.pawns` is
-empty, so `CrowdLod.band_of` answers Far for every NPC — which is why the run reports 6 of
-78 brains stepping, and it is a property of having no observers rather than of six players
-on a 120 x 120 m map. Everything §11.2 records is therefore the **cheapest** case, and
-US-0047's 2 s clone pass does nothing at all in it, so its cost is unmeasured.
+**`test_crowd_perf.gd` ran with no players in it**, found in US-0047 and fixed in US-0041.
+`MatchContext.pawns` was empty, so `CrowdLod.band_of` answered Far for every NPC, and the
+run's "6 of 78 brains stepping" was 78 divided by the Far stride of 15 rather than anything
+about how six players spread over a district. Two subsystems did nothing in the measurement:
+`CloneBalance` counts against player positions, and the sprinter sweep reads pawn velocity.
 
-Adding six pawns changes the number this gate is judged against, which is why US-0047 did
-not do it. The observer count is printed on every run. **This gate has to either measure the
-scenario it names or say plainly that it did not.**
+Six pawns now stand at the map's own spawn points. **The numbers this gate is judged against
+moved, and they moved the way an honest correction moves them:**
+
+| | Empty district | Six players |
+|---|---|---|
+| `CrowdDirector.tick()` mean | 0.439 ms | **0.54–0.57 ms** |
+| p95 (the asserted line, budget 1.75) | 0.521 ms | **0.67–0.71 ms** |
+| max over 90 ticks | 0.686 ms | **2.16–2.43 ms** |
+| Brains stepping | 6 of 78 | **46 of 78** — 30 Near, 48 Mid, **no Far** |
+
+**Two things for this gate to judge rather than inherit.** The max exceeds the 1.75 ms budget
+on one tick in ninety while p95 sits comfortably under it — the right statistic for a gate, and
+still a spike nobody has isolated. And there is **no Far band at all** at match start, so
+US-0041's far-band path validity and §4.1's 15-tick stride only apply once players cluster.
 
 ## Acceptance criteria
 

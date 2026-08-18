@@ -62,18 +62,18 @@ func before_each() -> void:
 ## **THE FULL CROWD, NOT A CONVENIENT ONE.** `TUN-CROWD-COUNT-MAX` bodies
 ## allocated and `TUN-CROWD-COUNT-DEFAULT-6P` of them active.
 ##
-## **BUT THERE ARE NO PLAYERS IN IT, AND THAT IS NOT THE SCENARIO US-0048 NAMES.**
-## Found in US-0047. `MatchContext.pawns` is empty here, so `CrowdLod.band_of`
-## answers **Far for every NPC** — which is why the run reports 6 of 78 brains
-## stepping, and it is a property of having no observers rather than of how six
-## players spread over a district. Everything measured here is therefore the
-## **cheapest** case: the crowd nobody is watching. The 2 s pass is affected the
-## same way — `CloneBalance` holds and fetches against player positions, so with
-## none it does nothing at all and its cost is **not measured by this file**.
+## **AND SIX PLAYERS IN IT, WHICH IT DID NOT HAVE UNTIL US-0041's LAST LINE.**
+## `MatchContext.pawns` was empty, so `CrowdLod.band_of` answered **Far for every
+## NPC**: the old run's "6 of 78 brains stepped" was 78 divided by the Far stride
+## of 15, a property of having no observers rather than of how six players spread
+## over a district. Everything §11.2 recorded was the **cheapest** case, the crowd
+## nobody is watching, and two whole subsystems did nothing in it — `CloneBalance`
+## counts against player positions and the sprinter sweep reads pawn velocity.
 ##
-## Adding six pawns changes the number the M3 gate is judged against, so it is
-## US-0048's call rather than US-0047's. The observer count is printed on every
-## run so the gap cannot be read as a measurement.
+## Six pawns now stand at the map's own spawn points, which is what
+## `TUN-SPAWN-POINT-COUNT` exists for and what a real match starts as. The
+## observer count is printed on every run, because the whole reason this was
+## missed is that nothing said the scenario was empty.
 func _stand_up() -> void:
 	var started: int = NavigationServer3D.map_get_iteration_id(_map)
 	for _i: int in 120:
@@ -84,6 +84,7 @@ func _stand_up() -> void:
 	_count = int(Tuning.crowd.count_default_6p)
 	_pool.preallocate(int(Tuning.crowd.count_max))
 	_pool.activate(_count, SEED, CrowdRoster.PLAYABLE, 6)
+	_seat_the_players()
 	var spots := CrowdPlacement.positions(_count, SEED, _ctx.map.idle_anchors, _map)
 	for index: int in spots.size():
 		_pool.set_position(index, spots[index])
@@ -100,6 +101,21 @@ func _stand_up() -> void:
 		_director.tick(_ctx, MatchContext.net_dt())
 		await get_tree().physics_frame
 		await get_tree().physics_frame
+
+
+## **A FULL LOBBY AT THE MAP'S OWN SPAWN POINTS.** `CharacterBody3D` rather than
+## `Node3D`, because the sprinter sweep reads `velocity` off one and would skip a
+## plain node — silently, which would leave a subsystem out of the measurement
+## while the observer count said six.
+##
+## They stand still. A moving lobby would make the banding differ between runs and
+## this file's whole value is that its numbers are comparable across them.
+func _seat_the_players() -> void:
+	for at: Vector3 in _ctx.map.spawn_points:
+		var pawn := CharacterBody3D.new()
+		_world.add_child(pawn)
+		pawn.global_position = at
+		_ctx.pawns[_ctx.pawns.size() + 1] = pawn
 
 
 ## Milliseconds spent inside `CrowdDirector.tick()`, one sample per net tick.
@@ -141,6 +157,20 @@ func test_the_crowd_under_measurement_is_the_full_one() -> void:
 		if _pool.brain_of(index).state == NpcBrain.State.WALKING_GROUP:
 			walking += 1
 	assert_gt(walking, 0, "no formations formed — the measurement is missing a whole subsystem")
+	# **AND SOMEBODY IS WATCHING.** With no pawns every NPC bands Far, which is the
+	# cheapest arrangement there is; the numbers below described that for two
+	# stories without saying so.
+	assert_eq(
+		_ctx.pawns.size(),
+		int(Tuning.contract.spawn_point_count),
+		"the crowd is not being watched by a full lobby — every number here is a best case"
+	)
+	var bands: Dictionary = {}
+	for index: int in _count:
+		var band := _director.band_of(index)
+		bands[band] = int(bands.get(band, 0)) + 1
+	gut.p("bands with %d players: %s" % [_ctx.pawns.size(), bands])
+	assert_gt(bands.size(), 1, "the whole crowd is in one band — the players are not spread")
 
 
 func test_the_server_crowd_tick_against_the_budget() -> void:

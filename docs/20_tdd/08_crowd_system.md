@@ -225,12 +225,26 @@ Effective brain updates per tick, typical distribution:
 
 **A 2.6× reduction** — the difference between fitting the budget and not.
 
-**Measured, US-0045, on `MAP-VETRAIO` with six players at the spawn points: 6 of 78 brains step
-per tick, not 34 of 90.** The table above assumes ~20 NPCs within 20 m of somebody, which is a
-denser arrangement than six players spread across a 120 × 120 m district ever produce. The
-reduction is therefore **larger** than §4.1 claims and worth **less** than it claims, because
-US-0048 measured the brains at 0.046 ms before this was built. `CrowdDirector.tick()` went from
-**0.54 ms to 0.44 ms** — a real 20 %, and a fifth of a millisecond.
+**Measured on `MAP-VETRAIO`, and the first measurement was of an empty district.** US-0045
+reported "6 of 78 brains step per tick" and said it was because six players spread over 120 ×
+120 m put fewer NPCs inside 20 m than the table assumes. **There were no players at all** —
+`test_crowd_perf.gd` ran with `MatchContext.pawns` empty, `CrowdLod.band_of` answered Far for
+everything, and 6 is 78 divided by the Far stride of 15. Found in US-0047, fixed in US-0041's
+last line, and the corrected figures are the opposite of what was published:
+
+| | §4.1's table | **Measured**, 78 NPCs, six players at the spawn points |
+|---|---|---|
+| Near | ~20 | **30** |
+| Mid | ~35 | **48** |
+| Far | ~35 | **0** |
+| Effective steps/tick | ≈ 34 of 90 | **46 of 78** |
+
+**THERE IS NO FAR BAND ON THIS MAP AT MATCH START.** Six spawn points on a 120 × 120 m district
+put every NPC within `TUN-PERF-CROWD-LOD-MID` 45 m of somebody, so the reduction is 78 → 46
+— **1.7×, not §4.1's 2.6×** — and the Far band, with its stride of 15 and its longer path
+validity, exists only when players cluster and leave part of the district unwatched. It is worth
+**less** than §4.1 claims for a second reason too: US-0048 measured the brains at 0.046 ms before
+LOD was built, so the whole banded subsystem is a fifth of a millisecond either way.
 
 **Two things LOD nearly changed that are not rates**, both caught by US-0045's own tests:
 
@@ -494,6 +508,7 @@ corpus has already shipped three claims of the second kind that were the first.
 | `scripts/systems/crowd/corpse.gd` | `SYS-CORPSE`: one body, two information phases | **Exists**, US-0044 |
 | `scripts/systems/crowd/corpse_register.gd` | Every body, and who is looking at it | **Exists**, US-0044. Not in the original table |
 | `scripts/systems/crowd/crowd_alarm.gd` | Startle waves and the sprinter sweep | **Exists**, US-0044. Not in the original table |
+| `scripts/systems/crowd/crowd_bands.gd` | Which band each NPC is in, and the path tolerance a band buys | **Exists**, US-0045 as logic and US-0041's last line as the side effect; split from `CrowdDirector` in US-0041 when the file passed 400 lines again. Not in the original table |
 | `scripts/systems/crowd/clone_balance.gd` | §5 layer 4: hold and fetch clones against `TUN-CROWD-CLONE-LOCAL-MIN` | **Exists**, US-0047. Not in the original table — §5.1 sketched it as a method on the director, and it is its own object so a test can ask it a question without standing a director up |
 | `scripts/presentation/npc_view.gd` | Client-side view | Not written. US-0045/0046 |
 | `scripts/core/crowd_roster.gd` | The derived roster | **Exists**, US-0039. In Core, not here, because both peers derive it |
@@ -552,29 +567,46 @@ Clients run **no brain and no navigation** (ADR-0007), so client cost is animati
 
 ### 11.2 Server — against `TUN-PERF-SERVER-TICK-BUDGET` 8.0 ms per 33 ms tick
 
-| Item | Budget | **Measured, US-0048, 78 NPCs, no LOD** |
+**The measured column is 78 NPCs with six players standing at the map's spawn points.** It was
+an *empty* district until US-0041 — see §11.2.1, and read every figure the corpus published
+before then as a best case.
+
+| Item | Budget | **Measured, 78 NPCs, six players** |
 |---|---|---|
-| Spatial hash rebuild (90 inserts) | ≤ 0.15 ms | **0.054 ms** |
-| LOD band evaluation (90 squared-distance compares) | ≤ 0.05 ms | none exists yet (US-0045) |
-| `NpcBrain.step()` × ~34 effective | ≤ 0.50 ms | **0.046 ms for all 78** |
+| Spatial hash rebuild (90 inserts) | ≤ 0.15 ms | **0.055 ms** |
+| LOD band evaluation (90 squared-distance compares) | ≤ 0.05 ms | inside the tick below |
+| `NpcBrain.step()` × ~34 effective | ≤ 0.50 ms | **0.046 ms for all 78 unbanded; 46 of 78 step** |
 | Steering + avoidance × ~34 | ≤ 0.60 ms | **not measurable** — see §11.2.1 |
-| `NavigationAgent3D` path queries (amortised) | ≤ 0.40 ms | inside the 0.54 ms tick below |
+| `NavigationAgent3D` path queries (amortised) | ≤ 0.40 ms | inside the tick below |
 | `CrowdDirector` rebalance (2 s timer, amortised) | ≤ 0.05 ms | inside the same |
-| Everything inside `CrowdDirector.tick()` | — | **mean 0.44 ms, p95 0.53, max 0.62** (0.54 before LOD) |
-| **Server total** | **≤ 1.75 ms of 8.0 ms** | tick is inside it; movement is unmeasured |
+| Everything inside `CrowdDirector.tick()` | — | **mean 0.54–0.57 ms, p95 0.67–0.71, max 2.16–2.43** |
+| **Server total** | **≤ 1.75 ms of 8.0 ms** | p95 is inside it; **one tick in ninety is not**, and movement is unmeasured |
 
 ### 11.2.1 The measured cost is movement, and it is not where the budget put it
 
-**AND EVERY NUMBER IN §11.2 IS THE CROWD NOBODY IS WATCHING.** Found in US-0047:
-`test_crowd_perf.gd` stands up the full 78-NPC crowd and **no pawns**, so
-`MatchContext.pawns` is empty, `CrowdLod.band_of` answers **Far for every NPC**, and the
-run's "6 of 78 brains stepped" is a property of having no observers rather than of how six
-players spread over a 120 × 120 m district. §4.1's ~34 of 90 has therefore never been
-tested against players; it may be right. The same gap applies to the 2 s pass: `CloneBalance`
-counts clones against player positions, so with none it does nothing and its cost is
-unmeasured. Adding six pawns moves the number the M3 gate is judged against, which is
-**US-0048's call**; the test prints the observer count on every run so the gap cannot be
-misread as a measurement.
+**EVERY NUMBER IN §11.2 USED TO BE THE CROWD NOBODY WAS WATCHING, AND IS NOT ANY MORE.**
+Found in US-0047 and fixed in US-0041: `test_crowd_perf.gd` stood up the full 78-NPC crowd
+and **no pawns**, so `MatchContext.pawns` was empty, `CrowdLod.band_of` answered Far for
+everything, and two subsystems did nothing in the measurement — `CloneBalance` counts
+against player positions and the sprinter sweep reads pawn velocity. Six pawns now stand at
+the map's own spawn points, and the observer count is printed on every run, because the
+reason this went unnoticed for two stories is that nothing said the scenario was empty.
+
+**The cost went up by about a fifth and stayed inside the budget.**
+
+| | Empty district | **Six players at the spawn points** |
+|---|---|---|
+| `CrowdDirector.tick()` mean | 0.439 ms | **0.54–0.57 ms** |
+| p95 | 0.521 ms | **0.67–0.71 ms** (budget 1.75) |
+| max over 90 ticks | 0.686 ms | **2.16–2.43 ms** |
+| Brains stepping | 6 of 78 | **46 of 78** |
+
+**THE MAX EXCEEDS THE BUDGET ON A SINGLE TICK AND THE GATE IS ASSERTED ON p95.** That is the
+right statistic for a gate — one tick in ninety is a warm-up, not a frame rate — but it is
+recorded here rather than left for somebody to discover, because a max above the line is the
+shape of a spike and §12 Q2 is a question about spikes. Nothing has yet isolated *what* the
+outlier is; the honest statement is that the crowd is comfortably inside its budget at p95 and
+that one tick in ninety is not.
 
 `test_crowd_perf.gd` (US-0048, built before US-0045 on purpose) measures the crowd on the real
 map with `TUN-CROWD-COUNT-DEFAULT-6P` NPCs. Three things the table above got wrong:
@@ -633,7 +665,7 @@ cutting it trades the design's identity for frame time.
 | # | Question | Position | Needed by |
 |---|---|---|---|
 | 1 | Client crowd budget has 0.10 ms of margin (§11.1). Is that survivable on the reference machine? | Unknown until 90 NPCs exist. `test_crowd_perf.gd` is an M3 exit criterion, and the §11.3 ladder is the response | M3 |
-| 2 | Does `NavigationAgent3D` amortise well at 90 agents, or does path recalculation spike? | Mitigate by staggering repath requests across ticks (max 3 per tick) and giving Far-band agents longer path validity | M3 |
+| 2 | Does `NavigationAgent3D` amortise well at 90 agents, or does path recalculation spike? | **Both halves built.** `RepathQueue` staggers the director's target changes at `TUN-PERF-CROWD-REPATH-PER-TICK` (US-0041); `CrowdBands` scales `path_max_distance` — the recalculation the queue does *not* control — by the band's own stride, measured at Near 5.0 m, Mid 15.0, Far 75.0 (US-0041's last line). **Whether it was ever a spike is still unmeasured**: `test_crowd_perf.gd` runs with no players, so every agent is Far there. See §11.2.1 | M3 |
 | 3 | ~~Should the spatial hash be double-buffered so systems read last tick's hash while this tick's rebuilds?~~ **Closed, US-0042.** | No. Ordering guarantee (TDD-07 §1.1) requires suspicion to see *this* tick's crowd. Rebuild was budgeted at 0.15 ms and **measures 0.0561 ms**, so correctness costs almost nothing | M3 |
 | 4 | `_rebalance_clones` re-routes toward under-served regions. Could that itself become a detectable pattern — clones converging on players? | Real risk. The 2 s interval and "nearest idle clone" selection are the mitigations. Watch for players reporting that clones "follow them". If it appears, retarget via circuit reassignment rather than direct pathing | M4 |
 | 5 | Startle propagation uses `ctx.rng`, so it is server-only and unpredictable by clients. Startle is visual-only, so this is fine — but if a future mechanic makes startle gameplay-relevant, it becomes a determinism problem. | Noted. Startle currently affects only NPC positions, which are replicated anyway | — |

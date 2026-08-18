@@ -52,6 +52,7 @@ var _formations := CrowdFormations.new()
 var _intent := CrowdIntent.new()
 var _alarm := CrowdAlarm.new()
 var _clones := CloneBalance.new()
+var _bands := CrowdBands.new()
 
 ## The shared grid, held from `setup()` so the public startle and corpse entry
 ## points can be called from outside a tick — `SYS-KILL` resolves a kill in the
@@ -79,13 +80,6 @@ var _rebalance_ticks: int = 60
 ## rather than a local, because the hash copies out of it and a fresh
 ## `PackedVector3Array` every tick is ninety NPCs' worth of garbage a second.
 var _here: PackedVector3Array = PackedVector3Array()
-
-## Where the players are, refilled each tick for the band evaluation. A member for
-## the same reason `_here` is one.
-var _watchers: PackedVector3Array = PackedVector3Array()
-
-## Each active NPC's band this tick, parallel to the pool.
-var _bands: PackedByteArray = PackedByteArray()
 
 ## How many brains actually stepped last tick. §4.1 predicts ~34 of 90; there is
 ## no other way to see the reduction from outside.
@@ -120,7 +114,6 @@ func setup(ctx: MatchContext) -> void:
 	_intent.setup(_pool, ctx.map, _rng, _formations, _corpses, _clones)
 	_goals.resize(_pool.body_count())
 	_here.resize(_pool.body_count())
-	_bands.resize(_pool.body_count())
 	ctx.crowd_hash.setup(ctx.map.bounds if ctx.map != null else AABB(), _pool.body_count())
 	for index: int in _pool.body_count():
 		_goals[index] = NO_GOAL
@@ -131,6 +124,9 @@ func setup(ctx: MatchContext) -> void:
 		_steering.configure(body, agent, _pool.is_active(index))
 		_steering.attach(body, agent)
 		_pool.context_of(index).rng = _rng
+	# Last: it seeds every agent's path tolerance, and `Steering` only knows the
+	# engine's default once it has configured one.
+	_bands.setup(_pool, _steering)
 
 
 ## One tick: every active brain, then the staggered path queries.
@@ -143,7 +139,7 @@ func tick(ctx: MatchContext, dt: float) -> void:
 		return
 	_tick = ctx.tick
 	_reindex(ctx)
-	_band_the_crowd(ctx)
+	_bands.evaluate(ctx.pawns)
 	# **THE 2 S TIMER RUNS BEFORE THE BRAINS**, so a slot assigned this tick is a
 	# `slot_assigned` flag the brain consumes this tick rather than next. GDD-05
 	# §5.2 makes the interval slow on purpose: visible re-forming is itself an
@@ -181,20 +177,6 @@ func _reindex(ctx: MatchContext) -> void:
 	ctx.crowd_hash.rebuild(_here, _pool.roster, active)
 
 
-## §4.1's band evaluation: ninety squared-distance compares against the players.
-##
-## **RUN EVERY TICK, DELIBERATELY.** Banding on the 2 s pass instead would be
-## cheaper and would mean a player walking into a plaza waits up to two seconds
-## for the crowd around them to start thinking at full rate — which is a crowd
-## that behaves differently *because you just arrived*, and therefore a tell.
-func _band_the_crowd(ctx: MatchContext) -> void:
-	_watchers = CrowdLod.player_points(ctx.pawns, _watchers)
-	for index: int in _pool.active_count():
-		var body := _pool.body_of(index)
-		if body != null:
-			_bands[index] = CrowdLod.band_of(body.global_position, _watchers)
-
-
 ## How many brains stepped on the last tick, and how many were active. §4.1's
 ## table predicts about 34 of 90.
 func lod_load() -> Vector2i:
@@ -210,7 +192,7 @@ func lod_load() -> Vector2i:
 ## somewhere else — a minute away. Cleared, the ordinary repath runs and
 ## `CrowdIntent` answers it with the reservation.
 func _rebalance_clones(ctx: MatchContext) -> void:
-	var sent := _clones.rebalance(ctx.crowd_hash, _pool, _watchers, personas_in_use)
+	var sent := _clones.rebalance(ctx.crowd_hash, _pool, _bands.watchers, personas_in_use)
 	for index: int in sent:
 		var brain := _pool.brain_of(index)
 		if brain == null:
@@ -222,10 +204,9 @@ func _rebalance_clones(ctx: MatchContext) -> void:
 			brain.handle(NpcBrain.Event.TIMER_EXPIRED, _pool.context_of(index))
 
 
-## The band `index` is in right now. Read by `test_crowd_lod.gd`, and by US-0041's
-## far-band path validity.
+## The band `index` is in right now. Read by `test_crowd_lod.gd`.
 func band_of(index: int) -> int:
-	return _bands[index] if index >= 0 and index < _bands.size() else CrowdLod.Band.FAR
+	return _bands.band_of(index)
 
 
 func teardown() -> void:
@@ -279,7 +260,7 @@ func _advance(index: int, dt: float) -> void:
 ## silently drop startles and gawk tokens** for two thirds of the crowd. Trap 11
 ## note: this docstring is charged to `_advance` above, so it stays short.
 func _think(index: int, brain: NpcBrain, cctx: CrowdContext, dt: float) -> void:
-	var band := _bands[index] as CrowdLod.Band
+	var band := _bands.band_of(index) as CrowdLod.Band
 	if not CrowdLod.due(band, _tick, index):
 		return
 	_stepped_last_tick += 1

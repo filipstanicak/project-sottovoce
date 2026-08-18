@@ -279,10 +279,42 @@ about travel time and cannot flatter the rule.
 `CloneBalance` would stay green with the director never calling it, which is precisely
 what happened to US-0039's pool.
 
+**US-0041 IS NOW COMPLETE: THE FAR-BAND LINE IS BUILT.**
+`Steering.tolerate_drift()` scales `NavigationAgent3D.path_max_distance` by the band's
+own **stride** — Near 5.0 m, Mid 15.0, Far 75.0. `path_max_distance` is the one path
+query `RepathQueue` does *not* stagger, which is the spike TDD-08 §12 Q2 asks about.
+**The stride is the multiplier rather than a new number**: how often an agent is thought
+about and how far it may wander are the same question twice. Near keeps the engine's own
+default, **captured rather than declared**, so the agents a player can watch are unchanged.
+It nearly shipped inert twice — a band seed that agreed with the answer meant genuinely
+Far agents were skipped and **the Far band was the only one that never got its
+tolerance** (Near 5.0, Mid 15.0, Far 5.0, measured), and seeding before `Steering` had
+captured the base would have multiplied **zero**. `CrowdBands` was split out of
+`CrowdDirector` for it, which was at 400 lines again.
+
+**AND THE CROWD PERF TEST WAS MEASURING A DISTRICT WITH NOBODY IN IT.** Found while
+checking whether US-0047's 2 s pass costs anything. `MatchContext.pawns` was empty, so
+`CrowdLod.band_of` answered Far for everything, `CloneBalance` did nothing, and the
+sprinter sweep did nothing. **Six pawns now stand at the map's own spawn points**, and
+every number the corpus published from that test has moved:
+
+| | Empty district | **Six players** |
+|---|---|---|
+| `CrowdDirector.tick()` mean | 0.439 ms | **0.54–0.57 ms** |
+| p95 (the asserted line, budget 1.75) | 0.521 ms | **0.67–0.71 ms** |
+| max over 90 ticks | 0.686 ms | **2.16–2.43 ms** |
+| Brains stepping | 6 of 78 | **46 of 78** |
+| Bands | 0 / 0 / 78 | **30 Near, 48 Mid, 0 Far** |
+
+**THERE IS NO FAR BAND AT MATCH START**, so §4.1's fifteen-tick stride and US-0041's
+longer path validity only apply once players cluster. The reduction is **1.7×, not
+§4.1's 2.6× and not the 13× the empty run implied**. And **the max exceeds the 1.75 ms
+budget on one tick in ninety** while p95 sits comfortably under it — the right statistic
+for a gate, and still a spike nobody has isolated. US-0048 carries both.
+
 **M3'S REMAINING WORK IS US-0048, THE GATE**, and nine of its ten lines are still
 blocked on things that do not exist — clone meshes on the wire, animation clips, and an
-owner at a windowed client. **US-0041's far-band `path_max_distance` is still the one
-cheap unstarted line in the milestone.**
+owner at a windowed client.
 
 ---
 
@@ -350,8 +382,8 @@ rig**, and ANIMATION_SPEC §8 costs the parity set alone at 14 × 4 × 2.
 |---|---|---|
 | Spatial hash rebuild | ≤ 0.15 ms | **0.054 ms** |
 | `NpcBrain.step()` × all 78 | ≤ 0.50 ms for ~34 | **0.046 ms** |
-| Everything inside `CrowdDirector.tick()` | — | **0.44 ms** with LOD, 0.54 without |
-| Effective brain steps | ~34 of 90 | **6 of 78** |
+| Everything inside `CrowdDirector.tick()` | — | **0.54–0.57 ms** with six players; 0.44 with none |
+| Effective brain steps | ~34 of 90 | **46 of 78** — 30 Near, 48 Mid, **no Far at all** |
 | Crowd movement, per physics frame | ≤ 0.60 ms | **not measurable — see below** |
 | Physics frame, **wall clock** | — | **16.73 ms** full, 16.56 with no crowd, deadline 16.67 |
 
@@ -369,13 +401,15 @@ profiler this project does not have — owed, not estimated. What is coherent: t
 server keeps up, with the full crowd, against a 16.67 ms deadline.
 
 **§4.1's LOD SAVES A FIFTH OF A MILLISECOND, AND IS STILL WORTH BUILDING.** The
-reduction *looks* bigger than §4.1 claims — 6 of 78 effective brain steps against
-~34 of 90 — but **that reading is an artefact and US-0047 found out why**:
-`test_crowd_perf.gd` stands up **no pawns at all**, so `CrowdLod.band_of` answers
-Far for every NPC and the whole measurement is the crowd nobody is watching.
-§4.1's ~34 of 90 may well be right with six real players; nothing here has tested
-it. What is certainly true is that LOD is worth *less* than §4.1 hoped, because
-the brains were 0.046 ms to begin with. It is built for ADR-0003, and because it **unblocks US-0041's
+reduction was published as "6 of 78 effective brain steps, not ~34 of 90" and
+**that number was measured on an empty district** — US-0047 found that
+`test_crowd_perf.gd` stood up no pawns at all, so every NPC banded Far and 6 is
+just 78 divided by the Far stride of 15. With six players at the spawn points it
+is **46 of 78: 30 Near, 48 Mid and no Far whatsoever**, because six spawn points
+on a 120 × 120 m map leave nothing beyond 45 m of somebody. So the reduction is
+**1.7×, not §4.1's 2.6× and not the 13× the empty run implied**, and the Far
+band exists only when players cluster. It is still worth *less* than §4.1 hoped,
+because the brains were 0.046 ms to begin with. It is built for ADR-0003, and because it **unblocks US-0041's
 far-band path validity**. US-0045 says that rather than claiming a win it does not
 deliver.
 
@@ -1358,7 +1392,7 @@ US-0024 measures it against clips that do not exist.
 | | |
 |---|---|
 | CI | 7 jobs. **Running again as of 2026-08-07 after a two-day outage** — run `31200490320`, all seven green. The seven commits merged during the outage were never through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | **41 arch + 81 unit + 31 integration scripts**, holding 154 + 719 + 230 tests and 239 + 5903 + 626 assertions. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **152.1 s** of the 180 s it is allowed, up from 87.7 s at M2 and **close enough to the ceiling that the next crowd test has to justify itself** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **One is `pending` by design** — `test_upstream_bandwidth.gd` reports the 253 % upstream miss rather than going red, the same choice `test_snapshot_size.gd` made. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
+| Tests | **41 arch + 82 unit + 31 integration scripts**, holding 154 + 719 + 230 tests and 239 + 5903 + 626 assertions. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **152.1 s** of the 180 s it is allowed, up from 87.7 s at M2 and **close enough to the ceiling that the next crowd test has to justify itself** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **One is `pending` by design** — `test_upstream_bandwidth.gd` reports the 253 % upstream miss rather than going red, the same choice `test_snapshot_size.gd` made. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
 | Tuning | 286 tunables across 14 resource classes; all 29 cross-field invariants assert. **Eight IDs are deprecated** and recorded in TUNABLES §19 — never reused |
 | Autoloads | All eight. `Tuning` precomputes 89 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |
@@ -1366,12 +1400,12 @@ US-0024 measures it against clips that do not exist.
 | Map | `MAP-VETRAIO` greybox, 120 × 120 m. Client loads 28 meshes, server loads none. **The street surface is exactly `STREET_Y`** — floors used to straddle their declared height, putting every walkable top 0.1 m high, which made the 0.9 m stalls unvaultable and three spawn points float over nothing. **Lit as of US-0091** — one key light and a sky, because nothing in the project had ever created either and the district rendered near-black. **The navmesh is baked at build time and committed** (US-0041): 195 polygons, and it sits **0.400 m above the street**, which is why steering applies gravity rather than trusting the snap |
 | Pawn | 14 states declared — **the Jog rung was removed in US-0090** and `Jog` is a retired ID absent from `ALL`. Transition edges asserted against the normative diagram. **Eleven implemented**: five locomotion + `Vault`, `Climb`, `Drop`, `KillAnim`, `Stunned`, `Blended`. `Respawning`, `StunAnim` and `Dead` are M4 |
 | Traversal | **Complete.** Probes cast, all seven §7.2 cases resolve from real geometry, both forgiveness windows open, and vault, mantle, climb, drop and gap jump all perform. **Case 7 hops as of US-0093** — an impulse, not a state, scaled by the speed rung and adding nothing horizontal. **The action buffer arms on the PRESS, not the hold** — arming from the held bit spent a traverse every frame a finger stayed down |
-| Crowd | 90 bodies pre-allocated, 78 active, each with a brain and a `CrowdContext` allocated beside it. One `SpatialHash` on `MatchContext`, rebuilt at the **top** of the crowd stage so the brains and every downstream system read the same grid — 0.0561 ms, allocating nothing. `CrowdDirector` ticks them at the `crowd` stage and translates the five flags `NpcBrain.step()` deliberately does not read into `handle()` calls; `Steering` moves the bodies from the **avoidance callback**, on the physics frame, and knows nothing about states — it takes a point and a speed. Repath is FIFO and capped at three a tick. **Four processions of four walk the map's circuits** (US-0043), each with a fifth slot no NPC may take, at a pace throttled by its worst straggler. **Banded by distance** as of US-0045 — 20/45/70 m, strides 1/3/15, staggered by index, and the brain is the *only* thing rated. **All five states are reachable** as of US-0044: a sprinting player startles the crowd once a second, a wave propagates one hop at 0.4, and a corpse gathers six onlookers who walk to it and disperse before it fades. Violence has an entry point and no caller until M4. **Clone-parity layer 4 hangs off the same 2 s pass as the formations** (US-0047): `CloneBalance` holds the clones already near a player and fetches one when a persona is short, always to a map anchor and never at the player — 12 958 of 12 960 readings hold the floor |
+| Crowd | 90 bodies pre-allocated, 78 active, each with a brain and a `CrowdContext` allocated beside it. One `SpatialHash` on `MatchContext`, rebuilt at the **top** of the crowd stage so the brains and every downstream system read the same grid — 0.0561 ms, allocating nothing. `CrowdDirector` ticks them at the `crowd` stage and translates the five flags `NpcBrain.step()` deliberately does not read into `handle()` calls; `Steering` moves the bodies from the **avoidance callback**, on the physics frame, and knows nothing about states — it takes a point and a speed. Repath is FIFO and capped at three a tick. **Four processions of four walk the map's circuits** (US-0043), each with a fifth slot no NPC may take, at a pace throttled by its worst straggler. **Banded by distance** as of US-0045 — 20/45/70 m, strides 1/3/15, staggered by index — and `CrowdBands` also scales each agent's `path_max_distance` by its band's stride (US-0041's last line), which is the one path query `RepathQueue` does not stagger. **All five states are reachable** as of US-0044: a sprinting player startles the crowd once a second, a wave propagates one hop at 0.4, and a corpse gathers six onlookers who walk to it and disperse before it fades. Violence has an entry point and no caller until M4. **Clone-parity layer 4 hangs off the same 2 s pass as the formations** (US-0047): `CloneBalance` holds the clones already near a player and fetches one when a persona is short, always to a map anchor and never at the player — 12 958 of 12 960 readings hold the floor |
 | Pawn body | `GreyboxBody`, procedural — capsule, head and a chest marker on `+Z`, measured from the collider so the two cannot drift. **`PersonaVisuals` was empty through US-0021, 0022 and 0023**: three stories of camera work built around a pawn that did not render, every suite green. Not a persona — ART_BIBLE §6.1's four constructions are US-0039's |
 | Camera | Real spring arm: 2.6 m, **pawn centred** (US-0092 — the 0.45 m offset never changed the composition, because the rig aims at the pawn's own axis; `INPUT-SHOULDER` retired with it), occlusion that pulls **in** and never sideways, `WORLD`-masked so a crowd cannot push it. The FOV ladder is bound to the **state**, never to `ctx.velocity`: the rung is a consequence of the decision, not of the physics that follows it. Crowd-scan narrows to 48° and grants nothing. **Positive pitch LOWERS the arm** — the rig looks *at* the pivot, so a raised arm looks down; it shipped inverted from US-0021 until somebody played it |
 | Input | 20 `InputMap` actions from 14 live `INPUT-` IDs — `INPUT-SHOULDER` is retired via `InputActions.DEPRECATED`, still in the corpus and bound to nothing, KBM + pad. Chain GDD-02 → `Ids` → `InputActions` → `project.godot`, guarded on every hop, both directions. **Sampled once per physics frame by `LocalPawnDriver`, the only caller** — see trap 12. The mouse is **captured** on boot; `INPUT-MENU` releases, a click takes it back. **Only a mapped gamepad holds the joypad bindings** — `PadSelection`, applied through the one `InputMap` writer, because a set of sim pedals was steering |
 
-**Forty-seven criteria are deliberately unticked**, each blocked by something real — counted
+**Forty-six criteria are deliberately unticked**, each blocked by something real — counted
 from the `done` and `in-progress` stories on 2026-08-16. **Nine of them arrived at once**:
 US-0048 moved from `draft` to `in-progress` when its first instrument was built, so the M3
 gate's own checklist now counts. That is the honest direction — a story with work in it is
@@ -1401,7 +1435,6 @@ grep -c '^- \[ \]' docs/40_backlog/stories/*.md
 | US-0048 | nine of the ten M3 gate lines | the gate is **not run**; one instrument is built. `test_crowd_perf.gd` exists and passes, and the other nine wait on US-0045 (LOD), US-0046 (clone meshes and animation parity), US-0047 (clone local minimum) and an owner at a windowed client |
 | US-0044 | startle waves read directionally **to a human observer** | needs rendered clones and an owner at a windowed client. **NPC meshes are US-0046.** The mechanical half is measured — 13 of 13 startled NPCs sent away from the violence — and the criterion is not rounded up on it |
 | US-0043 | the circuits' declared periods; the 8 m circuit separation | **both are the level's, not the code's.** The routes are 150–237 m, so 55–75 s implies 2.6–3.2 m/s; and CIRC-A and CIRC-B share the z=45 spine, passing within **0.51 m** against a rule of 8 m — geometry, so no re-timing fixes it. Re-authoring four routes against six competing rules is the owner's |
-| US-0041 | far-band path validity | **no longer blocked — unstarted.** US-0045 built the bands and `CrowdDirector.band_of()` answers; nothing yet gives a Far agent a larger `path_max_distance`. The cheapest open crowd item in the backlog |
 | US-0038 | frame-rate independence; downstream "measured"; the 180 ms feel check | impossible headless (the structural substitute is accepted, not ticked); the entity counts in the projection need M3's crowd; the feel check is the owner's and needs a windowed client |
 | US-0031 | rate LOD beyond 45 m; downstream measured with 90 NPCs | there is no crowd until M3 — and **rate LOD is NPC-only by design**, since a *player* at 46 m at 10 Hz would be visibly coarse. The projection is 93.5 kbit/s, 97 %, but a projection is not a measurement |
 | US-0035 | NPC transforms recorded; memory "around 23 KB" | there is no crowd until M3. Memory measured at **28.1 KB** — 20 B per record, not §8.3's 16, because the entity id is stored rather than implied by slot. TDD-04 §8.3 amended |
