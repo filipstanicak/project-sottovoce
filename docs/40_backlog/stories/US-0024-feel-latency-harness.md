@@ -284,7 +284,7 @@ it is now settled at the controls rather than in a document.
   while wiring the readout: `InputSampler.sample()` ran twice per physics frame, so `SprintGate`
   counted at double rate and `TUN-SPEED-SPRINT-HOLD` opened in 0.2 s instead of 0.4 — the
   deliberate friction §1.5 spends a page defending, at half price. Fixed in
-  [#44](https://github.com/Slimexsan/project-sottovoce/pull/44) by making `LocalPawnDriver` the
+  [#44](https://github.com/filipstanicak/project-sottovoce/pull/44) by making `LocalPawnDriver` the
   only caller of `sample()` and moving `command_sampled` onto it. Re-measured after the fix:
   **24 emissions to open a gate specified at 24 ticks.** The checklist above is safe to run as
   written; sprint arms at the speed it is meant to.

@@ -520,10 +520,10 @@ feature.
 
 | # | Mechanism | Saving | Detail |
 |---|---|---|---|
-| 1 | **Distance culling** | 0–50 % | NPCs beyond `TUN-NET-NPC-CULL-RADIUS` 70 m are not sent. 70 m > `TUN-COMPASS-RANGE-MAX` 60 m, so a culled NPC can never affect anything the client can perceive (invariant §17.17) |
+| 1 | **Distance culling** | **measured: 6–14 %, not the 0–50 % assumed** | **BUILT, US-0030**, and it was not the lever — a 70 m radius on a 120 × 120 m map leaves most of the district in reach of most of it. NPCs beyond `TUN-NET-NPC-CULL-RADIUS` 70 m are not sent. 70 m > `TUN-COMPASS-RANGE-MAX` 60 m, so a culled NPC can never affect anything the client can perceive (invariant §17.17) |
 | 2 | **Quantisation** | ~60 % vs. floats | Player position 3×i16 at 1 cm; **NPC position 2×i16 plus a 5 cm height byte**; yaw u8 at 1°; NPC anim 3+5 bits. **8 bytes per NPC** including index, measured |
 | 3 | **Delta encoding** | ~40 % | **Built, US-0031.** Only entities whose **quantised** state changed since the client's last ack. A standing idle NPC costs nothing, and 40–60 % of the crowd is idle at any moment. Measured against players: a settled snapshot for two motionless clients is **55 B — the fixed block, with not one remote record** |
-| 3 | **Delta encoding, NPCs** | **measured: 7 % of the as-built figure** | **BUILT, US-0031.** `NpcDelta`, keyed per NPC and advanced on the ack. No protocol change: *absent* already meant "no update". 119 % → 111 % |
+| 3b | **Delta encoding, NPCs** | **measured: 7 % of the as-built figure** | **BUILT, US-0031.** `NpcDelta`, keyed per NPC and advanced on the ack. No protocol change: *absent* already meant "no update". 119 % → 111 % |
 | 4 | **Rate LOD** | **measured: 24 % of the as-built figure** | **BUILT, US-0031.** `TUN-NET-NPC-RATE-LOD-RADIUS` / `-HZ`, staggered by index so the peak falls with the mean. 155 % → 119 %. It is scoped to NPCs on purpose: a *player* at 46 m interpolated at 10 Hz would be visibly coarse, and the justification below does not hold for them. NPCs beyond 45 m at 10 Hz. Interpolation error at walking speed is < 15 cm — far below every gameplay radius, and those NPCs are outside all of them anyway |
 
 ### 7.3 Upstream
@@ -760,7 +760,8 @@ func sample(entity_id: int, render_time_ms: float) -> EntityState
 | `scripts/net/server/rpc_router.gd` | Authority chokepoint |
 | `scripts/net/protocol/authority.gd` | Pure. **The authority column of §6.1 as a table** — who may say what, and when |
 | `scripts/net/protocol/sequence_gate.gd` | Pure. Drops stale and replayed input, across the `u16` wrap |
-| `scripts/net/server/snapshot_builder.gd` | Cull, delta, quantise |
+| `scripts/net/server/snapshot_builder.gd` | Cull, delta, quantise. **All three are real as of US-0030/US-0031**, crowd included |
+| `scripts/net/server/npc_delta.gd` | **Exists**, US-0031. Not in the original table. Per-NPC baselines, advanced on the ack — it could not be `SnapshotDelta`, which keys per **tick** and would call a rate-LOD'd NPC "new" on every tick it was not offered |
 | `scripts/net/server/lag_comp_history.gd` | 500 ms ring. **Pure** — plain arrays in, a `RewoundWorld` out |
 | `scripts/net/server/rewound_world.gd` | What a rewind returns. Positions and yaw and **nothing else**, per §8.2 |
 | `scripts/net/server/lag_comp_recorder.gd` | Walks the world once a tick and feeds the ring. Separate from it so the ring can be asked a question without standing a world up |
@@ -792,7 +793,11 @@ func sample(entity_id: int, render_time_ms: float) -> EntityState
 | `test_input_buffer_overflow.gd` | At 600 ms RTT the buffer force-accepts rather than accumulating unbounded error |
 | `test_interpolation_timestamps.gd` | Mixed 30 Hz and 10 Hz entity streams both interpolate correctly with no stutter at the LOD boundary |
 | `test_snapshot_size.gd` | Worst-case snapshot (6 players, 90 NPCs, all moving) is within `TUN-NET-BANDWIDTH-BUDGET-DOWN` |
-| `test_crowd_bandwidth.gd` | Measured bytes/s per client over a 60 s synthetic worst case is within budget (ADR-0007 compliance) |
+| `test_crowd_bandwidth.gd` | **BUILT, US-0048.** §7.1's arithmetic recomputed on **measured** crowd counts rather than assumed ones — `test/unit/net/protocol/`. Reports **112 %** and goes `pending`, because nothing in that file can fix it. The two change fractions were the wrong inputs, not the record size |
+| `test_crowd_wire_cost.gd` | **BUILT, US-0030/US-0031.** What the shipped builder actually charges a client, in serialised bytes — `test/unit/net/server/`. **111 %**, and it agrees with the projection above by an independent route. The two files answer different questions on purpose |
+| `test_snapshot_culling.gd` | **BUILT, US-0030.** Nothing beyond `TUN-NET-NPC-CULL-RADIUS` reaches a client; the cull is **positional, not visual** (asserted by turning the observer through 180°); the pool's own index survives it. Falsified against two planted defects |
+| `test_npc_rate_lod.gd` | **BUILT, US-0031.** A far NPC is sent one tick in `stride`, the stride is derived from the two tunables rather than declared, **the band is staggered so no tick carries all of it**, and a distant *player* is still sent every tick |
+| `test_npc_delta.gd` | **BUILT, US-0031.** A standing NPC is dropped and a walking one is not, in the same tick; **an unacknowledged record is re-sent**; a peer that left leaves no baseline behind |
 | `test_upstream_bandwidth.gd` | Upstream within `TUN-NET-BANDWIDTH-BUDGET-UP` — **currently expected to FAIL without input coalescing (§7.3)** |
 | `test_npc_cull_radius.gd` | `TUN-NET-NPC-CULL-RADIUS >= TUN-COMPASS-RANGE-MAX` (invariant §17.17) |
 | `test_payload_omissions.gd` | The snapshot and `NET-S2C-CONTRACT-ASSIGNED` contain **no** persona, exact position, elevation or tier field for the contract; `NET-S2C-PREY-WARNING` has exactly one field |

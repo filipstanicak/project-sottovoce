@@ -4,7 +4,7 @@ title: M3 gate — crowd performance and anonymity
 version: 0.1.0
 status: in-progress
 owner: Technical Director
-last_updated: 2026-08-18
+last_updated: 2026-08-19
 depends_on: [BACKLOG-ROADMAP, BIBLE-PERF-BUDGET, BIBLE-RISK-REGISTER]
 ---
 
@@ -89,6 +89,13 @@ expensive exactly when the district is most evenly occupied.
       measured against 0.55 and 0.70 assumed. Those two decide the total and were the only inputs
       never checked; US-0029 shrank the NPC record 10 B → 8 B on the strength of this table while
       `0.55` sat unquestioned inside it. **The record was never the problem.** TDD-04 §7.1.1.
+      — **AND THE THREE MECHANISMS §7.1 ASSUMES ARE NOW ALL BUILT, WHICH DID NOT CLOSE IT.**
+      US-0030 culled the crowd and US-0031 added rate LOD and an NPC delta: **155 % → 119 % →
+      111 %**, measured on the real builder's serialised bytes. That agrees with the projection
+      above to one point, by an independent route. **The remaining 11 % has no owner and neither
+      candidate is priced** — ADR-0007's seed-derived far crowd, or a smaller
+      `TUN-NET-NPC-CULL-RADIUS`, which invariant 17 pins above `TUN-COMPASS-RANGE-MAX`.
+      TDD-04 §7.1.2.
 - [ ] `test_clone_animation_parity.gd` and `test_footstep_parity.gd` pass for all four personas.
 - [x] `test_clone_local_min.gd` passes over a clustered 3-minute match. **US-0047.** A unit
       test, because 5 400 ticks of physics do not fit the integration budget. **Passing is not the
