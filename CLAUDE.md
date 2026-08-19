@@ -286,6 +286,30 @@ over **36 788 records built and 0 delivered**, because `Snapshot.deserialise` is
 static and calling it on an instance throws the result away — which its
 vacuous-success guard caught on the first run. TDD-04 §7.1.3.
 
+**AND IT WAS WATCHED WITH THE FIX IN.** Four live runs, observer standing still:
+the centre of the district draws **73 NPCs, 0 dropped**; `S3` draws **34, 0
+dropped**; `S4` draws **18, with one departure and exactly one drop** — a clean
+farewell at 70.027 m. Drawn speed 1.400–1.514 m/s against a stroll of 1.400.
+**The level-data blocker is visible on screen for the first time**: a player at
+`S4` can see 18 NPCs in the whole district against 73 at the centre.
+
+**TWO OF THOSE RUNS SHOWED THE PAWN MOVING WITH NOBODY AT THE CONTROLS, AND IT IS
+NOT EXPLAINED.** The observer finished 23 m and then 41 m from its spawn point,
+HUD reading `Run` at 4.50 m/s; two later runs were perfectly still. `PadSelection`
+logged the identical line in all four — pedals ignored — and
+**`tools/input_live.tscn` measured 0 of 240 sampled commands carrying movement and
+0.00 m of travel** on the real client scene joined to a real server. So it is not
+US-0090's pedals defect and not the input layer as far as anything here can see.
+**Observed twice, absent twice, open.**
+
+**`tools/input_probe.gd` NEARLY GAVE THE WRONG ANSWER, AND THE REASON IS TRAP 13
+AGAIN.** It is a `-s` script, so it stands up no client scene and `PadSelection`
+never runs — it reported all three pedal actions held at 1.00 while the game was
+correctly ignoring them. Both true; only one about the game. **`input_live.tscn`
+is the missing half**, and `crowd_probe` now prints whether the observer moved,
+because every other number in its report means something different if the player
+was walking.
+
 **ABSENCE MEANS "NO UPDATE", NOT "GONE" — THE OPPOSITE OF `RemotePawns`.** That
 class frees a slot the snapshot stops mentioning and is right to, because every
 pawn is offered every tick. An NPC is culled, rate-LOD'd and delta-omitted, so

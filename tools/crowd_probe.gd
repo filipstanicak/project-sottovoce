@@ -55,6 +55,10 @@ var _dropped := 0
 var _flappers: Dictionary = {}
 var _where: Dictionary = {}
 
+## Where the observer was when the watch began. Every other number here is read
+## differently if it changed.
+var _began := Vector3.INF
+
 
 func _ready() -> void:
 	if DisplayServer.get_name() == "headless":
@@ -80,6 +84,7 @@ func _probe() -> void:
 	# min/max pair cannot tell that from flapping at the boundary.
 	_view.npc_appeared.connect(func(_i: int) -> void: _appeared += 1)
 	_view.npc_dropped.connect(_on_dropped)
+	_began = _at()
 	await _shoot("crowd_ground")
 	await _watch()
 	await _shoot("crowd_after")
@@ -136,6 +141,7 @@ func _report() -> void:
 	# reporting 23 and a run reporting 66 can both be correct, and only the
 	# observer's position says which.
 	print("observer at (%.1f, %.1f, %.1f)" % [_at().x, _at().y, _at().z])
+	_report_the_observer()
 	print("NPCs drawn: %d, spread %.1f m, y from %.2f to %.2f" % _shape())
 	print("count %d..%d over the watch: %d appeared, %d dropped %s" % _churn())
 	if speeds.is_empty():
@@ -210,6 +216,41 @@ func _speeds() -> Array:
 ## Where the local player is standing, from the view's own record of it.
 func _at() -> Vector3:
 	return _view.observer()
+
+
+## **DID THE PLAYER MOVE?** Every other line in this report means something
+## different if it did. "Nothing was dropped" is the strongest evidence a cull
+## boundary is quiet only when the observer stood still; with a player walking,
+## NPCs leaving reach is the ordinary case and a drop count says almost nothing.
+##
+## **AND IT IS NOT A HYPOTHETICAL.** This tool has twice reported an observer tens
+## of metres from its spawn point with nobody at the controls, while
+## `tools/input_live.tscn` on the same build measured **0 of 240 sampled commands
+## carrying movement** and a pawn that travelled 0.00 m. Both cannot be right, and
+## the probe that says the player moved is the one that was not built to watch
+## input. Recorded rather than explained away.
+func _report_the_observer() -> void:
+	if _began == Vector3.INF:
+		return
+	var travelled := Vector2(_at().x - _began.x, _at().z - _began.z).length()
+	if travelled < 0.5:
+		print(
+			(
+				"the observer stood still (%.2f m), so the churn line below is about the crowd"
+				% travelled
+			)
+		)
+		return
+	print(
+		(
+			(
+				"THE OBSERVER MOVED %.2f m, from (%.1f, %.1f) — so drops below are the "
+				+ "player leaving NPCs behind as much as NPCs leaving, and this run says "
+				+ "little about the cull boundary. Run tools/input_live.tscn."
+			)
+			% [travelled, _began.x, _began.z]
+		)
+	)
 
 
 func _shape() -> Array:
