@@ -95,7 +95,8 @@ whose shape depends on a flag is a format that gets read wrong on the branch nob
       a delta whose baseline it lacks rather than assembling a plausible wrong world — and a
       dropped snapshot never becomes an ack, so the error cannot fail to converge.
 - [ ] **Measured downstream is within 96 kbit/s at 6 players and 90 NPCs.** **Now measured, and
-      missed: 106.4 kbit/s, 111 %** with culling, rate LOD and the NPC delta all built — 155 %
+      missed: 107.6 kbit/s, 112 %** with culling, rate LOD and the NPC delta all built and
+      **charged against a lagging ack** — 155 %
       with culling alone, 119 % with rate LOD added. **It agrees with §7.1.1's 112 % projection,
       reached by an independent route** (`test_crowd_wire_cost.gd`, on the real builder's serialised
       bytes at the worst spawn point). The 93.5 kbit/s / 97 % this line used to carry was a

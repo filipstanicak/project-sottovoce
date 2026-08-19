@@ -330,9 +330,9 @@ budget** where the change fraction says 78 % of records move every tick. A delta
 can only drop what does not move, so a saving that large is arithmetically
 impossible — **a result better than the mechanism can explain is a broken
 measurement**, and this time the program under it was broken too. Corrected, the
-same test reads 111 %.
+same test reads 112 %.
 
-**THE CROWD IS ON THE WIRE, CULLED, RATE-LOD'D AND DELTA-ENCODED. 155 % → 111 %.** US-0030's
+**THE CROWD IS ON THE WIRE, CULLED, RATE-LOD'D AND DELTA-ENCODED. 155 % → 112 %.** US-0030's
 three culling criteria and US-0031's rate-LOD line had been unticked since M2 with
 the note "there is no crowd until M3". There is one now. Priced by
 `test_crowd_wire_cost.gd` on the **real builder's serialised bytes**, at the worst
@@ -340,10 +340,18 @@ of six spawn points:
 
 | | Culled | + rate LOD | **+ delta** |
 |---|---|---|---|
-| Mean snapshot | 591 B | 447 B | **415 B** |
-| Of a 96 kbit/s budget | 148.6, **155 %** | 114.0, **119 %** | **106.4, 111 %** |
+| Mean snapshot | 591 B | 447 B | **420 B** |
+| Of a 96 kbit/s budget | 148.6, **155 %** | 114.0, **119 %** | **107.6, 112 %** |
 
-**AND 111 % MEASURED AGREES WITH §7.1.1's 112 % PROJECTED, BY TWO INDEPENDENT
+**THE LAST COLUMN WAS 111 % AND IS NOW 112 %, BECAUSE IT IS CHARGED AGAINST A
+LAGGING ACK.** The delta's baseline advances on acknowledgement, so acking the
+tick you just built measures a connection nobody has — and the delta being
+measured that way **never converged in a real game at all**. At a three-tick ack
+(100 ms) it is 112 %, and the sensitivity is guarded now: 415 B instant, 414 B at
+three ticks, 426 B at ten. Restoring the defect takes the three-tick figure to
+**460 B** and both guards fire.
+
+**AND 112 % MEASURED AGREES WITH §7.1.1's 112 % PROJECTED, BY TWO INDEPENDENT
 ROUTES** — one walks a modelled crowd and counts which records change, the other
 serialises the real builder's output and weighs it. They were built for different
 questions and agree to one point.
@@ -1660,7 +1668,7 @@ US-0024 measures it against clips that do not exist.
 | | |
 |---|---|
 | CI | 7 jobs. **Running again as of 2026-08-07 after a two-day outage** — run `31200490320`, all seven green. The seven commits merged during the outage were never through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | **41 arch + 90 unit + 32 integration scripts**, holding 154 + 792 + 234 tests and 239 + 6337 + 639 assertions. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **168.9 s** of the 180 s it is allowed, up from 87.7 s at M2 — **11 s of headroom left, and the next integration test has to justify itself hard against that**. `test_server_tick_budget.gd` cost 9.8 s of it and is a gate line; the one before it, the 2 s pass A/B, samples ninety ticks **twice** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **Five are `pending` by design, all in the unit suite** — `test_upstream_bandwidth.gd` reports the 145 % upstream miss, **`test_crowd_bandwidth.gd` the 112 % downstream projection and `test_crowd_wire_cost.gd` the 155 % it actually costs today**, `test_circuit_separation.gd` US-0043's 0.51 m circuits, and `test_clone_animation_parity.gd` the missing clip library. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
+| Tests | **41 arch + 90 unit + 32 integration scripts**, holding 154 + 793 + 234 tests and 239 + 6340 + 639 assertions. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **168.9 s** of the 180 s it is allowed, up from 87.7 s at M2 — **11 s of headroom left, and the next integration test has to justify itself hard against that**. `test_server_tick_budget.gd` cost 9.8 s of it and is a gate line; the one before it, the 2 s pass A/B, samples ninety ticks **twice** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **Five are `pending` by design, all in the unit suite** — `test_upstream_bandwidth.gd` reports the 145 % upstream miss, **`test_crowd_bandwidth.gd` the 112 % downstream projection and `test_crowd_wire_cost.gd` the 155 % it actually costs today**, `test_circuit_separation.gd` US-0043's 0.51 m circuits, and `test_clone_animation_parity.gd` the missing clip library. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
 | Tuning | 288 tunables across 14 resource classes; all 31 cross-field invariants assert — split across `TuningInvariants` and `TuningInvariantsTech` since the first file hit 400 lines, with one entry point still. **Eight IDs are deprecated** and recorded in TUNABLES §19 — never reused |
 | Autoloads | All eight. `Tuning` precomputes 89 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |
@@ -1700,11 +1708,11 @@ grep -c '^- \[ \]' docs/40_backlog/stories/*.md
 | US-0047 | "always had 2 within 25 m"; "does not read as following" | **"Always" is not achievable and the reason is a walk**: a fetched clone crosses 25 m in ~18 s, so a player who loses one is short for that walk. Supply is not the constraint — 4.27 clones of each persona on average against a floor of 2. 100 of 12 960 readings under the floor, never below 1, and **of 21 short pairs the pass saw, 18 already had a clone coming and 6 were dispatched**: the rule never ignores a breach, and that is what is asserted. The second criterion's readable half needs a client that has ever rendered a clone |
 | US-0046 | layers 2 and 3, footstep parity, the idle cycler | **there are no animation clips in this project, on either rig.** Layer 2's declaration half asserts and its library half reports; layer 3's check exists with no call site because a call site needs an `AnimationTree`; footsteps need `Audio.play()`, a stub until US-0075. ANIMATION_SPEC §8 costs the parity set at 14 × 4 personas × 2 rigs |
 | US-0045 | the three client-LOD lines | **US-0046.** There is no `NpcView`, no mesh and no `AnimationTree` in the project, so animation LOD, the silhouette-fairness check and mesh LOD have nothing to band |
-| US-0048 | six of the ten M3 gate lines | **the gate is RUN.** Four are met — `test_crowd_perf.gd`, `test_clone_local_min.gd`, the risk re-score, and **server tick p99 at 2.15 ms of 8.0**, measured here by booting the real `server_root.tscn`. Of the six left, `test_crowd_bandwidth.gd` is a **measured miss** at 111 % and not a blocked line; the rest wait on clone meshes on the wire, animation clips, and an owner at a windowed client. **The tag is the owner's call** |
+| US-0048 | six of the ten M3 gate lines | **the gate is RUN.** Four are met — `test_crowd_perf.gd`, `test_clone_local_min.gd`, the risk re-score, and **server tick p99 at 2.15 ms of 8.0**, measured here by booting the real `server_root.tscn`. Of the six left, `test_crowd_bandwidth.gd` is a **measured miss** at 112 % and not a blocked line; the rest wait on clone meshes on the wire, animation clips, and an owner at a windowed client. **The tag is the owner's call** |
 | US-0044 | startle waves read directionally **to a human observer** | needs rendered clones and an owner at a windowed client. **NPC meshes are US-0046.** The mechanical half is measured — 13 of 13 startled NPCs sent away from the violence — and the criterion is not rounded up on it |
 | US-0043 | the circuits' declared periods; the 8 m circuit separation | **both are the level's, not the code's.** The routes are 150–237 m, so 55–75 s implies 2.6–3.2 m/s; and CIRC-A and CIRC-B share the z=45 spine, passing within **0.51 m** against a rule of 8 m — geometry, so no re-timing fixes it. Re-authoring four routes against six competing rules is the owner's |
 | US-0038 | frame-rate independence; downstream "measured"; the 180 ms feel check | impossible headless (the structural substitute is accepted, not ticked); the entity counts in the projection need M3's crowd; the feel check is the owner's and needs a windowed client |
-| US-0031 | downstream measured within 96 kbit/s | **rate LOD is DONE** and NPC-only by design, since a *player* at 46 m at 10 Hz would be visibly coarse. The measurement is now real and it **misses**: 111 % with culling, rate LOD and the NPC delta all built. The remaining 11 % is ADR-0007's or a tuning change, neither priced |
+| US-0031 | downstream measured within 96 kbit/s | **rate LOD is DONE** and NPC-only by design, since a *player* at 46 m at 10 Hz would be visibly coarse. The measurement is now real and it **misses**: 112 % with culling, rate LOD and the NPC delta all built, charged against a lagging ack. The remaining 12 % is ADR-0007's or a tuning change, neither priced |
 | US-0035 | NPC transforms recorded; memory "around 23 KB" | there is no crowd until M3. Memory measured at **28.1 KB** — 20 B per record, not §8.3's 16, because the entity id is stored rather than implied by slot. TDD-04 §8.3 amended |
 
 Two more things are owed and are **not** acceptance criteria, so they are not in
