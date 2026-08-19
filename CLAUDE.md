@@ -470,11 +470,35 @@ actually named. The numbers here are the corrected ones and were verified from a
 83/748/6205 with three `pending` by design, integration 31/231/631 at 159.2 s, and
 both generated artefacts reproduced byte-identical (67 anchors, 195 navmesh polygons).
 
-**THE OPEN LEVEL-DATA BLOCKER, WHICH NO STORY OWNS.** Three of `MAP-VETRAIO`'s six
-spawn points cannot hold `TUN-CROWD-CLONE-LOCAL-MIN`; **(114, 97.5) can see no NPC at
-all.** GDD-03 §6.3 rule 3 is a release blocker and it is the **idle anchors** that
-fail it, not the code. `tools/anchor_census.gd` grades any change to them in one run.
-Re-authoring them is the owner's, like US-0043's circuits.
+**THE OPEN LEVEL-DATA BLOCKER, AND IT IS NOT THE ANCHORS.** Three of `MAP-VETRAIO`'s
+six spawn points cannot hold `TUN-CROWD-CLONE-LOCAL-MIN` — **S3 has 4 seats of 8, S4
+has 1, S5 has 6**. The corpus called that an idle-anchor problem. It is not one:
+**S3 and S4 are in the Fondaco, and the Fondaco is empty on purpose.** GDD-05 names
+it three times as "low density, few NPCs — where chases go to be resolved", gives it
+3–5 NPCs in its own density table, and §2.7 puts both spawns in it by name. Raising
+its anchor density to satisfy the clone minimum **deletes the one place on the map
+designed to have no crowd to hide in.**
+
+**SO THREE DOCUMENTS EACH SAY SOMETHING TRUE AND THE THREE CANNOT ALL HOLD** —
+GDD-05 §2.7, GDD-05 §3/§4.4, and GDD-03 §6.3 rule 3, which is a release blocker.
+Choosing between them is a design decision with an owner, and the options are
+priced: move S3/S4 out of the Fondaco (the nearest legal 8-seat site for S4 is
+**55 m away at (72, 52)**, which drags it to the centre and is what the anti-camp
+spread exists to prevent); raise the Fondaco's density; or scope rule 3 so it does
+not bind at the spawn instant. **S5 is the cheap one** — 10.8 m to a legal site,
+still "Mercato Piccolo, north".
+
+**AND MEASURING GDD-05 §2.7's OWN RULES FOUND ONE OF THEM FALSE.** §2.7 carries a
+note saying rules 4 and 6 were never re-derived after the 2026-08-13 spawn move, and
+both have carried a ✅ since. **Rule 4 holds** — every spawn within 25 m of a circuit
+*segment*, worst 22.50 m at S3. **Rule 6 does not**: every pair is already more than
+25 m apart, so the rule can only mean every pair is occluded, and **nine of fifteen
+are in clear sight** — worst `S4 → S5` at **30.86 m**, the closest pair on the map.
+**The cause is that `VetraioLayout.BLOCKS` holds seven masses**, four of them corner
+blocks, with **no building mass in the middle of the district at all**; no spawn
+position can occlude a 120 m open span. The anti-spawn-camp analysis is asserted
+against geometry the greybox does not have. `test_spawn_points.gd` measures all of
+it every run and `tools/anchor_census.gd` grades a change in one.
 
 ---
 
@@ -1699,7 +1723,7 @@ US-0024 measures it against clips that do not exist.
 | | |
 |---|---|
 | CI | 7 jobs. **Running again as of 2026-08-07 after a two-day outage** — run `31200490320`, all seven green. The seven commits merged during the outage were never through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | **41 arch + 90 unit + 32 integration scripts**, holding 154 + 796 + 234 tests and 239 + 6349 + 639 assertions. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **168.9 s** of the 180 s it is allowed, up from 87.7 s at M2 — **11 s of headroom left, and the next integration test has to justify itself hard against that**. `test_server_tick_budget.gd` cost 9.8 s of it and is a gate line; the one before it, the 2 s pass A/B, samples ninety ticks **twice** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **Five are `pending` by design, all in the unit suite** — `test_upstream_bandwidth.gd` reports the 145 % upstream miss, **`test_crowd_bandwidth.gd` the 112 % downstream projection and `test_crowd_wire_cost.gd` the 155 % it actually costs today**, `test_circuit_separation.gd` US-0043's 0.51 m circuits, and `test_clone_animation_parity.gd` the missing clip library. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
+| Tests | **41 arch + 91 unit + 32 integration scripts**, holding 154 + 800 + 234 tests and 239 + 6353 + 639 assertions. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **168.9 s** of the 180 s it is allowed, up from 87.7 s at M2 — **11 s of headroom left, and the next integration test has to justify itself hard against that**. `test_server_tick_budget.gd` cost 9.8 s of it and is a gate line; the one before it, the 2 s pass A/B, samples ninety ticks **twice** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **Seven are `pending` by design, all in the unit suite** — `test_upstream_bandwidth.gd` reports the 145 % upstream miss, **`test_crowd_bandwidth.gd` the 112 % downstream projection and `test_crowd_wire_cost.gd` the 155 % it actually costs today**, `test_circuit_separation.gd` US-0043's 0.51 m circuits, **`test_spawn_points.gd` two of GDD-05 §2.7's own rules** — rule 6's nine unoccluded spawn pairs and the clone minimum S3/S4 cannot hold — and `test_clone_animation_parity.gd` the missing clip library. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
 | Tuning | 288 tunables across 14 resource classes; all 31 cross-field invariants assert — split across `TuningInvariants` and `TuningInvariantsTech` since the first file hit 400 lines, with one entry point still. **Eight IDs are deprecated** and recorded in TUNABLES §19 — never reused |
 | Autoloads | All eight. `Tuning` precomputes 89 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |
