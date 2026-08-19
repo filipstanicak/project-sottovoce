@@ -453,7 +453,39 @@ figure is 112 %, and the sensitivity is now guarded: 415 B at an instant ack, 41
 426 B at ten. Restoring the defect moves the three-tick figure to **460 B**, and both guards fire.
 §7.1.3.
 
-**111 % MEASURED AGAINST §7.1.1's 112 % PROJECTED, BY TWO INDEPENDENT ROUTES.** One walks a
+**AND THE REMAINING 12 % IS PRICED NOW: IT IS FIVE METRES OF CULL RADIUS.**
+`test_cull_radius_price.gd` sweeps `TUN-NET-NPC-CULL-RADIUS` through the real builder, adopting
+each value so the delta and the rate-LOD stagger respond to it:
+
+| Cull radius | kbit/s | Of budget |
+|---|---|---|
+| 70.0 m, shipped | 109.3 | 114 % |
+| 67.5 m | 102.9 | 107 % |
+| **65.0 m** | **92.8** | **97 %** |
+| 62.5 m | 83.9 | 87 % |
+| 60.0 m, invariant 17's floor | 79.1 | 82 % |
+
+**THE OTHER CANDIDATE IS NOT ONE, AND THAT IS THE FINDING.** This section has named ADR-0007's
+seed-derived far crowd as the alternative since US-0031. ADR-0007 sets that boundary at **"≥ 70 m
+so it stays outside every gameplay radius"** — which is exactly where the cull already sits, so
+every NPC the fallback would stop replicating is one the builder already refuses to send.
+**Measured: zero records past 70 m, summed over all six spawn points.** The fallback is still
+worth building — it would put a crowd back on the horizon where a client currently draws empty
+street — but it is a **rendering** change, not a bandwidth one. The two "candidates" were always
+one lever: a boundary. They differ only in what the client draws beyond it.
+
+**SO THE DECISION IS A `TUN-` CHANGE AND IT IS NOT MADE HERE.** 65 m closes the budget and keeps
+invariant 17, but it cuts the margin over `TUN-COMPASS-RANGE-MAX` from 10 m to 5 m — and the
+compass is the one system that reaches far enough to care that an NPC it points past was never
+replicated. That is the owner's.
+
+**THE SWEEP'S ABSOLUTE FIGURES SIT ~2 POINTS ABOVE `test_crowd_wire_cost.gd`'s** — 114 % against
+112 % at the same radius — because it settles the crowd for 200 ticks rather than 300 and prices a
+slightly different arrangement of the same walking crowd. That file owns the headline number; the
+sweep owns the **shape**, and all five of its rows come from one crowd so they are comparable with
+each other, which is the only property a sweep needs.
+
+**112 % MEASURED AGAINST §7.1.1's 112 % PROJECTED, BY TWO INDEPENDENT ROUTES.** One walks a
 modelled crowd and counts which records change; the other serialises the real builder's output and
 weighs it. They were built for different questions and they agree to one point, which is the
 strongest thing either of them says.
