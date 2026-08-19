@@ -124,6 +124,22 @@ headroom is thin, which is why the fallback option is documented rather than dis
 - The fallback (replicate near, seed-derive far) is designed but not built. If the budget
   fails at M3, that is the move, and the boundary must be set at ≥ 70 m so it stays outside
   every gameplay radius.
+
+  > **THE BUDGET DID FAIL AT M3, AND THE FALLBACK IS NOT THE MOVE.** Downstream measured
+  > **112 %** with culling, rate LOD and the NPC delta all built (TDD-04 §7.1.2). The boundary
+  > this note mandates — ≥ 70 m — is exactly where `TUN-NET-NPC-CULL-RADIUS` already sits, so
+  > every NPC the fallback would stop replicating is one the builder already refuses to send.
+  > **Measured at zero records past 70 m, over all six spawn points**
+  > (`test_cull_radius_price.gd`). The saving is nil.
+  >
+  > **It is still worth building, for the opposite reason to the one written here.** A client
+  > currently draws *empty street* past 70 m; the fallback would put a crowd back on the horizon.
+  > That is a rendering change and a `RISK-ANONYMITY-LEAK` question — a district that visibly
+  > ends at a radius tells a player exactly how far they can be seen from — not a bandwidth one.
+  >
+  > What actually closes the budget is the boundary itself: **65 m reaches 97 %**, and invariant
+  > 17's floor of 60 m reaches 82 %. That is a `TUN-` change with a gameplay consequence and is
+  > the owner's.
 - 10 Hz far-NPC updates require the interpolation buffer to stretch for those entities. The
   implementation must interpolate on *received timestamps*, not on a fixed assumed interval,
   or the two rates will fight.

@@ -26,7 +26,13 @@ func _run() -> void:
 func _report_zones(data: MapData) -> void:
 	print("--- zones: wanted vs placed ---")
 	for zone: MapZone in data.zones:
-		var wanted := zone.expected_anchors()
+		# **A THEATRE ASKS AND IS DELIBERATELY REFUSED.** `expected_anchors()` is a
+		# function of area and density class and knows nothing about theatres, so
+		# `PiazzaSecca` reads "wanted 24, placed 0" — which is the exact shape of the
+		# `Fondaco` defect US-0096 found, and is not one. The empty plaza staying
+		# empty is its whole function (GDD-05 §5.3). Said here so the next reader
+		# does not spend an afternoon chasing it.
+		var wanted := 0 if zone.is_theatre else zone.expected_anchors()
 		var placed := 0
 		for anchor: Vector3 in data.idle_anchors:
 			if zone.bounds.has_point(Vector3(anchor.x, zone.bounds.position.y, anchor.z)):
@@ -45,7 +51,11 @@ func _report_zones(data: MapData) -> void:
 					wanted,
 					placed,
 					spacing,
-					"   <-- thinner than its own cell" if thin else ""
+					(
+						"   <-- theatre: no anchors on purpose"
+						if zone.is_theatre
+						else ("   <-- thinner than its own cell" if thin else "")
+					)
 				]
 			)
 		)

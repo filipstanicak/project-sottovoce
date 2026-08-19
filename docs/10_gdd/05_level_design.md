@@ -264,6 +264,25 @@ respawn is always satisfiable.
 > so only S1 has ever been used. The table above was right and the data was wrong; the data now
 > agrees with it. **Rule 1 below is satisfied and arithmetic (closest pair 30.9 m); rules 4 and 6
 > were NOT re-derived after the move and are owed a level pass.**
+>
+> **THAT PASS IS RUN AS OF US-0096's FOLLOW-UP, AND ONE OF THE TWO WAS FALSE.**
+> `test_spawn_points.gd` measures both against `MapData` on every run.
+>
+> **Rule 4 holds** — every spawn is within 25 m of a circuit *segment*, worst 22.50 m at S3. It
+> is measured against segments rather than waypoints on purpose: §4.4 spaces waypoints 6–10 m
+> apart, so "near a corner" and "near the route" can differ by half a spacing.
+>
+> **Rule 6 does not.** Every pair is already further apart than 25 m — the closest is 30.86 m —
+> so the rule can only mean every pair must be **occluded**, and **nine of fifteen are not**. The
+> worst is `S4 → S5` at **30.86 m**, the closest pair on the map and the one the anti-spawn-camp
+> table below leans on hardest.
+>
+> **THE CAUSE IS NOT WHERE THE SPAWNS ARE.** `VetraioLayout.BLOCKS` holds **seven** masses, four
+> of them corner blocks, and the district's whole middle — Piazza del Vetro, the Loggia and
+> Piazza Secca — has no building mass between them. No spawn position can occlude a 120 m open
+> span, so **the anti-spawn-camp analysis below is asserted against geometry the greybox does not
+> have yet.** Reported rather than patched: authoring interior massing is a level pass with an
+> owner, and it is the same class of finding as §5.2's 0.51 m circuits.
 
 **Spawn placement rules:**
 
@@ -272,9 +291,9 @@ respawn is always satisfiable.
 | 1 | Minimum spawn-to-spawn distance | 30 m | Two players respawning simultaneously must not land in each other's kill range. |
 | 2 | Minimum distance to the killer | `TUN-RESPAWN-MIN-DIST-FROM-KILLER` 40 m | One third of the map diagonal. |
 | 3 | Minimum distance to *any* living player | `TUN-RESPAWN-MIN-DIST-FROM-ANY-PLAYER` 12 m | Never spawn inside anyone's kill range. |
-| 4 | Every spawn is within 25 m of a blend-group circuit | ✅ all six | A freshly-respawned player must have a safe travel option quickly. |
+| 4 | Every spawn is within 25 m of a blend-group circuit | ✅ **measured, worst 22.50 m (S3)** | A freshly-respawned player must have a safe travel option quickly. |
 | 5 | No spawn is in Piazza Secca or above street level | ✅ | You never begin a life already accruing suspicion. |
-| 6 | No spawn has a sightline longer than 25 m to another spawn | ✅ | Prevents a camper covering two spawns at once. |
+| 6 | No spawn has a sightline longer than 25 m to another spawn | ❌ **measured: 9 of 15 pairs are in clear sight** | Prevents a camper covering two spawns at once. |
 | 7 | Fallback when constraints are unsatisfiable | Choose the farthest available point | **A spawn system that can fail is a crash waiting for a playtest.** |
 
 **The anti-spawn-camp analysis.** With 6 spawns, 6 players and constraint 2 at 40 m, a killer

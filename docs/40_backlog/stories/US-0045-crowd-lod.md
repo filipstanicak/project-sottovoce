@@ -170,6 +170,45 @@ wire snapshots to begin with — a path no client uses, because `Net` assembles 
 `snapshot_received` — and measured two drops in 240 ticks, both correct. Through the assembler:
 **485 drops for 5 real departures**, and **7 for 7** after the fix.
 
+**AND THE FIX WAS WATCHED, NOT ONLY TESTED.** Four live runs against a headless
+server, with the observer standing still at three different spawn points:
+
+| Observer | NPCs drawn | Appeared | Dropped |
+|---|---|---|---|
+| centre of the district | 73 | 4 | **0** |
+| `S3` (6, 97.5) | 34 | 0 | **0** |
+| `S4` (114, 97.5) | 18 | 2 | **1**, one clean farewell at 70.027 m |
+
+One departure, one drop. Before the fix the same probe reported a handful of NPCs
+created and freed **once per snapshot**. Drawn speed held at 1.400–1.514 m/s
+against a documented stroll of 1.400; the readings above stroll come from the two
+runs with the fewest NPCs, where the median is a small sample and RVO sidestepping
+lifts it.
+
+**AND THE LEVEL-DATA BLOCKER IS VISIBLE ON SCREEN FOR THE FIRST TIME.** A player
+standing at `S4` is drawn **18 NPCs in the whole district within 70 m**, against
+73 at the centre. US-0096 measured that as a count of anchors; this is what it
+looks like from inside the game.
+
+**TWO EARLIER RUNS SHOWED THE PAWN MOVING WITH NOBODY AT THE CONTROLS, AND THAT IS
+NOT EXPLAINED.** The observer finished 23 m and then 41 m from its spawn point,
+with the HUD reading `Run` at 4.50 m/s. Two later runs were perfectly still.
+`PadSelection` logged the identical line in all four — `no mapped pad, joypad
+bindings disabled; IGNORING [0] Thrustmaster Sim Pedals` — and
+`tools/input_live.tscn`, which boots the real client scene and joins a real
+server, measured **0 of 240 sampled commands carrying movement and 0.00 m of
+travel**. So it is not the pedals defect US-0090 fixed, and it is not the input
+layer as far as anything here can see. **Observed twice, absent twice, cause
+unknown**, and reported rather than closed on a guess.
+
+**`tools/input_probe.gd` COULD NOT HAVE ANSWERED THIS AND NEARLY GAVE THE WRONG
+ANSWER.** It runs as a `-s` `SceneTree` script, so it stands up no client scene
+and `PadSelection` never runs — it reported all three pedal actions held at 1.00
+while the game was correctly ignoring them. Both readings are true and only one is
+about the game. `tools/input_live.tscn` is the missing half, and `crowd_probe`
+now prints whether the observer moved at all, because **every other number in its
+report means something different if the player was walking.**
+
 **ONE CASE IS LEFT UNCOVERED AND IS BOUNDED RATHER THAN FIXED.** The farewell is a single record on
 an unreliable channel and the server drops its baseline as it sends it, so a lost farewell is never
 retried. It is not permanent — rule 2 frees anything whose last-known position passes the radius
