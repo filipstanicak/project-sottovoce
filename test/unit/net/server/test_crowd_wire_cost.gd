@@ -3,16 +3,17 @@
 ## arithmetic on a table.
 ##
 ## `test_crowd_bandwidth.gd` answers a different question and both are worth
-## having. That file measures what the downstream budget **would** be with §7.1's
-## mechanisms in place: NPCs culled, far ones sent at a tenth of the rate, and only
-## the records whose quantised form changed. This file measures what a client is
-## charged **today**, where US-0030 culls the crowd positionally and **neither
-## delta encoding nor rate LOD is applied to NPCs at all**.
+## having. That file measures what the downstream budget **would** be with all of
+## §7.1's mechanisms in place: NPCs culled, far ones sent at a tenth of the rate,
+## and only the records whose quantised form changed. This file measures what a
+## client is charged **today** — culled (US-0030) and rate-LOD'd (US-0031), with
+## **no NPC delta**, because the protocol has no way to say an NPC is unchanged.
 ##
-## **THE GAP BETWEEN THE TWO IS THE VALUE OF US-0031's REMAINING WORK, MEASURED
-## RATHER THAN ASSERTED.** That is the whole reason this file exists: the corpus
-## has twice concluded a budget from a mechanism nobody had built, and this makes
-## the difference a number instead of an intention.
+## **THE GAP BETWEEN THE TWO IS THE VALUE OF THE DELTA, MEASURED RATHER THAN
+## ASSERTED, AND IT IS SMALL.** 119 % as built against 112 % projected: the delta
+## is worth about seven points, because 0.776 of visible NPC records change every
+## tick anyway. **A protocol change is a large price for seven points**, and that
+## is a decision this file exists to inform rather than to take.
 ##
 ## **IT REPLACED A GUARD THAT SAID "THE BUILDER STILL SENDS NO NPC".** That guard
 ## lived in `test_crowd_bandwidth.gd` so the file could not keep describing itself
@@ -72,19 +73,41 @@ func _observer_at(at: Vector3) -> void:
 	_host.context_for(ONE_PEER).position = at
 
 
-## The most expensive spawn point, because a budget met on average is a budget
-## missed by somebody. Returns the snapshot that costs the most bytes.
-func _worst_spawn_point() -> Snapshot:
-	var worst: Snapshot = null
-	var most := -1
+## Mean bytes per snapshot at one spot, **averaged over a whole rate-LOD stride**.
+##
+## **A SINGLE TICK STOPPED BEING A FAIR SAMPLE THE MOMENT RATE LOD LANDED.** The
+## slowed band is staggered by index, so one tick carries roughly a third of it —
+## roughly, not exactly, and which third depends on the tick. kbit/s is a mean, so
+## the mean over a stride is the honest figure and one arbitrary tick is luck.
+func _mean_bytes_at(at: Vector3) -> float:
+	_host.context_for(ONE_PEER).position = at
+	var stride := _builder.rate_lod_stride()
+	var total := 0
+	for tick: int in stride:
+		_ctx.tick = tick
+		total += _builder.build_for(ONE_PEER).serialise().size()
+	return float(total) / float(stride)
+
+
+## The most expensive spawn point, because a budget met on average across players
+## is a budget missed by one of them.
+func _worst_spawn_point() -> float:
+	var most := 0.0
 	for at: Vector3 in _map.spawn_points:
-		_host.context_for(ONE_PEER).position = at
-		var snapshot := _builder.build_for(ONE_PEER)
-		var size := snapshot.serialise().size()
-		if size > most:
-			most = size
-			worst = snapshot
-	return worst
+		most = maxf(most, _mean_bytes_at(at))
+	return most
+
+
+## Every distinct NPC this observer is sent **at any point** in a stride — which is
+## the set the cull chose, as opposed to the subset any one tick happens to carry.
+func _reachable_from(at: Vector3) -> int:
+	_host.context_for(ONE_PEER).position = at
+	var ever := {}
+	for tick: int in _builder.rate_lod_stride():
+		_ctx.tick = tick
+		for record: Array in _builder.build_for(ONE_PEER).npcs:
+			ever[int(record[0])] = true
+	return ever.size()
 
 
 # ---------------------------------------------------------------------------
@@ -121,18 +144,17 @@ func test_the_crowd_being_priced_is_the_real_one() -> void:
 func test_what_one_client_is_charged_for_the_crowd_today() -> void:
 	_place_the_real_crowd()
 	_observer_at(_map.spawn_points[0])
-	var snapshot := _worst_spawn_point()
-	var bytes := snapshot.serialise().size()
+	var bytes := _worst_spawn_point()
 	var rate: float = Tuning.net.snapshot_rate
-	var kbit := (float(bytes) + float(PACKET_OVERHEAD)) * rate * 8.0 / 1000.0
+	var kbit := (bytes + float(PACKET_OVERHEAD)) * rate * 8.0 / 1000.0
 	var budget: float = Tuning.net.bandwidth_budget_down
 	gut.p(
 		(
 			(
-				"AS BUILT: %d B/snapshot carrying %d of %d NPCs = %.1f kbit/s against %.0f "
-				+ "budget (%.0f %%). Culled, but no NPC delta and no rate LOD."
+				"AS BUILT: %.0f B/snapshot, mean over a stride = %.1f kbit/s against %.0f "
+				+ "budget (%.0f %%). Culled and rate-LOD'd; no NPC delta."
 			)
-			% [bytes, snapshot.npcs.size(), CROWD, kbit, budget, kbit / budget * 100.0]
+			% [bytes, kbit, budget, kbit / budget * 100.0]
 		)
 	)
 	if kbit > budget:
@@ -140,8 +162,8 @@ func test_what_one_client_is_charged_for_the_crowd_today() -> void:
 			(
 				(
 					"as actually built, downstream is %.1f kbit/s — %.0f %% of budget. "
-					+ "CULLING ALONE DOES NOT CLOSE IT: §7.1's projection assumes an NPC "
-					+ "delta and rate LOD, and neither is built for NPCs. US-0031."
+					+ "Culling and rate LOD are both in; what is left is the NPC DELTA, "
+					+ "which needs a protocol change to express an unchanged NPC. US-0031."
 				)
 				% [kbit, kbit / budget * 100.0]
 			)
@@ -159,8 +181,7 @@ func test_how_much_the_cull_removes() -> void:
 	_observer_at(_map.spawn_points[0])
 	var sent := 0
 	for at: Vector3 in _map.spawn_points:
-		_host.context_for(ONE_PEER).position = at
-		sent = maxi(sent, _builder.build_for(ONE_PEER).npcs.size())
+		sent = maxi(sent, _reachable_from(at))
 	var removed := CROWD - sent
 	gut.p(
 		(
@@ -186,10 +207,9 @@ func test_how_much_the_cull_removes() -> void:
 func test_the_bill_differs_between_spawn_points() -> void:
 	_place_the_real_crowd()
 	_observer_at(_map.spawn_points[0])
-	var first := _builder.build_for(ONE_PEER).npcs.size()
+	var first := _reachable_from(_map.spawn_points[0])
 	var differs := false
 	for at: Vector3 in _map.spawn_points:
-		_host.context_for(ONE_PEER).position = at
-		if _builder.build_for(ONE_PEER).npcs.size() != first:
+		if _reachable_from(at) != first:
 			differs = true
 	assert_true(differs, "every spawn point is charged for the same crowd — the cull does nothing")

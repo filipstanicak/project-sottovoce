@@ -1,4 +1,4 @@
-## Every shipped value is inside its own documented range, and the 29 cross-field
+## Every shipped value is inside its own documented range, and the 31 cross-field
 ## invariants from TUNABLES.md §17 hold.
 ##
 ## The range half catches a typo. The invariant half catches the subtler thing: a
@@ -153,3 +153,28 @@ func test_the_invariant_checker_actually_fires() -> void:
 		if e.begins_with("1."):
 			hit = true
 	assert_true(hit, "breaking invariant 1 produced no error — the checker is inert")
+
+
+func test_the_rate_lod_invariants_are_live() -> void:
+	# 30 and 31, falsified. Both fail the same way: SILENTLY, and in the direction
+	# of sending more than the tunables claim. A rate-LOD radius past the cull
+	# radius describes a band that cannot exist, so the branch is simply never
+	# reached; a far rate above the snapshot rate computes a stride of one, so
+	# every NPC is sent every tick while `TUN-NET-NPC-RATE-LOD-HZ` says 10. In both
+	# cases the bandwidth budget is missed by a mechanism reporting itself as
+	# working, which is the failure this whole story exists downstream of.
+	var p := _profile()
+	p.net.npc_rate_lod_radius = p.net.npc_cull_radius + 10.0
+	var past := false
+	for e: String in p.validate():
+		if e.begins_with("30."):
+			past = true
+	assert_true(past, "a rate-LOD radius beyond the cull radius produced no error — 30 is inert")
+
+	p = _profile()
+	p.net.npc_rate_lod_hz = p.net.snapshot_rate + 5.0
+	var faster := false
+	for e: String in p.validate():
+		if e.begins_with("31."):
+			faster = true
+	assert_true(faster, "a 'reduced' rate above the snapshot rate produced no error — 31 is inert")

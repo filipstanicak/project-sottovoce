@@ -1,4 +1,10 @@
-## The 29 cross-field invariants from TUNABLES.md §17.
+## The gameplay half of TUNABLES.md §17's 31 cross-field invariants.
+##
+## **SPLIT AT 31 INVARIANTS, NOT REORGANISED.** The wire and budget rules moved
+## to `TuningInvariantsTech` when this file reached 400 lines; nothing else
+## changed, and `check()` is still the one entry point. The split is by what a
+## rule is ABOUT — a speed ladder is a design decision and a snapshot rate is
+## not — rather than by which half happened to be longer.
 ##
 ## A value can be inside its own documented range and still be wrong, because what
 ## matters is its relationship to another. Invariant 1 is the clearest case:
@@ -20,9 +26,8 @@ static func check(p: TuningProfile) -> Array[String]:
 	e.append_array(_combat(p))
 	e.append_array(_compass(p))
 	e.append_array(_abilities(p))
-	e.append_array(_net(p))
+	e.append_array(TuningInvariantsTech.check(p))
 	e.append_array(_scoring(p))
-	e.append_array(_perf(p))
 	e.append_array(_traversal_reach(p))
 	return e
 
@@ -269,36 +274,6 @@ static func _abilities(p: TuningProfile) -> Array[String]:
 	return e
 
 
-static func _net(p: TuningProfile) -> Array[String]:
-	var e: Array[String] = []
-	# 16. The history buffer is never the binding constraint.
-	if p.net.lagcomp_max > p.net.lagcomp_history / 2.0:
-		e.append(
-			(
-				"16. net.lagcomp_max (%.1f) must be <= net.lagcomp_history / 2 (%.1f)"
-				% [p.net.lagcomp_max, p.net.lagcomp_history / 2.0]
-			)
-		)
-	# 17. A culled NPC can never affect anything the client can perceive.
-	if p.net.npc_cull_radius < p.compass.range_max:
-		e.append(
-			(
-				"17. net.npc_cull_radius (%.1f) must be >= compass.range_max (%.1f)"
-				% [p.net.npc_cull_radius, p.compass.range_max]
-			)
-		)
-	# 29. A clone kept near a player must be one that player can see.
-	if p.crowd.clone_local_radius > p.net.npc_cull_radius:
-		e.append(
-			(
-				"29. crowd.clone_local_radius (%.1f) must be <= net.npc_cull_radius (%.1f)"
-				% [p.crowd.clone_local_radius, p.net.npc_cull_radius]
-			)
-		)
-	return e
-
-
-## 18, 19. The score table encodes the design thesis; guard its shape.
 static func _scoring(p: TuningProfile) -> Array[String]:
 	var e: Array[String] = []
 	# 18. THE BONUS HIERARCHY ENCODES THE DESIGN THESIS. If a tuning change
@@ -378,22 +353,4 @@ static func _patience(p: TuningProfile) -> Array[String]:
 		e.append((text + "stroll (%.2f) and run (%.2f)") % [speed, low, high])
 	return e
 
-
 ## 20. The client frame budget must actually add up.
-static func _perf(p: TuningProfile) -> Array[String]:
-	var e: Array[String] = []
-	var spent := (
-		p.perf.crowd_budget
-		+ p.perf.net_budget
-		+ p.perf.gameplay_budget
-		+ p.perf.ui_budget
-		+ p.perf.render_budget
-	)
-	if spent > p.perf.frame_budget:
-		e.append(
-			(
-				"20. client budgets sum to %.2f ms, over frame_budget %.2f ms"
-				% [spent, p.perf.frame_budget]
-			)
-		)
-	return e

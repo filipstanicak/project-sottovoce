@@ -244,25 +244,46 @@ been known before US-0040. **And 112 % is a lower bound** — modelled navigatio
 shorter than a navmesh path, so it understates how often an NPC is walking.
 TDD-04 §7.1.1.
 
-**AND THE ANSWER TO THE 12 % WAS BUILT, MEASURED, AND IS NOT ENOUGH.** US-0030's
-three culling criteria had been unticked since M2 with the note "there is no crowd
-until M3". There is one now, so the crowd went **on the wire** and is culled
-per observer at `TUN-NET-NPC-CULL-RADIUS`. Priced by `test_crowd_wire_cost.gd` on
-the real builder's serialised bytes: **591 B a snapshot carrying 67 of 78 NPCs =
-148.6 kbit/s, 155 % of budget**, and **the cull removes 11 of 78 — 14 %**.
+**THE CROWD IS ON THE WIRE, CULLED AND RATE-LOD'D. 155 % → 119 %.** US-0030's
+three culling criteria and US-0031's rate-LOD line had been unticked since M2 with
+the note "there is no crowd until M3". There is one now. Priced by
+`test_crowd_wire_cost.gd` on the **real builder's serialised bytes**, at the worst
+of six spawn points:
 
-**CULLING WAS NOT THE LEVER.** The radius is 70 m and `MAP-VETRAIO` is
-120 × 120 m, so most of the district is within reach of most of it. The cull is
-still correct and still required — it is a per-observer rule the protocol assumes
-— but the money is not there. **The gap is US-0031's two unbuilt mechanisms**, an
-NPC delta and rate LOD, and the distance between **155 % as built and 112 %
-projected is now what those are worth, as a number rather than an intention.**
+| | Culled only | **+ rate LOD** |
+|---|---|---|
+| Mean snapshot | 591 B | **447 B** |
+| Of a 96 kbit/s budget | 148.6, **155 %** | **114.0, 119 %** |
 
-**AND THE PROTOCOL CANNOT EXPRESS AN UNCHANGED NPC.** Remote pawns carry
-`present_slots` exactly so *absent* means "unchanged" rather than "gone"; the NPC
-block is a count followed by records, with no equivalent. **An NPC delta needs a
-protocol change, not just a builder change**, which is why this stopped at the
-cull. TDD-04 §7.1.2.
+**CULLING WAS NOT THE LEVER AND RATE LOD WAS.** The cull removes **11 of 78** —
+the radius is 70 m and `MAP-VETRAIO` is 120 × 120 m, so most of the district is
+within reach of most of it. It is still correct and still required; the money was
+not there. Rate LOD took 36 points.
+
+**THE STAGGER IS THE HALF THAT WOULD HAVE SILENTLY NOT HAPPENED.** Sending the
+whole slowed band on one tick divides the **mean** by the stride and leaves the
+**peak** exactly where it was — one snapshot in three carrying the entire crowd,
+which is the size that has to meet an MTU. **The kbit/s figure is identical either
+way**, so nothing about the budget would have revealed it. Staggered by
+`(tick + index) % stride`, the shape `CrowdBands` already uses.
+
+**§7.2's TWO NUMBERS FINALLY HAVE IDS.** "NPCs beyond 45 m at 10 Hz" has been
+specified since M0 as bare prose, because there was no crowd for the rule to apply
+to — the same omission `TUN-CROWD-IDLE-DURATION-MIN/-MAX` and
+`TUN-CROWD-CLONE-LOCAL-RADIUS` had. **288 tunables, 31 invariants**; 30 pins the
+rate-LOD radius inside the cull radius and 31 refuses a "reduced" rate above the
+snapshot rate. `TuningInvariants` was split at 400 lines; `TuningInvariantsTech`
+holds the wire and budget rules and `check()` is still one entry point.
+
+**WHAT IS LEFT IS THE NPC DELTA, AND IT IS WORTH ABOUT SEVEN POINTS** — 119 % as
+built against §7.1.1's 112 % projected — because **0.776 of visible NPC records
+change every tick anyway**, so a delta can only drop the quarter that do not.
+**AND THE PROTOCOL CANNOT EXPRESS AN UNCHANGED NPC**: remote pawns carry
+`present_slots` exactly so *absent* means "unchanged" rather than "gone", and the
+NPC block is a count followed by records with no equivalent. **A change to a bible
+document, for seven points, against a miss that would still be 12 %** — recorded
+rather than taken. ADR-0007 and a smaller cull radius are the other two candidates
+and neither is priced. TDD-04 §7.1.2.
 
 **THE GATE ALSO NAMES AN INSTRUMENT THAT STILL DOES NOT EXIST.** "Server tick p99
 ≤ 8.0 ms" has never been measured: `test_crowd_perf.gd` times
@@ -1513,8 +1534,8 @@ US-0024 measures it against clips that do not exist.
 | | |
 |---|---|
 | CI | 7 jobs. **Running again as of 2026-08-07 after a two-day outage** — run `31200490320`, all seven green. The seven commits merged during the outage were never through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | **41 arch + 86 unit + 31 integration scripts**, holding 154 + 763 + 231 tests and 239 + 6238 + 631 assertions. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **159.2 s** of the 180 s it is allowed, up from 87.7 s at M2 and from 152.1 s before the 2 s pass attribution, which samples ninety ticks **twice** for its A/B — **21 s of headroom left, and the next crowd test has to justify itself against that** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **Five are `pending` by design, all in the unit suite** — `test_upstream_bandwidth.gd` reports the 145 % upstream miss, **`test_crowd_bandwidth.gd` the 112 % downstream projection and `test_crowd_wire_cost.gd` the 155 % it actually costs today**, `test_circuit_separation.gd` US-0043's 0.51 m circuits, and `test_clone_animation_parity.gd` the missing clip library. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
-| Tuning | 286 tunables across 14 resource classes; all 29 cross-field invariants assert. **Eight IDs are deprecated** and recorded in TUNABLES §19 — never reused |
+| Tests | **41 arch + 87 unit + 31 integration scripts**, holding 154 + 769 + 231 tests and 239 + 6279 + 631 assertions. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **159.2 s** of the 180 s it is allowed, up from 87.7 s at M2 and from 152.1 s before the 2 s pass attribution, which samples ninety ticks **twice** for its A/B — **21 s of headroom left, and the next crowd test has to justify itself against that** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **Five are `pending` by design, all in the unit suite** — `test_upstream_bandwidth.gd` reports the 145 % upstream miss, **`test_crowd_bandwidth.gd` the 112 % downstream projection and `test_crowd_wire_cost.gd` the 155 % it actually costs today**, `test_circuit_separation.gd` US-0043's 0.51 m circuits, and `test_clone_animation_parity.gd` the missing clip library. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
+| Tuning | 288 tunables across 14 resource classes; all 31 cross-field invariants assert — split across `TuningInvariants` and `TuningInvariantsTech` since the first file hit 400 lines, with one entry point still. **Eight IDs are deprecated** and recorded in TUNABLES §19 — never reused |
 | Autoloads | All eight. `Tuning` precomputes 89 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |
 | Boot | Branches on `--server`; 7 CLI flags parsed in pure Core; 5 export presets |

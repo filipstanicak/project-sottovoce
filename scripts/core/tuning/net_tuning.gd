@@ -80,3 +80,25 @@ extends Resource
 ## COMPASS-RANGE-MAX so a culled NPC can never affect anything the client can perceive.
 ## TUN-NET-NPC-CULL-RADIUS
 @export_range(50.0, 90.0, 0.1) var npc_cull_radius: float = 70.0
+
+## Beyond this, an NPC is replicated at TUN-NET-NPC-RATE-LOD-HZ instead of TUN-NET-SNAPSHOT-RATE.
+## [TDD-04](../20_tdd/04_networking.md) §7.2 has specified 45 m since M0 and no tunable carried
+## it, because rate LOD had nothing to apply to until the crowd went on the wire in US-0030 — the
+## same omission TUN-CROWD-IDLE-DURATION-MIN/-MAX and TUN-CROWD-CLONE-LOCAL-RADIUS had, and the
+## value is the document's own. It is deliberately NOT TUN-PERF-CROWD-LOD-MID, which carries the
+## same 45 m today: that one bands how often a brain is stepped, which is a CPU question, and
+## this one decides how often a record is sent. They are free to diverge and the day they do,
+## conflating them would silently apply a CPU decision to the wire. Must not exceed TUN-NET-NPC-
+## CULL-RADIUS (invariant §17.30).
+## TUN-NET-NPC-RATE-LOD-RADIUS
+@export_range(25.0, 70.0, 0.1) var npc_rate_lod_radius: float = 45.0
+
+## The reduced send rate for NPCs beyond TUN-NET-NPC-RATE-LOD-RADIUS.
+## [TDD-04](../20_tdd/04_networking.md) §7.2's own figure. It is NPC-only by design: §7.2
+## justifies the tier with "those NPCs are outside all gameplay radii anyway", which is not true
+## of a player at 46 m — one interpolated at 10 Hz would be visibly coarse, and applying this to
+## remote pawns would be a design error rather than an optimisation. Interpolation error for a
+## strolling NPC across 100 ms is under 15 cm, far below every gameplay radius. Must not exceed
+## TUN-NET-SNAPSHOT-RATE (invariant §17.31).
+## TUN-NET-NPC-RATE-LOD-HZ
+@export_range(5.0, 30.0, 0.1) var npc_rate_lod_hz: float = 10.0
