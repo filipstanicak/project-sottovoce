@@ -370,11 +370,24 @@ No gameplay rules replicated — there are none yet. No NPCs. Movement only.
 
 **Exit:** 80 NPCs with clones, blend groups, startle/gawk, ≤ 2 ms/frame.
 
-> **Status after the M3 gate, 2026-08-18: EVERY STORY IS BUILT AND THE GATE IS RUN.**
-> Three of US-0048's ten lines are met, **one is a measured miss — downstream bandwidth at 112 %
-> of budget, where this corpus has said 97 % since US-0029** — and six are blocked on clone meshes,
-> animation clips and a human at a windowed client. **The `m3-crowd` tag is not pushed; that is the
-> owner's call** and US-0048 lists what is outstanding at the moment of it.
+> **Status after the M3 gate, 2026-08-19: EVERY STORY IS BUILT, THE GATE IS RUN, AND A CLIENT
+> DRAWS THE CROWD.** Four of US-0048's ten lines are met — including **server tick p99 at 2.15 ms
+> of 8.0**, measured by booting the real `server_root.tscn` for the first time. **One is a measured
+> miss: downstream bandwidth at 112 % of budget**, where this corpus said 97 % since US-0029. Five
+> are blocked on animation clips and a human at a windowed client. **The `m3-crowd` tag is not
+> pushed; that is the owner's call.**
+>
+> **`NpcView` LANDED AFTER THE GATE AND CHANGED WHAT SEVERAL STORIES ARE BLOCKED BY.** The district
+> is no longer empty: a client draws 66–72 NPCs across ~108 m, at **1.400 m/s against a documented
+> stroll of 1.400** — invariant 1 verified through interpolation, which nothing had ever done.
+> **Building it found three server defects and watching it found three more**, none reachable by
+> any test here. What still blocks the animation-parity and client-LOD lines is no longer "no
+> client draws a clone"; it is that **there is no mesh and no `AnimationTree`**, and no animation
+> clip on either rig.
+>
+> **AND ONE DEFECT IS MEASURED BUT NOT EXPLAINED**: four to six NPCs per spawn point are created
+> and freed about once per snapshot at 70.01–70.05 m against a 70.00 m radius. Bounded, visible
+> only at 70 m, open. TDD-04 §7.1.3.
 >
 > **Status at the 2026-08-18 checkpoint: NINE OF TEN STORIES DONE, PLUS US-0096, AND ONLY THE GATE IS LEFT.**
 > US-0039, US-0040, US-0041 and US-0042 are `done`; US-0043 to US-0047 are built bar their open
@@ -389,7 +402,9 @@ No gameplay rules replicated — there are none yet. No NPCs. Movement only.
 > two are still waiting on that); there are **no clone meshes or animations** (US-0046), which
 > blocks the client half of LOD, the animation-parity layer and the two criteria that need a
 > human to look at something; and there is **no violence** to startle anybody, since kill and
-> stun are M4. The crowd is real on the server and invisible to every client.
+> stun are M4. **The crowd is drawn on a client as of US-0045's `NpcView`** — what is still
+> missing is a mesh, an `AnimationTree` and a persona, so every NPC is a grey capsule and none
+> wears an identity.
 >
 > **`test_crowd_perf.gd` EXISTS, HAS BEEN RUN, AND SPENT TWO STORIES MEASURING THE WRONG
 > SCENARIO.** It stood up the full crowd and **no players**, so every NPC banded Far,
@@ -421,7 +436,7 @@ No gameplay rules replicated — there are none yet. No NPCs. Movement only.
 | `SpatialHash` — shared by four consumers | **Done, US-0042.** A counting sort over buffers sized once, so a rebuild allocates nothing: **0.0561 ms for 90 NPCs against a 0.15 ms budget**. The cell size is read from `TUN-SUSPICION-OPEN-RADIUS` rather than declared as 6.0, because the criterion is that the two are the *same number*. Agreement with brute force is asserted over 1000 random queries — and each comparison counts how often it found anybody, because two empty answers agree. `nearest_distance` takes a **bound**, deviating from TDD-08 §6: unbounded, it degenerates to a full scan exactly when the district is emptiest |
 | `CrowdDirector` — group slots, four circuits, clone redistribution | **Done bar two level-data findings, US-0043.** Four formations walk their circuits, `WALKING_GROUP` is reachable (a real server logs `processions formed: 16 NPCs across 4 of 4 circuits`), the joinable slot is never given to an NPC, and a player can claim, hold, travel with and release one. The 2 s timer is derived from the tick. **Two criteria stay unticked and both are the level's, not the code's**: the routes are 150–237 m so their declared 55–75 s periods imply 2.6–3.2 m/s, and CIRC-A and CIRC-B share the z=45 spine so they pass within **0.51 m** against a rule of 8 m. **Clone redistribution landed in US-0047**, on this same 2 s timer |
 | Startle propagation, gawk tokens, corpses | **Done bar one observer, US-0044.** Two explicit rounds rather than §3.2's recursion, which caps each *agent* but not the wave; `has_propagated` clears on leaving `STARTLE`, or an NPC would propagate once per **match**. **A sprinting player startles the crowd in a live match** — the sweep runs once a second on the director's own tick, at `TUN-CROWD-STARTLE-SPRINT-INTERVAL`; violence has an entry point and no caller until `SYS-KILL` at M4. Gawk is capped at six, nearest first, fleeing skipped, and **a gawker walks to the body** — without which the cap would be vacuous, since an NPC that never left a pocket could not depopulate it. **The one unticked criterion needs a human at a windowed client**, and NPC meshes are US-0046 |
-| LOD bands: update-rate (server) and animation (client) | **Server half done, US-0045; client half blocked on US-0046.** Bands at 20/45/70 m, strides 1/3/15, staggered by index, **and each agent's `path_max_distance` scaled by its own stride** (US-0041's last line) — Near 5.0 m, Mid 15.0, Far 75.0, which is the one path query `RepathQueue` does not stagger. **This story published "6 of 78 effective brain steps" and that was an empty district**: with six players it is **46 of 78 — 30 Near, 48 Mid, no Far** — so the reduction is 1.7×, not §4.1's 2.6× and not the 13× the empty run implied. The saving is a fifth of a millisecond either way, because the brains were 0.046 ms to begin with. Built for ADR-0003 and to unblock US-0041's far-band path validity, not for the frame time §4.1 promises. It nearly changed behaviour twice: a banded brain's timers run 15× slow without a `stride`, and events cleared on a tick the brain did not think would have **silently dropped startles for two thirds of the crowd** |
+| LOD bands: update-rate (server) and animation (client) | **Server half done, US-0045; client half still blocked, but no longer on the same thing.** `NpcView` exists and draws the crowd; what animation LOD has nothing to band is the **mesh and the `AnimationTree`**, and there are no animation clips on either rig. US-0046's. Bands at 20/45/70 m, strides 1/3/15, staggered by index, **and each agent's `path_max_distance` scaled by its own stride** (US-0041's last line) — Near 5.0 m, Mid 15.0, Far 75.0, which is the one path query `RepathQueue` does not stagger. **This story published "6 of 78 effective brain steps" and that was an empty district**: with six players it is **46 of 78 — 30 Near, 48 Mid, no Far** — so the reduction is 1.7×, not §4.1's 2.6× and not the 13× the empty run implied. The saving is a fifth of a millisecond either way, because the brains were 0.046 ms to begin with. Built for ADR-0003 and to unblock US-0041's far-band path validity, not for the frame time §4.1 promises. It nearly changed behaviour twice: a banded brain's timers run 15× slow without a `stride`, and events cleared on a tick the brain did not think would have **silently dropped startles for two thirds of the crowd** |
 | **Clone-parity enforcement: all four layers** | **Three of four, US-0046, US-0047 and US-0096.** **US-0096 seats the opening arrangement** — `CrowdPlacement` deals by slot and `CrowdRoster` derives by index, and nothing joined them, so a match could open with every clone of a persona on the wrong side of the district. `CrowdSeating` is that join, as a permutation. **And it found the map cannot satisfy GDD-03 §6.3 rule 3**: four personas at the minimum need eight clone seats within 25 m, and three of six spawn points offer **3, 6 and zero** — (114, 97.5) sees no NPC at all, so a player spawning there starts alone, uniquely identifiable, and on open ground. Reported like US-0043's circuits; **re-authoring the idle anchors is the owner's.** Layer 1 is `PersonaData.anonymous_clip_names` — the fourteen-clip set as a `const`, not four copies. **Layer 4 is built, US-0047**: `CloneBalance` on the 2 s director pass, holding the clones already near a player and fetching one when a persona is short. **Its first published figure was wrong and is retracted**: "12 958 of 12 960" held for one anchor arrangement and nothing else, and fixing US-0096's anchor hole took the same code to 248 breaches. Deciding the floor on clones that have **arrived** rather than departed brought it to **100 of 12 960**, and what the rule can actually guarantee is *"a breach is never ignored"* — of 21 short pairs the pass saw, 18 already had a clone walking and 6 were dispatched. Supply is not the constraint: 4.27 clones of each persona against a floor of 2. The *always* criterion stays unticked, because a fetched clone needs **eighteen seconds** to cross 25 m and no re-routing rule can beat a walk. TDD-08 §5.1.4. Layers 2 and 3 are **half-built and honest about it**: the declaration half of the parity test asserts, the library half reports, because there are **no animation clips in this project on either rig**; layer 3's check exists with no call site, because a call site needs an `AnimationTree`. **And the four greybox personas were built here** — `SCOPE_FENCE` IN #3 makes them an M3 deliverable and no story's criteria owned them. Their first render found Lucerna's pole floating detached, which no assertion would have caught |
 
 ### 5.1 The M3 gate — the project's hardest
