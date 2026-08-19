@@ -231,6 +231,8 @@ const FIELD := {
 	&"TUN-NET-QUANT-POS": ["net", "quant_pos", "m"],
 	&"TUN-NET-QUANT-YAW": ["net", "quant_yaw", "deg"],
 	&"TUN-NET-NPC-CULL-RADIUS": ["net", "npc_cull_radius", "m"],
+	&"TUN-NET-NPC-RATE-LOD-RADIUS": ["net", "npc_rate_lod_radius", "m"],
+	&"TUN-NET-NPC-RATE-LOD-HZ": ["net", "npc_rate_lod_hz", "Hz"],
 	&"TUN-PERF-FRAME-BUDGET": ["perf", "frame_budget", "ms"],
 	&"TUN-PERF-CROWD-BUDGET": ["perf", "crowd_budget", "ms"],
 	&"TUN-PERF-NET-BUDGET": ["perf", "net_budget", "ms"],

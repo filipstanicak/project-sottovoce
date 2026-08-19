@@ -186,17 +186,24 @@ func test_the_index_survives_culling_so_a_client_can_follow_one_npc() -> void:
 ## An NPC exactly on the line is **inside**. Stated because the two sides of a
 ## boundary are decided by an inequality nobody reads twice, and a client and a
 ## server disagreeing about one entity is a bug that surfaces as flicker.
+##
+## **SAMPLED OVER A WHOLE STRIDE, BECAUSE "SENT" AND "SENT THIS TICK" STOPPED
+## MEANING THE SAME THING.** The cull radius is past `TUN-NET-NPC-RATE-LOD-RADIUS`,
+## so an NPC on the boundary is in the slowed band and appears on one tick in
+## `stride`. This test asserted a single tick and went red the moment rate LOD
+## landed — correctly: it was measuring a rate and calling it a cull.
 func test_the_boundary_itself_is_inside() -> void:
 	var here := Vector3(20.0, 0.0, 20.0)
 	_player_at(ALICE, here)
 	var reach: float = Tuning.net.npc_cull_radius
 	for index: int in CROWD:
 		_pool.set_position(index, here + Vector3(reach, 0.0, 0.0))
-	assert_eq(
-		_builder.build_for(ALICE).npcs.size(),
-		CROWD,
-		"an NPC at exactly the cull radius was dropped"
-	)
+	var ever := {}
+	for tick: int in _builder.rate_lod_stride():
+		_ctx.tick = tick
+		for index: int in _indices_in(_builder.build_for(ALICE)):
+			ever[index] = true
+	assert_eq(ever.size(), CROWD, "an NPC at exactly the cull radius was never sent at all")
 
 
 ## The builder must survive a match with no crowd at all — the integration harness

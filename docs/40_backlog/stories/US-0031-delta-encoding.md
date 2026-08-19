@@ -76,28 +76,37 @@ whose shape depends on a flag is a format that gets read wrong on the branch nob
       boundary changes its byte where `is_equal_approx` says it did not.
       `Snapshot.remote_fingerprint()` lives beside the writer so the two cannot come apart, and a
       test asserts equal fingerprints serialise to identical bytes.
-- [ ] **Entities beyond 45 m are sent at 10 Hz rather than 30 Hz.** Not built, and **not merely
-      waiting on the crowd — it is scoped to NPCs on purpose.** §7.1 budgets remote pawns at
+- [x] **Entities beyond 45 m are sent at 10 Hz rather than 30 Hz.** **Built**, and **scoped to
+      NPCs on purpose.** §7.1 budgets remote pawns at
       30 Hz with no LOD, and §7.2 justifies the 10 Hz tier by *"those NPCs are outside all
       gameplay radii anyway"*, which is not true of a **player** at 46 m. Applying this criterion
       to players as written would be a design error. It lands with `SYS-CROWD` in M3.
-      — **AND IT IS NOW THE GAP, MEASURED.** The crowd went on the wire in US-0030 and is
-      culled; priced on the real builder's bytes that is **148.6 kbit/s, 155 % of budget**, with
-      the cull removing only 11 of 78 NPCs. §7.1's 112 % projection assumes this criterion **and**
-      an NPC delta. **The distance between 155 % and 112 % is what these two are worth**, which
-      this story could not have known before there was a crowd to price. TDD-04 §7.1.2.
+      — **AND IT WAS WORTH 36 POINTS: 155 % → 119 %.** §7.2's two numbers were bare prose with no
+      `TUN-` IDs, because until US-0030 there was no crowd for the rule to apply to; they are
+      `TUN-NET-NPC-RATE-LOD-RADIUS` and `TUN-NET-NPC-RATE-LOD-HZ` now, with the document's own
+      values, plus invariants 30 and 31.
+      **THE STAGGER IS THE HALF THAT WOULD HAVE SILENTLY NOT HAPPENED.** Sending the whole slowed
+      band on one tick divides the *mean* by the stride and leaves the *peak* exactly where it was
+      — and **the kbit/s figure is identical either way**, so nothing about the budget would have
+      revealed it. Staggered by `(tick + index) % stride`, the shape `CrowdBands` already uses;
+      the worst tick carries about a third of the band. TDD-04 §7.1.2.
 - [x] **A lost ack degrades to a full send rather than corrupting state.** Both ends. The server
       falls back to full when the baseline is unknown, too old, or discarded; the client **drops**
       a delta whose baseline it lacks rather than assembling a plausible wrong world — and a
       dropped snapshot never becomes an ack, so the error cannot fail to converge.
 - [ ] **Measured downstream is within 96 kbit/s at 6 players and 90 NPCs.** **Now measured, and
-      missed: 148.6 kbit/s, 155 %** (`test_crowd_wire_cost.gd`, on the real builder's serialised
+      missed: 114.0 kbit/s, 119 %** with culling and rate LOD both built (was 155 % with culling
+      alone) (`test_crowd_wire_cost.gd`, on the real builder's serialised
       bytes at the worst spawn point). The 93.5 kbit/s / 97 % this line used to carry was a
       projection whose two change fractions had never met a crowd — measured, they are 0.776 and
       0.761 against 0.55 and 0.70, which is 112 % **even with** the two mechanisms above built.
-      **Delta encoding for NPCs needs a protocol change, not just a builder change**: remote pawns
-      carry `present_slots` so *absent* can mean "unchanged" rather than "gone", and the NPC block
-      has no equivalent. TDD-04 §7.1.1 and §7.1.2.
+      **What is left is the NPC delta, and it is worth about seven points** — 119 % as built
+      against 112 % projected — because **0.776 of visible NPC records change every tick anyway**.
+      **It needs a protocol change, not just a builder change**: remote pawns carry `present_slots`
+      so *absent* can mean "unchanged" rather than "gone", and the NPC block has no equivalent.
+      **A change to a bible document, for seven points, against a miss that would still be 12 %**
+      — the trade is recorded rather than taken. ADR-0007 and a smaller cull radius are the other
+      two candidates and neither is priced. TDD-04 §7.1.1 and §7.1.2.
 
 ## What building it found
 

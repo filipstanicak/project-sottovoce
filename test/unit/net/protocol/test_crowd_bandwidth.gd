@@ -20,8 +20,8 @@
 ##
 ## **THIS FILE IS THE PROJECTION; `test_crowd_wire_cost.gd` IS THE WIRE.** What is
 ## measured here is what the budget would be with §7.1's mechanisms in place. What
-## the shipped builder actually charges a client today — NPCs culled by US-0030,
-## but neither delta-encoded nor rate-LOD'd — is measured beside the builder,
+## the shipped builder actually charges a client today — culled (US-0030) and
+## rate-LOD'd (US-0031), with no NPC delta — is measured beside the builder,
 ## because that number is a property of the builder rather than of the format.
 extends GutTest
 
@@ -182,20 +182,18 @@ func _measure() -> void:
 	_adopt_the_worst_observer()
 
 
-## §7.1's two rows split at **45 m**, which is §7.2's rate-LOD boundary and not
-## `TUN-PERF-CROWD-LOD-NEAR`'s 20 m — that one bands the *brain*, which is a CPU
-## question rather than a bandwidth one. This file used 20 m first and reported
-## 83 % of budget from a split nothing sends against.
+## §7.1's two rows split at `TUN-NET-NPC-RATE-LOD-RADIUS`, which is §7.2's
+## rate-LOD boundary and not `TUN-PERF-CROWD-LOD-NEAR`'s 20 m — that one bands the
+## *brain*, which is a CPU question rather than a bandwidth one. This file used
+## 20 m first and reported 83 % of budget from a split nothing sends against.
 ##
-## **NEITHER §7.2 NUMBER HAS A `TUN-` ID**, which is a finding rather than an
-## oversight here: the 45 m boundary and the 10 Hz far rate are bare numbers in
-## prose, because rate LOD is US-0031's unticked criterion and nothing has ever
-## had to read them. The boundary is taken from `TUN-PERF-CROWD-LOD-MID`, which
-## carries the same 45 m for the same reason — how far away an NPC has to be
-## before its detail stops being worth paying for. **If those two ever diverge,
-## this file is measuring the wrong one and rate LOD needs its own tunable.**
+## **NEITHER §7.2 NUMBER HAD A `TUN-` ID WHEN THIS FILE WAS WRITTEN**, and this is
+## where that was recorded: the boundary was read from `TUN-PERF-CROWD-LOD-MID`,
+## which carried the same 45 m, under a note saying that if the two ever diverged
+## the file would be measuring the wrong one. US-0031 gave rate LOD its own two
+## tunables and this now reads the right one.
 func _tally_one_tick() -> void:
-	var near_band: float = Tuning.perf.crowd_lod_mid
+	var near_band: float = Tuning.net.npc_rate_lod_radius
 	var cull: float = Tuning.net.npc_cull_radius
 	for index: int in CROWD:
 		var record := _record_of(index)

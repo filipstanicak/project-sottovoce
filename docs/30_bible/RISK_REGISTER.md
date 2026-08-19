@@ -400,10 +400,11 @@ Plus `test_footstep_parity.gd` for the audio equivalent, and the no-per-instance
 diagnosis. **US-0095 hand-serialised the command and brought it to 23.2 kbit/s, 145 %.** What
 remains *is* packet overhead: 28 B × 60 Hz is 84 % of the budget on its own, and coalescing —
 §7.3's original proposal, right about the mechanism and wrong about which term dominated — would
-close it at 91 %. **Downstream as actually built is 148.6 kbit/s — 155 %.** US-0030 put the crowd on the wire and
-culled it; the cull removes **11 of 78** NPCs at the worst spawn point, because the radius is 70 m
-on a 120 × 120 m map. **Culling was not the lever.** With §7.1's two unbuilt mechanisms — an NPC
-delta and rate LOD, both US-0031's — it **projects at 108.0 kbit/s, 112 %** on real crowd counts — the 93.5 kbit/s / 97 %
+close it at 91 %. **Downstream as actually built is 114.0 kbit/s — 119 %**, with culling (US-0030) and rate LOD
+(US-0031) both in. **Culling was not the lever**: it removes 11 of 78 NPCs, because the radius is
+70 m on a 120 × 120 m map. **Rate LOD was**, taking 155 % → 119 %. What remains is the NPC delta,
+**worth about seven points and needing a protocol change** — 0.776 of visible records change every
+tick anyway. With it, the projection is **108.0 kbit/s, 112 %** on real crowd counts — the 93.5 kbit/s / 97 %
 figure carried since US-0029 was a projection on two unmeasured multipliers, and it was itself a
 re-derivation of an original claim of 87 %. **Three successive versions of this number, each
 believed until somebody measured the next thing down.** TDD-04 §7.1.1.

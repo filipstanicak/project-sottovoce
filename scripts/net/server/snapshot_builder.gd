@@ -104,15 +104,37 @@ func _fill_crowd(snapshot: Snapshot, peer: int) -> void:
 	var own := _pawns.context_for(peer)
 	if crowd == null or own == null:
 		return
-	var reach: float = Tuning.net.npc_cull_radius
-	var beyond := reach * reach
+	var beyond: float = Tuning.net.npc_cull_radius * Tuning.net.npc_cull_radius
+	var slowed: float = Tuning.net.npc_rate_lod_radius * Tuning.net.npc_rate_lod_radius
+	var stride := rate_lod_stride()
 	for index: int in crowd.active_count():
 		var at := crowd.position_of(index)
 		var dx := at.x - own.position.x
 		var dz := at.z - own.position.z
-		if dx * dx + dz * dz > beyond:
+		var away := dx * dx + dz * dz
+		if away > beyond:
+			continue
+		if away > slowed and (snapshot.server_tick + index) % stride != 0:
 			continue
 		snapshot.add_npc(index, at, _yaw_of(crowd, index), _anim_of(crowd, index), 0)
+
+
+## Ticks between sends for an NPC past `TUN-NET-NPC-RATE-LOD-RADIUS`. US-0031,
+## TDD-04 §7.2.
+##
+## **DERIVED FROM THE TWO RATES, NEVER DECLARED AS 3.** A literal stops meaning
+## what it says the first time either rate is retuned, and nothing would report
+## it: the crowd would simply be replicated at a rate no tunable describes.
+##
+## Never below one. Invariant 31 already refuses a far rate above the snapshot
+## rate, so the clamp is for the tick a profile is being adopted rather than for a
+## profile that survived validation.
+func rate_lod_stride() -> int:
+	var full: float = Tuning.net.snapshot_rate
+	var reduced: float = Tuning.net.npc_rate_lod_hz
+	if reduced <= 0.0:
+		return 1
+	return maxi(int(round(full / reduced)), 1)
 
 
 ## The brain's state stands in for the animation state, and the phase is zero.

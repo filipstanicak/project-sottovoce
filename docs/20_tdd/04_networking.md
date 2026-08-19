@@ -440,26 +440,40 @@ points:
 
 | | |
 |---|---|
-| Snapshot carrying 67 of 78 NPCs | **591 B** |
-| At `TUN-NET-SNAPSHOT-RATE` + 28 B packet overhead | **148.6 kbit/s** |
-| Against `TUN-NET-BANDWIDTH-BUDGET-DOWN` 96 | **155 %** |
-| NPCs the cull removes, worst spawn point | **11 of 78 — 14 %** |
+| | Culled only | **+ rate LOD** |
+|---|---|---|
+| Mean snapshot | 591 B | **447 B** |
+| Against `TUN-NET-BANDWIDTH-BUDGET-DOWN` 96 | 148.6 kbit/s, **155 %** | **114.0 kbit/s, 119 %** |
+| NPCs the cull removes, worst spawn point | **11 of 78 — 14 %** | unchanged |
 
 **CULLING WAS NOT THE LEVER, AND THAT IS WORTH KNOWING BEFORE THE NEXT ONE IS CHOSEN.**
 `TUN-NET-NPC-CULL-RADIUS` is 70 m and `MAP-VETRAIO` is 120 × 120 m, so most of the district is
 within reach of most of it. Culling is still correct — it is a per-observer rule the protocol
 requires and US-0030's criteria are met by it — but the money is not there.
 
-**THE GAP IS US-0031's, AND IT IS NOW A MEASURED GAP RATHER THAN AN INTENDED ONE.** §7.1's
-projection assumes an NPC **delta** and **rate LOD**; neither is applied to NPCs, so every visible
-NPC is sent every tick at full size. The distance between 155 % as built and 112 % projected is
-exactly what those two mechanisms are worth, and it is the first time this corpus has been able to
-state that as a number instead of an intention.
+**RATE LOD IS BUILT AND IT WAS WORTH 36 POINTS.** §7.2 has specified "NPCs beyond 45 m at 10 Hz"
+since M0 and neither number had a `TUN-` ID, because there was no crowd for the rule to apply to;
+they are `TUN-NET-NPC-RATE-LOD-RADIUS` and `TUN-NET-NPC-RATE-LOD-HZ` now, with this document's own
+values, and invariants 30 and 31 hold them against the cull radius and the snapshot rate.
+
+**THE STAGGER IS THE HALF THAT WOULD HAVE SILENTLY NOT HAPPENED.** Sending the whole slowed band on
+the same tick divides the *mean* by the stride and leaves the *peak* exactly where it was — one
+snapshot in three carrying the entire crowd, which is the size that has to meet an MTU and the
+jitter a client actually feels. **The kbit/s figure is identical either way.** Far NPCs are
+staggered by `(tick + index) % stride`, the same shape `CrowdBands` uses for brain steps, and the
+worst tick carries about a third of the band rather than all of it.
+
+**WHAT IS LEFT IS THE NPC DELTA, AND IT IS WORTH ABOUT SEVEN POINTS.** 119 % as built against
+§7.1.1's 112 % projected. It is small because **0.776 of visible NPC records change every tick
+anyway** — the delta can only drop the quarter that do not.
 
 **AND THE PROTOCOL CANNOT EXPRESS AN UNCHANGED NPC.** Remote pawns carry `present_slots` precisely
 so that *absent* can mean "unchanged" rather than "gone"; the NPC block is a count followed by
-records and has no equivalent. **An NPC delta therefore needs a protocol change, not just a
-builder change** — which is why US-0030 stopped at the cull rather than continuing into it.
+records and has no equivalent. **An NPC delta therefore needs a protocol change, not just a builder
+change** — a change to a bible document, for seven points, against a miss that would still be 12 %.
+**That trade is now a decision somebody can take on evidence**, which is what these two files were
+built for. ADR-0007's seed-derived far crowd and a smaller `TUN-NET-NPC-CULL-RADIUS` are the other
+two candidates and neither has been priced.
 
 ---
 
@@ -495,7 +509,7 @@ feature.
 | 1 | **Distance culling** | 0–50 % | NPCs beyond `TUN-NET-NPC-CULL-RADIUS` 70 m are not sent. 70 m > `TUN-COMPASS-RANGE-MAX` 60 m, so a culled NPC can never affect anything the client can perceive (invariant §17.17) |
 | 2 | **Quantisation** | ~60 % vs. floats | Player position 3×i16 at 1 cm; **NPC position 2×i16 plus a 5 cm height byte**; yaw u8 at 1°; NPC anim 3+5 bits. **8 bytes per NPC** including index, measured |
 | 3 | **Delta encoding** | ~40 % | **Built, US-0031.** Only entities whose **quantised** state changed since the client's last ack. A standing idle NPC costs nothing, and 40–60 % of the crowd is idle at any moment. Measured against players: a settled snapshot for two motionless clients is **55 B — the fixed block, with not one remote record** |
-| 4 | **Rate LOD** | ~20 % | **Open — needs the crowd, M3.** It is scoped to NPCs on purpose: a *player* at 46 m interpolated at 10 Hz would be visibly coarse, and the justification below does not hold for them. NPCs beyond 45 m at 10 Hz. Interpolation error at walking speed is < 15 cm — far below every gameplay radius, and those NPCs are outside all of them anyway |
+| 4 | **Rate LOD** | **measured: 24 % of the as-built figure** | **BUILT, US-0031.** `TUN-NET-NPC-RATE-LOD-RADIUS` / `-HZ`, staggered by index so the peak falls with the mean. 155 % → 119 %. It is scoped to NPCs on purpose: a *player* at 46 m interpolated at 10 Hz would be visibly coarse, and the justification below does not hold for them. NPCs beyond 45 m at 10 Hz. Interpolation error at walking speed is < 15 cm — far below every gameplay radius, and those NPCs are outside all of them anyway |
 
 ### 7.3 Upstream
 
