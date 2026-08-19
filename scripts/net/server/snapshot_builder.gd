@@ -116,16 +116,23 @@ func _fill_crowd(snapshot: Snapshot, peer: int) -> void:
 	var slowed: float = Tuning.net.npc_rate_lod_radius * Tuning.net.npc_rate_lod_radius
 	var stride := rate_lod_stride()
 	var offered: Array = []
+	# **WHAT THE CULL REMOVED, KEPT SEPARATELY FROM WHAT THE RATE MERELY DELAYED.**
+	# The two look identical in the snapshot and mean opposite things to the
+	# baseline: a culled NPC is one the client will discard, a rate-skipped one is
+	# one it still holds.
+	var culled := PackedInt32Array()
 	for index: int in crowd.active_count():
 		var at := crowd.position_of(index)
 		var dx := at.x - own.position.x
 		var dz := at.z - own.position.z
 		var away := dx * dx + dz * dz
 		if away > beyond:
+			culled.append(index)
 			continue
 		if away > slowed and (snapshot.server_tick + index) % stride != 0:
 			continue
 		offered.append([index, at, _yaw_of(crowd, index), _anim_of(crowd, index), 0])
+	crowd_delta.drop(peer, culled)
 	for record: Array in crowd_delta.changed(peer, snapshot.server_tick, offered):
 		snapshot.add_npc(record[0], record[1], record[2], record[3], record[4])
 
