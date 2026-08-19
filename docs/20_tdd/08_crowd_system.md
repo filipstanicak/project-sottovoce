@@ -459,6 +459,27 @@ stays unticked, as it always was.
 
 ---
 
+### 5.2 `NpcPool.position_of()` reads the body, and did not until US-0031
+
+It returned a cached `PackedVector3Array` that only `set_position` writes — and `set_position` is
+called at **placement and never again**. `Steering` moves the bodies directly from
+`NavigationAgent3D`'s avoidance callback, on the physics frame.
+
+**Nothing had ever read it, so nothing was wrong.** The moment `SnapshotBuilder._fill_crowd`
+became its first consumer, a live server would have replicated all seventy-eight NPCs **at their
+spawn anchors, forever**: no error, no failing test, and the only symptom a playtester saying the
+crowd looked like statues.
+
+**It was found by a number being too good.** The NPC delta measured 25 % of the bandwidth budget
+where the measured change fraction says 78 % of records move every tick — a delta can only drop
+what does not move, so a saving that large is arithmetically impossible. **A result better than
+the mechanism can explain is a broken measurement**, and this time the program under it was broken
+too.
+
+The body is the authority. `_positions` survives as the placement record and nothing reads it.
+
+---
+
 ## 6. The spatial hash
 
 One structure, rebuilt once per tick, **shared by four consumers**. This is the chapter's most

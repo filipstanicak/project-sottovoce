@@ -4,7 +4,7 @@ title: Delta encoding and rate LOD
 version: 1.0.0
 status: in-progress
 owner: Technical Director
-last_updated: 2026-08-18
+last_updated: 2026-08-19
 depends_on: [ADR-0007, TDD-04-NET, BIBLE-PERF-BUDGET]
 ---
 
