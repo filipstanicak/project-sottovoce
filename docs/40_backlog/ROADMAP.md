@@ -385,9 +385,13 @@ No gameplay rules replicated — there are none yet. No NPCs. Movement only.
 > client draws a clone"; it is that **there is no mesh and no `AnimationTree`**, and no animation
 > clip on either rig.
 >
-> **AND ONE DEFECT IS MEASURED BUT NOT EXPLAINED**: four to six NPCs per spawn point are created
-> and freed about once per snapshot at 70.01–70.05 m against a 70.00 m radius. Bounded, visible
-> only at 70 m, open. TDD-04 §7.1.3.
+> **AND THE ONE DEFECT LEFT OPEN AT THAT CHECKPOINT IS CLOSED**: four to six NPCs per spawn point
+> created and freed about once per snapshot at 70.01–70.05 m. It was **not on the server**, which
+> is why both deterministic cases stayed quiet — `SnapshotAssembler` cached the single farewell
+> record and re-presented it in every later snapshot, and `NpcView` read each replay as a fresh
+> departure. **485 drops for 5 real departures across six spawn points; 7 for 7 after.** Neither
+> class was wrong about its own job, and the rule they disagreed about is one class now.
+> TDD-04 §7.1.3.
 >
 > **Status at the 2026-08-18 checkpoint: NINE OF TEN STORIES DONE, PLUS US-0096, AND ONLY THE GATE IS LEFT.**
 > US-0039, US-0040, US-0041 and US-0042 are `done`; US-0043 to US-0047 are built bar their open
