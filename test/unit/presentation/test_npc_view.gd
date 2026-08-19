@@ -208,3 +208,62 @@ func _capsule_in(path: String) -> Vector2:
 			if shape != null:
 				return Vector2(shape.radius, shape.height)
 	return Vector2.ZERO
+
+
+## **AN NPC THAT WALKS AWAY WHILE THE PLAYER STANDS STILL IS A STATUE FOREVER**,
+## and the distance cull cannot see it. The server stops sending at 70 m, so the
+## last position this view was ever told is **inside** the radius by definition —
+## it can never exceed the client's own threshold, however far the NPC actually
+## goes.
+##
+## `test_an_npc_the_observer_walks_away_from_is_dropped` passes because the
+## OBSERVER moves, which drags every last-known position out of range at once.
+## That is the easy half. The half a live watch found is the other one: eight
+## seconds of a stationary player produced **zero drops**, which reads like good
+## news and is not.
+##
+## The fix cannot be a timeout — the delta means a motionless NPC is never
+## re-sent, so any timeout deletes exactly the crowd standing at anchors.
+func test_an_npc_that_walks_away_is_dropped_even_if_the_player_does_not_move() -> void:
+	var here := Vector3.ZERO
+	var reach: float = Tuning.net.npc_cull_radius
+	# In range, and drawn.
+	_view.apply_snapshot(_snapshot(1, here, [here + Vector3(reach - 5.0, 0.0, 0.0)]))
+	assert_eq(_view.count(), 1, "the NPC was never drawn")
+
+	# It walks out of range. The server sends ONE final record carrying the real,
+	# now-out-of-range position — a farewell — and then never mentions it again.
+	_view.apply_snapshot(_snapshot(2, here, [here + Vector3(reach + 2.0, 0.0, 0.0)]))
+	assert_eq(
+		_view.count(),
+		0,
+		(
+			"a farewell was ignored. A received position beyond the cull radius is the "
+			+ "server saying goodbye — it never sends one for any other reason."
+		)
+	)
+
+	# And silence afterwards must not resurrect it.
+	for tick: int in range(3, 10):
+		_view.apply_snapshot(_snapshot(tick, here, []))
+	assert_eq(_view.count(), 0, "a dropped NPC came back from silence")
+
+
+## **A STALE POSITION BEYOND THE RADIUS IS NOT A FAREWELL**, and telling the two
+## apart is the reason the client tracks which indices this snapshot carried. When
+## the observer walks away, every last-known position goes out of range at once
+## without the server saying anything — that is rule 2's case, and it keeps its
+## margin. Treating it as a farewell would drop NPCs on a boundary the server has
+## not agreed to.
+func test_a_stale_far_position_is_not_mistaken_for_a_farewell() -> void:
+	var here := Vector3.ZERO
+	var reach: float = Tuning.net.npc_cull_radius
+	# Just inside the server's radius, and just inside the client's margin too.
+	_view.apply_snapshot(_snapshot(1, here, [here + Vector3(reach - 0.1, 0.0, 0.0)]))
+	for tick: int in range(2, 20):
+		_view.apply_snapshot(_snapshot(tick, here, []))
+	assert_eq(
+		_view.count(),
+		1,
+		"an NPC inside the radius was dropped on a stale reading rather than a farewell"
+	)

@@ -169,3 +169,36 @@ func test_a_difference_the_wire_cannot_carry_is_not_a_difference() -> void:
 		Snapshot.npc_fingerprint(real),
 		"half a metre did not count as a change; the crowd would freeze"
 	)
+
+
+## **ACKS LAG, AND EVERY OTHER TEST IN THIS FILE ACKNOWLEDGES INSTANTLY.** That is
+## the one timing that hides the defect a live game showed: a record is re-sent
+## while its first copy is still in flight, and if each re-send refreshes the
+## stamp then the entry always leads the ack, is never promoted, and the NPC is
+## sent **every tick for the rest of the match**.
+##
+## Measured on a running server before the fix: a motionless NPC at a constant
+## 7.6122 m, sent on every one of twelve consecutive ticks. The delta was inert and
+## the suite was green.
+func test_the_delta_converges_when_the_ack_lags() -> void:
+	var delta := NpcDelta.new()
+	var still := _record(1, Vector3(10.0, 0.0, 10.0))
+	var sends := 0
+	for tick: int in range(1, 41):
+		if not delta.changed(ALICE, tick, [still]).is_empty():
+			sends += 1
+		# The client acknowledges three ticks late, which is an ordinary RTT.
+		if tick > 3:
+			delta.note_ack(ALICE, tick - 3)
+	assert_lt(
+		sends,
+		8,
+		(
+			(
+				"a motionless NPC was sent %d times in 40 ticks. The delta never converges "
+				+ "when the ack lags, which is every real connection."
+			)
+			% sends
+		)
+	)
+	assert_gt(sends, 0, "nothing was ever sent, so this proves nothing")

@@ -43,15 +43,35 @@ func changed(peer: int, tick: int, offered: Array) -> Array:
 	return out
 
 
-## Remember what went out, against the tick that carried it, so an ack can promote
-## it later. Only records actually sent are remembered — one that was dropped as
-## unchanged is already accounted for by the entry it matched.
+## Remember what went out, against the **earliest** tick that carried this value.
+##
+## **KEEPING THE LATEST TICK MADE THE WHOLE DELTA INERT, AND ONLY A LIVE GAME
+## SHOWED IT.** An ack lags by at least a tick, so a record is re-sent while its
+## first copy is still in flight — and overwriting the stamp each time means the
+## entry always leads the ack, is never promoted, and the NPC is therefore sent
+## **every single tick for the rest of the match**. Measured on a running server:
+## a motionless NPC at a constant 7.6122 m, sent on every one of twelve consecutive
+## ticks.
+##
+## Every unit test acknowledged synchronously, one tick after the send, which is
+## the one timing that hides this. **A delta that reports a saving it does not
+## deliver is the exact failure this class's own docstring warns about**, two
+## paragraphs up, about tick-keyed baselines.
+##
+## The client only has to receive a value once, so the earliest send is the one an
+## ack should clear. A *changed* value resets the stamp, because that is a
+## different thing to have received.
 func _note_sent(peer: int, tick: int, sent: Array) -> void:
 	if not _in_flight.has(peer):
 		_in_flight[peer] = {}
 	var pending: Dictionary = _in_flight[peer]
 	for record: Array in sent:
-		pending[int(record[0])] = [tick, Snapshot.npc_fingerprint(record)]
+		var index := int(record[0])
+		var print_of := Snapshot.npc_fingerprint(record)
+		var already: Variant = pending.get(index)
+		if already != null and (already as Array)[1] == print_of:
+			continue
+		pending[index] = [tick, print_of]
 
 
 ## **EVERYTHING SENT AT OR BEFORE `tick` IS NOW KNOWN TO HAVE ARRIVED.** Connected
@@ -99,6 +119,20 @@ func drop(peer: int, indices: PackedInt32Array) -> void:
 	for index: int in indices:
 		known.erase(index)
 		pending.erase(index)
+
+
+## Does this peer hold anything for `index` — confirmed or still in flight?
+##
+## **THE SERVER HAS TO SAY GOODBYE, BECAUSE ABSENCE CANNOT.** A client is told
+## nothing about a culled NPC, and the last position it *was* told is inside the
+## radius by definition, so its own distance check can never fire: the NPC is
+## drawn frozen at the boundary forever. `SnapshotBuilder` sends one final record
+## carrying the real out-of-range position, and this is how it knows which NPCs
+## the client is actually holding and therefore owes a farewell to.
+func holds(peer: int, index: int) -> bool:
+	if (_confirmed.get(peer, {}) as Dictionary).has(index):
+		return true
+	return (_in_flight.get(peer, {}) as Dictionary).has(index)
 
 
 ## How many NPCs this peer is believed to hold. For tests and for the wire-cost
