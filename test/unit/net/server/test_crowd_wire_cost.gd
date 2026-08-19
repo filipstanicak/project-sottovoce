@@ -31,11 +31,18 @@ const ONE_PEER := 7701
 ## packet and not per byte, so it cannot be folded into the payload measurement.
 const PACKET_OVERHEAD := 28
 
+## Ticks measured once the crowd has settled. A whole number of rate-LOD strides,
+## and long enough that the NPC delta has a baseline for everything it will ever
+## have one for.
+const SETTLE_TICKS := 300
+const MEASURE_TICKS := 30
+
 var _ctx: MatchContext
 var _pool: NpcPool
 var _host: PawnHost
 var _builder: SnapshotBuilder
 var _map: MapData
+var _crowd: ModelledCrowd
 
 
 func before_each() -> void:
@@ -57,14 +64,20 @@ func before_each() -> void:
 	await get_tree().physics_frame
 
 
-## **THE REAL PLACEMENT, NOT A CONVENIENT ONE.** `CrowdPlacement` deals the crowd
-## round-robin over the map's own idle anchors, so how many NPCs are within reach
-## of a spawn point is a property of the level rather than of this file. A crowd
-## laid out for the test's convenience would measure the test.
+## **THE CROWD HAS TO BE WALKING OR THE DELTA REPORTS THAT EVERYTHING IS FREE.**
+## This file placed the crowd once and left it standing, which was fine while it
+## priced culling and rate LOD — both are decided by *distance*. The NPC delta is
+## decided by *motion*, and a motionless crowd would have measured a snapshot of
+## almost nothing and called it the cost of the game.
+##
+## Real brains, modelled navigation; `ModelledCrowd` explains the split and why it
+## cannot flatter the figure.
 func _place_the_real_crowd() -> void:
-	var spots := CrowdPlacement.positions(CROWD, SEED, _map.idle_anchors, RID())
-	for index: int in mini(spots.size(), CROWD):
-		_pool.set_position(index, spots[index])
+	var rng := RandomNumberGenerator.new()
+	rng.seed = SEED
+	_crowd = ModelledCrowd.new()
+	_crowd.setup(_pool, _map, rng, CROWD)
+	_crowd.settle(SETTLE_TICKS)
 
 
 func _observer_at(at: Vector3) -> void:
@@ -73,20 +86,28 @@ func _observer_at(at: Vector3) -> void:
 	_host.context_for(ONE_PEER).position = at
 
 
-## Mean bytes per snapshot at one spot, **averaged over a whole rate-LOD stride**.
+## Mean bytes per snapshot at one spot, over `MEASURE_TICKS` of a **walking** crowd,
+## **with the client acknowledging every one**.
 ##
-## **A SINGLE TICK STOPPED BEING A FAIR SAMPLE THE MOMENT RATE LOD LANDED.** The
-## slowed band is staggered by index, so one tick carries roughly a third of it —
-## roughly, not exactly, and which third depends on the tick. kbit/s is a mean, so
-## the mean over a stride is the honest figure and one arbitrary tick is luck.
+## **A SINGLE TICK STOPPED BEING A FAIR SAMPLE THE MOMENT RATE LOD LANDED**, because
+## the slowed band is staggered by index and which third a tick carries depends on
+## the tick. kbit/s is a mean, so a mean is the honest figure.
+##
+## **AND THE ACK IS NOT A DETAIL.** `NpcDelta`'s baseline advances on
+## acknowledgement, never on transmission — so a measurement that never acks is
+## measuring a client that never received anything, and would report the delta as
+## worth nothing at all. Acking every tick is the optimistic end of the range and
+## is stated as such: a lossy connection gets fewer omissions and more bytes.
 func _mean_bytes_at(at: Vector3) -> float:
 	_host.context_for(ONE_PEER).position = at
-	var stride := _builder.rate_lod_stride()
+	_builder.crowd_delta.forget(ONE_PEER)
 	var total := 0
-	for tick: int in stride:
+	for tick: int in MEASURE_TICKS:
 		_ctx.tick = tick
+		_crowd.step()
 		total += _builder.build_for(ONE_PEER).serialise().size()
-	return float(total) / float(stride)
+		_builder.note_ack(ONE_PEER, tick)
+	return float(total) / float(MEASURE_TICKS)
 
 
 ## The most expensive spawn point, because a budget met on average across players
@@ -102,6 +123,9 @@ func _worst_spawn_point() -> float:
 ## the set the cull chose, as opposed to the subset any one tick happens to carry.
 func _reachable_from(at: Vector3) -> int:
 	_host.context_for(ONE_PEER).position = at
+	# **WITHOUT A BASELINE, SO THE DELTA CANNOT HIDE ANYBODY.** This asks which NPCs
+	# the CULL chose, and an NPC omitted for being unchanged was still chosen.
+	_builder.crowd_delta.forget(ONE_PEER)
 	var ever := {}
 	for tick: int in _builder.rate_lod_stride():
 		_ctx.tick = tick
@@ -151,8 +175,8 @@ func test_what_one_client_is_charged_for_the_crowd_today() -> void:
 	gut.p(
 		(
 			(
-				"AS BUILT: %.0f B/snapshot, mean over a stride = %.1f kbit/s against %.0f "
-				+ "budget (%.0f %%). Culled and rate-LOD'd; no NPC delta."
+				"AS BUILT: %.0f B/snapshot mean = %.1f kbit/s against %.0f budget "
+				+ "(%.0f %%). Culled, rate-LOD'd and delta-encoded."
 			)
 			% [bytes, kbit, budget, kbit / budget * 100.0]
 		)
@@ -162,8 +186,9 @@ func test_what_one_client_is_charged_for_the_crowd_today() -> void:
 			(
 				(
 					"as actually built, downstream is %.1f kbit/s — %.0f %% of budget. "
-					+ "Culling and rate LOD are both in; what is left is the NPC DELTA, "
-					+ "which needs a protocol change to express an unchanged NPC. US-0031."
+					+ "Culling, rate LOD and the NPC delta are ALL IN, and it agrees with "
+					+ "§7.1.1's independent projection of 112 %%. What is left is ADR-0007's "
+					+ "seed-derived far crowd or a smaller cull radius — neither is priced."
 				)
 				% [kbit, kbit / budget * 100.0]
 			)

@@ -27,6 +27,12 @@ extends Node
 ## Pure and separable, so what a delta omits can be asked directly.
 var delta := SnapshotDelta.new()
 
+## **THE CROWD'S OWN BASELINE, AND IT COULD NOT SHARE THE ONE ABOVE.** `SnapshotDelta`
+## keys by tick, which is right for pawns because every pawn is offered every tick.
+## A rate-LOD'd NPC is offered on one tick in three and would read as "new" on every
+## one of them. `NpcDelta` keys per NPC and advances on the ack. TDD-04 §7.1.2.
+var crowd_delta := NpcDelta.new()
+
 var _ctx: MatchContext
 var _pawns: PawnHost
 var _router: RpcRouter
@@ -60,12 +66,14 @@ func send_all(_ctx_in: MatchContext, _dt: float) -> void:
 ## `RpcRouter.snapshot_acked`.
 func note_ack(peer: int, tick: int) -> void:
 	delta.note_ack(peer, tick)
+	crowd_delta.note_ack(peer, tick)
 
 
 ## Release a departed peer's baselines. ENet reuses ids, so a baseline left
 ## behind would be delta-ed against by whoever inherits the id — US-0037.
 func forget(peer: int) -> void:
 	delta.forget(peer)
+	crowd_delta.forget(peer)
 
 
 ## The snapshot `peer` should receive. Public so a test can read one without a
@@ -107,6 +115,7 @@ func _fill_crowd(snapshot: Snapshot, peer: int) -> void:
 	var beyond: float = Tuning.net.npc_cull_radius * Tuning.net.npc_cull_radius
 	var slowed: float = Tuning.net.npc_rate_lod_radius * Tuning.net.npc_rate_lod_radius
 	var stride := rate_lod_stride()
+	var offered: Array = []
 	for index: int in crowd.active_count():
 		var at := crowd.position_of(index)
 		var dx := at.x - own.position.x
@@ -116,7 +125,9 @@ func _fill_crowd(snapshot: Snapshot, peer: int) -> void:
 			continue
 		if away > slowed and (snapshot.server_tick + index) % stride != 0:
 			continue
-		snapshot.add_npc(index, at, _yaw_of(crowd, index), _anim_of(crowd, index), 0)
+		offered.append([index, at, _yaw_of(crowd, index), _anim_of(crowd, index), 0])
+	for record: Array in crowd_delta.changed(peer, snapshot.server_tick, offered):
+		snapshot.add_npc(record[0], record[1], record[2], record[3], record[4])
 
 
 ## Ticks between sends for an NPC past `TUN-NET-NPC-RATE-LOD-RADIUS`. US-0031,

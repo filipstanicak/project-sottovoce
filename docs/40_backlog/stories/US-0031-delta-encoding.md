@@ -95,18 +95,20 @@ whose shape depends on a flag is a format that gets read wrong on the branch nob
       a delta whose baseline it lacks rather than assembling a plausible wrong world — and a
       dropped snapshot never becomes an ack, so the error cannot fail to converge.
 - [ ] **Measured downstream is within 96 kbit/s at 6 players and 90 NPCs.** **Now measured, and
-      missed: 114.0 kbit/s, 119 %** with culling and rate LOD both built (was 155 % with culling
-      alone) (`test_crowd_wire_cost.gd`, on the real builder's serialised
+      missed: 106.4 kbit/s, 111 %** with culling, rate LOD and the NPC delta all built — 155 %
+      with culling alone, 119 % with rate LOD added. **It agrees with §7.1.1's 112 % projection,
+      reached by an independent route** (`test_crowd_wire_cost.gd`, on the real builder's serialised
       bytes at the worst spawn point). The 93.5 kbit/s / 97 % this line used to carry was a
       projection whose two change fractions had never met a crowd — measured, they are 0.776 and
       0.761 against 0.55 and 0.70, which is 112 % **even with** the two mechanisms above built.
-      **What is left is the NPC delta, and it is worth about seven points** — 119 % as built
-      against 112 % projected — because **0.776 of visible NPC records change every tick anyway**.
-      **It needs a protocol change, not just a builder change**: remote pawns carry `present_slots`
-      so *absent* can mean "unchanged" rather than "gone", and the NPC block has no equivalent.
-      **A change to a bible document, for seven points, against a miss that would still be 12 %**
-      — the trade is recorded rather than taken. ADR-0007 and a smaller cull radius are the other
-      two candidates and neither is priced. TDD-04 §7.1.1 and §7.1.2.
+      **The delta was worth eight points and needed NO protocol change**, which is the opposite
+      of what this story expected. `present_slots` was needed for pawns because *absent* used to
+      mean "gone"; for the crowd, culling and rate LOD had already made absent mean "no update
+      this tick". **What the protocol still cannot say is that an NPC has LEFT** — equally true
+      before, and unobserved because there is no `NpcView`.
+      **What is left is 11 %**: ADR-0007's seed-derived far crowd, or a smaller cull radius, which
+      invariant 17 pins above `TUN-COMPASS-RANGE-MAX` for a reason. Neither is priced.
+      TDD-04 §7.1.1 and §7.1.2.
 
 ## What building it found
 

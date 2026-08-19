@@ -51,7 +51,7 @@ var _pool: NpcPool
 var _map: MapData
 var _rng: RandomNumberGenerator
 var _watchers: PackedVector3Array
-var _goals: PackedVector3Array
+var _crowd: ModelledCrowd
 var _previous: Array = []
 
 ## Filled by `_measure`. Members rather than a return value, because every test
@@ -76,12 +76,8 @@ func before_each() -> void:
 	add_child_autofree(_pool)
 	_pool.preallocate(CROWD)
 	_pool.activate(CROWD, SEED, CrowdRoster.PLAYABLE, PLAYERS)
-	_goals = PackedVector3Array()
-	_goals.resize(CROWD)
-	for index: int in CROWD:
-		_pool.set_position(index, _map.idle_anchors[index % _map.idle_anchors.size()])
-		_pool.context_of(index).rng = _rng
-		_goals[index] = CrowdDirector.NO_GOAL
+	_crowd = ModelledCrowd.new()
+	_crowd.setup(_pool, _map, _rng, CROWD)
 	_seat_the_players()
 
 
@@ -93,43 +89,6 @@ func _seat_the_players() -> void:
 	_watchers = PackedVector3Array()
 	for at: Vector3 in _map.spawn_points:
 		_watchers.append(at)
-
-
-## One tick of the crowd, with navigation replaced by a straight line at stroll.
-func _step_the_crowd() -> void:
-	var dt := MatchContext.net_dt()
-	var step: float = Tuning.crowd.npc_speed_stroll * dt
-	var arrive: float = Tuning.crowd.anchor_arrive_radius
-	for index: int in CROWD:
-		var brain := _pool.brain_of(index)
-		var cctx := _pool.context_of(index)
-		brain.step(cctx, dt)
-		cctx.clear_events()
-		if brain.state != NpcBrain.State.STROLL:
-			continue
-		if _goals[index] == CrowdDirector.NO_GOAL:
-			_goals[index] = _next_anchor(index)
-		_walk(index, brain, cctx, step, arrive)
-
-
-## Move one strolling body one tick along its straight line, and tell the brain
-## when it arrives — otherwise nobody ever stands still and the idle fraction,
-## which is the number this file exists to measure, is a constant zero.
-func _walk(index: int, brain: NpcBrain, cctx: CrowdContext, step: float, arrive: float) -> void:
-	var body := _pool.body_of(index)
-	var to := _goals[index] - body.global_position
-	to.y = 0.0
-	if to.length() <= arrive:
-		brain.handle(NpcBrain.Event.REACHED_ANCHOR, cctx)
-		cctx.clear_events()
-		_goals[index] = CrowdDirector.NO_GOAL
-		return
-	body.global_position += to.normalized() * step
-
-
-func _next_anchor(index: int) -> Vector3:
-	var anchors := _map.idle_anchors
-	return anchors[(index * 7 + int(_rng.randi_range(0, anchors.size() - 1))) % anchors.size()]
 
 
 ## **WHAT THE WIRE WOULD CARRY FOR ONE NPC**, through the real `Quantise` rather
@@ -167,8 +126,7 @@ func _distance_to(at: Vector3, watcher: Vector3) -> float:
 ## put NPCs in the cheap far band that are in some client's expensive near band.
 ## The budget is then charged to whichever observer costs the most.
 func _measure() -> void:
-	for _i: int in SETTLE_TICKS:
-		_step_the_crowd()
+	_crowd.settle(SETTLE_TICKS)
 	_previous = []
 	for index: int in CROWD:
 		_previous.append(_record_of(index))
@@ -177,7 +135,7 @@ func _measure() -> void:
 		_per_watcher.append({"near": 0, "far": 0, "near_changed": 0, "far_changed": 0})
 	_moved_bodies = 0
 	for _i: int in MEASURE_TICKS:
-		_step_the_crowd()
+		_crowd.step()
 		_tally_one_tick()
 	_adopt_the_worst_observer()
 
