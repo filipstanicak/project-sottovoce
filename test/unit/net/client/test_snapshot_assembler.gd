@@ -116,6 +116,60 @@ func test_history_does_not_grow_without_bound() -> void:
 	assert_null(stale, "a baseline older than the history was still held")
 
 
+## **A DEPARTED NPC MUST STOP BEING CARRIED FORWARD.** US-0045, TDD-04 §7.1.3.
+##
+## The crowd is carried forward because absence means "no update" — and the one
+## record that does NOT mean that is the farewell: a position beyond
+## `TUN-NET-NPC-CULL-RADIUS`, which the server sends once and never repeats,
+## because it has just discarded that NPC's baseline.
+##
+## Carrying it forward replays that goodbye in every snapshot for the rest of the
+## match. Measured on a running server: one NPC re-presented at a constant
+## **70.0231 m on 199 consecutive ticks**, each of which made `NpcView` create a
+## body and immediately free it.
+func test_a_farewell_is_delivered_once_and_then_forgotten() -> void:
+	var here := Vector3.ZERO
+	var reach: float = Tuning.net.npc_cull_radius
+	_assembler.assemble(_crowd_snapshot(10, here, [Vector3(reach - 5.0, 0.0, 0.0)]))
+	var goodbye := _assembler.assemble(_crowd_snapshot(11, here, [Vector3(reach + 2.0, 0.0, 0.0)]))
+
+	assert_eq(goodbye.npcs.size(), 1, "the farewell itself was not delivered")
+	assert_eq(_assembler.crowd_size(), 0, "a departed NPC is still being carried forward")
+
+	var after := _assembler.assemble(_crowd_snapshot(12, here, []))
+	assert_eq(
+		after.npcs.size(),
+		0,
+		(
+			"the farewell was replayed. The server sends one and never repeats it, so "
+			+ "every later snapshot is telling the client to say goodbye again."
+		)
+	)
+
+
+## **AND AN NPC MERELY OUT OF DATE IS NOT A DEPARTURE.** The carry-forward exists
+## for exactly this: culling, rate LOD and the delta all omit NPCs the client must
+## keep drawing. A rule that forgot a record for being stale rather than for being
+## a farewell would empty the crowd instead of trimming it.
+func test_an_unmentioned_npc_is_still_carried_forward() -> void:
+	var here := Vector3.ZERO
+	_assembler.assemble(_crowd_snapshot(10, here, [Vector3(20.0, 0.0, 0.0)]))
+	var later := _assembler.assemble(_crowd_snapshot(11, here, []))
+
+	assert_eq(later.npcs.size(), 1, "an NPC omitted for being unchanged was lost")
+	assert_eq(_assembler.crowd_size(), 1, "the carry-forward dropped a live NPC")
+
+
+func _crowd_snapshot(tick: int, observer: Vector3, spots: Array) -> Snapshot:
+	var snap := Snapshot.new()
+	snap.server_tick = tick
+	snap.baseline_age = Snapshot.FULL
+	snap.own_position = observer
+	for index: int in spots.size():
+		snap.add_npc(index, observer + (spots[index] as Vector3), 0.0, 1, 0)
+	return snap
+
+
 func test_clear_forgets_everything() -> void:
 	# A baseline surviving a reconnect would be applied to a different match's
 	# ticks — the same inheritance failure as a stale wire slot.

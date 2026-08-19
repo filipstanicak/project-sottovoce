@@ -40,8 +40,9 @@ var _remotes: Dictionary = {}
 ##
 ## **ABSENT MEANS "NO UPDATE", NEVER "GONE".** That is already true of culling and
 ## rate LOD, which is why the crowd block needed no `present_slots` and no protocol
-## change. **The protocol still cannot say an NPC has LEFT** — nothing observes
-## that yet, because there is no `NpcView`. TDD-04 §7.1.2.
+## change. Departure is carried by a **value** instead — one final out-of-range
+## record — and `CrowdWire.is_farewell()` is that convention, shared with
+## `NpcView` so the two cannot come apart. TDD-04 §7.1.2, §7.1.3.
 var _crowd: Dictionary = {}
 
 var _newest: int = 0
@@ -81,10 +82,25 @@ func assemble(snapshot: Snapshot) -> Snapshot:
 ## snapshot carried. A **full** snapshot does not reset it: fullness is a statement
 ## about the remote-pawn baseline, and the crowd's baseline is per NPC and advances
 ## on the ack, so a full snapshot still omits every unchanged NPC.
+##
+## **A FAREWELL IS DELIVERED AND THEN FORGOTTEN, AND FORGETTING IT IS THE WHOLE
+## POINT.** The server discards a culled NPC's baseline as it sends that record,
+## so it will never mention that NPC again — carrying the record forward replays
+## the goodbye in every later snapshot, and `NpcView` reads each replay as a fresh
+## one: a body created and freed **once per snapshot**, at a distance that never
+## changes because it came from a record sent once. Measured live at a constant
+## 70.0231 m on 199 consecutive ticks.
+##
+## `Dictionary.values()` copies, so this snapshot still carries the goodbye it is
+## the last mention of.
 func _carry_the_crowd_forward(snapshot: Snapshot) -> Array:
 	for record: Array in snapshot.npcs:
 		_crowd[int(record[0])] = record
-	return _crowd.values()
+	var whole: Array = _crowd.values()
+	for record: Array in snapshot.npcs:
+		if CrowdWire.is_farewell(record[1] as Vector3, snapshot.own_position):
+			_crowd.erase(int(record[0]))
+	return whole
 
 
 ## How many distinct NPCs this client is holding. Diagnostics, and the one number

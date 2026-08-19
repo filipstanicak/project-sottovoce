@@ -249,6 +249,54 @@ func test_an_npc_that_walks_away_is_dropped_even_if_the_player_does_not_move() -
 	assert_eq(_view.count(), 0, "a dropped NPC came back from silence")
 
 
+## **THE WHOLE CLIENT PATH, BECAUSE THIS VIEW NEVER SEES A RAW SNAPSHOT.** `Net`
+## runs `SnapshotAssembler` before it emits `snapshot_received`, and every test
+## above hands this class the wire snapshot instead — which silently assumes the
+## one thing the assembler does not do: go quiet about an NPC.
+##
+## **THAT ASSUMPTION HID A DEFECT THROUGH A WHOLE STORY.** The assembler carries
+## the crowd forward, so a farewell record it has been given is re-presented in
+## every later snapshot; this view reads each replay as a fresh goodbye, spawns a
+## body for an index it no longer holds and frees it again. Measured on a running
+## server: **199 create/free pairs from one record the server sent once.**
+##
+## The count is asserted at exactly one because "small" is not the property — a
+## boundary is either quiet or it is not.
+func test_a_departing_npc_is_created_and_freed_exactly_once() -> void:
+	var assembler := SnapshotAssembler.new()
+	var here := Vector3.ZERO
+	var reach: float = Tuning.net.npc_cull_radius
+	# **A DICTIONARY, BECAUSE A GDSCRIPT LAMBDA CAPTURES BY VALUE.** Counting into
+	# two local ints leaves them at zero however many times the signal fires, which
+	# reads as a view that never drew anything.
+	var tally := {"born": 0, "died": 0}
+	_view.npc_appeared.connect(func(_i: int) -> void: tally["born"] += 1)
+	_view.npc_dropped.connect(func(_i: int) -> void: tally["died"] += 1)
+
+	_view.apply_snapshot(assembler.assemble(_full(1, here, [here + Vector3(reach - 5.0, 0, 0)])))
+	assert_eq(int(tally["born"]), 1, "the NPC was never drawn, so nothing below is evidence")
+
+	# One farewell, then the silence a culled NPC gets for the rest of the match.
+	_view.apply_snapshot(assembler.assemble(_full(2, here, [here + Vector3(reach + 2.0, 0, 0)])))
+	for tick: int in range(3, 40):
+		_view.apply_snapshot(assembler.assemble(_full(tick, here, [])))
+
+	assert_eq(_view.count(), 0, "the departed NPC is still drawn")
+	assert_eq(
+		int(tally["died"]), 1, "the cull boundary chatters: one departure, %d drops" % tally["died"]
+	)
+	assert_eq(
+		int(tally["born"]), 1, "a departed NPC was re-created from a carried-forward farewell"
+	)
+
+
+## A snapshot the assembler will accept: full, so it needs no baseline.
+func _full(tick: int, observer: Vector3, spots: Array) -> Snapshot:
+	var snap := _snapshot(tick, observer, spots)
+	snap.baseline_age = Snapshot.FULL
+	return snap
+
+
 ## **A STALE POSITION BEYOND THE RADIUS IS NOT A FAREWELL**, and telling the two
 ## apart is the reason the client tracks which indices this snapshot carried. When
 ## the observer walks away, every last-known position goes out of range at once

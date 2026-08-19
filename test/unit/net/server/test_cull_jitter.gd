@@ -10,8 +10,13 @@
 ## line with the centimetre of jitter RVO gives a standing body, and one walking
 ## straight out through it.
 ##
-## **A LIVE WATCH STILL SHOWS RESIDUAL CHURN THAT THESE TWO CASES DO NOT
-## REPRODUCE**, and that is recorded in US-0045 rather than papered over here.
+## **BOTH CASES HERE ARE SERVER-SIDE, AND A LIVE WATCH SHOWED CHURN THAT NEITHER
+## OF THEM COULD SEE.** It was not the server: `SnapshotAssembler` cached the one
+## farewell record it was ever sent and re-presented it in every later snapshot,
+## so `NpcView` created and freed a body **once per snapshot** from a record the
+## server sent once. This file was green throughout and was right to be — the
+## boundary it tests is quiet. `test_a_departing_npc_is_created_and_freed_exactly_once`
+## in `test_npc_view.gd` is the half that was missing. TDD-04 §7.1.3.
 extends GutTest
 
 const MAP_DATA := "res://data/maps/map_vetraio.tres"

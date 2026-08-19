@@ -483,8 +483,9 @@ do not.
 needed `present_slots` because *absent* used to mean "gone". For the crowd, **absent already meant
 "no update this tick"** — culling and rate LOD both omit NPCs a client must keep drawing — so the
 delta slots in with no wire change at all. **What the protocol still cannot say is that an NPC has
-LEFT**, and it could not say that before this either. Nothing observes it: there is no `NpcView`.
-Owed, and owned by whoever builds one.
+LEFT** by *silence*, and it could not before this either. Departure is carried by a **value**
+instead — one final out-of-range record — and `CrowdWire.is_farewell()` is that convention, held in
+one class because both client-side readers must agree on it. §7.1.3.
 
 **IT CANNOT REUSE `SnapshotDelta`, AND THE REASON IS RATE LOD.** That class keeps one baseline per
 *tick*, which is right for pawns because every pawn is offered every tick. An NPC past the rate-LOD
@@ -502,7 +503,7 @@ radius is pinned above `TUN-COMPASS-RANGE-MAX` by invariant 17 for a reason.
 ### 7.1.3 What watching it for eight seconds found
 
 `tools/crowd_probe.tscn` drives a real client against a real server, samples every **drawn** NPC
-for eight seconds and reports the numbers a screenshot cannot carry. Three defects came out of it
+for eight seconds and reports the numbers a screenshot cannot carry. Four defects came out of it
 and none was reachable by any test in this repository.
 
 **THE DELTA NEVER CONVERGED, AND IT WAS INERT IN EVERY REAL GAME.** `NpcDelta` stamps each sent
@@ -528,12 +529,48 @@ nothing in one is ever exactly still — RVO shoves a standing body at up to 0.1
 group does not walk through an idle cluster. Leaving is decided at `TUN-NET-NPC-CULL-RADIUS`;
 re-admission one margin inside it.
 
-**A RESIDUAL REMAINS AND IS NOT EXPLAINED.** Four to six NPCs per spawn point are still created and
-freed roughly once per snapshot, each with a last-known position of **70.01–70.05 m** against a
-70.00 m radius. Neither of the two cases that reproduce deterministically — an NPC parked on the
-line with a centimetre of jitter, and one walking straight out through it — shows it;
-`test_cull_jitter.gd` holds both and they are quiet. **It is measured, bounded and open**, and is
-recorded here rather than described as fixed.
+**AND THE FOURTH WAS THE CLIENT REPLAYING THE GOODBYE FOREVER.** Four to six NPCs per spawn point
+were created and freed roughly **once per snapshot**, each last seen at **70.01–70.05 m** against a
+70.00 m radius. It survived one round of investigation as an open finding, because the two cases
+that reproduce deterministically — an NPC parked on the line, and one walking straight out through
+it — are both quiet in `test_cull_jitter.gd`, and both are **server-side**.
+
+**IT WAS NOT ON THE SERVER AT ALL.** `SnapshotAssembler` carries the crowd forward, which is
+correct and necessary: absence means "no update", so a client must inherit every NPC this tick did
+not mention. The farewell is the one record for which that is false — the server discards a culled
+NPC's baseline as it sends it, and will never mention that NPC again — so the assembler cached the
+goodbye and re-presented it in **every later snapshot**. `NpcView` reads a fresh out-of-range
+record as a departure, so each replay made it create a body for an index it no longer held and free
+it again.
+
+**THE CONSTANT DISTANCE WAS THE TELL, AND IT WAS MISREAD AS A TIGHT BAND.** 70.01–70.05 m is not a
+population of NPCs hovering near the line; it is a handful of records, each frozen at the single
+value the server sent once. Measured on the fixed instrument: one NPC re-presented at a constant
+**70.0231 m on 199 consecutive ticks**.
+
+**NEITHER CLASS WAS WRONG ABOUT ITS OWN JOB**, which is why every test of either passed. The rule
+"a received record beyond the cull radius is the server saying goodbye" was known only to
+`NpcView`, and the assembler sits **between** the wire and the view. It is `CrowdWire.is_farewell()`
+now — one class both of them call, so they cannot come apart.
+
+`tools/cull_trace.tscn` is the instrument. It boots the real `server_root.tscn`, drives six real
+`NpcView`s through six real `SnapshotAssembler`s on round-tripped bytes, and prints the **server's**
+own view of every NPC around each drop, which is the half `crowd_probe.tscn` cannot see. Across six
+spawn points over 240 ticks it measured **485 drops for 5 real departures** before, and **7 drops
+for 7 departures** after.
+
+> **THE FIRST VERSION OF THAT TOOL FED THE VIEWS RAW WIRE SNAPSHOTS AND REPORTED A CLEAN BOUNDARY**
+> — two drops in 240 ticks, both correct. **No client uses that path**: `Net` deserialises,
+> assembles, and only then emits `snapshot_received`. A diagnostic wired past the defect reports
+> the same thing as a fixed one.
+
+**ONE CASE REMAINS UNCOVERED AND IS BOUNDED RATHER THAN FIXED.** The farewell is a single record on
+an unreliable channel, and the server drops its baseline as it sends it, so a lost farewell is
+never retried: that NPC stays drawn at the boundary. It is not permanent — the client's second rule
+frees anything whose last-known position passes the radius plus `NpcView.drop_margin()`, so the
+observer moving about 0.6 m away clears it — and the case only arises for an NPC at 70 m, which is
+outside every gameplay radius. Recorded here rather than solved with a retry the protocol has
+nowhere to put.
 
 ---
 
@@ -814,6 +851,8 @@ func sample(entity_id: int, render_time_ms: float) -> EntityState
 | `scripts/net/client/input_sender.gd` | 60 Hz sampling and send |
 | `scripts/net/client/predictor.gd` | Local prediction |
 | `scripts/net/client/reconciler.gd` | The §4.2 loop |
+| `scripts/net/client/snapshot_assembler.gd` | **Was missing from this table.** A delta in, a whole snapshot out. Delta encoding stops here: every consumer above it is handed the same complete object it was handed before US-0031. It also carries the **crowd** forward, keyed per NPC rather than per tick, and **stops carrying one the moment it is handed that NPC's farewell** |
+| `scripts/net/protocol/crowd_wire.gd` | **Exists**, US-0045. Pure, and one function. The crowd block cannot say "gone" by silence, so departure is a **value** — an out-of-range record — and both `SnapshotAssembler` and `NpcView` must read it the same way. When only one of them did, a single farewell was replayed every tick for the rest of the match. Section 7.1.3 |
 | `scripts/net/client/snapshot_interpolator.gd` | Timestamp-based interpolation. **Named for its class**, not for the chapter's shorthand — `test_file_naming.gd` requires the two to match (US-0034) |
 | `scripts/net/client/render_clock.gd` | The client's view of server time; forward-only, never smoothed (US-0034) |
 | `scripts/net/protocol/input_command.gd` | `InputCommand` |
@@ -840,9 +879,10 @@ func sample(entity_id: int, render_time_ms: float) -> EntityState
 | `test_interpolation_timestamps.gd` | Mixed 30 Hz and 10 Hz entity streams both interpolate correctly with no stutter at the LOD boundary |
 | `test_snapshot_size.gd` | Worst-case snapshot (6 players, 90 NPCs, all moving) is within `TUN-NET-BANDWIDTH-BUDGET-DOWN` |
 | `test_crowd_bandwidth.gd` | **BUILT, US-0048.** §7.1's arithmetic recomputed on **measured** crowd counts rather than assumed ones — `test/unit/net/protocol/`. Reports **112 %** and goes `pending`, because nothing in that file can fix it. The two change fractions were the wrong inputs, not the record size |
-| `test_crowd_wire_cost.gd` | **BUILT, US-0030/US-0031.** What the shipped builder actually charges a client, in serialised bytes — `test/unit/net/server/`. **111 %**, and it agrees with the projection above by an independent route. The two files answer different questions on purpose |
+| `test_crowd_wire_cost.gd` | **BUILT, US-0030/US-0031.** What the shipped builder actually charges a client, in serialised bytes — `test/unit/net/server/`. **112 %** at a three-tick ack, and it agrees with the projection above by an independent route. The two files answer different questions on purpose |
 | `test_snapshot_culling.gd` | **BUILT, US-0030.** Nothing beyond `TUN-NET-NPC-CULL-RADIUS` reaches a client; the cull is **positional, not visual** (asserted by turning the observer through 180°); the pool's own index survives it. Falsified against two planted defects |
 | `test_npc_rate_lod.gd` | **BUILT, US-0031.** A far NPC is sent one tick in `stride`, the stride is derived from the two tunables rather than declared, **the band is staggered so no tick carries all of it**, and a distant *player* is still sent every tick |
+| `test_cull_jitter.gd` | **BUILT, US-0030/US-0045.** An NPC parked on the cull radius and one walking straight out through it are each sent a bounded number of times. **Both cases are server-side, and both stayed quiet through the churn 7.1.3 describes** — recorded in the file itself, because a test that was green over a live defect should say which half of the system it cannot see |
 | `test_npc_delta.gd` | **BUILT, US-0031.** A standing NPC is dropped and a walking one is not, in the same tick; **an unacknowledged record is re-sent**; a peer that left leaves no baseline behind |
 | `test_upstream_bandwidth.gd` | Upstream within `TUN-NET-BANDWIDTH-BUDGET-UP` — **currently expected to FAIL without input coalescing (§7.3)** |
 | `test_npc_cull_radius.gd` | `TUN-NET-NPC-CULL-RADIUS >= TUN-COMPASS-RANGE-MAX` (invariant §17.17) |
