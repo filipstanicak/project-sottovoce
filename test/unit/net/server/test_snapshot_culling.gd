@@ -183,27 +183,54 @@ func test_the_index_survives_culling_so_a_client_can_follow_one_npc() -> void:
 	assert_eq(Array(before), Array(after), "culling changed the set when nobody crossed the line")
 
 
-## An NPC exactly on the line is **inside**. Stated because the two sides of a
-## boundary are decided by an inequality nobody reads twice, and a client and a
-## server disagreeing about one entity is a bug that surfaces as flicker.
+## **THERE ARE TWO THRESHOLDS, AND SAYING SO IS THE POINT.** An NPC LEAVES at
+## `TUN-NET-NPC-CULL-RADIUS` and is only re-ADMITTED one `readmit_margin()` inside
+## it. A single threshold chatters: an NPC parked on the boundary is not still —
+## RVO may shove it at up to 0.1 m/s so a walking group does not walk through an
+## idle cluster — and a live watch measured **244 create/destroy cycles for one NPC
+## in eight seconds**, a body built and freed on a client thirty times a second.
 ##
-## **SAMPLED OVER A WHOLE STRIDE, BECAUSE "SENT" AND "SENT THIS TICK" STOPPED
-## MEANING THE SAME THING.** The cull radius is past `TUN-NET-NPC-RATE-LOD-RADIUS`,
-## so an NPC on the boundary is in the slowed band and appears on one tick in
-## `stride`. This test asserted a single tick and went red the moment rate LOD
-## landed — correctly: it was measuring a rate and calling it a cull.
-func test_the_boundary_itself_is_inside() -> void:
+## The old version of this test asserted "the boundary itself is inside" and went
+## red when hysteresis landed. It was right about leaving and wrong about joining.
+func test_leaving_and_joining_are_different_distances() -> void:
 	var here := Vector3(20.0, 0.0, 20.0)
 	_player_at(ALICE, here)
 	var reach: float = Tuning.net.npc_cull_radius
+	var margin := _builder.readmit_margin()
+	assert_gt(margin, 0.0, "there is no hysteresis at all; the boundary will chatter")
+
+	# Not yet held, sitting exactly on the radius: NOT admitted.
 	for index: int in CROWD:
 		_pool.set_position(index, here + Vector3(reach, 0.0, 0.0))
-	var ever := {}
-	for tick: int in _builder.rate_lod_stride():
-		_ctx.tick = tick
-		for index: int in _indices_in(_builder.build_for(ALICE)):
-			ever[index] = true
-	assert_eq(ever.size(), CROWD, "an NPC at exactly the cull radius was never sent at all")
+	_ctx.tick = 1
+	assert_eq(
+		_builder.build_for(ALICE).npcs.size(),
+		0,
+		"an NPC on the radius was admitted; it must come a margin inside first"
+	)
+
+	# A margin inside: admitted. **Asserted on ONE NPC, on a tick when it is due** —
+	# everything out here is past `TUN-NET-NPC-RATE-LOD-RADIUS`, so the stagger
+	# decides who is offered and a whole-crowd count would measure the rate instead.
+	var stride := _builder.rate_lod_stride()
+	for index: int in CROWD:
+		_pool.set_position(index, here + Vector3(reach - margin - 0.1, 0.0, 0.0))
+	_ctx.tick = stride
+	assert_true(
+		Array(_indices_in(_builder.build_for(ALICE))).has(0),
+		"an NPC a margin inside the radius was not admitted"
+	)
+	_builder.note_ack(ALICE, stride)
+
+	# Now held, and drifting back out to exactly the radius: still sent, because
+	# leaving is decided at the radius and not at the admission line.
+	for index: int in CROWD:
+		_pool.set_position(index, here + Vector3(reach, 0.0, 0.0))
+	_ctx.tick = stride * 2
+	assert_true(
+		Array(_indices_in(_builder.build_for(ALICE))).has(0),
+		"an NPC that was already held was dropped before it reached the cull radius"
+	)
 
 
 ## The builder must survive a match with no crowd at all — the integration harness
@@ -262,4 +289,72 @@ func test_an_npc_that_leaves_and_returns_is_sent_again() -> void:
 			"an NPC that was culled and came back was withheld as 'already held'. "
 			+ "The cull must invalidate the delta baseline it made unreachable."
 		)
+	)
+
+
+## **THE SERVER SAYS GOODBYE ONCE, AND ONLY TO CLIENTS THAT WERE HOLDING THE NPC.**
+##
+## Absence cannot carry departure: the last position a client was told is inside
+## the radius by definition, so its own distance check never fires however far the
+## NPC walks, and it draws a statue at the boundary for the rest of the match. A
+## live watch of a stationary player found exactly that — **zero drops in eight
+## seconds**, which reads like good news.
+##
+## The farewell is one ordinary record carrying the real, out-of-range position.
+## Eight bytes, once per departure, and no protocol change: the client recognises
+## it because the server would never otherwise send an out-of-range record.
+func test_an_npc_that_walks_out_of_range_gets_one_last_record() -> void:
+	var here := Vector3(20.0, 0.0, 20.0)
+	_player_at(ALICE, here)
+	var reach: float = Tuning.net.npc_cull_radius
+	# **INSIDE THE RATE-LOD RADIUS TO BEGIN WITH**, so it is offered every tick and
+	# the stagger cannot decide the answer. It was placed in the slowed band first
+	# and the test failed on tick 1 for that reason, which is the stagger working.
+	_pool.set_position(0, here + Vector3(Tuning.net.npc_rate_lod_radius - 5.0, 0.0, 0.0))
+	for index: int in range(1, CROWD):
+		_pool.set_position(index, here)
+
+	_ctx.tick = 1
+	assert_true(Array(_indices_in(_builder.build_for(ALICE))).has(0), "NPC 0 was never sent")
+	_builder.note_ack(ALICE, 1)
+
+	# It walks out of range while the player stands still.
+	_pool.set_position(0, here + Vector3(reach + 5.0, 0.0, 0.0))
+	_ctx.tick = 2
+	var farewell := _builder.build_for(ALICE)
+	var said_goodbye := false
+	for record: Array in farewell.npcs:
+		if int(record[0]) != 0:
+			continue
+		said_goodbye = true
+		var at := record[1] as Vector3
+		assert_gt(
+			Vector2(at.x - here.x, at.z - here.z).length(),
+			reach,
+			"the farewell carried an in-range position, which the client cannot read as one"
+		)
+	assert_true(said_goodbye, "the NPC left and the client was never told")
+	_builder.note_ack(ALICE, 2)
+
+	# Once only. A farewell every tick would cost more than sending the NPC.
+	_ctx.tick = 3
+	assert_false(
+		Array(_indices_in(_builder.build_for(ALICE))).has(0),
+		"the farewell repeats every tick; it is meant to be said once"
+	)
+
+
+## A client that never held the NPC is owed no goodbye, and sending one would be
+## pure cost: eight bytes to tell somebody that a thing they never had is gone.
+func test_no_farewell_for_an_npc_the_client_never_had() -> void:
+	var here := Vector3(20.0, 0.0, 20.0)
+	_player_at(ALICE, here)
+	var reach: float = Tuning.net.npc_cull_radius
+	for index: int in CROWD:
+		_pool.set_position(index, here + Vector3(reach + 20.0, 0.0, 0.0))
+	_ctx.tick = 1
+	assert_eq(
+		_builder.build_for(ALICE).npcs.size(),
+		0,
+		"a client was sent farewells for NPCs it had never been told about"
 	)

@@ -112,29 +112,75 @@ func _fill_crowd(snapshot: Snapshot, peer: int) -> void:
 	var own := _pawns.context_for(peer)
 	if crowd == null or own == null:
 		return
-	var beyond: float = Tuning.net.npc_cull_radius * Tuning.net.npc_cull_radius
-	var slowed: float = Tuning.net.npc_rate_lod_radius * Tuning.net.npc_rate_lod_radius
-	var stride := rate_lod_stride()
-	var offered: Array = []
 	# **WHAT THE CULL REMOVED, KEPT SEPARATELY FROM WHAT THE RATE MERELY DELAYED.**
 	# The two look identical in the snapshot and mean opposite things to the
 	# baseline: a culled NPC is one the client will discard, a rate-skipped one is
 	# one it still holds.
 	var culled := PackedInt32Array()
-	for index: int in crowd.active_count():
-		var at := crowd.position_of(index)
-		var dx := at.x - own.position.x
-		var dz := at.z - own.position.z
-		var away := dx * dx + dz * dz
-		if away > beyond:
-			culled.append(index)
-			continue
-		if away > slowed and (snapshot.server_tick + index) % stride != 0:
-			continue
-		offered.append([index, at, _yaw_of(crowd, index), _anim_of(crowd, index), 0])
-	crowd_delta.drop(peer, culled)
+	var offered := _choose(crowd, peer, own.position, snapshot.server_tick, culled)
+	# **THE FAREWELL GOES OUT BEFORE THE BASELINE IS CLEARED, AND THE ORDER IS THE
+	# WHOLE TRICK.** `changed` sends it because the position differs; `drop` then
+	# forgets it, so an NPC that comes back is re-sent in full rather than withheld
+	# as already-held.
 	for record: Array in crowd_delta.changed(peer, snapshot.server_tick, offered):
 		snapshot.add_npc(record[0], record[1], record[2], record[3], record[4])
+	crowd_delta.drop(peer, culled)
+
+
+## Which NPC records this observer is owed this tick, and which the cull removed.
+##
+## **THREE DISTANCES, NOT ONE.** An NPC is admitted inside `readmit_margin()` of
+## the cull radius, kept until it passes the radius itself, and sent at a reduced
+## rate beyond `TUN-NET-NPC-RATE-LOD-RADIUS`. The gap between admitting and
+## dropping is hysteresis: without it an NPC parked on the boundary is created and
+## freed on the client every tick, because nothing in a crowd is ever exactly
+## still — RVO may shove a standing body at up to 0.1 m/s so a walking group does
+## not walk through an idle cluster.
+func _choose(crowd: NpcPool, peer: int, eye: Vector3, tick: int, culled: PackedInt32Array) -> Array:
+	var beyond: float = Tuning.net.npc_cull_radius ** 2
+	var admit: float = (Tuning.net.npc_cull_radius - readmit_margin()) ** 2
+	var slowed: float = Tuning.net.npc_rate_lod_radius ** 2
+	var stride := rate_lod_stride()
+	var offered: Array = []
+	for index: int in crowd.active_count():
+		var at := crowd.position_of(index)
+		var dx := at.x - eye.x
+		var dz := at.z - eye.z
+		var away := dx * dx + dz * dz
+		var held := crowd_delta.holds(peer, index)
+		if not held and away > admit:
+			continue
+		if away > beyond:
+			culled.append(index)
+			# **ONE FINAL RECORD, IF THE CLIENT IS HOLDING THIS ONE.** Absence cannot
+			# say "gone": the last position a client was told is inside the radius by
+			# definition, so its own distance check never fires and the NPC is drawn
+			# frozen at the boundary for the rest of the match.
+			if held:
+				offered.append(_record(crowd, index, at))
+			continue
+		if away > slowed and (tick + index) % stride != 0:
+			continue
+		offered.append(_record(crowd, index, at))
+	return offered
+
+
+func _record(crowd: NpcPool, index: int, at: Vector3) -> Array:
+	return [index, at, _yaw_of(crowd, index), _anim_of(crowd, index), 0]
+
+
+## **HOW FAR INSIDE THE RADIUS AN NPC MUST COME BACK TO BE RE-ADMITTED.**
+##
+## Leaving is decided at `TUN-NET-NPC-CULL-RADIUS`; returning is decided one margin
+## inside it. Without the gap, an NPC parked on the boundary is created and freed
+## on the client every tick, because nothing in a crowd is ever exactly still.
+##
+## **IT IS THE SAME NUMBER `NpcView.drop_margin()` USES, AND FOR THE SAME REASON** —
+## the furthest the observer and a drawn NPC can drift apart across one
+## `TUN-NET-INTERP-BUFFER` at `TUN-SPEED-SPRINT`. The two are asserted equal rather
+## than shared, because the server may not reach into `scripts/presentation/`.
+func readmit_margin() -> float:
+	return Tuning.net.interp_buffer / 1000.0 * Tuning.movement.sprint
 
 
 ## Ticks between sends for an NPC past `TUN-NET-NPC-RATE-LOD-RADIUS`. US-0031,

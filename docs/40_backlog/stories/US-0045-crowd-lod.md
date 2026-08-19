@@ -25,7 +25,9 @@ Distance-banded update-rate LOD on the server and animation LOD on the client.
 ## Acceptance criteria
 
 > **Three of six. The three that are open are the CLIENT half**, and **`NpcView` now exists** — a
-> client draws 66 NPCs across 108.7 m of district. What is still missing is what LOD would *band*:
+> client draws 66–72 NPCs across ~108 m of district, and **watching it for eight seconds found
+> three defects no test in this repository could reach**. See "What watching it found" below.
+> A client draws the crowd across 108.7 m of district. What is still missing is what LOD would *band*:
 > there is **no mesh and no `AnimationTree`**, and every NPC wears the same greybox body, so
 > animation LOD has nothing to reduce and mesh LOD has nothing to swap. US-0046's, and it needs
 > animation clips, of which this project has **none on either rig**.
@@ -116,3 +118,44 @@ is an information channel.
 
 Mid band sits at 45 m rather than a cheaper 25 m specifically so it still produces a correct
 silhouette and walk cycle at the distance players are trying to distinguish clones from humans.
+
+## What watching it found
+
+`tools/crowd_probe.tscn` drives a real client against a real server and samples every **drawn**
+NPC for eight seconds. A still frame cannot tell a walking crowd from a frozen one, so it reports
+the numbers instead of only the picture.
+
+**THE ONE NUMBER THIS SYSTEM IS BUILT AROUND, CHECKED ON THE WIRE FOR THE FIRST TIME.** Invariant 1
+forces `TUN-CROWD-NPC-SPEED-STROLL` to equal `TUN-SPEED-BLENDWALK` so a blend-walking player is
+indistinguishable from the crowd **by gait**. `test_crowd_moves.gd` asserts it on the server;
+interpolation sits between that and what a player sees. Measured **1.400 m/s drawn against a
+documented 1.400** — 100.0 %, across 56 to 61 movers, over several runs.
+
+Everything else it found was a defect, and all three are server-side:
+
+1. **The NPC delta never converged, and was inert in every real game.** An ack lags by at least a
+   tick, so a record is re-sent while its first copy is in flight — and refreshing the stamp on
+   each re-send means the entry always leads the ack and is never promoted. A motionless NPC at a
+   constant **7.6122 m was sent on twelve consecutive ticks**. Every unit test acknowledged
+   synchronously, which is the one timing that hides it.
+2. **A departing NPC became a statue.** Absence cannot say "gone", and the last position a client
+   is told is inside the radius by definition, so its own distance check can never fire. Eight
+   seconds with a stationary player produced **zero drops**. The server sends one final
+   out-of-range record now.
+3. **The cull boundary chattered.** A single threshold is not stable against a crowd: RVO shoves a
+   standing body at up to 0.1 m/s. Leaving is decided at the radius, re-admission one margin
+   inside it.
+
+**AND ONE THING IS MEASURED BUT NOT EXPLAINED.** Four to six NPCs per spawn point are still created
+and freed roughly once per snapshot, each with a last-known position of **70.01–70.05 m** against a
+70.00 m radius. The two cases that reproduce deterministically — an NPC parked on the line with a
+centimetre of jitter, and one walking straight out through it — are both quiet in
+`test_cull_jitter.gd`. **It is bounded, it is visible only at 70 m, and it is open.** Reported
+rather than closed on a guess. TDD-04 §7.1.3.
+
+**THE PROBE ITSELF WAS WRONG TWICE, BOTH TIMES REPORTING A CONSTANT.** It first read the *drawn*
+transform of dropped NPCs and reported 72.8 m for every one — exactly the distance from the
+observer to the world origin, because a body that appears and drops between two samples is never
+drawn anywhere. It then read the received position *after* the view had erased it, and reported
+-1.0 for every one. **A diagnostic that reports the same number for everything is reporting its own
+default**, which is trap 13's family and cost two runs each time.

@@ -45,6 +45,11 @@ var _bodies: Dictionary = {}
 var _interpolator := SnapshotInterpolator.new()
 var _clock := RenderClock.new()
 var _last_seen: Dictionary = {}
+
+## Which indices this snapshot actually carried. A position beyond the cull radius
+## only means goodbye if the server just said it; a *stale* one beyond the radius
+## is the observer having moved, which rule 2 handles with a margin.
+var _fresh: Dictionary = {}
 var _observer := Vector3.ZERO
 
 
@@ -68,6 +73,9 @@ func apply_snapshot(snapshot: Snapshot) -> void:
 	var server_time := float(snapshot.server_tick) / Tuning.net.server_tick
 	_clock.observe(server_time)
 	set_observer(snapshot.own_position)
+	_fresh.clear()
+	for record: Array in snapshot.npcs:
+		_fresh[int(record[0])] = true
 	for record: Array in snapshot.npcs:
 		var index: int = record[0]
 		if not _bodies.has(index):
@@ -98,21 +106,54 @@ func _physics_process(delta: float) -> void:
 		body.rotation.y = placed[1] as float
 
 
-## The client's own cull, one margin wider than the server's.
+## **TWO RULES, AND THE FIRST ONE IS THE SERVER'S OWN STATEMENT.**
+##
+## 1. A **received** position beyond `TUN-NET-NPC-CULL-RADIUS` is a farewell. The
+##    server never sends an out-of-range record for any other reason — that is the
+##    whole point of the cull — so one arriving means "this is the last you will
+##    hear of it". No margin: the record *is* the goodbye.
+## 2. A last-known position beyond the radius **plus a margin**, measured from
+##    where the observer is now. This catches the other direction, the player
+##    walking away, where no farewell can arrive because the server is measuring
+##    against a position the client has already left.
+##
+## **RULE 1 EXISTS BECAUSE RULE 2 CANNOT SEE AN NPC WALK AWAY.** The last position
+## a client is told is inside the radius by definition, so a distance check on it
+## never fires however far the NPC actually goes. Eight seconds of a live watch
+## with a stationary player produced **zero drops**, which reads like good news and
+## is not: every NPC that left was still being drawn, frozen at the boundary.
 func _drop_what_left() -> void:
-	var reach: float = Tuning.net.npc_cull_radius + drop_margin()
-	var beyond := reach * reach
+	var cull: float = Tuning.net.npc_cull_radius
+	# **ONE QUANTUM OF SLACK, BECAUSE THE SERVER CULLS ON FLOATS AND THE WIRE
+	# CARRIES CENTIMETRES.** An NPC at 69.997 m is inside the radius and sent
+	# normally; quantised to `TUN-NET-QUANT-POS` it can arrive measuring 70.004 and
+	# be read as a farewell. Measured live: one NPC created and freed **244 times in
+	# eight seconds**, once per snapshot, because the two ends disagreed by a
+	# centimetre about a threshold they both thought they shared.
+	#
+	# Quantising x and z each to `q` bounds the distance error at `q / sqrt(2)`, so
+	# one whole quantum is provably enough. **It leaves a band one centimetre wide**
+	# in which an NPC that stops dead is held rather than dropped; any NPC that is
+	# walking leaves it inside a single tick.
+	var beyond := (cull + Tuning.net.quant_pos) ** 2
+	var safety := (cull + drop_margin()) * (cull + drop_margin())
 	for index: int in _bodies.keys():
 		var at: Vector3 = _last_seen.get(index, _observer)
 		var dx := at.x - _observer.x
 		var dz := at.z - _observer.z
-		if dx * dx + dz * dz <= beyond:
+		var away := dx * dx + dz * dz
+		var farewell: bool = _fresh.has(index) and away > beyond
+		if not farewell and away <= safety:
 			continue
 		(_bodies[index] as Node).queue_free()
 		_bodies.erase(index)
-		_last_seen.erase(index)
-		_interpolator.forget(index)
+		# **EMITTED BEFORE THE RECORD IS ERASED**, so a listener can still ask where
+		# the NPC was. A diagnostic that reads after the erase gets the default and
+		# reports a constant, which is what the first crowd probe did.
 		npc_dropped.emit(index)
+		_last_seen.erase(index)
+		_fresh.erase(index)
+		_interpolator.forget(index)
 
 
 ## **DERIVED FROM TWO EXISTING TUNABLES, NEVER CHOSEN.** This view is one
@@ -131,6 +172,20 @@ func _spawn(index: int) -> void:
 	add_child(body)
 	_bodies[index] = body
 	npc_appeared.emit(index)
+
+
+## Where this view believes the local player is. The count of drawn NPCs is not
+## interpretable without it: `MAP-VETRAIO`'s six spawn points do not see equal
+## crowds, and three of them cannot hold `TUN-CROWD-CLONE-LOCAL-MIN` at all.
+func observer() -> Vector3:
+	return _observer
+
+
+## The last position the server sent for `index`, or `Vector3.INF` if this view
+## holds nothing for it. **Not the drawn position** — that is interpolated, and an
+## NPC received only once has never been drawn anywhere but the origin.
+func last_seen(index: int) -> Vector3:
+	return _last_seen.get(index, Vector3.INF)
 
 
 func count() -> int:

@@ -491,6 +491,44 @@ radius is pinned above `TUN-COMPASS-RANGE-MAX` by invariant 17 for a reason.
 
 ---
 
+### 7.1.3 What watching it for eight seconds found
+
+`tools/crowd_probe.tscn` drives a real client against a real server, samples every **drawn** NPC
+for eight seconds and reports the numbers a screenshot cannot carry. Three defects came out of it
+and none was reachable by any test in this repository.
+
+**THE DELTA NEVER CONVERGED, AND IT WAS INERT IN EVERY REAL GAME.** `NpcDelta` stamps each sent
+record with the tick that carried it, and an ack promotes entries stamped at or before the acked
+tick. An ack lags by at least one tick, so a record is re-sent while its first copy is still in
+flight — and **overwriting the stamp on each re-send means the entry always leads the ack, is never
+promoted, and the NPC is sent every tick for the rest of the match**. Measured on a running server:
+a motionless NPC at a constant **7.6122 m, sent on twelve consecutive ticks**.
+
+Every unit test acknowledged synchronously, one tick after the send, which is the single timing
+that hides it. The in-flight entry now keeps the **earliest** tick that carried the current value,
+because the client only has to receive it once.
+
+**A DEPARTING NPC BECAME A STATUE, BECAUSE ABSENCE CANNOT SAY "GONE".** The last position a client
+is told is inside the cull radius by definition, so its own distance check can never fire however
+far the NPC walks. Eight seconds with a stationary player produced **zero drops** — which reads
+like good news. The server now sends **one final record** carrying the real, out-of-range position;
+the client reads an out-of-range record as a goodbye, because the server would never send one
+otherwise. Eight bytes per departure, no protocol change.
+
+**AND THE CULL BOUNDARY CHATTERED.** A single threshold is not stable against a crowd, because
+nothing in one is ever exactly still — RVO shoves a standing body at up to 0.1 m/s so a walking
+group does not walk through an idle cluster. Leaving is decided at `TUN-NET-NPC-CULL-RADIUS`;
+re-admission one margin inside it.
+
+**A RESIDUAL REMAINS AND IS NOT EXPLAINED.** Four to six NPCs per spawn point are still created and
+freed roughly once per snapshot, each with a last-known position of **70.01–70.05 m** against a
+70.00 m radius. Neither of the two cases that reproduce deterministically — an NPC parked on the
+line with a centimetre of jitter, and one walking straight out through it — shows it;
+`test_cull_jitter.gd` holds both and they are quiet. **It is measured, bounded and open**, and is
+recorded here rather than described as fixed.
+
+---
+
 **§7.2's RATE-LOD NUMBERS HAVE NO `TUN-` IDS.** The 45 m boundary and the 10 Hz far rate are bare
 numbers in prose here, because rate LOD is US-0031's unticked criterion and nothing has ever had
 to read them. The test takes the boundary from `TUN-PERF-CROWD-LOD-MID`, which carries the same

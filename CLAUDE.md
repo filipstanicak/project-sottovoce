@@ -228,6 +228,39 @@ headless server draws **66 NPCs spread across 108.7 m**, and
 because a screenshot alone cannot tell a crowd from one NPC near the camera nor a
 placed crowd from seventy-eight bodies stacked on the origin.
 
+**AND WATCHING IT FOR EIGHT SECONDS FOUND THREE MORE DEFECTS, ALL SERVER-SIDE.**
+`tools/crowd_probe.tscn` samples every **drawn** NPC and reports what a still
+frame cannot carry. **The one number this system is built around is now checked on
+the wire: 1.400 m/s drawn against a documented stroll of 1.400** — invariant 1
+holds through interpolation, which nothing had ever verified.
+
+**THE NPC DELTA NEVER CONVERGED AND WAS INERT IN EVERY REAL GAME.** An ack lags by
+at least a tick, so a record is re-sent while its first copy is in flight — and
+refreshing the in-flight stamp on each re-send means the entry **always leads the
+ack, is never promoted, and the NPC is sent every tick for the rest of the
+match**. Measured live: a motionless NPC at a constant **7.6122 m, sent on twelve
+consecutive ticks**. **Every unit test acknowledged synchronously**, one tick after
+the send, which is the single timing that hides it. The entry keeps the *earliest*
+tick carrying the current value now.
+
+**A DEPARTING NPC BECAME A STATUE.** Absence cannot say "gone", and the last
+position a client is told is inside the radius by definition, so its own distance
+check can never fire however far the NPC walks. Eight seconds with a stationary
+player produced **zero drops** — which reads like good news. The server sends
+**one final out-of-range record**; the client reads that as a goodbye because the
+server would never otherwise send one. Eight bytes, no protocol change.
+
+**AND THE CULL BOUNDARY CHATTERED**, because a single threshold is not stable
+against a crowd: RVO shoves a standing body at up to 0.1 m/s so a walking group
+does not walk through an idle cluster. Leaving is at
+`TUN-NET-NPC-CULL-RADIUS`; re-admission one margin inside it.
+
+**ONE RESIDUAL IS MEASURED AND NOT EXPLAINED.** Four to six NPCs per spawn point
+are still created and freed about once per snapshot, each last seen at
+**70.01–70.05 m** against a 70.00 m radius. Both cases that reproduce
+deterministically are quiet in `test_cull_jitter.gd`. **Bounded, visible only at
+70 m, and open** — reported rather than closed on a guess. TDD-04 §7.1.3.
+
 **ABSENCE MEANS "NO UPDATE", NOT "GONE" — THE OPPOSITE OF `RemotePawns`.** That
 class frees a slot the snapshot stops mentioning and is right to, because every
 pawn is offered every tick. An NPC is culled, rate-LOD'd and delta-omitted, so
@@ -1627,7 +1660,7 @@ US-0024 measures it against clips that do not exist.
 | | |
 |---|---|
 | CI | 7 jobs. **Running again as of 2026-08-07 after a two-day outage** — run `31200490320`, all seven green. The seven commits merged during the outage were never through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | **41 arch + 89 unit + 32 integration scripts**, holding 154 + 786 + 234 tests and 239 + 6321 + 639 assertions. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **168.9 s** of the 180 s it is allowed, up from 87.7 s at M2 — **11 s of headroom left, and the next integration test has to justify itself hard against that**. `test_server_tick_budget.gd` cost 9.8 s of it and is a gate line; the one before it, the 2 s pass A/B, samples ninety ticks **twice** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **Five are `pending` by design, all in the unit suite** — `test_upstream_bandwidth.gd` reports the 145 % upstream miss, **`test_crowd_bandwidth.gd` the 112 % downstream projection and `test_crowd_wire_cost.gd` the 155 % it actually costs today**, `test_circuit_separation.gd` US-0043's 0.51 m circuits, and `test_clone_animation_parity.gd` the missing clip library. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
+| Tests | **41 arch + 90 unit + 32 integration scripts**, holding 154 + 792 + 234 tests and 239 + 6337 + 639 assertions. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **168.9 s** of the 180 s it is allowed, up from 87.7 s at M2 — **11 s of headroom left, and the next integration test has to justify itself hard against that**. `test_server_tick_budget.gd` cost 9.8 s of it and is a gate line; the one before it, the 2 s pass A/B, samples ninety ticks **twice** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **Five are `pending` by design, all in the unit suite** — `test_upstream_bandwidth.gd` reports the 145 % upstream miss, **`test_crowd_bandwidth.gd` the 112 % downstream projection and `test_crowd_wire_cost.gd` the 155 % it actually costs today**, `test_circuit_separation.gd` US-0043's 0.51 m circuits, and `test_clone_animation_parity.gd` the missing clip library. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
 | Tuning | 288 tunables across 14 resource classes; all 31 cross-field invariants assert — split across `TuningInvariants` and `TuningInvariantsTech` since the first file hit 400 lines, with one entry point still. **Eight IDs are deprecated** and recorded in TUNABLES §19 — never reused |
 | Autoloads | All eight. `Tuning` precomputes 89 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |
