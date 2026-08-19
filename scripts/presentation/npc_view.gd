@@ -124,25 +124,18 @@ func _physics_process(delta: float) -> void:
 ## is not: every NPC that left was still being drawn, frozen at the boundary.
 func _drop_what_left() -> void:
 	var cull: float = Tuning.net.npc_cull_radius
-	# **ONE QUANTUM OF SLACK, BECAUSE THE SERVER CULLS ON FLOATS AND THE WIRE
-	# CARRIES CENTIMETRES.** An NPC at 69.997 m is inside the radius and sent
-	# normally; quantised to `TUN-NET-QUANT-POS` it can arrive measuring 70.004 and
-	# be read as a farewell. Measured live: one NPC created and freed **244 times in
-	# eight seconds**, once per snapshot, because the two ends disagreed by a
-	# centimetre about a threshold they both thought they shared.
-	#
-	# Quantising x and z each to `q` bounds the distance error at `q / sqrt(2)`, so
-	# one whole quantum is provably enough. **It leaves a band one centimetre wide**
-	# in which an NPC that stops dead is held rather than dropped; any NPC that is
-	# walking leaves it inside a single tick.
-	var beyond := (cull + Tuning.net.quant_pos) ** 2
 	var safety := (cull + drop_margin()) * (cull + drop_margin())
 	for index: int in _bodies.keys():
 		var at: Vector3 = _last_seen.get(index, _observer)
 		var dx := at.x - _observer.x
 		var dz := at.z - _observer.z
 		var away := dx * dx + dz * dz
-		var farewell: bool = _fresh.has(index) and away > beyond
+		# **THE FAREWELL TEST IS THE PROTOCOL'S, NOT THIS CLASS'S.**
+		# `SnapshotAssembler` has to apply the same rule to stop carrying a departed
+		# NPC forward, and when the two were written separately only one of them had
+		# it — so this view was handed the same goodbye in every snapshot and freed a
+		# body it had just been made to create.
+		var farewell: bool = _fresh.has(index) and CrowdWire.is_farewell(at, _observer)
 		if not farewell and away <= safety:
 			continue
 		(_bodies[index] as Node).queue_free()

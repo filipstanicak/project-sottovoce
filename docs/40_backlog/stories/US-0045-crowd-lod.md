@@ -146,12 +146,35 @@ Everything else it found was a defect, and all three are server-side:
    standing body at up to 0.1 m/s. Leaving is decided at the radius, re-admission one margin
    inside it.
 
-**AND ONE THING IS MEASURED BUT NOT EXPLAINED.** Four to six NPCs per spawn point are still created
-and freed roughly once per snapshot, each with a last-known position of **70.01–70.05 m** against a
-70.00 m radius. The two cases that reproduce deterministically — an NPC parked on the line with a
-centimetre of jitter, and one walking straight out through it — are both quiet in
-`test_cull_jitter.gd`. **It is bounded, it is visible only at 70 m, and it is open.** Reported
-rather than closed on a guess. TDD-04 §7.1.3.
+4. **The client replayed every goodbye forever, and this one was reported open first.** Four to six
+   NPCs per spawn point were created and freed roughly **once per snapshot**, each last seen at
+   **70.01–70.05 m** against a 70.00 m radius. The two cases that reproduce deterministically — an
+   NPC parked on the line, one walking straight out through it — are quiet in
+   `test_cull_jitter.gd`, and both are **server-side**. It was not the server.
+   `SnapshotAssembler` carries the crowd forward, correctly, because absence means "no update" —
+   and the farewell is the one record for which that is false. It cached the goodbye and
+   re-presented it in every later snapshot; `NpcView` read each replay as a fresh departure, spawned
+   a body for an index it no longer held, and freed it again. **Neither class was wrong about its
+   own job**, which is why every test of either passed. The rule is `CrowdWire.is_farewell()` now,
+   one class both of them call.
+
+**THE CONSTANT DISTANCE WAS THE TELL AND IT WAS MISREAD AS A TIGHT BAND.** 70.01–70.05 m is not a
+population of NPCs hovering near the line: it is a handful of records, each frozen at the single
+value the server sent once. On the instrument that finally showed it, one NPC was re-presented at a
+constant **70.0231 m on 199 consecutive ticks**.
+
+**`tools/cull_trace.tscn` IS THAT INSTRUMENT, AND ITS FIRST VERSION REPORTED A CLEAN BOUNDARY OVER
+THE DEFECT.** It boots the real `server_root.tscn` and prints the **server's** own decision about
+every NPC around each drop, which is the half `crowd_probe.tscn` cannot see. It fed the views raw
+wire snapshots to begin with — a path no client uses, because `Net` assembles before it emits
+`snapshot_received` — and measured two drops in 240 ticks, both correct. Through the assembler:
+**485 drops for 5 real departures**, and **7 for 7** after the fix.
+
+**ONE CASE IS LEFT UNCOVERED AND IS BOUNDED RATHER THAN FIXED.** The farewell is a single record on
+an unreliable channel and the server drops its baseline as it sends it, so a lost farewell is never
+retried. It is not permanent — rule 2 frees anything whose last-known position passes the radius
+plus `NpcView.drop_margin()`, so the observer moving about 0.6 m clears it — and it can only happen
+to an NPC at 70 m, outside every gameplay radius. TDD-04 §7.1.3.
 
 **THE PROBE ITSELF WAS WRONG TWICE, BOTH TIMES REPORTING A CONSTANT.** It first read the *drawn*
 transform of dropped NPCs and reported 72.8 m for every one — exactly the distance from the
