@@ -71,6 +71,22 @@ a 3.50 ms combined allocation, with 0.20 ms spare.
 | **Total** | **4.88 ms of 8.0 ms** | |
 | **Margin** | **3.12 ms** | **39 %** |
 
+**MEASURED FOR THE FIRST TIME AT THE M3 GATE: 1.58 ms mean, 2.15 ms p99, 2.27 ms max**, over 180
+samples of the real `server_root.tscn` with six players and the full crowd (`test_server_tick_budget.gd`,
+US-0048). **27 % of the budget**, against a table that projected 61 %.
+
+**FOUR OF THE EIGHT ROWS HAVE NO CODE YET** — suspicion and detection, kill/stun/contract,
+abilities, and most of scoring are M4 and M5, together 1.08 ms of the projection. So this is not
+"the budget is met"; it is **"the half that exists costs a third of what the whole was budgeted
+at"**, which is the honest reading and the useful one.
+
+**AND IT EXCLUDES SNAPSHOT SERIALISATION.** `Net.send_snapshot` early-returns without an ENet peer,
+so the snapshot stage pays for `build_for` — cull, rate LOD, delta — and not for `serialise()`.
+Measured separately at **1.26 ms for six clients**, and deliberately **not added**: summing a
+measured number to a separately-measured one is a projection, and two projections in this corpus
+have already turned out to be wrong. What the pair supports is the weaker claim that the omission
+cannot bring the tick near 8.0 ms.
+
 ### 2.1 Why the server budget is deliberately generous
 
 8.0 ms of a 33 ms tick is only 24 % utilisation. That is intentional:

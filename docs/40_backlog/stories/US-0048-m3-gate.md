@@ -73,15 +73,22 @@ expensive exactly when the district is most evenly occupied.
       deadline and on p95, and TDD-08 §11.2's table is amended with the measured figures rather
       than reworded.
 - [ ] p99 client frame time at or under 16.6 ms with peak crowd density.
-- [ ] Server tick p99 at or under 8.0 ms.
-      — **NO INSTRUMENT EXISTS AND THIS LINE NAMES ONE.** `test_crowd_perf.gd` measures
-      `CrowdDirector.tick()`, which is one row of §2's eight, and the whole stage loop has never
-      been timed. It is measurable — `MatchDirector` emits `net_ticked` before the stages and
-      `tick_completed` after them, so the two bracket exactly the thing under budget — and it is
-      **not measured**, so the line is not ticked. **Summing the rows that have been measured
-      would be a projection**, which is the mistake this gate exists to catch and has now caught
-      twice. Note also that p99 of the 90 samples the perf test takes *is* its max; a real p99
-      needs a few hundred, and the integration suite has 21 s of headroom.
+- [x] **Server tick p99 at or under 8.0 ms** — **measured at 2.147 ms, 27 % of budget**, over
+      180 samples of the real `server_root.tscn` with a full lobby and the full crowd: mean 1.58,
+      p50 1.55, p95 1.81, **max 2.27**. Reproducible to three decimal places across runs.
+      `test_server_tick_budget.gd`, written here because **this line named an instrument that did
+      not exist** — `test_crowd_perf.gd` times `CrowdDirector.tick()`, one row of §2's eight.
+      **The maximum is asserted rather than the p99**, which is strictly stronger: if no tick is
+      over budget, no percentile can be, and a p99 over 180 samples is one of the worst two
+      readings whatever the estimator.
+      **It boots the real server scene, which no test had ever done** — trap 4 names it
+      specifically — and it measures between `net_ticked` and `tick_completed`, which bracket
+      exactly the thing under budget.
+      **What it leaves out is stated and measured separately, never added**: `Net.send_snapshot`
+      early-returns without an ENet peer, so `serialise()` is not in the figure. It costs
+      **1.26 ms** for six clients. Summing the two would be a projection, and the gate has caught
+      two of those already; what they jointly support is only the weak claim that the omission
+      cannot put the tick near 8.0 ms.
 - [ ] `test_crowd_bandwidth.gd` within 96 kbit/s down.
       — **WRITTEN AT THIS GATE, AND IT MEASURES 108.0 kbit/s — 112 %.** Not blocked any more:
       **missed, on a measurement.** §7.1's head-counts were very nearly right (41.0 near against

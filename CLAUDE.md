@@ -318,13 +318,31 @@ seed-derived far crowd, or a smaller `TUN-NET-NPC-CULL-RADIUS` — a tuning chan
 with a gameplay consequence, since invariant 17 pins that radius above
 `TUN-COMPASS-RANGE-MAX` for a reason. TDD-04 §7.1.2.
 
-**THE GATE ALSO NAMES AN INSTRUMENT THAT STILL DOES NOT EXIST.** "Server tick p99
-≤ 8.0 ms" has never been measured: `test_crowd_perf.gd` times
-`CrowdDirector.tick()`, which is one row of PERFORMANCE_BUDGET §2's eight. It **is**
-measurable — `MatchDirector` emits `net_ticked` before the stages and
-`tick_completed` after them, so the two bracket exactly the thing under budget — and
-summing the rows that *have* been measured would be a projection, which is the
-mistake this gate has now caught twice. Left unticked and unbuilt, deliberately.
+**THE SERVER TICK IS MEASURED FOR THE FIRST TIME: 2.15 ms p99, 2.27 ms MAX,
+AGAINST A BUDGET OF 8.0.** The gate named an instrument that did not exist —
+`test_crowd_perf.gd` times `CrowdDirector.tick()`, one row of PERFORMANCE_BUDGET
+§2's eight — so `test_server_tick_budget.gd` was written. Mean 1.58, p50 1.55,
+p95 1.81, over 180 samples, **reproducible to three decimal places across runs**.
+**27 % of budget against a table that projected 61 %.**
+
+**IT BOOTS THE REAL `server_root.tscn`, WHICH NO TEST HAD EVER DONE** — trap 4
+names the server scene specifically — and measures between `net_ticked` and
+`tick_completed`, which bracket exactly the thing under budget. Six players join
+through `Net.peer_joined`, the shipped path, so the pawn and snapshot stages are
+real rather than idle.
+
+**THE MAXIMUM IS ASSERTED, NOT THE p99**, because it is strictly stronger: if no
+tick is over budget then no percentile can be, and a p99 over 180 samples is one
+of the worst two readings whatever estimator you pick.
+
+**FOUR OF §2's EIGHT ROWS HAVE NO CODE YET** — suspicion and detection, kill/stun,
+abilities, most of scoring, together 1.08 ms of the projection. So this is not
+"the budget is met"; it is **"the half that exists costs a third of what the whole
+was budgeted at"**. **And it excludes snapshot serialisation**, because
+`Net.send_snapshot` early-returns without an ENet peer: measured separately at
+**1.26 ms for six clients** and deliberately not added, since summing a measured
+number to a separately-measured one is the projection this gate has already caught
+twice.
 
 **THREE OF THE FOUR RISKS RE-SCORED WENT UP.** `RISK-ANONYMITY-LEAK` Low → Medium
 (a live instance in the level data, not a hypothesis about an animator);
@@ -1570,7 +1588,7 @@ US-0024 measures it against clips that do not exist.
 | | |
 |---|---|
 | CI | 7 jobs. **Running again as of 2026-08-07 after a two-day outage** — run `31200490320`, all seven green. The seven commits merged during the outage were never through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | **41 arch + 88 unit + 31 integration scripts**, holding 154 + 777 + 231 tests and 239 + 6299 + 631 assertions. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **159.2 s** of the 180 s it is allowed, up from 87.7 s at M2 and from 152.1 s before the 2 s pass attribution, which samples ninety ticks **twice** for its A/B — **21 s of headroom left, and the next crowd test has to justify itself against that** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **Five are `pending` by design, all in the unit suite** — `test_upstream_bandwidth.gd` reports the 145 % upstream miss, **`test_crowd_bandwidth.gd` the 112 % downstream projection and `test_crowd_wire_cost.gd` the 155 % it actually costs today**, `test_circuit_separation.gd` US-0043's 0.51 m circuits, and `test_clone_animation_parity.gd` the missing clip library. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
+| Tests | **41 arch + 88 unit + 32 integration scripts**, holding 154 + 777 + 234 tests and 239 + 6299 + 639 assertions. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **168.9 s** of the 180 s it is allowed, up from 87.7 s at M2 — **11 s of headroom left, and the next integration test has to justify itself hard against that**. `test_server_tick_budget.gd` cost 9.8 s of it and is a gate line; the one before it, the 2 s pass A/B, samples ninety ticks **twice** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **Five are `pending` by design, all in the unit suite** — `test_upstream_bandwidth.gd` reports the 145 % upstream miss, **`test_crowd_bandwidth.gd` the 112 % downstream projection and `test_crowd_wire_cost.gd` the 155 % it actually costs today**, `test_circuit_separation.gd` US-0043's 0.51 m circuits, and `test_clone_animation_parity.gd` the missing clip library. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
 | Tuning | 288 tunables across 14 resource classes; all 31 cross-field invariants assert — split across `TuningInvariants` and `TuningInvariantsTech` since the first file hit 400 lines, with one entry point still. **Eight IDs are deprecated** and recorded in TUNABLES §19 — never reused |
 | Autoloads | All eight. `Tuning` precomputes 89 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |
@@ -1583,7 +1601,7 @@ US-0024 measures it against clips that do not exist.
 | Camera | Real spring arm: 2.6 m, **pawn centred** (US-0092 — the 0.45 m offset never changed the composition, because the rig aims at the pawn's own axis; `INPUT-SHOULDER` retired with it), occlusion that pulls **in** and never sideways, `WORLD`-masked so a crowd cannot push it. The FOV ladder is bound to the **state**, never to `ctx.velocity`: the rung is a consequence of the decision, not of the physics that follows it. Crowd-scan narrows to 48° and grants nothing. **Positive pitch LOWERS the arm** — the rig looks *at* the pivot, so a raised arm looks down; it shipped inverted from US-0021 until somebody played it |
 | Input | 20 `InputMap` actions from 14 live `INPUT-` IDs — `INPUT-SHOULDER` is retired via `InputActions.DEPRECATED`, still in the corpus and bound to nothing, KBM + pad. Chain GDD-02 → `Ids` → `InputActions` → `project.godot`, guarded on every hop, both directions. **Sampled once per physics frame by `LocalPawnDriver`, the only caller** — see trap 12. The mouse is **captured** on boot; `INPUT-MENU` releases, a click takes it back. **Only a mapped gamepad holds the joypad bindings** — `PadSelection`, applied through the one `InputMap` writer, because a set of sim pedals was steering |
 
-**Forty-one criteria are deliberately unticked**, each blocked by something real — counted
+**Forty criteria are deliberately unticked**, each blocked by something real — counted
 from the `done` and `in-progress` stories on 2026-08-16. **Nine of them arrived at once**:
 US-0048 moved from `draft` to `in-progress` when its first instrument was built, so the M3
 gate's own checklist now counts. That is the honest direction — a story with work in it is
@@ -1610,7 +1628,7 @@ grep -c '^- \[ \]' docs/40_backlog/stories/*.md
 | US-0047 | "always had 2 within 25 m"; "does not read as following" | **"Always" is not achievable and the reason is a walk**: a fetched clone crosses 25 m in ~18 s, so a player who loses one is short for that walk. Supply is not the constraint — 4.27 clones of each persona on average against a floor of 2. 100 of 12 960 readings under the floor, never below 1, and **of 21 short pairs the pass saw, 18 already had a clone coming and 6 were dispatched**: the rule never ignores a breach, and that is what is asserted. The second criterion's readable half needs a client that has ever rendered a clone |
 | US-0046 | layers 2 and 3, footstep parity, the idle cycler | **there are no animation clips in this project, on either rig.** Layer 2's declaration half asserts and its library half reports; layer 3's check exists with no call site because a call site needs an `AnimationTree`; footsteps need `Audio.play()`, a stub until US-0075. ANIMATION_SPEC §8 costs the parity set at 14 × 4 personas × 2 rigs |
 | US-0045 | the three client-LOD lines | **US-0046.** There is no `NpcView`, no mesh and no `AnimationTree` in the project, so animation LOD, the silhouette-fairness check and mesh LOD have nothing to band |
-| US-0048 | eight of the ten M3 gate lines | the gate is **not run**; two instruments are built. `test_crowd_perf.gd` and `test_clone_local_min.gd` both exist and pass; the other eight wait on US-0046 (clone meshes and animation parity), on NPCs being on the wire at all, and on an owner at a windowed client |
+| US-0048 | six of the ten M3 gate lines | **the gate is RUN.** Four are met — `test_crowd_perf.gd`, `test_clone_local_min.gd`, the risk re-score, and **server tick p99 at 2.15 ms of 8.0**, measured here by booting the real `server_root.tscn`. Of the six left, `test_crowd_bandwidth.gd` is a **measured miss** at 111 % and not a blocked line; the rest wait on clone meshes on the wire, animation clips, and an owner at a windowed client. **The tag is the owner's call** |
 | US-0044 | startle waves read directionally **to a human observer** | needs rendered clones and an owner at a windowed client. **NPC meshes are US-0046.** The mechanical half is measured — 13 of 13 startled NPCs sent away from the violence — and the criterion is not rounded up on it |
 | US-0043 | the circuits' declared periods; the 8 m circuit separation | **both are the level's, not the code's.** The routes are 150–237 m, so 55–75 s implies 2.6–3.2 m/s; and CIRC-A and CIRC-B share the z=45 spine, passing within **0.51 m** against a rule of 8 m — geometry, so no re-timing fixes it. Re-authoring four routes against six competing rules is the owner's |
 | US-0038 | frame-rate independence; downstream "measured"; the 180 ms feel check | impossible headless (the structural substitute is accepted, not ticked); the entity counts in the projection need M3's crowd; the feel check is the owner's and needs a windowed client |
@@ -1650,12 +1668,19 @@ view.
    green exactly where the checkpoint most trusted them. Both now enumerate
    through `.ci/repo_files.sh`, which falls back to `find` and refuses an empty
    list. TDD-12 §1.5. If you write a third guard, source that helper.
-4. **The CLIENT scene is booted by a test now; the server scene is not.**
+4. **BOTH ROOT SCENES ARE BOOTED BY A TEST NOW.**
    `test/integration/test_client_boot_walks.gd` drives the real client through
-   the real bindings. Everything else is still unbooted, and this trap has bitten
-   twice: `change_scene_to_file` from `_ready()` failed with 92 tests green, and
+   the real bindings, and `test_server_tick_budget.gd` boots the real
+   `server_root.tscn` with a full lobby and the full crowd (US-0048). **The
+   server half was owed from M0 and this trap named it for four milestones.**
+   Everything else is still unbooted, and it has bitten twice:
+   `change_scene_to_file` from `_ready()` failed with 92 tests green, and
    spawning through `transition()` into an unimplemented state failed with 222.
    **Run the game after touching anything scene-related.**
+   **A TEST THAT BOOTS A ROOT SCENE MUST PUT THE AUTOLOADS BACK.**
+   `server_root._ready()` calls `Net.bind_router`, and `Net` outlives the test —
+   a dangling router handed to whatever runs next is US-0037's defect in a new
+   place. `after_each` clears it.
    **AND ASSERT THE SHAPE OF A RESULT, NOT ITS MAGNITUDE.** "The pawn moved more
    than half a metre" was true of a pawn falling through the world. Its most
    expensive instance so far: `test_looking_up_raises_the_camera` asserted that
