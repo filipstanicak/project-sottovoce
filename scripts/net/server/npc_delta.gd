@@ -75,6 +75,32 @@ func note_ack(peer: int, tick: int) -> void:
 			pending.erase(index)
 
 
+## **AN NPC THE CLIENT CAN NO LONGER SEE IS AN NPC IT NO LONGER HOLDS.** Called
+## with everything the cull removed this tick, because **culling and the delta
+## together lose an NPC permanently and neither is wrong on its own.**
+##
+## A standing NPC that a player walks away from and back to left the snapshot
+## because it was culled; its baseline survived the cull; and on return its record
+## is byte-identical to the one this class believes the client holds, so it is
+## dropped as already-held and **never mentioned again**. The client cannot cover
+## for it: absence is its only signal, so it must discard what leaves its own cull
+## radius, and it is then missing an NPC forever.
+##
+## The idle case is the common one rather than a corner — NPCs stand at anchors
+## for `TUN-CROWD-IDLE-DURATION-MIN..MAX`, so "the NPC did not move, the player
+## did" is most of a match.
+##
+## **RATE-SKIPPED NPCs MUST NOT COME THROUGH HERE.** One that is merely not due
+## this tick is still in view and still held; forgetting it would re-send the far
+## band at full rate and undo exactly what US-0031 built.
+func drop(peer: int, indices: PackedInt32Array) -> void:
+	var known: Dictionary = _confirmed.get(peer, {})
+	var pending: Dictionary = _in_flight.get(peer, {})
+	for index: int in indices:
+		known.erase(index)
+		pending.erase(index)
+
+
 ## How many NPCs this peer is believed to hold. For tests and for the wire-cost
 ## measurement, which otherwise cannot tell a working delta from an inert one.
 func confirmed_count(peer: int) -> int:

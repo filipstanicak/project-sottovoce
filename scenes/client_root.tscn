@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3 uid="uid://bs0ttovclientroot"]
+[gd_scene load_steps=13 format=3 uid="uid://bs0ttovclientroot"]
 
 [ext_resource type="PackedScene" path="res://scenes/map/map_vetraio.tscn" id="1_map"]
 [ext_resource type="PackedScene" path="res://scenes/pawn/pawn_local.tscn" id="2_pawn"]
@@ -9,6 +9,7 @@
 [ext_resource type="Script" path="res://scripts/net/client/remote_pawns.gd" id="7_remotes"]
 [ext_resource type="Script" path="res://scripts/net/client/client_net.gd" id="8_clientnet"]
 [ext_resource type="Script" path="res://scripts/net/client/reconciler.gd" id="9_reconciler"]
+[ext_resource type="Script" path="res://scripts/presentation/npc_view.gd" id="10_npcview"]
 
 [sub_resource type="ProceduralSkyMaterial" id="Sky_greybox"]
 sky_horizon_color = Color(0.65, 0.65, 0.67, 1)
@@ -79,6 +80,12 @@ driver_path = NodePath("../../LocalPawnDriver")
 
 [node name="RemotePawns" type="Node3D" parent="ClientNet"]
 script = ExtResource("7_remotes")
+
+; The crowd. Records have reached the wire since US-0030 and nothing drew one
+; until this node existed — the district was empty on every client for a
+; milestone. Absence means "no update" here, never "gone": see npc_view.gd.
+[node name="NpcView" type="Node3D" parent="ClientNet"]
+script = ExtResource("10_npcview")
 
 ; US-0033. The simulation snaps and the visual blends — see reconciler.gd.
 [node name="Reconciler" type="Node" parent="ClientNet"]

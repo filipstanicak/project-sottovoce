@@ -4,7 +4,7 @@ title: Crowd LOD — update rate and animation
 version: 0.1.0
 status: in-progress
 owner: Technical Director
-last_updated: 2026-08-18
+last_updated: 2026-08-19
 depends_on: [ADR-0003, TDD-08-CROWD, BIBLE-PERF-BUDGET]
 ---
 
@@ -24,8 +24,11 @@ Distance-banded update-rate LOD on the server and animation LOD on the client.
 
 ## Acceptance criteria
 
-> **Three of six. The three that are open are the CLIENT half**, and there is no `NpcView`, no
-> mesh and no animation in the project — US-0046's.
+> **Three of six. The three that are open are the CLIENT half**, and **`NpcView` now exists** — a
+> client draws 66 NPCs across 108.7 m of district. What is still missing is what LOD would *band*:
+> there is **no mesh and no `AnimationTree`**, and every NPC wears the same greybox body, so
+> animation LOD has nothing to reduce and mesh LOD has nothing to swap. US-0046's, and it needs
+> animation clips, of which this project has **none on either rig**.
 
 - [x] **Bands at 20 m near, 45 m mid, 70 m far**, from `TUN-PERF-CROWD-LOD-*`, evaluated per tick
       as squared-distance compares against the nearest player. **No players means Far**, because
@@ -39,8 +42,9 @@ Distance-banded update-rate LOD on the server and animation LOD on the client.
       `test_lod_changes_rate_not_logic.gd` scans for `CrowdLod`, `Band`, `distance`, `players`,
       `pawns` and `global_position`, and is falsified against a planted violation. It also asserts
       the **`stride`** reaches the brain, which a distance scan cannot see.
-- [ ] **Client animation LOD: full tree near, reduced mid, single clip far.** Blocked: there is no
-      `NpcView`, no mesh and no `AnimationTree`. **US-0046.**
+- [ ] **Client animation LOD: full tree near, reduced mid, single clip far.** `NpcView` exists as
+      of this update; what is still missing is the **mesh and the `AnimationTree`** — there is
+      nothing to band. **US-0046**, and there are no animation clips on either rig.
 - [ ] **Animation LOD NEVER changes silhouette or gait inside the 60 m compass range.** Same
       blocker, and it needs rendered frames to compare.
 - [ ] **Mesh LOD at 100, 50 and 20 percent triangle counts.** Same blocker; there are no meshes.

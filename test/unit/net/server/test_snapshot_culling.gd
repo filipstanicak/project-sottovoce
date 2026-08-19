@@ -215,3 +215,51 @@ func test_a_match_with_no_crowd_still_builds() -> void:
 	var snapshot := _builder.build_for(ALICE)
 	assert_not_null(snapshot, "a crowdless match failed to build a snapshot")
 	assert_eq(snapshot.npcs.size(), 0, "NPCs arrived from a pool that does not exist")
+
+
+## **CULLING AND THE DELTA TOGETHER LOSE AN NPC PERMANENTLY, AND NEITHER IS WRONG
+## ON ITS OWN.** US-0030 culls by distance; US-0031 omits records the client has
+## already acknowledged. Put them together and a **standing** NPC that a player
+## walks away from and back to is never re-sent: it left the snapshot because it
+## was culled, its baseline survived the cull, and on return its record is
+## byte-identical to the one the server believes the client holds.
+##
+## **THE CLIENT CANNOT COVER FOR THIS.** It has no way to distinguish "culled"
+## from "unchanged" — that is the protocol gap TDD-04 §7.1.2 records — so it must
+## drop what leaves its own cull radius, and then it is missing an NPC the server
+## will never mention again. **A statue at 70 m is the good outcome; the bad one
+## is a hole in the crowd that anonymity depends on.**
+##
+## The idle case is the common one, not a corner: NPCs stand at anchors for
+## `TUN-CROWD-IDLE-DURATION-MIN..MAX`, so "the NPC did not move, the player did"
+## is most of a match.
+func test_an_npc_that_leaves_and_returns_is_sent_again() -> void:
+	var here := Vector3(20.0, 0.0, 20.0)
+	_player_at(ALICE, here)
+	var reach: float = Tuning.net.npc_cull_radius
+	for index: int in CROWD:
+		_pool.set_position(index, here + Vector3(reach * 0.5, 0.0, 0.0))
+
+	_ctx.tick = 1
+	assert_gt(_builder.build_for(ALICE).npcs.size(), 0, "nothing was in range to begin with")
+	_builder.note_ack(ALICE, 1)
+
+	# The PLAYER walks away. Every NPC stands perfectly still, which is what an
+	# NPC at an idle anchor does for up to TUN-CROWD-IDLE-DURATION-MAX.
+	_host.context_for(ALICE).position = here + Vector3(reach * 3.0, 0.0, 0.0)
+	_ctx.tick = 2
+	assert_eq(_builder.build_for(ALICE).npcs.size(), 0, "the cull did not remove anybody")
+	_builder.note_ack(ALICE, 2)
+
+	# And walks back. The client dropped them on the way out, because absence is
+	# the only signal it has.
+	_host.context_for(ALICE).position = here
+	_ctx.tick = 3
+	assert_eq(
+		_builder.build_for(ALICE).npcs.size(),
+		CROWD,
+		(
+			"an NPC that was culled and came back was withheld as 'already held'. "
+			+ "The cull must invalidate the delta baseline it made unreachable."
+		)
+	)
