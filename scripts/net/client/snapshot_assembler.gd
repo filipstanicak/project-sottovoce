@@ -30,6 +30,20 @@ var unappliable: int = 0
 ## tick -> Array of complete remote-pawn records.
 var _remotes: Dictionary = {}
 
+## **THE CROWD IS CARRIED FORWARD, NOT KEYED BY TICK.** A remote pawn is offered
+## every tick, so "which pawns did tick N hold" is a complete answer. An NPC is
+## culled by distance (US-0030) and rate-limited by it (US-0031), so no single
+## tick ever holds the whole crowd and a tick-keyed baseline would lose every NPC
+## that happened not to be due. What the client holds is the newest record it has
+## ever been given for each index, which is exactly what the server's `NpcDelta`
+## believes it holds.
+##
+## **ABSENT MEANS "NO UPDATE", NEVER "GONE".** That is already true of culling and
+## rate LOD, which is why the crowd block needed no `present_slots` and no protocol
+## change. **The protocol still cannot say an NPC has LEFT** — nothing observes
+## that yet, because there is no `NpcView`. TDD-04 §7.1.2.
+var _crowd: Dictionary = {}
+
 var _newest: int = 0
 
 
@@ -59,7 +73,25 @@ func assemble(snapshot: Snapshot) -> Snapshot:
 		snapshot.remote_pawns = _merge(_remotes[baseline_tick], snapshot)
 
 	_remember(snapshot)
+	snapshot.npcs = _carry_the_crowd_forward(snapshot)
 	return snapshot
+
+
+## Every NPC this client has ever been told about, updated with whatever this
+## snapshot carried. A **full** snapshot does not reset it: fullness is a statement
+## about the remote-pawn baseline, and the crowd's baseline is per NPC and advances
+## on the ack, so a full snapshot still omits every unchanged NPC.
+func _carry_the_crowd_forward(snapshot: Snapshot) -> Array:
+	for record: Array in snapshot.npcs:
+		_crowd[int(record[0])] = record
+	return _crowd.values()
+
+
+## How many distinct NPCs this client is holding. Diagnostics, and the one number
+## that separates a working carry-forward from a snapshot that simply happened to
+## contain everything.
+func crowd_size() -> int:
+	return _crowd.size()
 
 
 ## Baseline records, overwritten by the delta's, filtered to who is present.
@@ -102,5 +134,6 @@ func _remember(snapshot: Snapshot) -> void:
 ## would be applied to a different match's ticks.
 func clear() -> void:
 	_remotes.clear()
+	_crowd.clear()
 	_newest = 0
 	unappliable = 0

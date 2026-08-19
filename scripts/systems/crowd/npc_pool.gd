@@ -129,12 +129,28 @@ func identity_of(index: int) -> StringName:
 	return roster[index]
 
 
+## **READ FROM THE BODY, NEVER FROM THE CACHE.** The body is where an NPC actually
+## is: `Steering` moves it from `NavigationAgent3D`'s avoidance callback on the
+## **physics** frame, and nothing calls `set_position` after placement.
+##
+## **THIS RETURNED THE CACHE UNTIL US-0031, AND IT WAS STALE FOR THE WHOLE MATCH.**
+## Nothing read it, so nothing was wrong — until `SnapshotBuilder._fill_crowd`
+## became its first consumer and would have replicated all seventy-eight NPCs at
+## their **spawn anchors, forever**, on a live server. No error, no failing test:
+## every client would simply have seen a frozen city, and the one symptom would
+## have been a playtester saying the crowd looked like statues.
+##
+## It was found because the NPC delta measured 25 % of the bandwidth budget where
+## the change fraction said 78 % of records move every tick. **A number far better
+## than the mechanism can explain is a broken measurement**, and this time it was a
+## broken program underneath it.
 func position_of(index: int) -> Vector3:
-	if index < 0 or index >= _positions.size():
-		return Vector3.ZERO
-	return _positions[index]
+	var body := body_of(index)
+	return body.global_position if body != null else Vector3.ZERO
 
 
+## Place an NPC. The cache is kept in step for `_positions`' own sake, but the
+## body is the authority and `position_of` reads that.
 func set_position(index: int, position: Vector3) -> void:
 	if index < 0 or index >= _positions.size():
 		return

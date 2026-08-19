@@ -150,6 +150,25 @@ static func remote_fingerprint(record: Array) -> Array:
 	]
 
 
+## The same idea for a crowd record, and it must match `_write_npcs` field for
+## field or an NPC will be dropped as unchanged while its bytes differ.
+##
+## **THE HEIGHT IS A 5 CM BYTE AND THE POSITION A 1 CM `i16`**, which is why this
+## cannot reuse `remote_fingerprint`: quantising an NPC's `y` at a centimetre
+## would make a crowd member that drifts 2 cm vertically look changed on every
+## tick, and the wire would carry a record identical to the one before it.
+static func npc_fingerprint(record: Array) -> Array:
+	var at := record[1] as Vector3
+	return [
+		int(record[0]),
+		Quantise.pos_to_i16(at.x),
+		Quantise.pos_to_i16(at.z),
+		Quantise.height_to_u8(at.y),
+		Quantise.yaw_to_u8(record[2]),
+		Quantise.pack(record[3], 3, record[4], 5),
+	]
+
+
 func serialise() -> PackedByteArray:
 	var buffer := StreamPeerBuffer.new()
 	buffer.big_endian = false

@@ -440,11 +440,15 @@ points:
 
 | | |
 |---|---|
-| | Culled only | **+ rate LOD** |
-|---|---|---|
-| Mean snapshot | 591 B | **447 B** |
-| Against `TUN-NET-BANDWIDTH-BUDGET-DOWN` 96 | 148.6 kbit/s, **155 %** | **114.0 kbit/s, 119 %** |
-| NPCs the cull removes, worst spawn point | **11 of 78 — 14 %** | unchanged |
+| | Culled only | + rate LOD | **+ NPC delta** |
+|---|---|---|---|
+| Mean snapshot | 591 B | 447 B | **415 B** |
+| Against `TUN-NET-BANDWIDTH-BUDGET-DOWN` 96 | 148.6 kbit/s, **155 %** | 114.0, **119 %** | **106.4, 111 %** |
+
+**111 % MEASURED AGAINST §7.1.1's 112 % PROJECTED, BY TWO INDEPENDENT ROUTES.** One walks a
+modelled crowd and counts which records change; the other serialises the real builder's output and
+weighs it. They were built for different questions and they agree to one point, which is the
+strongest thing either of them says.
 
 **CULLING WAS NOT THE LEVER, AND THAT IS WORTH KNOWING BEFORE THE NEXT ONE IS CHOSEN.**
 `TUN-NET-NPC-CULL-RADIUS` is 70 m and `MAP-VETRAIO` is 120 × 120 m, so most of the district is
@@ -463,17 +467,27 @@ jitter a client actually feels. **The kbit/s figure is identical either way.** F
 staggered by `(tick + index) % stride`, the same shape `CrowdBands` uses for brain steps, and the
 worst tick carries about a third of the band rather than all of it.
 
-**WHAT IS LEFT IS THE NPC DELTA, AND IT IS WORTH ABOUT SEVEN POINTS.** 119 % as built against
-§7.1.1's 112 % projected. It is small because **0.776 of visible NPC records change every tick
-anyway** — the delta can only drop the quarter that do not.
+**THE NPC DELTA WAS WORTH EIGHT POINTS AND NEEDED NO PROTOCOL CHANGE.** It is small because
+**0.776 of visible NPC records change every tick anyway** — a delta can only drop the quarter that
+do not.
 
-**AND THE PROTOCOL CANNOT EXPRESS AN UNCHANGED NPC.** Remote pawns carry `present_slots` precisely
-so that *absent* can mean "unchanged" rather than "gone"; the NPC block is a count followed by
-records and has no equivalent. **An NPC delta therefore needs a protocol change, not just a builder
-change** — a change to a bible document, for seven points, against a miss that would still be 12 %.
-**That trade is now a decision somebody can take on evidence**, which is what these two files were
-built for. ADR-0007's seed-derived far crowd and a smaller `TUN-NET-NPC-CULL-RADIUS` are the other
-two candidates and neither has been priced.
+**AND THE PROTOCOL CHANGE IT WAS THOUGHT TO NEED TURNED OUT TO BE ALREADY PAID FOR.** Remote pawns
+needed `present_slots` because *absent* used to mean "gone". For the crowd, **absent already meant
+"no update this tick"** — culling and rate LOD both omit NPCs a client must keep drawing — so the
+delta slots in with no wire change at all. **What the protocol still cannot say is that an NPC has
+LEFT**, and it could not say that before this either. Nothing observes it: there is no `NpcView`.
+Owed, and owned by whoever builds one.
+
+**IT CANNOT REUSE `SnapshotDelta`, AND THE REASON IS RATE LOD.** That class keeps one baseline per
+*tick*, which is right for pawns because every pawn is offered every tick. An NPC past the rate-LOD
+radius is offered on one tick in three, so it is missing from almost every tick's baseline through
+no fault of the client — a tick-keyed comparison would call it "new" every time and send it, which
+is a delta that saves nothing while reporting that it works. `NpcDelta` keys **per NPC** and
+advances on the **ack**, never on transmission.
+
+**WHAT IS LEFT IS 11 %, AND NEITHER CANDIDATE IS PRICED.** ADR-0007's seed-derived far crowd, and a
+smaller `TUN-NET-NPC-CULL-RADIUS` — which is a tuning change with a gameplay consequence, since the
+radius is pinned above `TUN-COMPASS-RANGE-MAX` by invariant 17 for a reason.
 
 ---
 
@@ -509,6 +523,7 @@ feature.
 | 1 | **Distance culling** | 0–50 % | NPCs beyond `TUN-NET-NPC-CULL-RADIUS` 70 m are not sent. 70 m > `TUN-COMPASS-RANGE-MAX` 60 m, so a culled NPC can never affect anything the client can perceive (invariant §17.17) |
 | 2 | **Quantisation** | ~60 % vs. floats | Player position 3×i16 at 1 cm; **NPC position 2×i16 plus a 5 cm height byte**; yaw u8 at 1°; NPC anim 3+5 bits. **8 bytes per NPC** including index, measured |
 | 3 | **Delta encoding** | ~40 % | **Built, US-0031.** Only entities whose **quantised** state changed since the client's last ack. A standing idle NPC costs nothing, and 40–60 % of the crowd is idle at any moment. Measured against players: a settled snapshot for two motionless clients is **55 B — the fixed block, with not one remote record** |
+| 3 | **Delta encoding, NPCs** | **measured: 7 % of the as-built figure** | **BUILT, US-0031.** `NpcDelta`, keyed per NPC and advanced on the ack. No protocol change: *absent* already meant "no update". 119 % → 111 % |
 | 4 | **Rate LOD** | **measured: 24 % of the as-built figure** | **BUILT, US-0031.** `TUN-NET-NPC-RATE-LOD-RADIUS` / `-HZ`, staggered by index so the peak falls with the mean. 155 % → 119 %. It is scoped to NPCs on purpose: a *player* at 46 m interpolated at 10 Hz would be visibly coarse, and the justification below does not hold for them. NPCs beyond 45 m at 10 Hz. Interpolation error at walking speed is < 15 cm — far below every gameplay radius, and those NPCs are outside all of them anyway |
 
 ### 7.3 Upstream
