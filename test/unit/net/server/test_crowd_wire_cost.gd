@@ -3,17 +3,18 @@
 ## arithmetic on a table.
 ##
 ## `test_crowd_bandwidth.gd` answers a different question and both are worth
-## having. That file measures what the downstream budget **would** be with all of
-## §7.1's mechanisms in place: NPCs culled, far ones sent at a tenth of the rate,
-## and only the records whose quantised form changed. This file measures what a
-## client is charged **today** — culled (US-0030) and rate-LOD'd (US-0031), with
-## **no NPC delta**, because the protocol has no way to say an NPC is unchanged.
+## having. That file computes what the downstream budget **would** be from §7.1's
+## arithmetic on measured crowd behaviour; this one weighs the real builder's
+## serialised output with everything that ships — culled (US-0030), rate-LOD'd and
+## delta-encoded (US-0031).
 ##
-## **THE GAP BETWEEN THE TWO IS THE VALUE OF THE DELTA, MEASURED RATHER THAN
-## ASSERTED, AND IT IS SMALL.** 119 % as built against 112 % projected: the delta
-## is worth about seven points, because 0.776 of visible NPC records change every
-## tick anyway. **A protocol change is a large price for seven points**, and that
-## is a decision this file exists to inform rather than to take.
+## **AND IT CHARGES THE DELTA AGAINST A LAGGING ACK, WHICH IT DID NOT USED TO.**
+## `NpcDelta`'s baseline advances on acknowledgement, so a measurement that acks
+## the tick it has just built is measuring a connection that does not exist. This
+## file did exactly that and reported 111 % from a mechanism that, in a running
+## game, **never converged at all** — every re-send refreshed the in-flight stamp
+## faster than acks arrived, nothing was ever confirmed, and every NPC was sent
+## every tick. Found by watching a live client (US-0045), not here.
 ##
 ## **IT REPLACED A GUARD THAT SAID "THE BUILDER STILL SENDS NO NPC".** That guard
 ## lived in `test_crowd_bandwidth.gd` so the file could not keep describing itself
@@ -36,6 +37,12 @@ const PACKET_OVERHEAD := 28
 ## have one for.
 const SETTLE_TICKS := 300
 const MEASURE_TICKS := 30
+
+## Ticks between a snapshot going out and its acknowledgement coming back. **Not
+## zero**, which is what this file used and what no connection does: three ticks is
+## 100 ms, the same order as `TUN-NET-INTERP-BUFFER` and a fair LAN-to-broadband
+## round trip. The figure below is charged against it.
+const ACK_LAG := 3
 
 var _ctx: MatchContext
 var _pool: NpcPool
@@ -98,7 +105,7 @@ func _observer_at(at: Vector3) -> void:
 ## measuring a client that never received anything, and would report the delta as
 ## worth nothing at all. Acking every tick is the optimistic end of the range and
 ## is stated as such: a lossy connection gets fewer omissions and more bytes.
-func _mean_bytes_at(at: Vector3) -> float:
+func _mean_bytes_at(at: Vector3, ack_lag: int = ACK_LAG) -> float:
 	_host.context_for(ONE_PEER).position = at
 	_builder.crowd_delta.forget(ONE_PEER)
 	var total := 0
@@ -106,7 +113,14 @@ func _mean_bytes_at(at: Vector3) -> float:
 		_ctx.tick = tick
 		_crowd.step()
 		total += _builder.build_for(ONE_PEER).serialise().size()
-		_builder.note_ack(ONE_PEER, tick)
+		# **THE ACK LAGS, AND MEASURING WITH IT AT ZERO IS WHAT HID A DEAD DELTA.**
+		# This file acknowledged the tick it had just built, which no connection ever
+		# does, and reported 111 % of budget from a mechanism that in a running game
+		# never converged at all: each re-send refreshed the in-flight stamp faster
+		# than acks arrived, so nothing was ever confirmed and every NPC was sent
+		# every tick. Found by watching a live client, not here. US-0045.
+		if tick >= ack_lag:
+			_builder.note_ack(ONE_PEER, tick - ack_lag)
 	return float(total) / float(MEASURE_TICKS)
 
 
@@ -238,3 +252,49 @@ func test_the_bill_differs_between_spawn_points() -> void:
 		if _reachable_from(at) != first:
 			differs = true
 	assert_true(differs, "every spawn point is charged for the same crowd — the cull does nothing")
+
+
+## **HOW MUCH LATENCY THE DELTA COSTS, WHICH IS THE QUESTION THAT CAUGHT IT DEAD.**
+##
+## A delta whose baseline advances on acknowledgement must still work when the
+## acknowledgement is late, and the failure mode is silent: it simply stops
+## omitting anything and the suite stays green. Before the convergence fix this
+## spread was the whole saving — instant acks gave 111 % and a real connection gave
+## nothing at all.
+##
+## Asserted as a **spread**, not as an absolute, so it survives the crowd, the map
+## and the budget being retuned. What it refuses is a delta that only works when
+## nobody is far away.
+func test_the_delta_still_works_when_the_ack_is_late() -> void:
+	_place_the_real_crowd()
+	_observer_at(_map.spawn_points[0])
+	var instant := _mean_bytes_at(_map.spawn_points[0], 0)
+	var realistic := _mean_bytes_at(_map.spawn_points[0], ACK_LAG)
+	var awful := _mean_bytes_at(_map.spawn_points[0], 10)
+	gut.p(
+		(
+			"mean snapshot by ack lag: %.0f B at 0 ticks, %.0f B at %d, %.0f B at 10"
+			% [instant, realistic, ACK_LAG, awful]
+		)
+	)
+	assert_gt(instant, 0.0, "nothing was measured at all")
+	# **1.06, AND THE NUMBER WAS CHOSEN BY FALSIFICATION.** Restoring the defect this
+	# guards against — refreshing the in-flight stamp on every re-send — moves the
+	# lagged figure from 414 B to 460 B, a 10.8 % rise. A 15 % threshold let that
+	# through; the measured spread is under 1 %, so 6 % is generous and still fires.
+	assert_lt(
+		realistic / instant,
+		1.06,
+		(
+			(
+				"a %d-tick ack costs %.0f %% more than an instant one. The delta is not "
+				+ "converging under latency, which is every real connection."
+			)
+			% [ACK_LAG, (realistic / instant - 1.0) * 100.0]
+		)
+	)
+	assert_lt(
+		awful / instant,
+		1.15,
+		"a ten-tick ack collapses the delta; its baseline is advancing on the wrong event"
+	)

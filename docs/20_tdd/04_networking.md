@@ -442,8 +442,16 @@ points:
 |---|---|
 | | Culled only | + rate LOD | **+ NPC delta** |
 |---|---|---|---|
-| Mean snapshot | 591 B | 447 B | **415 B** |
-| Against `TUN-NET-BANDWIDTH-BUDGET-DOWN` 96 | 148.6 kbit/s, **155 %** | 114.0, **119 %** | **106.4, 111 %** |
+| Mean snapshot | 591 B | 447 B | **420 B** |
+| Against `TUN-NET-BANDWIDTH-BUDGET-DOWN` 96 | 148.6 kbit/s, **155 %** | 114.0, **119 %** | **107.6, 112 %** |
+
+**THE FINAL COLUMN IS CHARGED AGAINST A LAGGING ACK, AND WAS 111 % WHEN IT WAS NOT.**
+`NpcDelta`'s baseline advances on acknowledgement, so acking the tick you have just built measures
+a connection that does not exist — and the delta it was measuring **never converged in a running
+game at all**. Re-measured at a three-tick ack (100 ms, the order of `TUN-NET-INTERP-BUFFER`) the
+figure is 112 %, and the sensitivity is now guarded: 415 B at an instant ack, 414 B at three ticks,
+426 B at ten. Restoring the defect moves the three-tick figure to **460 B**, and both guards fire.
+§7.1.3.
 
 **111 % MEASURED AGAINST §7.1.1's 112 % PROJECTED, BY TWO INDEPENDENT ROUTES.** One walks a
 modelled crowd and counts which records change; the other serialises the real builder's output and
