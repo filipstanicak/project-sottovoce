@@ -686,6 +686,15 @@ before then as a best case.
 | Everything inside `CrowdDirector.tick()` | — | **mean 0.52 ms, p95 0.59–0.64, max 1.26–1.29** |
 | **Server total** | **≤ 1.75 ms of 8.0 ms** | **inside it, max included**, since §11.2.2; movement is still unmeasured |
 
+> **SUPERSEDED 2026-08-20, AND THE CORRECTION MATTERS BECAUSE IT IS CI THAT DECIDES A PR.** The
+> figures above were measured at US-0047 and have been carried unchanged since. A quiet local
+> machine now reads **mean 0.74-0.80, p95 0.89-0.95, max 1.53-1.72**, and CI's `ubuntu-22.04`
+> runner read **p95 1.067, then 1.249, then 1.815** across three consecutive runs - the third
+> **failed the build** against the 1.75 ms budget. So the headroom is tens of a percent, not the
+> 3x the local number implies, and the next thing added to the crowd stage will fail on CI rather
+> than here. **The drift is not explained**: an A/B against `main` cleared the only change to the
+> crowd stage that day (US-0041's no-overshoot guard, once it stopped taking two square roots).
+
 ### 11.2.2 The spike was the 2 s pass, and it was this chapter's own new code
 
 **A MAX OVER BUDGET WITH p95 UNDER IT IS ONE EXPENSIVE TICK, NOT A SLOW CROWD.** Once

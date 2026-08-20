@@ -4,7 +4,7 @@ title: CrowdDirector and walking-group circuits
 version: 0.1.0
 status: in-progress
 owner: Technical Director
-last_updated: 2026-08-16
+last_updated: 2026-08-20
 depends_on: [TDD-08-CROWD, GDD-05-LEVEL]
 ---
 

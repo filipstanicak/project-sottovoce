@@ -82,7 +82,9 @@ as a genuine decision point rather than a formality.
 
 > **RE-SCORED AT THE M3 GATE (US-0048), AND IT DID NOT MOVE — BUT WHAT IT MEANS DID.** ADR-0001's
 > assumption has now been measured on the **server** and it is comfortable:
-> `CrowdDirector.tick()` runs at **0.52 ms mean, 0.59–0.64 p95, 1.26–1.29 max** against §11.2's
+> `CrowdDirector.tick()` runs at **0.74-0.80 ms mean, 0.89-0.95 p95, 1.53-1.72 max** locally as of 2026-08-20 —
+> the 0.52 / 0.59-0.64 / 1.26-1.29 this register carried is superseded, and **CI reads p95 1.067-1.815**,
+> which failed the build once. Against §11.2's
 > 1.75 ms, with a full physics frame at 16.73 ms against a 16.67 ms deadline.
 >
 > **THE 0.10 MS MARGIN IS NOT ON THE SERVER, AND THAT HALF IS STILL UNMEASURED.** §11.1's client
