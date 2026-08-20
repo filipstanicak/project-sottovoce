@@ -168,6 +168,49 @@ stale rows looks identical to a healthy pipeline that simply has not fired yet.
 silently stops firing looks identical to a pipeline with nothing to do, and §1.4's lesson applies
 here too — the green was the defect, and so is the absence of red.
 
+### 1.3.2 Confirmed on 2026-08-20, and it does not look like billing
+
+§1.3.1 left the exhausted-minutes theory **unverified for four milestones**. It is confirmed now,
+and the symptom is not the one that section teaches you to watch for.
+
+Run `32389932998` did not go quiet. It **fired, and reported five jobs green and two failed** —
+`test` and `export`, each started and completed **in the same second, with zero steps recorded and
+no log to fetch**. Downloading the log returns `BlobNotFound`. That reads exactly like a suite
+that crashed before it could print, which is the wrong place to start looking.
+
+The cause is in the check-run **annotation**, which is a different endpoint from the log:
+
+```
+The job was not started because recent account payments have failed or your spending
+limit needs to be increased. Please check the 'Billing & plans' section in your settings
+```
+
+```bash
+gh api repos/<owner>/<repo>/check-runs/<job-id>/annotations --jq '.[].message'
+```
+
+**Why those two jobs and not the other five.** All seven run on `ubuntu-22.04`, so the runner is
+not the discriminator. `test` and `export` are the only two declaring `needs: [version, import]`,
+so they start last — the allowance ran out *during the run*, and the jobs still queued at that
+moment are the ones refused. A partial green is therefore the expected shape of this failure, not
+a contradiction of it. `gh run rerun --failed` reproduced it exactly.
+
+**AND THE PARTIAL GREEN IS ONLY THE FIRST STAGE.** Twelve minutes later, run `32391024913`
+refused **all four entry jobs** and skipped the three that depend on them — seven of seven, same
+annotation. So a partial green is what the boundary looks like on the way down, not a stable
+state, and a reader who calibrates on it will misread the next run entirely. **Do not diagnose
+this from the pattern of which jobs failed; read the annotation.**
+
+**Both refused jobs reproduce locally, and one of them is nearly free.** `test` is the three
+suites against a `git archive HEAD` extraction, as §1.3.1 already prescribes. `export` builds
+nothing at all — it is two `grep` calls over `export_presets.cfg` asserting the server preset
+excludes `scripts/presentation/` and every preset excludes `addons/gut/` — so the substitute for
+it is complete rather than weaker, which is worth knowing before treating a red `export` as a
+blocker.
+
+The audit-trail rule from §1.3.1 is unchanged: a merge on local evidence needs the owner's
+explicit authorisation and a PR body that records CI did not run.
+
 ### 1.4 Why the test job counts its own scripts
 
 On 2026-08-04 CI reported **All tests passed** for a commit whose three new

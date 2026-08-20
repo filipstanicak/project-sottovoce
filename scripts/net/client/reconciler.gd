@@ -42,6 +42,24 @@ var forced: int = 0
 ## prediction lead and is non-zero when everything is perfect.
 var last_error: float = 0.0
 
+## **THE SAME COMPARISON AS A VECTOR, BECAUSE THE DIRECTION IS THE DIAGNOSIS.** A
+## magnitude says a correction happened; only the direction says what caused it. A
+## pull along the pawn's own heading is the server running a step behind or ahead;
+## a pull to one side is the server having integrated a **different input** — a
+## stale command, or one applied twice.
+##
+## Reported live by `scripts/debug/net_readout.gd` in the player's own frame, so
+## what an owner feels as "it tugs right" and what this class measures are the
+## same words.
+var last_error_vector: Vector3 = Vector3.ZERO
+
+## **WHETHER THE TWO ENDS AGREED ABOUT THE FLOOR**, at the last comparison. A
+## vertical correction with these disagreeing is a grounding fault — one side
+## falling while the other stands. With both agreeing it is the step count, since
+## gravity integrates per step and a tick of difference is centimetres.
+var last_server_grounded: bool = false
+var last_client_grounded: bool = false
+
 var _driver: LocalPawnDriver
 var _visuals: Node3D
 var _pending: Snapshot = null
@@ -96,6 +114,9 @@ func _reconcile(snapshot: Snapshot) -> void:
 	var authoritative := PredictedState.from_snapshot(snapshot)
 	var error := authoritative.error_against(predicted)
 	last_error = error
+	last_error_vector = authoritative.position - predicted.position
+	last_server_grounded = authoritative.grounded
+	last_client_grounded = predicted.grounded
 	if error <= Tuning.net.reconcile_threshold:
 		corrected.emit(error, false)
 		return

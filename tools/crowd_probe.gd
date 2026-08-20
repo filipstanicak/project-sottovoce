@@ -153,6 +153,7 @@ func _report() -> void:
 	# observer's position says which.
 	print("observer at (%.1f, %.1f, %.1f)" % [_at().x, _at().y, _at().z])
 	_report_the_observer()
+	_report_the_wire()
 	_report_frame_pacing()
 	print("NPCs drawn: %d, spread %.1f m, y from %.2f to %.2f" % _shape())
 	print("count %d..%d over the watch: %d appeared, %d dropped %s" % _churn())
@@ -270,6 +271,24 @@ func _report_the_observer() -> void:
 ## that scales. Two different causes need two different fixes, so `FramePacing`
 ## measures both: whether frames are being missed, and whether a rendered frame
 ## shows anything new.
+## **IS THE WIRE ITSELF HEALTHY?** Asked because the owner's report of teleporting
+## NPCs came with "I have a feeling the networking is not stable", and a feeling
+## deserves a number.
+##
+## `unappliable` counts snapshots the client **refused** for want of a baseline —
+## it is the one figure that separates a rendering fault from a transport one. A
+## client that is dropping snapshots draws a crowd that lurches however perfect the
+## interpolation is. `crowd_size()` is what the assembler believes it holds, which
+## should track what is drawn.
+func _report_the_wire() -> void:
+	print(
+		(
+			"wire: %d snapshots refused for a missing baseline, assembler holds %d NPCs, view draws %d"
+			% [Net.assembler.unappliable, Net.assembler.crowd_size(), _view.count()]
+		)
+	)
+
+
 func _report_frame_pacing() -> void:
 	for line: String in _pacing.lines():
 		print(line)

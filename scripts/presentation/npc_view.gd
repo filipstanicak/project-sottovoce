@@ -78,10 +78,11 @@ func apply_snapshot(snapshot: Snapshot) -> void:
 		_fresh[int(record[0])] = true
 	for record: Array in snapshot.npcs:
 		var index: int = record[0]
+		var at := record[1] as Vector3
 		if not _bodies.has(index):
-			_spawn(index)
-		_last_seen[index] = record[1] as Vector3
-		_interpolator.push(index, server_time, record[1] as Vector3, record[2] as float)
+			_spawn(index, at)
+		_last_seen[index] = at
+		_interpolator.push(index, server_time, at, record[2] as float)
 	_drop_what_left()
 
 
@@ -166,16 +167,24 @@ func drop_margin() -> float:
 	return Tuning.net.interp_buffer / 1000.0 * Tuning.movement.sprint
 
 
-func _spawn(index: int) -> void:
+## **THE FIRST POSITION IS PASSED IN, NOT LOOKED UP.** This runs *before*
+## `_last_seen[index]` is written, so reading that dictionary here found nothing
+## and fell back to the observer — **placing every newly admitted NPC on top of the
+## player**, from where it jumped to its real position on the next physics frame.
+## An NPC crosses `TUN-NET-NPC-CULL-RADIUS` whenever the player walks and every
+## re-admission is a fresh spawn, so a moving player saw a steady stream of figures
+## materialising at their feet. Reported from the controls as "some figures
+## teleport", one build after the interpolation work that caused it.
+##
+## **AND A TELEPORT IS NOT A MOVEMENT.** With `physics_interpolation` on the engine
+## blends between a node's last two recorded transforms, so a body added at the
+## origin and then placed 60 m away is *slid* there over a frame.
+## `reset_physics_interpolation()` is what tells the engine this one is a placement.
+func _spawn(index: int, at: Vector3) -> void:
 	var body := GreyboxBody.new()
 	body.name = "Npc_%d" % index
 	add_child(body)
-	# **A TELEPORT IS NOT A MOVEMENT.** With `physics_interpolation` on (US-0045)
-	# the engine blends between a node's last two recorded transforms — so a body
-	# added at the origin and then placed 60 m away is *slid* there over a frame.
-	# The first placement of every NPC, and every re-admission after the cull, is a
-	# teleport. `reset_physics_interpolation()` is what tells the engine so.
-	body.global_position = _last_seen.get(index, _observer)
+	body.global_position = at
 	body.reset_physics_interpolation()
 	_bodies[index] = body
 	npc_appeared.emit(index)

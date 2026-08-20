@@ -53,17 +53,41 @@ signal net_ticked(ctx: MatchContext, dt: float)
 ## and nothing would have failed until M4.
 signal tick_completed(ctx: MatchContext, dt: float)
 
-## An authorised input is to be applied to `peer`'s pawn, at the input rate.
-## US-0028 connects the server pawn simulation to this.
 signal input_applied(peer: int, command: InputCommand, dt: float)
 
+## **HOW MUCH FASTER THAN REAL TIME THE SERVER MAY WORK OFF A BACKLOG**, in
+## commands per tick.
+##
+## One, not more. It has to be non-zero or a deficit is permanent (`_drain`), and
+## it has to be small because every command applied is a step of movement: this is
+## the one place a client's *send rate* can buy it distance. The exposure is
+## bounded twice over — the queue itself is capped at `TUN-NET-INPUT-BUFFER-SIZE`,
+## so a flooding client can bank only that many commands and spend them one per
+## tick, and `SequenceGate` already refuses stale and replayed sequence numbers.
+##
+## **NOTHING CHECKS A CLIENT'S SEND RATE, AND THAT IS WORTH KNOWING RATHER THAN
+## ASSUMING.** The pre-US-0028 code drained the whole queue every tick and was
+## strictly more exposed than this. A rate check belongs with `SequenceGate` and
+## US-0026's authority work; it is recorded here rather than invented.
+const CATCH_UP := 1
+
+## An authorised input is to be applied to `peer`'s pawn, at the input rate.
+## US-0028 connects the server pawn simulation to this.
 ## The match's context. Constructed here, torn down here, and the only thing a
 ## system is given.
 var ctx := MatchContext.new()
 
+## **HOW OFTEN A PEER'S QUEUE RAN DRY.** A repeat is a step the client never
+## predicted, so every one of these is a small correction the player may feel — a
+## tug toward whatever they were doing last, most noticeable exactly when they have
+## just changed input. Counted so the frequency is a number rather than an
+## impression. Diagnostics only; nothing reads it to make a decision.
+var starved_ticks: int = 0
+
 var _systems: Dictionary = {}
 var _queues: Dictionary = {}
 var _last_command: Dictionary = {}
+
 var _frames_per_tick: int = 2
 var _frame: int = 0
 
@@ -201,8 +225,16 @@ func _run_stage(stage: StringName) -> void:
 ## stalled pawn produces a position the client cannot have predicted — it kept
 ## walking — so every dropped packet would guarantee a reconciliation, and a
 ## player on a lossy connection would stutter continuously against a server that
-## was merely waiting. Repeating is what the client's own prediction did with
-## that tick, so the two agree.
+## was merely waiting.
+##
+## **THE ORIGINAL JUSTIFICATION FOR THE REPEAT WAS WRONG AND IS WORTH CORRECTING**:
+## it said "repeating is what the client's own prediction did with that tick, so
+## the two agree". The client never *has* a missing command — it always holds its
+## own input — so a repeat is a step the client did not predict. It is right only
+## when a command is genuinely **lost**, and wrong when the command is merely
+## **late**. `_drain` is what keeps the two apart: it applies at most one tick's
+## worth, so a late command is used next tick rather than arriving on top of a
+## repeat that already stood in for it.
 ##
 ## Walks `ctx.pawns`, not the queues: a peer with a pawn and an empty queue is
 ## exactly the case that needs filling, and it has no queue entry to be found by.
@@ -216,11 +248,44 @@ func _ctx_pawn_peers() -> Array:
 	return ctx.pawns.keys() if not ctx.pawns.is_empty() else _queues.keys()
 
 
-## Everything the peer actually sent this tick, in sequence order.
+## What the peer sent, in sequence order, **capped at one tick's worth**.
+##
+## **IT USED TO DRAIN THE WHOLE QUEUE, AND THAT PAID FOR LATE COMMANDS TWICE.**
+## The client sends at `TUN-NET-CLIENT-INPUT-RATE` and the server ticks at
+## `TUN-NET-SNAPSHOT-RATE`, so exactly `_frames_per_tick` commands *exist* per tick
+## — but they do not *arrive* that way. Arrival is bursty on any connection and on
+## localhost too: one tick receives one command, the next receives three.
+##
+## Draining everything meant a short tick applied its one command and then
+## `_repeat_last` filled the gap with a **stale** repeat — and the next tick applied
+## all three of its arrivals on top. **Five steps for four commands**, with the
+## extra one integrating a direction the client never predicted. Measured directly:
+## the applied sequence read `[1, 1, 2, 3, 4]`.
+##
+## The client feels that as a tug toward its *previous* input, because that is
+## literally what the extra step is. Reported from the controls as "I press D to go
+## right and it feels as if S is tapped in between", one build after the render
+## interpolation was fixed and stopped masking it.
+##
+## Surplus arrivals stay queued for the next tick, where they are applied instead
+## of a repeat. The queue is already bounded by `TUN-NET-INPUT-BUFFER-SIZE`, so
+## holding them back cannot grow it without limit.
+##
+## **AND THE CAP IS ONE MORE THAN A TICK'S WORTH, BECAUSE A HARD CAP CANNOT REPAY A
+## DEFICIT.** The client produces exactly `_frames_per_tick` commands per tick, so a
+## server that may never apply more than that works a backlog off only in the
+## silence between matches: every starved tick added *permanent* lag and the client
+## sat further ahead. Measured from the controls at a mean reconciliation error of
+## **0.068 m while walking, biased BACK** — under `TUN-NET-RECONCILE-THRESHOLD`, so
+## it never snapped, never corrected, and simply stayed there. One command is
+## 7.5 cm at `TUN-SPEED-RUN`, which is the figure that was being felt.
+##
+## One extra per tick clears a deficit of N in N ticks and is bounded, so a client
+## cannot make the server sprint by flooding — see `CATCH_UP`.
 func _drain(peer: int) -> int:
 	var queue: Array = _queues.get(peer, [])
 	var applied := 0
-	while not queue.is_empty():
+	while not queue.is_empty() and applied < _frames_per_tick + CATCH_UP:
 		var command := queue.pop_front() as InputCommand
 		_last_command[peer] = command
 		input_applied.emit(peer, command, MatchContext.step_dt())
@@ -228,12 +293,25 @@ func _drain(peer: int) -> int:
 	return applied
 
 
-## Fill the tick out to its full complement of substeps with the last command
-## seen. Nothing is repeated for a peer that has never sent one — there is no
+## Fill the tick with the last command seen, **and only when nothing at all
+## arrived.** Nothing is repeated for a peer that has never sent one — there is no
 ## intent to extend, and a pawn that has not yet moved must not start.
+##
+## **"FEWER THAN A FULL TICK" IS NOT THE SAME QUESTION AS "NOTHING ARRIVED", AND
+## USING THE FIRST WAS THE DEFECT.** Arrival is bursty, so a tick receiving one of
+## its two commands is the ordinary case, not a starved one — the second is in
+## flight and lands next tick. Repeating there inserts a step the client never
+## predicted *and* the real command still gets applied afterwards.
+##
+## Letting a short tick simply be short is self-correcting: the surplus that
+## `_drain` holds back becomes a one-command cushion within a few ticks, after
+## which jitter no longer starves the peer at all. A repeat is then what it was
+## always meant to be — the answer to a command that is **lost**, not one that is
+## late.
 func _repeat_last(peer: int, applied: int) -> void:
-	if applied >= _frames_per_tick or not _last_command.has(peer):
+	if applied > 0 or not _last_command.has(peer):
 		return
+	starved_ticks += 1
 	var command := _last_command[peer] as InputCommand
 	for _i: int in _frames_per_tick - applied:
 		input_applied.emit(peer, command, MatchContext.step_dt())

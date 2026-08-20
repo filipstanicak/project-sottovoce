@@ -101,6 +101,20 @@ func _attach_feel_readout() -> void:
 	if not OS.has_feature("debug") or not ResourceLoader.exists(PATH):
 		return
 	(load(PATH) as GDScript).attach(self, self)
+	_attach_net_readout()
+
+
+## US-0045's netcode readout, in debug builds only and by the same two guards.
+##
+## **IT EXISTS BECAUSE A JITTER WAS DIAGNOSED WRONGLY THREE TIMES FROM PROSE.**
+## The person who can feel a correction had no way to read its direction, and the
+## direction is the whole diagnosis: along the heading is a step-count
+## disagreement, across it is the server integrating a different input.
+func _attach_net_readout() -> void:
+	const NET_PATH := "res://scripts/debug/net_readout.gd"
+	if not OS.has_feature("debug") or not ResourceLoader.exists(NET_PATH):
+		return
+	(load(NET_PATH) as GDScript).attach(self, self)
 
 
 func _physics_process(delta: float) -> void:
