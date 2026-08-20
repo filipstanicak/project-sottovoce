@@ -1866,7 +1866,7 @@ US-0024 measures it against clips that do not exist.
 | | |
 |---|---|
 | CI | 7 jobs. **Running again as of 2026-08-07 after a two-day outage** — run `31200490320`, all seven green. The seven commits merged during the outage were never through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | **41 arch + 92 unit + 32 integration scripts**, holding 154 + 799 + 236 tests and 239 + 6372 + 645 assertions. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **168.9 s** of the 180 s it is allowed, up from 87.7 s at M2 — **11 s of headroom left, and the next integration test has to justify itself hard against that**. `test_server_tick_budget.gd` cost 9.8 s of it and is a gate line; the one before it, the 2 s pass A/B, samples ninety ticks **twice** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **Eight are `pending` by design, all in the unit suite** — `test_cull_radius_price.gd` among them, reporting that the cull-radius curve is FLAT and the budget is missed at every legal radius. — `test_upstream_bandwidth.gd` reports the 145 % upstream miss, **`test_crowd_bandwidth.gd` the 112 % downstream projection and `test_crowd_wire_cost.gd` the 155 % it actually costs today**, `test_circuit_separation.gd` US-0043's 0.51 m circuits, **`test_spawn_points.gd` two of GDD-05 §2.7's own rules** — rule 6's nine unoccluded spawn pairs and the clone minimum S3/S4 cannot hold — and `test_clone_animation_parity.gd` the missing clip library. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
+| Tests | **41 arch + 92 unit + 32 integration scripts**, holding 154 + 799 + 236 tests and 239 + 6373 + 642 assertions. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **170.9 s** of the 180 s it is allowed, up from 87.7 s at M2 — **9 s of headroom left, and the next integration test has to justify itself hard against that**. `test_server_tick_budget.gd` cost 9.8 s of it and is a gate line; the one before it, the 2 s pass A/B, samples ninety ticks **twice** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **Eight are `pending` by design, all in the unit suite** — `test_cull_radius_price.gd` among them, reporting that the cull-radius curve is FLAT and the budget is missed at every legal radius. — `test_upstream_bandwidth.gd` reports the 145 % upstream miss, **`test_crowd_bandwidth.gd` the 112 % downstream projection and `test_crowd_wire_cost.gd` the 155 % it actually costs today**, `test_circuit_separation.gd` US-0043's 0.51 m circuits, **`test_spawn_points.gd` two of GDD-05 §2.7's own rules** — rule 6's nine unoccluded spawn pairs and the clone minimum S3/S4 cannot hold — and `test_clone_animation_parity.gd` the missing clip library. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
 | Tuning | 288 tunables across 14 resource classes; all 31 cross-field invariants assert — split across `TuningInvariants` and `TuningInvariantsTech` since the first file hit 400 lines, with one entry point still. **Eight IDs are deprecated** and recorded in TUNABLES §19 — never reused |
 | Autoloads | All eight. `Tuning` precomputes 89 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |
@@ -1985,6 +1985,25 @@ view.
    that a run actually *appears* before waiting on one — a stale `gh run list`
    looks exactly like a healthy pipeline that has not fired yet — and verify from
    a `git archive HEAD` extraction meanwhile. TDD-12 §1.3.1.
+   **AND ON 2026-08-20 IT WAS CONFIRMED, WEARING A CODE FAILURE'S CLOTHES.** Run
+   `32389932998` reported five jobs green and **`test` and `export` failed** — each
+   started and completed **in the same second, with zero steps and no log to
+   fetch**, which reads exactly like a suite that crashed before printing. The
+   cause is in the check-run *annotation*, never in the log: `The job was not
+   started because recent account payments have failed or your spending limit
+   needs to be increased`. **All seven jobs are `ubuntu-22.04`, and the two refused
+   are the only two that `needs: [version, import]`** — so they start last and are
+   the ones the allowance runs out under, which is why a partial green is the
+   symptom rather than a silent pipeline. A rerun reproduced it exactly. **Read the
+   annotation before believing a failed job with no log:**
+
+   ```bash
+   gh api repos/<owner>/<repo>/check-runs/<job-id>/annotations --jq '.[].message'
+   ```
+
+   **Both refused jobs reproduce locally.** `test` is the three suites against a
+   `git archive HEAD` extraction; `export` does not build anything at all — it is
+   two greps over `export_presets.cfg` — so it is one line.
 7. **A STATE THAT WRITES `ctx.position` MUST SAY SO**, by returning true from
    `PawnState.drives_position()`. Otherwise `LocalPawnDriver` runs
    `move_and_slide()` and overwrites it from the physics body — which, with the
