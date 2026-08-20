@@ -147,6 +147,15 @@ headroom is thin, which is why the fallback option is documented rather than dis
   implementation must interpolate on *received timestamps*, not on a fixed assumed interval,
   or the two rates will fight.
 
+  > **BOTH HALVES ARE BUILT, AND THIS LINE NAMED THE SMALLER ONE.** The timestamp half shipped
+  > with US-0034; the stretch is `CrowdWire.crowd_extra_delay()`, one far-band send interval,
+  > applied to the **whole crowd** rather than to "those entities" — banding it would put a jump
+  > at `TUN-NET-NPC-RATE-LOD-RADIUS` and make the delay drift as the player walks, which ASM-0021
+  > refuses. **And it was not what the owner was feeling.** The stretch alone moved the live
+  > figure by 0.01 of a point; the stutter was `SnapshotAssembler` carrying records forward and
+  > `NpcView` re-stamping them as observations, drawn as a staircase. 2.17 % → 0.03 % matched.
+  > TDD-04 §7.2.1.
+
 ## Compliance
 
 - [ ] `NpcBrain` and `CrowdDirector` are instantiated only when `multiplayer.is_server()`.

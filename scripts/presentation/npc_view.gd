@@ -46,6 +46,10 @@ var _interpolator := SnapshotInterpolator.new()
 var _clock := RenderClock.new()
 var _last_seen: Dictionary = {}
 
+## The last record actually handed to the interpolator, per index. Not the same as
+## `_last_seen`, which records what the snapshot said whether it was news or not.
+var _pushed: Dictionary = {}
+
 ## Which indices this snapshot actually carried. A position beyond the cull radius
 ## only means goodbye if the server just said it; a *stale* one beyond the radius
 ## is the observer having moved, which rule 2 handles with a margin.
@@ -79,11 +83,38 @@ func apply_snapshot(snapshot: Snapshot) -> void:
 	for record: Array in snapshot.npcs:
 		var index: int = record[0]
 		var at := record[1] as Vector3
+		var yaw := record[2] as float
 		if not _bodies.has(index):
 			_spawn(index, at)
 		_last_seen[index] = at
-		_interpolator.push(index, server_time, at, record[2] as float)
+		if _is_news(index, at, yaw):
+			_interpolator.push(index, server_time, at, yaw)
+			_pushed[index] = [at, yaw]
 	_drop_what_left()
+
+
+## **A RECORD IDENTICAL TO THE LAST ONE IS NOT A NEW OBSERVATION, AND FEEDING IT TO
+## THE INTERPOLATOR AS ONE IS THE FAR-BAND STUTTER.**
+##
+## `SnapshotAssembler` fills every snapshot with every NPC it holds, which is right
+## on the wire — absence means "no update", so a consumer must be handed the whole
+## crowd. But this view then pushed all of it, **re-stamping a three-tick-old
+## position with this tick's time**. The interpolator has no way to know and
+## honours it exactly: two ticks drawn motionless, then three ticks of ground
+## covered in one. A staircase, and the further away the NPC the worse, because
+## rate LOD is what creates the gap.
+##
+## Measured in `test_far_band_interpolation.gd` at **13.2 % of drawn frames against
+## 0.0 %** once the duplicates are dropped.
+##
+## **THE LIVE INSTRUMENT COULD NOT SEE IT** and reported 1.68 %: `FramePacing`
+## judged whether a body was walking by its *median* frame step, and a staircase's
+## median is zero, so the worst-affected NPCs were being excluded as standing.
+func _is_news(index: int, at: Vector3, yaw: float) -> bool:
+	var was: Array = _pushed.get(index, [])
+	if was.is_empty():
+		return true
+	return not (was[0] as Vector3).is_equal_approx(at) or not is_equal_approx(float(was[1]), yaw)
 
 
 ## Draw every NPC where it was `TUN-NET-INTERP-BUFFER` ago.
@@ -93,11 +124,18 @@ func apply_snapshot(snapshot: Snapshot) -> void:
 ## player's hardware chooses, and the fixed clock is already twice the snapshot
 ## rate. Mixed 30 Hz and 10 Hz streams both work because the interpolator is
 ## **timestamp-based**; a fixed-interval one would make the two rates fight.
+##
+## **AND THE CROWD IS DRAWN DEEPER THAN A PLAYER**, by
+## `CrowdWire.crowd_extra_delay()`. Timestamping alone was not enough: at 10 Hz the
+## render clock lands exactly on a far NPC's newest sample, so a late record is
+## drawn as a hold and then a catch-up. Reported from the controls as far NPCs
+## stuttering while near ones walk smoothly, and measured at 1.68 % of drawn frames
+## against the near band's 0.13 %.
 func _physics_process(delta: float) -> void:
 	_clock.advance(delta)
 	if not _clock.started():
 		return
-	var at := _clock.render_time()
+	var at := _clock.render_time() - CrowdWire.crowd_extra_delay()
 	for index: int in _bodies:
 		var placed: Array = _interpolator.sample(index, at)
 		if placed.is_empty():
@@ -146,25 +184,24 @@ func _drop_what_left() -> void:
 		# reports a constant, which is what the first crowd probe did.
 		npc_dropped.emit(index)
 		_last_seen.erase(index)
+		_pushed.erase(index)
 		_fresh.erase(index)
 		_interpolator.forget(index)
 
 
-## **THE FAR BAND HAS NO INTERPOLATION MARGIN.** `TUN-NET-INTERP-BUFFER` is 100 ms
-## and an NPC beyond `TUN-NET-NPC-RATE-LOD-RADIUS` arrives every 100 ms, so the
-## render clock sits exactly on the newest sample and any late record is drawn as a
-## hold and then a catch-up. Measured at **1.68 % of drawn frames against 0.13 %
-## for the near band**. ADR-0007 asked for a stretched buffer for those entities
-## and only the timestamp half was built. **Not fixed here, and why not** is in
-## TDD-04 §7.2.1.
-## **DERIVED FROM TWO EXISTING TUNABLES, NEVER CHOSEN.** This view is one
-## `TUN-NET-INTERP-BUFFER` behind the world, so the furthest the observer and a
+## **DERIVED FROM THE VIEW'S OWN LAG, NEVER CHOSEN.** This view draws the world
+## `CrowdWire.crowd_render_lag()` in the past, so the furthest the observer and a
 ## drawn NPC can have drifted apart in that window is one `TUN-SPEED-SPRINT`.
 ## Public because the assertion that matters is that it is **positive** — a client
-## culling at or inside the server's radius drops NPCs the server still believes
-## it holds.
+## culling at or inside the server's radius drops NPCs the server still believes it
+## holds.
+##
+## **IT READS THE TOTAL LAG, NOT `TUN-NET-INTERP-BUFFER`.** The far-band stretch
+## makes this view deeper, and a margin still computed from the buffer alone would
+## quietly narrow the safety it exists to provide — a deeper view has drifted
+## further from the observer, so it would begin dropping NPCs the server holds.
 func drop_margin() -> float:
-	return Tuning.net.interp_buffer / 1000.0 * Tuning.movement.sprint
+	return CrowdWire.crowd_render_lag() * Tuning.movement.sprint
 
 
 ## **THE FIRST POSITION IS PASSED IN, NOT LOOKED UP.** This runs *before*
@@ -202,6 +239,15 @@ func observer() -> Vector3:
 ## NPC received only once has never been drawn anywhere but the origin.
 func last_seen(index: int) -> Vector3:
 	return _last_seen.get(index, Vector3.INF)
+
+
+## How many samples this view has fed the interpolator for `index`.
+##
+## **A DIAGNOSTIC WITH A REASON TO EXIST:** the difference between a real update and
+## a carried-forward one is invisible from outside — same body, same position, same
+## drawn frame — so nothing else can tell whether `_is_news` is doing anything.
+func samples_held(index: int) -> int:
+	return _interpolator.sample_count(index)
 
 
 func count() -> int:

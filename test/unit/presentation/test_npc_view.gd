@@ -134,15 +134,56 @@ func test_the_client_culls_later_than_the_server_never_earlier() -> void:
 	assert_eq(_view.count(), 1, "an NPC on the server's own boundary was dropped by the client")
 
 
-## Derived from two tunables rather than chosen, so it stays correct when either
-## is retuned. Asserted against the arithmetic, not against 0.62.
+## Derived from the tunables rather than chosen, so it stays correct when any of
+## them is retuned. Asserted against the arithmetic, never against a number.
+##
+## **IT READS THE VIEW'S WHOLE LAG, WHICH IS NO LONGER THE BUFFER.** The far-band
+## stretch draws the crowd `CrowdWire.crowd_extra_delay()` deeper than a player, so
+## a margin computed from `TUN-NET-INTERP-BUFFER` alone would now be **half** what
+## this view needs — and would start dropping NPCs the server still holds, which is
+## the one failure this margin exists to prevent. This test caught that when the
+## stretch landed; it is the assertion that made the coupling explicit.
 func test_the_margin_comes_from_the_tunables() -> void:
 	assert_almost_eq(
 		_view.drop_margin(),
-		Tuning.net.interp_buffer / 1000.0 * Tuning.movement.sprint,
+		CrowdWire.crowd_render_lag() * Tuning.movement.sprint,
 		0.0001,
-		"the drop margin is a literal; retuning the buffer or the sprint would not move it"
+		"the drop margin is a literal; retuning the lag or the sprint would not move it"
 	)
+	assert_gt(
+		_view.drop_margin(),
+		Tuning.net.interp_buffer / 1000.0 * Tuning.movement.sprint,
+		"the margin ignores the extra delay the crowd is drawn at, so it is too narrow"
+	)
+
+
+## **A RECORD THE SNAPSHOT REPEATED IS NOT A NEW OBSERVATION.**
+##
+## `SnapshotAssembler` hands every consumer the whole crowd every tick, because
+## absence on the wire means "no update". Pushing all of it into the interpolator
+## re-stamps a stale position with a fresh time, and the interpolator honours it:
+## the NPC is drawn motionless until the real update lands and then covers the gap
+## in one tick. **The far band is where it bites**, since rate LOD is what creates
+## the gap — measured at 13.2 % of drawn frames in
+## `test_far_band_interpolation.gd`, and invisible to the live probe.
+func test_a_repeated_record_is_not_pushed_as_a_new_sample() -> void:
+	var here := Vector3.ZERO
+	var at := Vector3(5.0, 0.0, 5.0)
+	_view.apply_snapshot(_snapshot(1, here, [at]))
+	var after_first := _view.samples_held(0)
+	for tick: int in range(2, 6):
+		_view.apply_snapshot(_snapshot(tick, here, [at]))
+	assert_eq(_view.samples_held(0), after_first, "a carried-forward record was re-stamped")
+
+
+## And the counterpart, so the skip cannot be a blanket refusal: a record that
+## actually moved must still get through.
+func test_a_record_that_moved_is_pushed() -> void:
+	var here := Vector3.ZERO
+	_view.apply_snapshot(_snapshot(1, here, [Vector3(5.0, 0.0, 5.0)]))
+	var after_first := _view.samples_held(0)
+	_view.apply_snapshot(_snapshot(2, here, [Vector3(5.0, 0.0, 6.0)]))
+	assert_gt(_view.samples_held(0), after_first, "a real update was dropped as a duplicate")
 
 
 # ---------------------------------------------------------------------------

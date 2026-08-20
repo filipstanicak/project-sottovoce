@@ -220,6 +220,45 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 *Updated 2026-08-19 (checkpoint after #115). Keep this section current — it is the first thing a fresh
 session reads, and a stale one is worse than none.*
 
+**THE FAR-BAND STUTTER IS FIXED, AND THE CAUSE WAS NOT THE ONE THIS CORPUS
+PUBLISHED.** The owner reported it twice — *"NPCs which are far away don't walk
+smoothly but stutter a bit"* — and that second report is what unblocked it, because
+the fix TDD-04 §7.2.1 named had been **built and reverted for want of evidence**.
+
+**THE MARGIN WAS REAL AND IT WAS NOT THE CAUSE.** `CrowdWire.crowd_extra_delay()`
+draws the crowd one far-band send interval deeper, which took a synthetic stream
+from **5.01 % to 0.00 %** and moved the live figure by **0.01 of a point**. A fix
+that measures perfectly and changes nothing live is aimed at the wrong mechanism.
+
+**IT WAS `SnapshotAssembler` AGAIN, AND FOR THE SAME REASON AS THE FAREWELL.** That
+class carries the crowd forward — right on the wire, where absence means "no
+update" — and `NpcView` pushed **all of it** into the interpolator, re-stamping a
+three-tick-old position with this tick's time. The interpolator cannot tell that
+from an observation and honours it exactly: **two ticks drawn motionless, then
+three ticks of ground covered in one.** A staircase, not an underrun, and worse the
+further away because rate LOD is what opens the gap. Matched A/B, same seed and
+spawn point: **2.17 % → 0.03 %.**
+
+**AND THE INSTRUMENT COULD NOT SEE THE BODIES IT WAS ABOUT.** `FramePacing` judged
+"is this NPC walking" by its **median** frame step, and a staircase's median is
+**zero** — so the worst-affected NPCs failed that test and were dropped as
+standing. It counted 2 walking far NPCs where the corrected instrument counts 7,
+and the 1.68 % this corpus published was measured over the ones that were fine. The
+reference is the **mean** now. **The guard added to stop counting idle NPCs is what
+hid the defect**, which is trap 3's shape inside an instrument rather than a test.
+
+**BOTH FIXES ARE REQUIRED AND ONLY ONE IS VISIBLE.** Dropping the duplicates leaves
+an honest 10 Hz track, and a 10 Hz track under a 100 ms buffer is the underrun the
+document described from the start. TDD-04 §7.2.1.
+
+**AND CI CAN RUN AGAIN: THE REPOSITORY IS PUBLIC AS OF 2026-08-20.** Actions is free
+for public repositories on standard runners, and all seven jobs are `ubuntu-22.04`.
+Before that, the free allowance was exhausted and jobs were refused — see trap 6,
+where the cause is now confirmed rather than suspected. **Branch protection is also
+free on a public repository**, so US-0002/0003/0004/0005's four "required check on
+`main`" criteria are unblocked for the first time; the ruleset JSON has been ready
+since M0 and is **not applied yet**.
+
 **THE JITTER IS FIXED AND THE OWNER HAS JUDGED IT: "IT WORKS PERFECTLY."** It
 took four reports from the controls and **three wrong diagnoses from prose**, and
 the thing that finally settled it was building an instrument the person who could
@@ -1866,7 +1905,7 @@ US-0024 measures it against clips that do not exist.
 | | |
 |---|---|
 | CI | 7 jobs. **Running again as of 2026-08-07 after a two-day outage** — run `31200490320`, all seven green. The seven commits merged during the outage were never through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | **41 arch + 92 unit + 32 integration scripts**, holding 154 + 799 + 236 tests and 239 + 6373 + 642 assertions. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **170.9 s** of the 180 s it is allowed, up from 87.7 s at M2 — **9 s of headroom left, and the next integration test has to justify itself hard against that**. `test_server_tick_budget.gd` cost 9.8 s of it and is a gate line; the one before it, the 2 s pass A/B, samples ninety ticks **twice** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **Eight are `pending` by design, all in the unit suite** — `test_cull_radius_price.gd` among them, reporting that the cull-radius curve is FLAT and the budget is missed at every legal radius. — `test_upstream_bandwidth.gd` reports the 145 % upstream miss, **`test_crowd_bandwidth.gd` the 112 % downstream projection and `test_crowd_wire_cost.gd` the 155 % it actually costs today**, `test_circuit_separation.gd` US-0043's 0.51 m circuits, **`test_spawn_points.gd` two of GDD-05 §2.7's own rules** — rule 6's nine unoccluded spawn pairs and the clone minimum S3/S4 cannot hold — and `test_clone_animation_parity.gd` the missing clip library. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
+| Tests | **41 arch + 93 unit + 32 integration scripts**, holding 154 + 807 + 236 tests and 239 + 6399 + 642 assertions. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **170.9 s** of the 180 s it is allowed, up from 87.7 s at M2 — **9 s of headroom left, and the next integration test has to justify itself hard against that**. `test_server_tick_budget.gd` cost 9.8 s of it and is a gate line; the one before it, the 2 s pass A/B, samples ninety ticks **twice** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **Eight are `pending` by design, all in the unit suite** — `test_cull_radius_price.gd` among them, reporting that the cull-radius curve is FLAT and the budget is missed at every legal radius. — `test_upstream_bandwidth.gd` reports the 145 % upstream miss, **`test_crowd_bandwidth.gd` the 112 % downstream projection and `test_crowd_wire_cost.gd` the 155 % it actually costs today**, `test_circuit_separation.gd` US-0043's 0.51 m circuits, **`test_spawn_points.gd` two of GDD-05 §2.7's own rules** — rule 6's nine unoccluded spawn pairs and the clone minimum S3/S4 cannot hold — and `test_clone_animation_parity.gd` the missing clip library. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
 | Tuning | 288 tunables across 14 resource classes; all 31 cross-field invariants assert — split across `TuningInvariants` and `TuningInvariantsTech` since the first file hit 400 lines, with one entry point still. **Eight IDs are deprecated** and recorded in TUNABLES §19 — never reused |
 | Autoloads | All eight. `Tuning` precomputes 89 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |
