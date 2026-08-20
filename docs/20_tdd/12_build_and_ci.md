@@ -195,6 +195,12 @@ so they start last — the allowance ran out *during the run*, and the jobs stil
 moment are the ones refused. A partial green is therefore the expected shape of this failure, not
 a contradiction of it. `gh run rerun --failed` reproduced it exactly.
 
+**AND THE PARTIAL GREEN IS ONLY THE FIRST STAGE.** Twelve minutes later, run `32391024913`
+refused **all four entry jobs** and skipped the three that depend on them — seven of seven, same
+annotation. So a partial green is what the boundary looks like on the way down, not a stable
+state, and a reader who calibrates on it will misread the next run entirely. **Do not diagnose
+this from the pattern of which jobs failed; read the annotation.**
+
 **Both refused jobs reproduce locally, and one of them is nearly free.** `test` is the three
 suites against a `git archive HEAD` extraction, as §1.3.1 already prescribes. `export` builds
 nothing at all — it is two `grep` calls over `export_presets.cfg` asserting the server preset
