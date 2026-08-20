@@ -149,6 +149,13 @@ func _drop_what_left() -> void:
 		_interpolator.forget(index)
 
 
+## **THE FAR BAND HAS NO INTERPOLATION MARGIN.** `TUN-NET-INTERP-BUFFER` is 100 ms
+## and an NPC beyond `TUN-NET-NPC-RATE-LOD-RADIUS` arrives every 100 ms, so the
+## render clock sits exactly on the newest sample and any late record is drawn as a
+## hold and then a catch-up. Measured at **1.68 % of drawn frames against 0.13 %
+## for the near band**. ADR-0007 asked for a stretched buffer for those entities
+## and only the timestamp half was built. **Not fixed here, and why not** is in
+## TDD-04 §7.2.1.
 ## **DERIVED FROM TWO EXISTING TUNABLES, NEVER CHOSEN.** This view is one
 ## `TUN-NET-INTERP-BUFFER` behind the world, so the furthest the observer and a
 ## drawn NPC can have drifted apart in that window is one `TUN-SPEED-SPRINT`.
@@ -163,6 +170,13 @@ func _spawn(index: int) -> void:
 	var body := GreyboxBody.new()
 	body.name = "Npc_%d" % index
 	add_child(body)
+	# **A TELEPORT IS NOT A MOVEMENT.** With `physics_interpolation` on (US-0045)
+	# the engine blends between a node's last two recorded transforms — so a body
+	# added at the origin and then placed 60 m away is *slid* there over a frame.
+	# The first placement of every NPC, and every re-admission after the cull, is a
+	# teleport. `reset_physics_interpolation()` is what tells the engine so.
+	body.global_position = _last_seen.get(index, _observer)
+	body.reset_physics_interpolation()
 	_bodies[index] = body
 	npc_appeared.emit(index)
 
