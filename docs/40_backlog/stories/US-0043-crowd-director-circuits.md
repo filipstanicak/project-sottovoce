@@ -35,6 +35,13 @@ circuits, and clone redistribution.
       **2.6–3.2 m/s**, roughly twice `TUN-CROWD-NPC-SPEED-STROLL` and faster than
       `TUN-SPEED-RUN`. The implementation honours the speed and the period comes out at
       107–169 s. Measured in `test_crowd_circuit.gd`.
+
+      > **AND TWO OF THE FOUR ROUTES CANNOT BE WALKED AT ALL (2026-08-20).** `CIRC-A` and
+      > `CIRC-D` both begin in Piazza del Vetro, which is a **disconnected navmesh island**:
+      > there is no floor between it and the Loggia for x 30–90, a 60 × 6 m void. Found from
+      > the controls — the owner reported NPCs trembling and stuck. So the period question is
+      > not the only thing wrong with these routes, and re-authoring them has to wait on the
+      > floor. GDD-05 §2.5, `test_navmesh_coverage.gd`.
 - [x] **Groups of four NPCs in loose formation at 1.3 m spacing, with a joinable slot.**
       `TUN-CROWD-GROUP-SIZE` NPCs plus one slot that is **never given to an NPC**. The closest
       pair of slots is asserted to be exactly `TUN-CROWD-GROUP-SPACING`, because "loose

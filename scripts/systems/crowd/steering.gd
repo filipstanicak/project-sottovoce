@@ -125,6 +125,24 @@ func aim(agent: NavigationAgent3D, goal: Vector3) -> void:
 
 ## True once the agent is inside `target_desired_distance` of its goal — or once
 ## it has decided it cannot get there, which is the same thing to the caller.
+##
+## **THE SECOND HALF OF THAT SENTENCE IS STILL NOT IMPLEMENTED, AND ONE ATTEMPT IS
+## RECORDED HERE SO IT IS NOT MADE TWICE.** `is_navigation_finished()` measures
+## against the *raw* target, so an NPC sent somewhere it cannot walk never arrives:
+## it stands on the last reachable point being told to keep going, never times out,
+## and never picks another anchor. With **24 of 67 idle anchors unreachable** —
+## Piazza del Vetro is a disconnected island, GDD-05 §2.5 — that is not a corner
+## case.
+##
+## Adding `or not agent.is_target_reachable()`, guarded on a path existing, made it
+## **worse**: `test_crowd_moves.gd` fell from twelve walkers to **3 of 12**, because
+## that predicate is not stable frame to frame and NPCs abandoned reachable targets
+## too. A crowd of statues is a worse failure than a crowd with one straggler in it.
+##
+## What would work is a **progress** timeout — no ground covered for N ticks while
+## not finished — which needs per-agent state this class deliberately does not hold;
+## `CrowdContext` is where it would live. Not built: the honest fix is the missing
+## floor, and building a workaround first would hide the blocker.
 func arrived(agent: NavigationAgent3D) -> bool:
 	return agent.is_navigation_finished()
 
@@ -152,7 +170,18 @@ func drive(body: CharacterBody3D, agent: NavigationAgent3D, speed: float) -> voi
 	if toward.length_squared() < 0.000001:
 		agent.set_velocity(Vector3.ZERO)
 		return
-	agent.set_velocity(toward.normalized() * speed)
+	# **NEVER OVERSHOOT, THE SAME RULE `drive_to` HAS CARRIED SINCE US-0043.** An
+	# agent standing on the last point of its path, asked for a full stroll toward a
+	# point it is already on, crosses it and is asked back: it trembles in place at
+	# walking speed. Only ever bites at the end of a path — a corner is never this
+	# close, because the agent advances its index at `path_desired_distance`.
+	agent.set_velocity(toward.normalized() * _without_overshoot(toward.length(), speed))
+
+
+## The speed that lands exactly on a point `away` metres off, never past it.
+static func _without_overshoot(away: float, speed: float) -> float:
+	var step := speed * MatchContext.net_dt()
+	return speed if away > step else away / MatchContext.net_dt()
 
 
 ## **SLOT SEEKING**, the other half of TDD-08 §8's description of this layer.

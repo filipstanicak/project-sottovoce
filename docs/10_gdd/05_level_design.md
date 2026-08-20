@@ -214,6 +214,25 @@ keeps the five spots strategically distinct without needing five different mecha
 
 **No circuit enters Piazza Secca.** The empty plaza stays empty; that is its entire function.
 
+> **BLOCKER, 2026-08-20: PIAZZA DEL VETRO CANNOT BE WALKED TO.** `CIRC-A` and `CIRC-D` both
+> begin in the piazza, and there is **no floor at all** between it (z 0–30) and the Loggia
+> (z 36–54) for x 30–90 — a 60 × 6 m void, 90 of 90 sampled points with nothing under them.
+> `VetraioLayout.FLOORS` has no rectangle covering that strip; `ViaDelleLampe` (x 0–30) and
+> `EastStreet` (x 90–120) pass either side of it and touch the piazza only at a corner, which
+> does not connect navmesh polygons.
+>
+> Measured: `PiazzaDelVetro reaches 0 of 8` other street floors, every other street reaches
+> every other, and **24 of 67 idle anchors are unreachable**. So two of the four processions
+> are routed along a path that cannot exist, and the district's densest zone — §3's "dense
+> heart", 7–11 NPCs/6 m — holds a crowd that can never mix with the rest of the map.
+>
+> **This is level data disagreeing with this document, not a bake problem.** The fix is a floor
+> and it is a design decision: how the piazza opens onto the Loggia changes sightlines, the
+> anti-camp spread and every circuit length. Reported rather than re-authored.
+> `test_navmesh_coverage.gd::test_the_district_is_one_connected_island` carries it and goes
+> green by itself once the floor exists.
+
+
 **No two circuits are within 8 m simultaneously.** Verified by a headless test that samples
 both circuits' positions at 0.5 s intervals over the least common multiple of their periods.
 Two adjacent groups would form a super-pocket and a trivially safe travelling corridor.

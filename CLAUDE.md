@@ -220,6 +220,49 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 *Updated 2026-08-19 (checkpoint after #115). Keep this section current — it is the first thing a fresh
 session reads, and a stale one is worse than none.*
 
+**PIAZZA DEL VETRO IS A DISCONNECTED ISLAND, AND NOTHING HAS EVER CHECKED FOR
+ONE.** Found from the controls: the owner reported *"a few npcs who are trembling
+a little bit. They also dont move and appear stuck"*. **There is no floor at all
+between the piazza (z 0-30) and the Loggia (z 36-54) for x 30-90** — a 60 x 6 m
+void, 90 of 90 sampled points with nothing under them. The navmesh reflects the
+floor table faithfully, so the district's largest space is cut off:
+`PiazzaDelVetro reaches 0 of 8` other streets, and every other street reaches
+every other. **24 of 67 idle anchors are unreachable** as a result.
+
+**GDD-05 DISAGREES WITH THE LEVEL DATA, WHICH IS WHAT MAKES IT A DEFECT RATHER
+THAN A CHOICE.** §3 calls the piazza *"the dense heart… where standoffs happen and
+where patient players live"*, its density table gives it 7-11 NPCs per 6 m, and
+**`CIRC-A` and `CIRC-D` are both routed through it**. Two of the four processions
+walk a route that cannot be walked. Fixing it is level design with an owner —
+reported, not re-authored, like US-0043's 0.51 m circuits.
+
+**`test_navmesh_coverage.gd` PASSED OVER IT FOR FOUR MILESTONES, AND THE REASON IS
+TRAP 3.** It samples 2011 street points and asks whether each is **on** the mesh.
+**Every point on an isolated island passes that.** Coverage is not connectivity,
+and only one of them had ever been checked. `test_the_district_is_one_connected_island`
+is the other, `pending` with the finding.
+
+**AND ONE CODE DEFECT MADE IT VISIBLE.** `Steering.arrived()` asked only
+`is_navigation_finished()`, which measures against the **raw** target — so an NPC
+sent to an unreachable anchor never arrives, never times out, and never picks
+another goal. Its own docstring has always said *"or once it has decided it cannot
+get there, which is the same thing to the caller"*; **the second half was never
+implemented.** And `drive()` lacked the no-overshoot guard `drive_to` has carried
+since US-0043, whose comment names this exact symptom: *"oscillates across it
+every frame, which reads as a civilian fidgeting and is visible from across a
+plaza"*.
+
+**THE LIVE CENSUS COULD NOT DECIDE EITHER FIX, AND SAYING SO IS THE POINT.**
+`tools/stuck_census.tscn` measures trembling in one-second windows — the
+whole-watch version reported **zero** while the owner was looking at one — and it
+puts the crowd at **7 to 10 trembling body-seconds of 4680**. But the navigation
+layer is **not reproducible run to run**: the same seed and the same code gave 10,
+then 7. So the A/B is noise at that scale, and the `arrived()` fix is asserted by a
+**deterministic** test instead — aim an agent into the void, and it must report
+arrival. **An earlier version of this finding claimed four NPCs walked 59-75 m to
+achieve exactly 0.000 m. That was my own instrument**, comparing a 60 s path
+length against a 15 s displacement; corrected, it is zero. Retracted.
+
 **THE FAR-BAND STUTTER IS FIXED, AND THE CAUSE WAS NOT THE ONE THIS CORPUS
 PUBLISHED.** The owner reported it twice — *"NPCs which are far away don't walk
 smoothly but stutter a bit"* — and that second report is what unblocked it, because
@@ -1905,7 +1948,7 @@ US-0024 measures it against clips that do not exist.
 | | |
 |---|---|
 | CI | 7 jobs. **Running again as of 2026-08-07 after a two-day outage** — run `31200490320`, all seven green. The seven commits merged during the outage were never through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | **41 arch + 93 unit + 32 integration scripts**, holding 154 + 807 + 236 tests and 239 + 6399 + 642 assertions. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **170.9 s** of the 180 s it is allowed, up from 87.7 s at M2 — **9 s of headroom left, and the next integration test has to justify itself hard against that**. `test_server_tick_budget.gd` cost 9.8 s of it and is a gate line; the one before it, the 2 s pass A/B, samples ninety ticks **twice** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **Eight are `pending` by design, all in the unit suite** — `test_cull_radius_price.gd` among them, reporting that the cull-radius curve is FLAT and the budget is missed at every legal radius. — `test_upstream_bandwidth.gd` reports the 145 % upstream miss, **`test_crowd_bandwidth.gd` the 112 % downstream projection and `test_crowd_wire_cost.gd` the 155 % it actually costs today**, `test_circuit_separation.gd` US-0043's 0.51 m circuits, **`test_spawn_points.gd` two of GDD-05 §2.7's own rules** — rule 6's nine unoccluded spawn pairs and the clone minimum S3/S4 cannot hold — and `test_clone_animation_parity.gd` the missing clip library. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
+| Tests | **41 arch + 93 unit + 32 integration scripts**, holding 154 + 807 + 236 tests and 239 + 6399 + 644 assertions. **Ten are `pending` by design** — two of them in the integration suite, reporting that Piazza del Vetro is a disconnected island and that an NPC aimed into the void never gives up. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **170.9 s** of the 180 s it is allowed, up from 87.7 s at M2 — **9 s of headroom left, and the next integration test has to justify itself hard against that**. `test_server_tick_budget.gd` cost 9.8 s of it and is a gate line; the one before it, the 2 s pass A/B, samples ninety ticks **twice** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **Eight of those are in the unit suite** — `test_cull_radius_price.gd` among them, reporting that the cull-radius curve is FLAT and the budget is missed at every legal radius. — `test_upstream_bandwidth.gd` reports the 145 % upstream miss, **`test_crowd_bandwidth.gd` the 112 % downstream projection and `test_crowd_wire_cost.gd` the 155 % it actually costs today**, `test_circuit_separation.gd` US-0043's 0.51 m circuits, **`test_spawn_points.gd` two of GDD-05 §2.7's own rules** — rule 6's nine unoccluded spawn pairs and the clone minimum S3/S4 cannot hold — and `test_clone_animation_parity.gd` the missing clip library. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
 | Tuning | 288 tunables across 14 resource classes; all 31 cross-field invariants assert — split across `TuningInvariants` and `TuningInvariantsTech` since the first file hit 400 lines, with one entry point still. **Eight IDs are deprecated** and recorded in TUNABLES §19 — never reused |
 | Autoloads | All eight. `Tuning` precomputes 89 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |
