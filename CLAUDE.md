@@ -217,7 +217,7 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 
 ## Where the work is right now
 
-*Updated 2026-08-19 (checkpoint after #115). Keep this section current — it is the first thing a fresh
+*Updated 2026-08-20 (checkpoint after #123). Keep this section current — it is the first thing a fresh
 session reads, and a stale one is worse than none.*
 
 **AND THE CROWD PERF HEADLINE IS STALE: `test_crowd_perf.gd` IS MARGINAL ON CI,

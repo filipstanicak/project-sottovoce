@@ -155,7 +155,9 @@ the first time it has been measured.
 >
 > The `CrowdDirector.tick()` row is superseded for a different reason: it was measured on a
 > district with **no players in it**, so every NPC banded Far and two subsystems did nothing. With
-> six players at the map's own spawn points it is **0.52 mean / 0.59–0.64 p95 / 1.26–1.29 max**,
+> six players at the map's own spawn points it was **0.52 mean / 0.59-0.64 p95 / 1.26-1.29 max**
+> — **superseded on 2026-08-20**: locally 0.74-0.80 / 0.89-0.95 / 1.53-1.72, and on CI p95 1.067,
+> 1.249 and 1.815, the last of which failed the build. This gate line is MARGINAL, not comfortable,
 > and the brains step **46 of 78**, not 6. TDD-08 §11.2.
 >
 > The wall-clock row is the one that survived all of it, and it is the one that mattered: the

@@ -4,7 +4,7 @@ title: Navmesh, agents and steering
 version: 1.0.0
 status: done
 owner: Technical Director
-last_updated: 2026-08-18
+last_updated: 2026-08-20
 depends_on: [TDD-08-CROWD, GDD-05-LEVEL]
 ---
 
@@ -237,3 +237,41 @@ reach roofs, which is precisely why standing there costs anonymity.
 
 Steering is the one place permitted to cache tuning values, because per-agent autoload lookups
 across 90 agents measured above the ADR-0005 threshold. Refresh on LOD transition and reload.
+
+## Two findings from the controls (2026-08-20), one of them a blocker
+
+The owner reported *"a few npcs who are trembling a little bit. They also dont move and appear
+stuck"*. This story's criteria are all still met; what follows is what chasing that found.
+
+**PIAZZA DEL VETRO IS A DISCONNECTED NAVMESH ISLAND.** There is **no floor at all** between it
+(z 0-30) and the Loggia (z 36-54) for x 30-90 - a 60 x 6 m void, 90 of 90 sampled points with
+nothing under them. Measured: `PiazzaDelVetro reaches 0 of 8` other street floors while every other
+street reaches every other, and **24 of 67 idle anchors are unreachable**. The navmesh reflects
+`VetraioLayout.FLOORS` faithfully, so this is level data disagreeing with GDD-05 rather than a bake
+problem. Reported, not re-authored - the shape of the opening is a design decision. GDD-05 SS2.5.
+
+**`test_navmesh_coverage.gd` PASSED OVER IT FOR FOUR MILESTONES.** It samples 2011 street points and
+asks whether each is *on* the mesh, and **every point on an isolated island passes that**. Coverage
+is not connectivity. `test_the_district_is_one_connected_island` is the other question now.
+
+**AND `Steering.drive()` WAS MISSING THE NO-OVERSHOOT GUARD `drive_to` HAS CARRIED SINCE US-0043.**
+An agent standing on the last point of its path was asked for a full stroll toward a point it was
+already on - the symptom that comment names: *"oscillates across it every frame, which reads as a
+civilian fidgeting and is visible from across a plaza"*. It takes **one** square root now, not two:
+`length()` followed by `normalized()` roots the same vector twice, 78 NPCs a tick.
+
+**WHAT WAS TRIED AND BACKED OUT.** `arrived()` asks only `is_navigation_finished()`, which measures
+against the *raw* target, so an NPC sent somewhere unreachable never gives up - its docstring has
+always claimed otherwise. Adding `or not agent.is_target_reachable()` took `test_crowd_moves.gd`
+from twelve walkers to **3 of 12**: that predicate is not stable frame to frame and NPCs abandoned
+reachable targets too. **A crowd of statues is worse than a crowd with a straggler.** A progress
+timeout in `CrowdContext` would cover it; the floor is the honest fix, and a workaround first would
+hide the blocker. Carried as a `pending`.
+
+**THE LIVE CENSUS CANNOT DECIDE A SMALL A/B, AND SAYS SO.** `tools/stuck_census.tscn` puts the crowd
+at **7-10 trembling body-seconds of 4680**, judged in one-second windows - the whole-watch version
+reported **zero** while the owner was looking at one. But the navigation layer is not reproducible
+run to run: the same seed and the same code gave 10, then 7.
+
+**RETRACTED:** an earlier reading of "four NPCs walked 59-75 m to achieve exactly 0.000 m" was the
+instrument comparing a 60 s path length against a 15 s displacement. Corrected, it is zero.

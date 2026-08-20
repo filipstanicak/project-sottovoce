@@ -4,7 +4,7 @@ title: Crowd LOD — update rate and animation
 version: 0.1.0
 status: in-progress
 owner: Technical Director
-last_updated: 2026-08-19
+last_updated: 2026-08-20
 depends_on: [ADR-0003, TDD-08-CROWD, BIBLE-PERF-BUDGET]
 ---
 
@@ -221,3 +221,37 @@ observer to the world origin, because a body that appears and drops between two 
 drawn anywhere. It then read the received position *after* the view had erased it, and reported
 -1.0 for every one. **A diagnostic that reports the same number for everything is reporting its own
 default**, which is trap 13's family and cost two runs each time.
+
+## The far band stuttered, and the cause was not the margin (2026-08-20)
+
+The owner reported it twice - *"NPCs which are far away don't walk smoothly but stutter a bit"* -
+and the second report is what unblocked it, because the fix TDD-04 SS7.2.1 named had been **built
+and reverted for want of evidence**.
+
+**THE MARGIN WAS REAL AND IT WAS NOT THE CAUSE.** `CrowdWire.crowd_extra_delay()` draws the crowd
+one far-band send interval deeper, which is what ADR-0007 asked for in writing. It took a synthetic
+stream from **5.01 % to 0.00 %** and moved the live figure by **0.01 of a point**.
+
+**IT WAS `SnapshotAssembler`, THE SAME CLASS AS THE FAREWELL DEFECT.** It carries the crowd forward,
+which is right on the wire - absence means "no update" - and `NpcView` pushed **all** of it into the
+interpolator, re-stamping a three-tick-old position with this tick's time. Two ticks drawn
+motionless, then three ticks of ground covered in one: a staircase, not an underrun, and worse the
+further away because rate LOD is what opens the gap. Matched A/B, same seed and spawn point:
+**2.17 % -> 0.03 %**, with the near band unchanged as the control.
+
+**AND THE INSTRUMENT COULD NOT SEE THE BODIES IT WAS ABOUT.** `FramePacing` judged "is this NPC
+walking" by its **median** frame step, and a staircase's median is **zero** - so the worst-affected
+NPCs failed that test and were dropped as standing. It counted 2 walking far NPCs where the
+corrected instrument counts 7, and the 1.68 % this story published was measured over the ones that
+were fine. The reference is the **mean** now. **The guard added to stop counting idle NPCs is what
+hid the defect.**
+
+Both fixes are required: dropping the duplicates leaves an honest 10 Hz track, and a 10 Hz track
+under a 100 ms buffer is the underrun SS7.2.1 described from the start. The stretch is applied to
+the **whole crowd**, because banding it would put a jump at `TUN-NET-NPC-RATE-LOD-RADIUS` and make
+the delay drift as the player walks - an adaptive buffer by accident, which ASM-0021 refuses.
+`NpcView.drop_margin()` reads the **total** lag now, or a deeper view would drop NPCs the server
+still holds.
+
+The three unticked criteria are unchanged: all three are client LOD, and all three need meshes and
+an `AnimationTree` that do not exist. US-0046.

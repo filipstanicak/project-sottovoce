@@ -370,6 +370,31 @@ No gameplay rules replicated — there are none yet. No NPCs. Movement only.
 
 **Exit:** 80 NPCs with clones, blend groups, startle/gawk, ≤ 2 ms/frame.
 
+> **2026-08-20 — M3'S EXIT CRITERION CANNOT BE MET AS WRITTEN, AND THE REASON IS THE MAP.**
+> "80 NPCs with clones, blend groups, startle/gawk" reads as satisfied and is not: **Piazza del
+> Vetro is a disconnected navmesh island**. There is no floor at all between it (z 0-30) and the
+> Loggia (z 36-54) for x 30-90 - a 60 x 6 m void, 90 of 90 sampled points with nothing under them.
+> `PiazzaDelVetro reaches 0 of 8` other street floors while every other street reaches every other,
+> and **24 of 67 idle anchors are unreachable**.
+>
+> So the district's densest zone holds a crowd that can never mix with the rest of the map, two of
+> the four processions (`CIRC-A`, `CIRC-D`) are routed along a path that cannot be walked, and any
+> NPC that draws an unreachable anchor stands where it gave up. GDD-05 calls the piazza "the dense
+> heart"; this is level data disagreeing with the design, and **the fix is a floor whose shape is a
+> design decision** - it changes sightlines, the anti-camp spread and every circuit length.
+> Reported rather than re-authored. GDD-05 §2.5.
+>
+> **NOTHING HAD EVER CHECKED FOR AN ISLAND.** `test_navmesh_coverage.gd` samples 2011 street points
+> and asks whether each is *on* the mesh, and every point on an isolated island passes that.
+> Coverage is not connectivity. Found from the controls, not from a test.
+>
+> **AND `test_crowd_perf.gd` IS MARGINAL ON CI RATHER THAN COMFORTABLE.** This roadmap and CLAUDE.md
+> have carried **p95 0.59-0.64 ms** against a 1.75 budget since US-0047. A quiet local machine reads
+> **0.89-0.93**, and CI's runner - the number that decides a pull request - read **1.067, 1.249 and
+> 1.815** across three consecutive runs, the third of which **failed the build**. The headroom is
+> tens of a percent, not 3x. Unexplained, and the next addition to the crowd stage will fail there
+> rather than locally.
+
 > **Status after the M3 gate, 2026-08-19: EVERY STORY IS BUILT, THE GATE IS RUN, AND A CLIENT
 > DRAWS THE CROWD.** Four of US-0048's ten lines are met — including **server tick p99 at 2.15 ms
 > of 8.0**, measured by booting the real `server_root.tscn` for the first time. **One is a measured
