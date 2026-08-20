@@ -201,8 +201,16 @@ func _run_stage(stage: StringName) -> void:
 ## stalled pawn produces a position the client cannot have predicted — it kept
 ## walking — so every dropped packet would guarantee a reconciliation, and a
 ## player on a lossy connection would stutter continuously against a server that
-## was merely waiting. Repeating is what the client's own prediction did with
-## that tick, so the two agree.
+## was merely waiting.
+##
+## **THE ORIGINAL JUSTIFICATION FOR THE REPEAT WAS WRONG AND IS WORTH CORRECTING**:
+## it said "repeating is what the client's own prediction did with that tick, so
+## the two agree". The client never *has* a missing command — it always holds its
+## own input — so a repeat is a step the client did not predict. It is right only
+## when a command is genuinely **lost**, and wrong when the command is merely
+## **late**. `_drain` is what keeps the two apart: it applies at most one tick's
+## worth, so a late command is used next tick rather than arriving on top of a
+## repeat that already stood in for it.
 ##
 ## Walks `ctx.pawns`, not the queues: a peer with a pawn and an empty queue is
 ## exactly the case that needs filling, and it has no queue entry to be found by.
@@ -216,11 +224,32 @@ func _ctx_pawn_peers() -> Array:
 	return ctx.pawns.keys() if not ctx.pawns.is_empty() else _queues.keys()
 
 
-## Everything the peer actually sent this tick, in sequence order.
+## What the peer sent, in sequence order, **capped at one tick's worth**.
+##
+## **IT USED TO DRAIN THE WHOLE QUEUE, AND THAT PAID FOR LATE COMMANDS TWICE.**
+## The client sends at `TUN-NET-CLIENT-INPUT-RATE` and the server ticks at
+## `TUN-NET-SNAPSHOT-RATE`, so exactly `_frames_per_tick` commands *exist* per tick
+## — but they do not *arrive* that way. Arrival is bursty on any connection and on
+## localhost too: one tick receives one command, the next receives three.
+##
+## Draining everything meant a short tick applied its one command and then
+## `_repeat_last` filled the gap with a **stale** repeat — and the next tick applied
+## all three of its arrivals on top. **Five steps for four commands**, with the
+## extra one integrating a direction the client never predicted. Measured directly:
+## the applied sequence read `[1, 1, 2, 3, 4]`.
+##
+## The client feels that as a tug toward its *previous* input, because that is
+## literally what the extra step is. Reported from the controls as "I press D to go
+## right and it feels as if S is tapped in between", one build after the render
+## interpolation was fixed and stopped masking it.
+##
+## Surplus arrivals stay queued for the next tick, where they are applied instead
+## of a repeat. The queue is already bounded by `TUN-NET-INPUT-BUFFER-SIZE`, so
+## holding them back cannot grow it without limit.
 func _drain(peer: int) -> int:
 	var queue: Array = _queues.get(peer, [])
 	var applied := 0
-	while not queue.is_empty():
+	while not queue.is_empty() and applied < _frames_per_tick:
 		var command := queue.pop_front() as InputCommand
 		_last_command[peer] = command
 		input_applied.emit(peer, command, MatchContext.step_dt())
@@ -228,11 +257,23 @@ func _drain(peer: int) -> int:
 	return applied
 
 
-## Fill the tick out to its full complement of substeps with the last command
-## seen. Nothing is repeated for a peer that has never sent one — there is no
+## Fill the tick with the last command seen, **and only when nothing at all
+## arrived.** Nothing is repeated for a peer that has never sent one — there is no
 ## intent to extend, and a pawn that has not yet moved must not start.
+##
+## **"FEWER THAN A FULL TICK" IS NOT THE SAME QUESTION AS "NOTHING ARRIVED", AND
+## USING THE FIRST WAS THE DEFECT.** Arrival is bursty, so a tick receiving one of
+## its two commands is the ordinary case, not a starved one — the second is in
+## flight and lands next tick. Repeating there inserts a step the client never
+## predicted *and* the real command still gets applied afterwards.
+##
+## Letting a short tick simply be short is self-correcting: the surplus that
+## `_drain` holds back becomes a one-command cushion within a few ticks, after
+## which jitter no longer starves the peer at all. A repeat is then what it was
+## always meant to be — the answer to a command that is **lost**, not one that is
+## late.
 func _repeat_last(peer: int, applied: int) -> void:
-	if applied >= _frames_per_tick or not _last_command.has(peer):
+	if applied > 0 or not _last_command.has(peer):
 		return
 	var command := _last_command[peer] as InputCommand
 	for _i: int in _frames_per_tick - applied:

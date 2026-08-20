@@ -315,3 +315,30 @@ func test_a_stale_far_position_is_not_mistaken_for_a_farewell() -> void:
 		1,
 		"an NPC inside the radius was dropped on a stale reading rather than a farewell"
 	)
+
+
+## **A NEW NPC IS DRAWN WHERE THE SERVER PUT IT, NEVER AT THE OBSERVER.**
+##
+## `_spawn` used to read `_last_seen` for the body's first position — and it runs
+## *before* that entry is written, so the fallback won. The fallback was the
+## observer, so **every newly admitted NPC was placed on top of the player** and
+## then jumped to where it really was on the next physics frame.
+##
+## It is not a rare path. An NPC crosses `TUN-NET-NPC-CULL-RADIUS` whenever the
+## player walks, and every re-admission is a fresh `_spawn`, so a moving player
+## produced a steady stream of figures materialising at their feet and teleporting
+## away. Reported from the controls as "some figures teleport" one build after the
+## interpolation work that introduced it.
+func test_a_new_npc_is_placed_where_the_server_said() -> void:
+	var here := Vector3(10.0, 0.0, 10.0)
+	var there := here + Vector3(30.0, 0.0, 0.0)
+	_view.apply_snapshot(_snapshot(1, here, [there]))
+
+	assert_eq(_view.count(), 1, "the NPC was never drawn, so nothing below is evidence")
+	var body := _view.get_child(0) as Node3D
+	assert_almost_eq(
+		body.global_position,
+		there,
+		Vector3.ONE * 0.01,
+		"a newly admitted NPC was placed at the observer instead of at its own position"
+	)
