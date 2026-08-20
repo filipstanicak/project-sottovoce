@@ -220,6 +220,65 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 *Updated 2026-08-19 (checkpoint after #115). Keep this section current — it is the first thing a fresh
 session reads, and a stale one is worse than none.*
 
+**THE JITTER IS FIXED AND THE OWNER HAS JUDGED IT: "IT WORKS PERFECTLY."** It
+took four reports from the controls and **three wrong diagnoses from prose**, and
+the thing that finally settled it was building an instrument the person who could
+feel it could read. `scripts/debug/net_readout.gd` is that instrument — a live
+overlay in debug builds only, attached by `LocalPawnDriver` the way
+`feel_readout.gd` is.
+
+**IT WAS TWO DEFECTS IN THE INPUT QUEUE, NOT RENDERING.**
+
+1. **A LATE COMMAND WAS PAID FOR TWICE.** `MatchDirector._drain` applied the whole
+   queue and `_repeat_last` then padded any tick that received fewer than
+   `_frames_per_tick` with a **stale repeat**. The client sends two commands per
+   tick and they do not *arrive* two per tick — arrival is bursty on localhost as
+   much as on a wire — so a tick that got one applied `[new, stale-repeat]` and the
+   next applied all three of its arrivals on top. **Five steps for four commands**,
+   measured as the applied sequence `[1, 1, 2, 3, 4]`. The extra step integrates a
+   direction the client never predicted, so the correction tugs toward the
+   *previous* input. Reported as **"I press D to go right and it feels as if S is
+   tapped in between."** The repeat is right for a **lost** command and wrong for a
+   merely **late** one, and late is the common case.
+2. **AND THE FIRST FIX FOR IT CAUSED A SECOND DEFECT.** Capping the drain at one
+   tick's worth stopped the duplicates — and made a deficit **unrepayable**, since
+   the client produces exactly `_frames_per_tick` per tick. Every starved tick added
+   *permanent* lag. Measured from the controls: **a mean reconciliation error of
+   0.068 m while walking, biased BACK**, under `TUN-NET-RECONCILE-THRESHOLD` so it
+   never snapped and never corrected. **One command is 7.5 cm at `TUN-SPEED-RUN`**,
+   which is that number. `CATCH_UP` is 1: a deficit of N clears in N ticks.
+
+**`CATCH_UP` IS THE ONE PLACE A CLIENT'S SEND RATE COULD BUY DISTANCE**, since every
+applied command is a step of movement. Bounded twice — the queue is capped by
+`TUN-NET-INPUT-BUFFER-SIZE` and `SequenceGate` refuses replays — but **nothing
+checks a client's send rate**, and that belongs with US-0026's authority work. The
+pre-US-0028 code drained the whole queue and was strictly more exposed.
+
+**THE OVERLAY EXISTS BECAUSE PROSE COULD NOT LOCATE THIS, AND IT MISLED ME THREE
+TIMES BEFORE IT HELPED.** Each failure is designed out now:
+
+- **It showed only the instantaneous `move`**, so a screenshot of `(0.00, 0.00)`
+  beside twelve corrections read as a pawn shoved with nobody driving. It says
+  `driving: N of the last 120 commands moved` now.
+- **It decomposed with the CURRENT yaw**, so one stored correction printed
+  `BACK/LEFT` and `FWD/RIGHT` from two headings — an oscillation that was not there.
+  Each correction carries the yaw it happened at.
+- **It dropped the vertical component entirely.** A 0.163 m correction displayed as
+  `BACK 0.053 LEFT 0.053`, components accounting for 0.075 of it; the other
+  **0.145 was Y** and invisible. It prints `UP`/`DOWN`, and a `ground` line
+  comparing server and client grounded, so a floor disagreement cannot hide inside
+  a magnitude.
+- **`replays` counts only corrections over the snap threshold**, so a client sitting
+  persistently at 0.068 m looked healthy at "3 replays". The `error` line reports
+  mean, p95 and max over every comparison — and that is the line that found defect 2.
+
+**THE BASELINE IS EXACT: standing still, 300 comparisons, error 0.000 m, 0 replays.**
+So any disagreement is caused by input, which is what made the queue the suspect.
+
+**AND ONE OPEN FINDING WAS RETRACTED**: the "pawn drives itself with nobody at the
+controls" sightings were most likely the owner moving in the window. Not carried as
+a defect any more.
+
 **THE JITTER THE OWNER REPORTED IS FIXED, AND IT WAS NEVER PERFORMANCE.**
 `CameraRig._process` runs on the **render** frame while `LocalPawnDriver` writes
 `ctx.position` at **60 Hz**, and nothing interpolated between ticks. Measured
@@ -1807,7 +1866,7 @@ US-0024 measures it against clips that do not exist.
 | | |
 |---|---|
 | CI | 7 jobs. **Running again as of 2026-08-07 after a two-day outage** — run `31200490320`, all seven green. The seven commits merged during the outage were never through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | **41 arch + 92 unit + 32 integration scripts**, holding 154 + 803 + 234 tests and 239 + 6369 + 639 assertions. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **168.9 s** of the 180 s it is allowed, up from 87.7 s at M2 — **11 s of headroom left, and the next integration test has to justify itself hard against that**. `test_server_tick_budget.gd` cost 9.8 s of it and is a gate line; the one before it, the 2 s pass A/B, samples ninety ticks **twice** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **Eight are `pending` by design, all in the unit suite** — `test_cull_radius_price.gd` among them, reporting that the cull-radius curve is FLAT and the budget is missed at every legal radius. — `test_upstream_bandwidth.gd` reports the 145 % upstream miss, **`test_crowd_bandwidth.gd` the 112 % downstream projection and `test_crowd_wire_cost.gd` the 155 % it actually costs today**, `test_circuit_separation.gd` US-0043's 0.51 m circuits, **`test_spawn_points.gd` two of GDD-05 §2.7's own rules** — rule 6's nine unoccluded spawn pairs and the clone minimum S3/S4 cannot hold — and `test_clone_animation_parity.gd` the missing clip library. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
+| Tests | **41 arch + 92 unit + 32 integration scripts**, holding 154 + 799 + 236 tests and 239 + 6372 + 645 assertions. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **168.9 s** of the 180 s it is allowed, up from 87.7 s at M2 — **11 s of headroom left, and the next integration test has to justify itself hard against that**. `test_server_tick_budget.gd` cost 9.8 s of it and is a gate line; the one before it, the 2 s pass A/B, samples ninety ticks **twice** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **Eight are `pending` by design, all in the unit suite** — `test_cull_radius_price.gd` among them, reporting that the cull-radius curve is FLAT and the budget is missed at every legal radius. — `test_upstream_bandwidth.gd` reports the 145 % upstream miss, **`test_crowd_bandwidth.gd` the 112 % downstream projection and `test_crowd_wire_cost.gd` the 155 % it actually costs today**, `test_circuit_separation.gd` US-0043's 0.51 m circuits, **`test_spawn_points.gd` two of GDD-05 §2.7's own rules** — rule 6's nine unoccluded spawn pairs and the clone minimum S3/S4 cannot hold — and `test_clone_animation_parity.gd` the missing clip library. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
 | Tuning | 288 tunables across 14 resource classes; all 31 cross-field invariants assert — split across `TuningInvariants` and `TuningInvariantsTech` since the first file hit 400 lines, with one entry point still. **Eight IDs are deprecated** and recorded in TUNABLES §19 — never reused |
 | Autoloads | All eight. `Tuning` precomputes 89 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |

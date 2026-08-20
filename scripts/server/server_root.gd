@@ -43,6 +43,7 @@ func _ready() -> void:
 	director.input_applied.connect(pawns.apply_input)
 
 	_wire_end_of_tick()
+	director.tick_completed.connect(_log_starvation)
 
 	# A pawn on join, and the router told so it can authorise that peer's input.
 	Net.peer_joined.connect(_on_peer_joined)
@@ -168,6 +169,27 @@ func _wire_end_of_tick() -> void:
 	# Recording only. Nothing reads the history until kill and stun exist in M4.
 	lag_comp.setup(director.ctx, pawns)
 	director.tick_completed.connect(lag_comp.record)
+
+
+## **HOW OFTEN THE INPUT QUEUE RAN DRY**, once every ten seconds and only while it
+## is happening. A starved tick repeats the peer's last command, which is a step
+## the client never predicted — felt as a tug toward the previous input. US-0028's
+## repeat is correct for a *lost* command; this line is how you find out whether it
+## is firing for merely *late* ones.
+func _log_starvation(_ctx: MatchContext, _dt: float) -> void:
+	if director.ctx.tick % 300 != 0 or director.starved_ticks == 0:
+		return
+	Log.info(
+		(
+			"input starvation: %d repeats over %d ticks (%.1f %%)"
+			% [
+				director.starved_ticks,
+				director.ctx.tick,
+				float(director.starved_ticks) / float(director.ctx.tick) * 100.0
+			]
+		),
+		&"net"
+	)
 
 
 func _on_peer_joined(peer: int) -> void:

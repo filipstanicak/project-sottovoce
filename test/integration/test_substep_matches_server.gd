@@ -123,3 +123,34 @@ func test_the_server_pawn_is_driven_by_the_same_motion_code() -> void:
 	assert_true(host_source.contains("PawnMotion.advance("), "the server has its own motion code")
 	assert_true(client_source.contains("PawnMotion.advance("), "the client has its own motion code")
 	assert_false(client_source.contains("move_and_slide("), "the client still moves its own body")
+
+
+## **TWO KEYS AT ONCE, WHICH IS WHERE AN OWNER STILL FELT IT.** Reported after the
+## input-queue fix: "it sometimes still happens when I press 2 or more buttons at
+## once."
+##
+## A diagonal is the one input a single axis cannot expose. `Input.get_vector`
+## normalises it to 0.7071 per axis and `InputCodec.quantise_move` rounds that to
+## **90/127 = 0.70866** — a vector of length **1.0022**, which is over the `move`
+## field's own documented bound of 1. If either side clamps or re-normalises and
+## the other does not, the two integrate different speeds on every diagonal frame.
+func test_a_diagonal_diverges_by_nothing_at_all() -> void:
+	await _mirror_the_client()
+	Input.action_press(&"input_move_forward")
+	Input.action_press(&"input_move_right")
+	await _run(60)
+	assert_gt(_driver.ctx.position.distance_to(Vector3.ZERO), 0.0, "the pawn never moved")
+	assert_almost_eq(_divergence(), 0.0, 0.001, "a diagonal walked the two peers apart")
+
+
+## **AND CHANGING DIRECTION WHILE MOVING**, which is what a player actually does
+## and what a stale repeat used to corrupt (US-0028, corrected in `_drain`).
+func test_changing_direction_mid_walk_diverges_by_nothing_at_all() -> void:
+	await _mirror_the_client()
+	Input.action_press(&"input_move_forward")
+	await _run(20)
+	Input.action_press(&"input_move_right")
+	await _run(20)
+	Input.action_release(&"input_move_forward")
+	await _run(20)
+	assert_almost_eq(_divergence(), 0.0, 0.001, "changing direction walked the two peers apart")

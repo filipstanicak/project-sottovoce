@@ -53,17 +53,41 @@ signal net_ticked(ctx: MatchContext, dt: float)
 ## and nothing would have failed until M4.
 signal tick_completed(ctx: MatchContext, dt: float)
 
-## An authorised input is to be applied to `peer`'s pawn, at the input rate.
-## US-0028 connects the server pawn simulation to this.
 signal input_applied(peer: int, command: InputCommand, dt: float)
 
+## **HOW MUCH FASTER THAN REAL TIME THE SERVER MAY WORK OFF A BACKLOG**, in
+## commands per tick.
+##
+## One, not more. It has to be non-zero or a deficit is permanent (`_drain`), and
+## it has to be small because every command applied is a step of movement: this is
+## the one place a client's *send rate* can buy it distance. The exposure is
+## bounded twice over — the queue itself is capped at `TUN-NET-INPUT-BUFFER-SIZE`,
+## so a flooding client can bank only that many commands and spend them one per
+## tick, and `SequenceGate` already refuses stale and replayed sequence numbers.
+##
+## **NOTHING CHECKS A CLIENT'S SEND RATE, AND THAT IS WORTH KNOWING RATHER THAN
+## ASSUMING.** The pre-US-0028 code drained the whole queue every tick and was
+## strictly more exposed than this. A rate check belongs with `SequenceGate` and
+## US-0026's authority work; it is recorded here rather than invented.
+const CATCH_UP := 1
+
+## An authorised input is to be applied to `peer`'s pawn, at the input rate.
+## US-0028 connects the server pawn simulation to this.
 ## The match's context. Constructed here, torn down here, and the only thing a
 ## system is given.
 var ctx := MatchContext.new()
 
+## **HOW OFTEN A PEER'S QUEUE RAN DRY.** A repeat is a step the client never
+## predicted, so every one of these is a small correction the player may feel — a
+## tug toward whatever they were doing last, most noticeable exactly when they have
+## just changed input. Counted so the frequency is a number rather than an
+## impression. Diagnostics only; nothing reads it to make a decision.
+var starved_ticks: int = 0
+
 var _systems: Dictionary = {}
 var _queues: Dictionary = {}
 var _last_command: Dictionary = {}
+
 var _frames_per_tick: int = 2
 var _frame: int = 0
 
@@ -246,10 +270,22 @@ func _ctx_pawn_peers() -> Array:
 ## Surplus arrivals stay queued for the next tick, where they are applied instead
 ## of a repeat. The queue is already bounded by `TUN-NET-INPUT-BUFFER-SIZE`, so
 ## holding them back cannot grow it without limit.
+##
+## **AND THE CAP IS ONE MORE THAN A TICK'S WORTH, BECAUSE A HARD CAP CANNOT REPAY A
+## DEFICIT.** The client produces exactly `_frames_per_tick` commands per tick, so a
+## server that may never apply more than that works a backlog off only in the
+## silence between matches: every starved tick added *permanent* lag and the client
+## sat further ahead. Measured from the controls at a mean reconciliation error of
+## **0.068 m while walking, biased BACK** — under `TUN-NET-RECONCILE-THRESHOLD`, so
+## it never snapped, never corrected, and simply stayed there. One command is
+## 7.5 cm at `TUN-SPEED-RUN`, which is the figure that was being felt.
+##
+## One extra per tick clears a deficit of N in N ticks and is bounded, so a client
+## cannot make the server sprint by flooding — see `CATCH_UP`.
 func _drain(peer: int) -> int:
 	var queue: Array = _queues.get(peer, [])
 	var applied := 0
-	while not queue.is_empty() and applied < _frames_per_tick:
+	while not queue.is_empty() and applied < _frames_per_tick + CATCH_UP:
 		var command := queue.pop_front() as InputCommand
 		_last_command[peer] = command
 		input_applied.emit(peer, command, MatchContext.step_dt())
@@ -275,6 +311,7 @@ func _drain(peer: int) -> int:
 func _repeat_last(peer: int, applied: int) -> void:
 	if applied > 0 or not _last_command.has(peer):
 		return
+	starved_ticks += 1
 	var command := _last_command[peer] as InputCommand
 	for _i: int in _frames_per_tick - applied:
 		input_applied.emit(peer, command, MatchContext.step_dt())

@@ -209,9 +209,10 @@ func test_a_late_command_is_not_paid_for_twice() -> void:
 	_run_frames(2)
 	for seq: int in [2, 3, 4]:
 		_director.enqueue_input(PEER, InputCommand.empty(seq))
-	# Three ticks, because the surplus is deliberately held back one tick at a time
-	# — that held-back command is the cushion that stops the next burst starving.
-	_run_frames(4)
+	# One tick. With the catch-up allowance the three arrivals all land here, and a
+	# further tick would be genuinely starved — which correctly repeats, and is a
+	# different property, asserted in its own test below.
+	_run_frames(2)
 
 	var applied: Array = []
 	for step: Array in _substeps:
@@ -225,5 +226,49 @@ func test_a_late_command_is_not_paid_for_twice() -> void:
 				+ "late command was applied on top of it"
 			)
 			% _substeps.size()
+		)
+	)
+
+
+## **A DEFICIT MUST BE REPAYABLE, OR THE SERVER RUNS PERMANENTLY BEHIND.**
+##
+## Capping the drain at one tick's worth stopped late commands being applied twice
+## — but the client produces exactly `_frames_per_tick` per tick, so a server that
+## can never apply more than that can never catch up either. Every starved tick
+## added permanent lag, and the client sat further and further ahead of the
+## server along its own heading.
+##
+## Measured from the controls with `scripts/debug/net_readout.gd`: a mean
+## reconciliation error of **0.068 m while walking**, biased **BACK 0.053** — under
+## `TUN-NET-RECONCILE-THRESHOLD`, so it never snapped and never corrected, it just
+## sat there.
+##
+## One extra command per tick is enough: a deficit of N clears in N ticks, and the
+## catch-up is bounded so a client that floods cannot make the server sprint.
+## **THE FEED NEVER STOPS, WHICH IS THE WHOLE POINT.** An earlier version of this
+## test sent a burst and then went quiet, and passed — the queue drained only
+## because nothing new arrived. A real client keeps producing
+## `_frames_per_tick` commands every tick, so a server that can never apply more
+## than that works off a backlog only in the silence between matches.
+func test_the_server_keeps_up_with_a_jittery_feed() -> void:
+	# Two commands per tick on average, arriving 1/3/2/1/3/2... — the pattern a real
+	# connection produces and the one a fixed cap cannot absorb.
+	var pattern := [1, 3, 2, 1, 3, 2, 2, 1, 3, 2]
+	var seq := 0
+	for tick: int in 40:
+		for _i: int in int(pattern[tick % pattern.size()]):
+			seq += 1
+			_director.enqueue_input(PEER, InputCommand.empty(seq))
+		_run_frames(2)
+
+	assert_eq(
+		_substeps.size(),
+		seq,
+		(
+			(
+				"%d commands were sent and %d substeps ran: the server is %d behind and has "
+				+ "no way to work it off, so the client sits permanently ahead of it"
+			)
+			% [seq, _substeps.size(), seq - _substeps.size()]
 		)
 	)
