@@ -220,6 +220,41 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 *Updated 2026-08-19 (checkpoint after #115). Keep this section current — it is the first thing a fresh
 session reads, and a stale one is worse than none.*
 
+**THE JITTER THE OWNER REPORTED IS FIXED, AND IT WAS NEVER PERFORMANCE.**
+`CameraRig._process` runs on the **render** frame while `LocalPawnDriver` writes
+`ctx.position` at **60 Hz**, and nothing interpolated between ticks. Measured
+live: **37.7 % of rendered frames showed a new position — each one was drawn 2.7
+times** — while frame pacing was perfectly clean (0 of 1241 frames over 20 ms at
+~157 fps). The crowd never caused it; the crowd made it **legible**, which is
+exactly why an empty district looked fine.
+
+`physics/common/physics_interpolation` is **on** now, and **37.7 % → 99.9 %**:
+every rendered frame draws a new position. Frame pacing tightened as well, p95
+12.06 → 7.05 ms.
+
+**TWO NODES HAD TO BE HANDLED BY HAND AND BOTH WOULD HAVE INVERTED THE DEFECT.**
+`CameraRig` **opts out** — it writes `global_position` on every rendered frame, so
+interpolating it would blend toward where it was at the last physics tick. And it
+now aims at `get_global_transform_interpolated()` of the pawn body rather than at
+`ctx.position`: with interpolation on, the engine draws the pawn between ticks
+while the simulation value still steps, so following the simulation would leave
+the camera stepping against a smoothly drawn pawn — the same defect with the sign
+reversed.
+
+**AND THE INSTRUMENT READ THE WRONG QUANTITY FIRST, WHICH LOOKED EXACTLY LIKE A
+FIX THAT DID NOTHING.** `global_position` still reports the last physics tick's
+value when interpolation is on; the transform the renderer uses is a different
+one. The probe measured 36.9 % after the fix and 37.7 % before it. It reads
+`get_global_transform_interpolated()` now, and prints whether interpolation is on
+at all.
+
+**AND NPCs SIT ON THE `PAWN` COLLISION LAYER.** `npc_server.tscn` declares
+`collision_layer = 2`, and `project.godot` names layer 2 **PAWN** and layer 3
+**NPC**. Nothing depends on it today — pawn and NPC both mask only `WORLD`, so
+they pass through each other and there is no contact of any kind — but
+`TUN-SUSPICION-GAIN-NPC-BUMP` exists for the day something does, and a mask
+written against `NPC` would then match nothing.
+
 **PICK UP HERE. THE DISTRICT IS NO LONGER EMPTY: A CLIENT DRAWS THE CROWD.**
 `NpcView` is the thing four unticked criteria across US-0044, US-0045 and US-0047
 have been waiting for. Verified by **looking at it** — a windowed client against a
@@ -442,11 +477,22 @@ of the client — a tick-keyed comparison calls it "new" every time and sends it
 which is a delta that saves nothing while reporting that it works. `NpcDelta` keys
 **per NPC** and advances on the **ack**, never on transmission.
 
-**WHAT IS LEFT IS 12 %, AND IT IS PRICED NOW: FIVE METRES OF CULL RADIUS.**
+**WHAT IS LEFT IS 12 %, AND IT IS PRICED NOW: NEITHER CANDIDATE CAN DELIVER IT.**
 `test_cull_radius_price.gd` sweeps `TUN-NET-NPC-CULL-RADIUS` through the real
-builder, adopting each value so the delta and the stagger respond to it — 70 m
-**114 %**, 67.5 m 107 %, **65 m 97 %**, 62.5 m 87 %, 60 m (invariant 17's floor)
-**82 %**. So the gap closes at 65 m and is comfortable at the floor.
+builder, adopting each value. **The curve is FLAT** — 70 m 113 %, 67.5 m 104 %,
+65 m 112 %, 62.5 m 113 %, 60 m (invariant 17's floor) 110 %. **The knob turns and
+the bytes do not move**: culling from 70 m to the floor removes **22 % of the
+reachable crowd (284 → 221) and about 3 % of the bytes**, because everything it
+removes is beyond `TUN-NET-NPC-RATE-LOD-RADIUS` and already sent at a third, while
+the worst snapshot is dominated by the **near** crowd.
+
+**AN EARLIER VERSION OF THAT SWEEP SAID 65 m CLOSED THE BUDGET AND IT WAS WRONG
+TWICE OVER** — it scaled the rate-LOD radius to the cull radius's *shipped
+fraction*, making every row a function of the profile, and it carried the crowd
+forward 180 ticks between rows, so the radius fell while the crowd walked. **That
+was the entire gradient.** The corpus's original "culling was not the lever" was
+right. What is left needs a smaller record, a lower crowd update rate, fewer NPCs
+(never-do #14 forbids that first), or a bigger budget.
 
 **AND THE OTHER CANDIDATE IS NOT ONE.** The corpus has named ADR-0007's
 seed-derived far crowd as the alternative since US-0031. **ADR-0007 sets that
@@ -1761,7 +1807,7 @@ US-0024 measures it against clips that do not exist.
 | | |
 |---|---|
 | CI | 7 jobs. **Running again as of 2026-08-07 after a two-day outage** — run `31200490320`, all seven green. The seven commits merged during the outage were never through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | **41 arch + 92 unit + 32 integration scripts**, holding 154 + 803 + 234 tests and 239 + 6364 + 639 assertions. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **168.9 s** of the 180 s it is allowed, up from 87.7 s at M2 — **11 s of headroom left, and the next integration test has to justify itself hard against that**. `test_server_tick_budget.gd` cost 9.8 s of it and is a gate line; the one before it, the 2 s pass A/B, samples ninety ticks **twice** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **Seven are `pending` by design, all in the unit suite** — `test_cull_radius_price.gd` is deliberately NOT one of them: it prices the miss and passes, because the number it reports is a decision rather than a defect. — `test_upstream_bandwidth.gd` reports the 145 % upstream miss, **`test_crowd_bandwidth.gd` the 112 % downstream projection and `test_crowd_wire_cost.gd` the 155 % it actually costs today**, `test_circuit_separation.gd` US-0043's 0.51 m circuits, **`test_spawn_points.gd` two of GDD-05 §2.7's own rules** — rule 6's nine unoccluded spawn pairs and the clone minimum S3/S4 cannot hold — and `test_clone_animation_parity.gd` the missing clip library. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
+| Tests | **41 arch + 92 unit + 32 integration scripts**, holding 154 + 803 + 234 tests and 239 + 6369 + 639 assertions. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **168.9 s** of the 180 s it is allowed, up from 87.7 s at M2 — **11 s of headroom left, and the next integration test has to justify itself hard against that**. `test_server_tick_budget.gd` cost 9.8 s of it and is a gate line; the one before it, the 2 s pass A/B, samples ninety ticks **twice** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **Eight are `pending` by design, all in the unit suite** — `test_cull_radius_price.gd` among them, reporting that the cull-radius curve is FLAT and the budget is missed at every legal radius. — `test_upstream_bandwidth.gd` reports the 145 % upstream miss, **`test_crowd_bandwidth.gd` the 112 % downstream projection and `test_crowd_wire_cost.gd` the 155 % it actually costs today**, `test_circuit_separation.gd` US-0043's 0.51 m circuits, **`test_spawn_points.gd` two of GDD-05 §2.7's own rules** — rule 6's nine unoccluded spawn pairs and the clone minimum S3/S4 cannot hold — and `test_clone_animation_parity.gd` the missing clip library. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
 | Tuning | 288 tunables across 14 resource classes; all 31 cross-field invariants assert — split across `TuningInvariants` and `TuningInvariantsTech` since the first file hit 400 lines, with one entry point still. **Eight IDs are deprecated** and recorded in TUNABLES §19 — never reused |
 | Autoloads | All eight. `Tuning` precomputes 89 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |
@@ -1818,7 +1864,7 @@ it as an unticked line; it is a missing *test*, not a missing tick.
 over a criterion that is not true makes the whole backlog unreadable as a status
 view.
 
-### Fifteen things that will cost you an hour if you do not know them
+### Sixteen things that will cost you an hour if you do not know them
 
 1. **Two things are GENERATED.** `scripts/core/ids.gd`, `scripts/core/tuning/*.gd`
    and `tuning_index.gd` come from `tools/tuning_codegen/run_all.py`; the map
@@ -1961,6 +2007,21 @@ view.
     operation whose failure mode is indistinguishable from its success.
     `test_claude_md_counts_are_current.gd` now guards the script counts, which
     are readable from disk; the assertion counts are a snapshot and say so.
+
+16. **KILLING GODOT MID-RUN CORRUPTS `.godot/`, AND THE SYMPTOM IS A SUITE THAT
+    HANGS FOREVER WITH NO OUTPUT AND NO ERROR.** `taskkill //F` is the only way to
+    stop a headless server on Windows, and doing it while an import or a suite is
+    in flight leaves the import cache inconsistent. The integration suite then
+    starts, prints its header, and never finishes — no failure, no message, no
+    progress. **Every one of the 32 scripts still passes when run alone**, which is
+    what makes it so misleading: bisecting finds nothing, and a `git stash` control
+    on clean `HEAD` hangs identically, so it reads as "the machine is broken"
+    rather than "the cache is". The fix is `rm -rf .godot` followed by
+    `godot --headless --path . --editor --quit-after 600`, after which the suite
+    ran 32 scripts and 234 tests in 168.9 s. Cost most of an afternoon on
+    2026-08-20. **Godot's stdout is buffered when redirected, so a single header
+    line and nothing else is normal for a healthy run too** — do not read silence
+    as a hang until the process has had its full expected runtime.
 
 ### Local environment
 

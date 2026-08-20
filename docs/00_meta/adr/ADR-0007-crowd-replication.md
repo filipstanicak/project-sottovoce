@@ -137,9 +137,12 @@ headroom is thin, which is why the fallback option is documented rather than dis
   > That is a rendering change and a `RISK-ANONYMITY-LEAK` question — a district that visibly
   > ends at a radius tells a player exactly how far they can be seen from — not a bandwidth one.
   >
-  > What actually closes the budget is the boundary itself: **65 m reaches 97 %**, and invariant
-  > 17's floor of 60 m reaches 82 %. That is a `TUN-` change with a gameplay consequence and is
-  > the owner's.
+  > **And the boundary does not close it either.** Swept through the real builder with the
+  > rate-LOD radius held fixed and every row starting from an identical crowd, the curve is flat:
+  > 113 % at 70 m and **110 % at invariant 17's floor of 60 m**. Culling that much harder removes
+  > 22 % of the reachable crowd and about 3 % of the bytes, because everything it removes is
+  > already sent at a third of the rate. So neither this fallback nor the radius is the lever, and
+  > what remains needs a smaller record, a lower crowd update rate, or a bigger budget.
 - 10 Hz far-NPC updates require the interpolation buffer to stretch for those entities. The
   implementation must interpolate on *received timestamps*, not on a fixed assumed interval,
   or the two rates will fight.

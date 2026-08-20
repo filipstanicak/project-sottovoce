@@ -35,6 +35,17 @@ func _ready() -> void:
 
 func _start_server(config: LaunchConfig) -> void:
 	Log.info("server on port %d, up to %d players" % [config.port, config.max_players], &"boot")
+	# **THE SERVER DOES NOT INTERPOLATE, BECAUSE IT DOES NOT DRAW.**
+	# `physics/common/physics_interpolation` is on for the client (US-0045), where
+	# it took the share of rendered frames showing a new position from 37.7 % to
+	# 99.9 %. A headless server renders nothing, so every interpolated transform it
+	# computes is waste — measured at **0.27 ms of the server tick**, 1.58 to 1.85 ms
+	# mean against an 8.0 ms budget.
+	#
+	# Set here rather than in `server_root.tscn` on purpose: this is a decision about
+	# the **process**, and a test that instantiates the server scene must not flip a
+	# global flag for whatever runs after it. Trap 4's family.
+	get_tree().physics_interpolation = false
 	if not Net.start_server(config.port, config.max_players):
 		Log.error("refusing to start: the port is not available", &"boot")
 		get_tree().quit(1)

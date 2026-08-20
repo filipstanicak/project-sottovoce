@@ -59,6 +59,16 @@ var _where: Dictionary = {}
 ## differently if it changed.
 var _began := Vector3.INF
 
+## Frame pacing and drawn motion, measured on wall clock. `FramePacing` explains
+## why both numbers are here and why neither uses `Performance.TIME_PROCESS`.
+var _pacing := FramePacing.new()
+var _timing := false
+
+
+func _process(_delta: float) -> void:
+	if _timing:
+		_pacing.sample(_view.get_children())
+
 
 func _ready() -> void:
 	if DisplayServer.get_name() == "headless":
@@ -85,6 +95,7 @@ func _probe() -> void:
 	_view.npc_appeared.connect(func(_i: int) -> void: _appeared += 1)
 	_view.npc_dropped.connect(_on_dropped)
 	_began = _at()
+	_timing = true
 	await _shoot("crowd_ground")
 	await _watch()
 	await _shoot("crowd_after")
@@ -142,6 +153,7 @@ func _report() -> void:
 	# observer's position says which.
 	print("observer at (%.1f, %.1f, %.1f)" % [_at().x, _at().y, _at().z])
 	_report_the_observer()
+	_report_frame_pacing()
 	print("NPCs drawn: %d, spread %.1f m, y from %.2f to %.2f" % _shape())
 	print("count %d..%d over the watch: %d appeared, %d dropped %s" % _churn())
 	if speeds.is_empty():
@@ -251,6 +263,16 @@ func _report_the_observer() -> void:
 			% [travelled, _began.x, _began.z]
 		)
 	)
+
+
+## **IS THE CLIENT ACTUALLY DRAWING SMOOTHLY?** The owner reports the pawn
+## jittering when NPCs are present, and a crowd is the only thing on this client
+## that scales. Two different causes need two different fixes, so `FramePacing`
+## measures both: whether frames are being missed, and whether a rendered frame
+## shows anything new.
+func _report_frame_pacing() -> void:
+	for line: String in _pacing.lines():
+		print(line)
 
 
 func _shape() -> Array:

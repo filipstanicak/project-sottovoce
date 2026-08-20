@@ -26,6 +26,8 @@ const REQUIRED := {
 	"common/physics_ticks_per_second=60":
 	"US-0001 AC; the pawn integrates at 60 Hz once per InputCommand (TDD-03 §1)",
 	"common/max_physics_steps_per_frame=8": "bounds catch-up after a frame spike",
+	"common/physics_interpolation=true":
+	"US-0045: without it every position is drawn ~2.7 times and the pawn visibly steps",
 	"3d/default_gravity=9.8": "a changed default would alter every drop and stagger",
 	"3d/default_cell_size=0.25": "navmesh resolution; a coarser bake moves NPC paths",
 	"gdscript/warnings/untyped_declaration=2":

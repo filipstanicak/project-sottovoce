@@ -453,17 +453,29 @@ figure is 112 %, and the sensitivity is now guarded: 415 B at an instant ack, 41
 426 B at ten. Restoring the defect moves the three-tick figure to **460 B**, and both guards fire.
 §7.1.3.
 
-**AND THE REMAINING 12 % IS PRICED NOW: IT IS FIVE METRES OF CULL RADIUS.**
+**AND THE REMAINING 12 % IS PRICED NOW: NEITHER CANDIDATE CAN DELIVER IT.**
 `test_cull_radius_price.gd` sweeps `TUN-NET-NPC-CULL-RADIUS` through the real builder, adopting
-each value so the delta and the rate-LOD stagger respond to it:
+each value so the delta and the rate-LOD stagger respond to it. **The curve is flat:**
 
-| Cull radius | kbit/s | Of budget |
+| Cull radius | Of budget | NPCs reachable over six spawn points |
 |---|---|---|
-| 70.0 m, shipped | 109.3 | 114 % |
-| 67.5 m | 102.9 | 107 % |
-| **65.0 m** | **92.8** | **97 %** |
-| 62.5 m | 83.9 | 87 % |
-| 60.0 m, invariant 17's floor | 79.1 | 82 % |
+| 70.0 m, shipped | 113 % | 284 |
+| 67.5 m | 104 % | 266 |
+| 65.0 m | 112 % | 251 |
+| 62.5 m | 113 % | 241 |
+| 60.0 m, invariant 17's floor | 110 % | 221 |
+
+**THE KNOB TURNS AND THE BYTES DO NOT MOVE.** Culling from 70 m to the floor removes **22 % of
+the reachable crowd and about 3 % of the bytes**, because everything it removes lies beyond
+`TUN-NET-NPC-RATE-LOD-RADIUS` and is already sent at a third of the rate, while the worst-case
+snapshot is dominated by the **near** crowd the radius never touches.
+
+> **THE FIRST VERSION OF THAT SWEEP REPORTED THE BUDGET CLOSING AT 65 m, AND IT WAS WRONG TWICE
+> OVER.** It scaled the rate-LOD radius to the cull radius's *shipped fraction*, so every row was
+> a function of whatever was in the profile — 65 m read 97 % against a profile of 70 and 101 %
+> against a profile of 65. And it carried the crowd forward between rows, 180 ticks each, so the
+> radius fell and the crowd walked at the same time. **That was the entire gradient.** §7.1.2's
+> original conclusion — *culling was not the lever* — was right all along.
 
 **THE OTHER CANDIDATE IS NOT ONE, AND THAT IS THE FINDING.** This section has named ADR-0007's
 seed-derived far crowd as the alternative since US-0031. ADR-0007 sets that boundary at **"≥ 70 m
