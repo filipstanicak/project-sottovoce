@@ -45,6 +45,12 @@ var _off_pass: PackedFloat32Array = PackedFloat32Array()
 
 func before_each() -> void:
 	_world = Node3D.new()
+	# **THE SERVER DOES NOT INTERPOLATE, SO NEITHER DOES THIS MEASUREMENT.** US-0045
+	# turned `physics_interpolation` on for the client and `boot.gd` turns it off for
+	# a headless server. This file never runs `boot.gd`, so without this it charges
+	# the tick for interpolating 78 bodies nobody draws — 2.134 ms on CI against a
+	# 1.75 budget. Node-local, never the `SceneTree`, which outlives the test.
+	_world.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 	add_child_autofree(_world)
 	_world.add_child((load(MAP_COLLISION) as PackedScene).instantiate())
 	_map = get_tree().get_root().get_world_3d().navigation_map
@@ -319,23 +325,16 @@ func test_the_brains_hold_theirs() -> void:
 
 
 func test_the_physics_frame_still_fits_inside_its_deadline() -> void:
-	# **THE CROWD SPENDS MOST OF ITS TIME OUTSIDE `tick()`.** `Steering` moves
-	# bodies from `NavigationAgent3D`'s avoidance callback, on the **physics**
-	# frame — it has to, because `move_and_slide()` integrates by the physics delta
-	# and driving it from the 30 Hz tick would halve every NPC's speed (US-0041).
-	# So a measurement of the crowd stage alone misses RVO, the callback and
-	# seventy-eight `move_and_slide()` calls.
+	# **THE CROWD SPENDS MOST OF ITS TIME OUTSIDE `tick()`.** `Steering` moves bodies
+	# from `NavigationAgent3D`'s avoidance callback on the **physics** frame — it has
+	# to, since `move_and_slide()` integrates by the physics delta (US-0041) — so
+	# timing the crowd stage alone misses RVO and 78 `move_and_slide()` calls.
 	#
-	# **AND `Performance.TIME_PHYSICS_PROCESS` COULD NOT BE MADE TO MEASURE IT.**
-	# Three attempts, all incoherent: it reported 31 ms a frame in one arrangement
-	# and 24 ms of "crowd cost" in another — **inside a frame the wall clock says
-	# takes 16.73 ms**. A figure larger than the interval that contains it is not a
-	# slow frame, it is a broken instrument, and the earlier version of this file
-	# published 5.69 ms from it before the contradiction was noticed.
-	#
-	# So the monitor is printed and believed by nobody, and the assertion is on the
-	# **wall clock**, which is coherent, reproducible to two decimal places across
-	# runs, and answers the only question that matters: does the server keep up.
+	# **AND `Performance.TIME_PHYSICS_PROCESS` COULD NOT BE MADE TO MEASURE IT**: it
+	# reported 31 ms, then 24, inside a frame the wall clock says takes 16.73 ms, and
+	# an earlier version of this file published 5.69 ms from it. A cost larger than
+	# the frame containing it is a broken instrument. The monitor is printed and
+	# believed by nobody; the assertion is on the **wall clock**. TDD-08 §11.2.1.
 	await _stand_up()
 	var full := await _physics_ms(40)
 	for index: int in int(Tuning.crowd.count_max):
