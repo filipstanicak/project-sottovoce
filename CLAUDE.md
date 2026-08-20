@@ -220,6 +220,22 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 *Updated 2026-08-19 (checkpoint after #115). Keep this section current — it is the first thing a fresh
 session reads, and a stale one is worse than none.*
 
+**AND THE CROWD PERF HEADLINE IS STALE: `test_crowd_perf.gd` IS MARGINAL ON CI,
+NOT COMFORTABLE.** This section has published **p95 0.59-0.64 ms** against a
+1.75 ms budget since US-0047. Measured on a quiet machine at this checkpoint it is
+**0.89-0.93**, and on CI's runner, which is the number that decides a pull
+request, the last three runs read **1.067, 1.249 and 1.815** — the third of those
+**failed the build**. So the real headroom is a few tens of a percent, not the 3x
+the local figure implies, and the next thing added to the crowd stage will fail
+there rather than here.
+
+**IT IS NOT EXPLAINED, AND IT IS NOT TODAY'S CHANGE.** An A/B against `main`'s
+`Steering` put the fidget guard at or below baseline once it stopped taking two
+square roots — `length()` followed by `normalized()` roots the same vector twice,
+78 NPCs a tick. **The first A/B of it was vacuous**: `git stash push` on a file
+with no uncommitted changes creates no stash, so both halves measured the same
+code and agreed perfectly. Check that a stash exists before believing one.
+
 **PIAZZA DEL VETRO IS A DISCONNECTED ISLAND, AND NOTHING HAS EVER CHECKED FOR
 ONE.** Found from the controls: the owner reported *"a few npcs who are trembling
 a little bit. They also dont move and appear stuck"*. **There is no floor at all

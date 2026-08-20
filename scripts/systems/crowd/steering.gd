@@ -170,18 +170,15 @@ func drive(body: CharacterBody3D, agent: NavigationAgent3D, speed: float) -> voi
 	if toward.length_squared() < 0.000001:
 		agent.set_velocity(Vector3.ZERO)
 		return
-	# **NEVER OVERSHOOT, THE SAME RULE `drive_to` HAS CARRIED SINCE US-0043.** An
-	# agent standing on the last point of its path, asked for a full stroll toward a
-	# point it is already on, crosses it and is asked back: it trembles in place at
-	# walking speed. Only ever bites at the end of a path — a corner is never this
-	# close, because the agent advances its index at `path_desired_distance`.
-	agent.set_velocity(toward.normalized() * _without_overshoot(toward.length(), speed))
-
-
-## The speed that lands exactly on a point `away` metres off, never past it.
-static func _without_overshoot(away: float, speed: float) -> float:
+	# **NEVER OVERSHOOT, THE RULE `drive_to` HAS CARRIED SINCE US-0043**: an agent on
+	# the last point of its path, asked for a stroll toward a point it stands on,
+	# crosses it and is asked back — trembling in place at walking speed. Only bites
+	# at the end, since the index advances at `path_desired_distance`. **One square
+	# root, not two**: `normalized()` would root the same vector twice.
+	var away := toward.length()
 	var step := speed * MatchContext.net_dt()
-	return speed if away > step else away / MatchContext.net_dt()
+	var wanted := speed if away > step else away / MatchContext.net_dt()
+	agent.set_velocity(toward / away * wanted)
 
 
 ## **SLOT SEEKING**, the other half of TDD-08 §8's description of this layer.
