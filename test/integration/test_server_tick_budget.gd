@@ -46,6 +46,18 @@ var _collecting := false
 
 func before_each() -> void:
 	_root = (load(SERVER_ROOT) as PackedScene).instantiate()
+	# **THE SERVER TURNS PHYSICS INTERPOLATION OFF, AND THIS TEST MUST TOO.**
+	# `physics/common/physics_interpolation` is on for the client (US-0045), and
+	# `boot.gd` disables it for a headless server because a server renders nothing.
+	# This file loads `server_root.tscn` directly and never runs `boot.gd`, so
+	# without this it measures a server doing 0.27 ms of work per tick that the real
+	# one does not — on the very number this gate exists to report.
+	#
+	# **SET ON THE SUBTREE, NOT ON THE `SceneTree`.** Toggling the global flag from a
+	# test mutates state that outlives the file, and the suite hung when it did:
+	# every script passed alone and the full run never finished. Node-local scope
+	# reaches exactly the nodes being measured and leaves everything else alone.
+	_root.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 	add_child_autofree(_root)
 	_samples = PackedFloat32Array()
 	_collecting = false

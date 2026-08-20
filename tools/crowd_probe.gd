@@ -59,25 +59,15 @@ var _where: Dictionary = {}
 ## differently if it changed.
 var _began := Vector3.INF
 
-## Wall-clock intervals between rendered frames, in milliseconds.
-##
-## **WALL CLOCK, NOT `Performance.TIME_PROCESS`.** TDD-08 §11.2.1 records that
-## counter reporting 31 ms, then 5.69, then 24-28 for arrangements whose real frame
-## time never moved off 16.73 ms. A cost larger than the frame containing it is a
-## broken instrument. The interval between frames is the thing a player actually
-## perceives as smoothness, and it cannot be larger than itself.
-var _frames: PackedFloat32Array = PackedFloat32Array()
-var _last_usec: int = 0
+## Frame pacing and drawn motion, measured on wall clock. `FramePacing` explains
+## why both numbers are here and why neither uses `Performance.TIME_PROCESS`.
+var _pacing := FramePacing.new()
 var _timing := false
 
 
 func _process(_delta: float) -> void:
-	if not _timing:
-		return
-	var now := Time.get_ticks_usec()
-	if _last_usec > 0:
-		_frames.append(float(now - _last_usec) / 1000.0)
-	_last_usec = now
+	if _timing:
+		_pacing.sample(_view.get_children())
 
 
 func _ready() -> void:
@@ -277,41 +267,12 @@ func _report_the_observer() -> void:
 
 ## **IS THE CLIENT ACTUALLY DRAWING SMOOTHLY?** The owner reports the pawn
 ## jittering when NPCs are present, and a crowd is the only thing on this client
-## that scales. A frame interval that wanders is felt as judder whatever its mean:
-## the pawn is moved in `_physics_process` at a fixed 60 Hz with no render
-## interpolation, so any frame not landing on that cadence shows the same position
-## twice or skips one.
+## that scales. Two different causes need two different fixes, so `FramePacing`
+## measures both: whether frames are being missed, and whether a rendered frame
+## shows anything new.
 func _report_frame_pacing() -> void:
-	if _frames.size() < 30:
-		print("too few frames to judge pacing")
-		return
-	var sorted := Array(_frames)
-	sorted.sort()
-	var total := 0.0
-	for value: float in sorted:
-		total += float(value)
-	var late := 0
-	for value: float in sorted:
-		if float(value) > 20.0:
-			late += 1
-	print(
-		(
-			"frame interval over %d frames: mean %.2f ms, p50 %.2f, p95 %.2f, max %.2f"
-			% [
-				sorted.size(),
-				total / float(sorted.size()),
-				float(sorted[sorted.size() / 2]),
-				float(sorted[int(float(sorted.size()) * 0.95)]),
-				float(sorted[-1])
-			]
-		)
-	)
-	print(
-		(
-			"  %d of %d frames took over 20 ms (%.1f %%)"
-			% [late, sorted.size(), float(late) / float(sorted.size()) * 100.0]
-		)
-	)
+	for line: String in _pacing.lines():
+		print(line)
 
 
 func _shape() -> Array:

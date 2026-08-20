@@ -201,6 +201,15 @@ input_menu={
 ; Pawn integration substeps at 60 Hz, once per received InputCommand,
 ; because a server integrating at dt=1/30 diverges from a client
 ; predicting twice at dt=1/60 on every acceleration curve.
+;
+; US-0045: everything in the world is moved in _physics_process at 60 Hz and the
+; client renders far faster, so without this each position was drawn 2.7 times
+; before it changed while the camera -- which runs on _process -- slid between
+; them. Measured on a live client: 37.7 % of rendered frames showed a new
+; position. That is the judder the owner reported as "jitters when NPCs are in
+; the game"; the crowd does not cause it, it makes it legible.
+; CameraRig opts OUT, because it writes its own transform every rendered frame.
+common/physics_interpolation=true
 common/physics_ticks_per_second=60
 common/max_physics_steps_per_frame=8
 3d/default_gravity=9.8

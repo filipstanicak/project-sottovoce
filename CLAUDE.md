@@ -220,25 +220,33 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 *Updated 2026-08-19 (checkpoint after #115). Keep this section current — it is the first thing a fresh
 session reads, and a stale one is worse than none.*
 
-**THE OWNER REPORTS THE PAWN JITTERING WHEN NPCs ARE PRESENT, AND IT IS A CADENCE
-MISMATCH, NOT PERFORMANCE.** `CameraRig._process` runs on the **render** frame and
-`LocalPawnDriver._physics_process` writes `ctx.position` at **60 Hz**, with nothing
-interpolating between ticks and `physics/common/physics_interpolation` unset. So
-the camera recomputes its arm ~160 times a second from an anchor that moves 60
-times a second, and `_distance` and `fov` creep smoothly while the pawn steps.
-**`camera_rig.gd`'s own comment justifies running on the render frame with "a pawn
-whose position is interpolated" — that clause is a premise, and it is false.**
+**THE JITTER THE OWNER REPORTED IS FIXED, AND IT WAS NEVER PERFORMANCE.**
+`CameraRig._process` runs on the **render** frame while `LocalPawnDriver` writes
+`ctx.position` at **60 Hz**, and nothing interpolated between ticks. Measured
+live: **37.7 % of rendered frames showed a new position — each one was drawn 2.7
+times** — while frame pacing was perfectly clean (0 of 1241 frames over 20 ms at
+~157 fps). The crowd never caused it; the crowd made it **legible**, which is
+exactly why an empty district looked fine.
 
-**MEASURED, SO IT IS NOT GUESSWORK: frame interval mean 6.22 ms, p95 11.52, max
-14.32, and 0 of 1286 frames over 20 ms** with 70 NPCs drawn — the client is at
-~160 fps and never misses a frame. `tools/crowd_probe.tscn` prints the pacing, on
-**wall clock**, because `Performance.TIME_PROCESS` is the instrument TDD-08
-§11.2.1 already caught reporting a cost larger than the frame containing it. The
-crowd does not cause the judder; it **reveals** it, which is exactly why an empty
-district looks fine.
+`physics/common/physics_interpolation` is **on** now, and **37.7 % → 99.9 %**:
+every rendered frame draws a new position. Frame pacing tightened as well, p95
+12.06 → 7.05 ms.
 
-**NOT FIXED, BECAUSE INTERPOLATING THE PAWN CHANGES HOW THE GAME FEELS** and M1's
-feel gate is judged at the controls by an owner.
+**TWO NODES HAD TO BE HANDLED BY HAND AND BOTH WOULD HAVE INVERTED THE DEFECT.**
+`CameraRig` **opts out** — it writes `global_position` on every rendered frame, so
+interpolating it would blend toward where it was at the last physics tick. And it
+now aims at `get_global_transform_interpolated()` of the pawn body rather than at
+`ctx.position`: with interpolation on, the engine draws the pawn between ticks
+while the simulation value still steps, so following the simulation would leave
+the camera stepping against a smoothly drawn pawn — the same defect with the sign
+reversed.
+
+**AND THE INSTRUMENT READ THE WRONG QUANTITY FIRST, WHICH LOOKED EXACTLY LIKE A
+FIX THAT DID NOTHING.** `global_position` still reports the last physics tick's
+value when interpolation is on; the transform the renderer uses is a different
+one. The probe measured 36.9 % after the fix and 37.7 % before it. It reads
+`get_global_transform_interpolated()` now, and prints whether interpolation is on
+at all.
 
 **AND NPCs SIT ON THE `PAWN` COLLISION LAYER.** `npc_server.tscn` declares
 `collision_layer = 2`, and `project.godot` names layer 2 **PAWN** and layer 3

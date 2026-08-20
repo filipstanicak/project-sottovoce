@@ -76,6 +76,14 @@ func _ready() -> void:
 		set_process(false)
 		return
 	_driver.command_sampled.connect(_on_command_sampled)
+	# **THE CAMERA OPTS OUT OF PHYSICS INTERPOLATION, AND IT IS THE ONE NODE THAT
+	# MUST.** `physics/common/physics_interpolation` is on so the pawn and the crowd
+	# stop being drawn 2.7 times per position; this rig is the exception because it
+	# writes `global_position` itself on **every rendered frame**. Interpolating a
+	# transform that is already recomputed per frame would blend it toward where it
+	# was at the last physics tick — a frame of lag, applied to the one node whose
+	# whole job is to be exactly where the maths says.
+	physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 	_distance = CameraArm.max_distance()
 	# Set, not blended, exactly once. A rig that started at the engine default 75°
 	# and swept down to 60 over a sixth of a second would open every match with a
@@ -102,23 +110,22 @@ func arm_distance() -> float:
 ## that moved at 60 Hz on a 144 Hz display would judder against a pawn whose
 ## position is interpolated.
 ##
-## **THE PAWN'S POSITION IS NOT INTERPOLATED, SO THAT LAST CLAUSE IS A PREMISE AND
-## NOT A FACT.** `LocalPawnDriver` writes `ctx.position` in `_physics_process` at
-## 60 Hz, nothing smooths it between ticks, and
-## `physics/common/physics_interpolation` is not set in `project.godot`. This
-## function therefore recomputes the arm 160 times a second from a value that
-## changes 60 times a second: `_distance` and `fov` creep smoothly while the anchor
-## steps.
+## **THAT LAST CLAUSE WAS A PREMISE AND NOT A FACT UNTIL US-0045.** Nothing
+## interpolated the pawn: `LocalPawnDriver` writes `ctx.position` in
+## `_physics_process` at 60 Hz and `physics/common/physics_interpolation` was
+## unset, so this function recomputed the arm ~160 times a second from a value
+## that changed 60 times a second. Measured live: **37.7 % of rendered frames
+## showed a new position — each one was drawn 2.7 times** — while frame pacing was
+## perfectly clean (0 of 1241 frames over 20 ms). That is the judder the owner
+## reported as "only when NPCs are in the game": the crowd does not cause it, it
+## makes it legible.
 ##
-## Measured on a live client drawing 70 NPCs: frame interval **mean 6.22 ms, p95
-## 11.52, max 14.32, and 0 of 1286 frames over 20 ms** — so the judder the owner
-## reports is **not** a frame-rate problem, it is this cadence mismatch. It is
-## least visible in an empty district, where the whole view steps together and
-## reads as normal, and most visible with a crowd, which is what the owner
-## observed. `tools/crowd_probe.tscn` prints the pacing.
-##
-## Left as it is rather than fixed here: interpolating the pawn changes how the
-## game *feels*, and M1's feel gate is judged at the controls by an owner.
+## **SO THE ANCHOR IS THE INTERPOLATED BODY, NOT `ctx.position`.** With
+## interpolation on, the engine draws the pawn between physics ticks while
+## `ctx.position` still steps — aiming at the simulation value would leave the
+## camera stepping against a smoothly drawn pawn, which is the same defect with
+## the sign reversed. `get_global_transform_interpolated()` is what the engine
+## draws, and it is what the camera follows.
 func _process(delta: float) -> void:
 	if _driver == null:
 		return
@@ -137,8 +144,22 @@ func _process(delta: float) -> void:
 	_distance = CameraArm.step_distance(_distance, _wanted_distance(ctx), delta)
 	fov = CameraFov.step(fov, _wanted_fov(), delta)
 
-	global_position = CameraArm.position_at(ctx.position, _yaw, _pitch, _distance)
-	look_at(CameraArm.pivot(ctx.position), Vector3.UP)
+	var at := _drawn_pawn_position(ctx)
+	global_position = CameraArm.position_at(at, _yaw, _pitch, _distance)
+	look_at(CameraArm.pivot(at), Vector3.UP)
+
+
+## Where the pawn is being **drawn** this frame, which is not where the simulation
+## says it is between two physics ticks.
+##
+## Falls back to `ctx.position` when there is no body — every unit test of this rig
+## drives a context and never stands a `CharacterBody3D` up, and the two agree
+## exactly on a physics tick, which is the only moment a test can observe.
+func _drawn_pawn_position(ctx: PawnContext) -> Vector3:
+	var body := ctx.body
+	if body == null:
+		return ctx.position
+	return body.get_global_transform_interpolated().origin
 
 
 func _controlled() -> bool:
