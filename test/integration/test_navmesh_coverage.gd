@@ -156,6 +156,124 @@ func test_every_street_level_floor_is_covered() -> void:
 	)
 
 
+## **COVERAGE IS NOT CONNECTIVITY, AND ONLY ONE OF THEM WAS EVER CHECKED.**
+##
+## The test above samples 2011 street points and asks whether each is *on* the
+## mesh. **Every point on an isolated island passes that**, which is trap 3's shape
+## in a level check: a district cut into pieces reports 100 % coverage.
+##
+## `pending` rather than red, like `test_spawn_points.gd`: the fix is a floor in
+## `VetraioLayout`, which is level design with an owner.
+func test_the_district_is_one_connected_island() -> void:
+	await _ready_map()
+	var seeds: Array[Vector3] = []
+	var names: PackedStringArray = []
+	for floor_row: Array in VetraioLayout.FLOORS:
+		if not is_equal_approx(float(floor_row[5]), VetraioLayout.STREET_Y):
+			continue
+		seeds.append(
+			Vector3(
+				float(floor_row[1]) + float(floor_row[3]) * 0.5,
+				VetraioLayout.STREET_Y,
+				float(floor_row[2]) + float(floor_row[4]) * 0.5
+			)
+		)
+		names.append(str(floor_row[0]))
+	# **THE REFERENCE CANNOT BE ASSUMED, BECAUSE IT MIGHT BE THE ISLAND.** Measuring
+	# every floor against `seeds[0]` named all nine of them, since `seeds[0]` is the
+	# piazza. Count how many others each floor can reach instead, and the minority
+	# is what is cut off — no floor has to be trusted in advance.
+	var reach: Array[int] = []
+	for i: int in seeds.size():
+		var found := 0
+		for j: int in seeds.size():
+			if i != j and _can_walk(seeds[i], seeds[j]):
+				found += 1
+		reach.append(found)
+	var cut: PackedStringArray = []
+	for i: int in seeds.size():
+		if reach[i] * 2 < seeds.size() - 1:
+			cut.append("%s (reaches %d of %d)" % [names[i], reach[i], seeds.size() - 1])
+	assert_gt(seeds.size(), 5, "the floor table moved; this is not sampling the district")
+	if cut.is_empty():
+		return
+	pending(
+		(
+			"%s cannot be walked to from the rest of the district. " % ", ".join(cut)
+			+ "There is no floor at all between Piazza del Vetro (z 0-30) and the Loggia "
+			+ "(z 36-54) for x 30-90 — a 60 x 6 m void, 90 of 90 sampled points with nothing "
+			+ "under them. GDD-05 calls the piazza 'the dense heart' and routes CIRC-A and "
+			+ "CIRC-D through it, so this is level data disagreeing with the design rather "
+			+ "than a bake problem. 24 of 67 idle anchors are unreachable as a result."
+		)
+	)
+
+
+## Can a civilian actually walk from one to the other?
+func _can_walk(from: Vector3, to: Vector3) -> bool:
+	var start := _closest(from)
+	var path := NavigationServer3D.map_get_path(_map, start, to, true)
+	if path.is_empty():
+		return false
+	return Vector2(path[-1].x - to.x, path[-1].z - to.z).length() <= 1.0
+
+
+## **AN NPC SENT SOMEWHERE IT CANNOT WALK NEVER GIVES UP, AND THAT IS STILL TRUE.**
+##
+## `Steering.arrived()` decides when the brain may choose a new goal, and its
+## docstring has always said "or once it has decided it cannot get there, which is
+## the same thing to the caller" — while the code asks only
+## `is_navigation_finished()`, which measures against the **raw** target. With 24 of
+## 67 anchors unreachable, an NPC that draws one stands on the last reachable point
+## being told to keep walking for the rest of the match.
+##
+## **`pending`, AND THE ATTEMPTED FIX IS RECORDED RATHER THAN SHIPPED.** Adding
+## `or not agent.is_target_reachable()` took `test_crowd_moves.gd` from twelve
+## walkers to **3 of 12**: the predicate is not stable frame to frame, so NPCs
+## abandoned reachable targets too. A crowd of statues is worse than a crowd with a
+## straggler. This goes green by itself once the floor exists, because then there is
+## no unreachable anchor to send anybody to.
+func test_an_npc_sent_into_the_void_gives_up() -> void:
+	await _ready_map()
+	var host := Node3D.new()
+	add_child_autofree(host)
+	var agent := NavigationAgent3D.new()
+	agent.avoidance_enabled = false
+	host.add_child(agent)
+	host.global_position = _closest(Vector3(60.0, 0.0, 45.0))
+	agent.set_navigation_map(_map)
+	await get_tree().physics_frame
+	var steering := Steering.new()
+
+	# The control comes first: a reachable target far away is NOT arrived, or the
+	# check below would hold with `arrived()` hard-wired to true.
+	agent.target_position = _closest(Vector3(100.0, 0.0, 80.0))
+	await _settle(agent)
+	assert_false(steering.arrived(agent), "a reachable target across the map reported arrival")
+
+	# The void between the piazza and the Loggia. Nothing is under it at all.
+	agent.target_position = Vector3(60.0, 0.0, 33.0)
+	await _settle(agent)
+	if steering.arrived(agent):
+		return
+	pending(
+		(
+			"an agent aimed into the void never reports arrival, so the NPC holding that "
+			+ "goal stands on the last reachable point for the rest of the match. 24 of 67 "
+			+ "idle anchors are unreachable while Piazza del Vetro is cut off. A progress "
+			+ "timeout in CrowdContext would cover it; the floor is the honest fix."
+		)
+	)
+
+
+## Let the agent compute a path. `get_next_path_position()` is what forces the
+## query; without calling it there is no path to ask questions about.
+func _settle(agent: NavigationAgent3D) -> void:
+	for _i: int in 8:
+		agent.get_next_path_position()
+		await get_tree().physics_frame
+
+
 func test_no_roof_is_navigable() -> void:
 	# **THE NAVMESH BOUNDARY AND THE ROOF SUSPICION PENALTY ARE THE SAME RULE.**
 	# NPCs cannot reach roofs, which is why standing on one costs anonymity.
