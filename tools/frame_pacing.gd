@@ -73,7 +73,7 @@ func sample(bodies: Array, observer: Vector3 = Vector3.INF) -> void:
 ## **A HOLD FOLLOWED BY A CATCH-UP IS WHAT RUBBERBANDING IS.** A body drawn from
 ## `SnapshotInterpolator` stops moving whenever the render clock passes its newest
 ## sample — the interpolator refuses to extrapolate, by design — and then jumps
-## when the next record lands. Counted per body against that body's own median
+## when the next record lands. Counted per body against that body's own average
 ## step, and split by distance, because `TUN-NET-NPC-RATE-LOD-RADIUS` is where the
 ## send rate drops to `TUN-NET-NPC-RATE-LOD-HZ` and the buffer margin vanishes.
 func _note_step(name: String, step: float, at: Vector3, observer: Vector3) -> void:
@@ -171,14 +171,14 @@ func _stall_lines() -> Array[String]:
 			if bool(_far.get(name, false)) != band:
 				continue
 			var steps: Array = _steps[name]
-			var median := _median(steps)
-			# A body whose median frame step is under a third of a stroll step is
+			var mid := mean_of(steps)
+			# A body whose average frame step is under a third of a stroll step is
 			# standing, not walking, and has nothing to stall.
-			if median < _stroll_step() / 3.0:
+			if mid < _stroll_step() / 3.0:
 				continue
 			walking += 1
 			frames += steps.size()
-			events += _catch_ups(steps, median)
+			events += catch_ups(steps, mid)
 		if walking == 0:
 			continue
 		out.append(
@@ -197,11 +197,14 @@ func _stall_lines() -> Array[String]:
 
 
 ## A frame that barely moved, immediately followed by one that moved far more than
-## this body's own median.
-static func _catch_ups(steps: Array, median: float) -> int:
+## this body's own average.
+##
+## **PUBLIC BECAUSE `test_far_band_interpolation.gd` ASKS IT TOO**, of a synthetic
+## stream: two measurements of one defect must share its definition.
+static func catch_ups(steps: Array, reference: float) -> int:
 	var found := 0
 	for i: int in range(steps.size() - 1):
-		if float(steps[i]) < median * 0.25 and float(steps[i + 1]) > median * 1.8:
+		if float(steps[i]) < reference * 0.25 and float(steps[i + 1]) > reference * 1.8:
 			found += 1
 	return found
 
@@ -218,7 +221,19 @@ func _stroll_step() -> float:
 	return Tuning.crowd.npc_speed_stroll * mean_ms / 1000.0
 
 
-static func _median(values: Array) -> float:
-	var sorted := values.duplicate()
-	sorted.sort()
-	return float(sorted[sorted.size() / 2]) if sorted.size() > 0 else 0.0
+## **THE MEAN, NOT THE MEDIAN, AND THE DIFFERENCE IS THE WHOLE MEASUREMENT.**
+##
+## This started as a median, to be robust against outliers. It made the defect it
+## was built to find **invisible**: an NPC drawn as a staircase — held for two
+## frames, then covering three ticks of ground in one — has a median step of
+## **zero**, so it failed the "is this body walking at all?" test below and was
+## excluded as standing. The far band read 1.68 % while its worst members were not
+## being counted. A mean is unmoved by that: a staircase and a smooth walk cover the
+## same ground, so both mean a stroll, while a genuinely idle NPC still means ~0.
+static func mean_of(values: Array) -> float:
+	if values.is_empty():
+		return 0.0
+	var total := 0.0
+	for value: float in values:
+		total += float(value)
+	return total / float(values.size())

@@ -38,3 +38,41 @@ static func is_farewell(at: Vector3, observer: Vector3) -> bool:
 	var dx := at.x - observer.x
 	var dz := at.z - observer.z
 	return dx * dx + dz * dz > reach * reach
+
+
+## **HOW MUCH DEEPER IN THE PAST THE CROWD IS DRAWN THAN A PLAYER.** ADR-0007.
+##
+## `TUN-NET-INTERP-BUFFER` is 100 ms and an NPC beyond `TUN-NET-NPC-RATE-LOD-RADIUS`
+## is sent at `TUN-NET-NPC-RATE-LOD-HZ` — **one record every 100 ms**. So the render
+## clock lands exactly on that NPC's newest sample with nothing in hand, and
+## `SnapshotInterpolator` refuses to extrapolate past it, by design and rightly. Any
+## late arrival is therefore drawn as a hold and then a catch-up, which is what the
+## owner reported as far NPCs stuttering while near ones walk smoothly.
+##
+## **ONE SEND INTERVAL, DERIVED RATHER THAN CHOSEN**, so retuning the rate carries
+## the margin with it. ADR-0007 asked for exactly this in writing — "10 Hz far-NPC
+## updates require the interpolation buffer to stretch for those entities" — and
+## only the timestamp half was ever built.
+##
+## **APPLIED TO THE WHOLE CROWD, NOT ONLY THE FAR BAND, AND THAT IS THE DECISION.**
+## Banding it would put a discontinuity at `TUN-NET-NPC-RATE-LOD-RADIUS`: an NPC
+## crossing it would have its whole time base shift by one interval and jump. A
+## delay that varies with distance is also a delay that *drifts as the player
+## walks*, which is an adaptive buffer by accident and ASM-0021 refuses those. The
+## price is that the near crowd is drawn 100 ms staler than before, and it is
+## affordable because **nothing reads a drawn NPC's position**: pawn and NPC share
+## no collision layer, and every gameplay radius is resolved server-side against
+## server positions. It buys the near band margin under loss as well.
+static func crowd_extra_delay() -> float:
+	return 1.0 / Tuning.net.npc_rate_lod_hz
+
+
+## The whole distance into the past this client draws the crowd, in seconds.
+##
+## **THE CULL MARGIN IS DERIVED FROM THIS, NOT FROM `TUN-NET-INTERP-BUFFER`.** A
+## view that lags further has drifted further from the observer it measures
+## against, so a margin computed from the buffer alone would start dropping NPCs
+## the server still believes this client holds — the exact failure `NpcView`'s
+## margin exists to prevent, reintroduced by making the view deeper.
+static func crowd_render_lag() -> float:
+	return Tuning.net.interp_buffer / 1000.0 + crowd_extra_delay()

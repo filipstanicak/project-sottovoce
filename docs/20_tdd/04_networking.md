@@ -653,7 +653,7 @@ feature.
 | 3b | **Delta encoding, NPCs** | **measured: 7 % of the as-built figure** | **BUILT, US-0031.** `NpcDelta`, keyed per NPC and advanced on the ack. No protocol change: *absent* already meant "no update". 119 % → 111 % |
 | 4 | **Rate LOD** | **measured: 24 % of the as-built figure** | **BUILT, US-0031.** `TUN-NET-NPC-RATE-LOD-RADIUS` / `-HZ`, staggered by index so the peak falls with the mean. 155 % → 119 %. It is scoped to NPCs on purpose: a *player* at 46 m interpolated at 10 Hz would be visibly coarse, and the justification below does not hold for them. NPCs beyond 45 m at 10 Hz. Interpolation error at walking speed is < 15 cm — far below every gameplay radius, and those NPCs are outside all of them anyway |
 
-### 7.2.1 The far band has no interpolation margin, and it is felt
+### 7.2.1 The far band stutters, and the margin was only half of why
 
 **THE ARITHMETIC LEAVES NOTHING IN HAND.** `TUN-NET-INTERP-BUFFER` is 100 ms, and an NPC beyond
 `TUN-NET-NPC-RATE-LOD-RADIUS` is sent at `TUN-NET-NPC-RATE-LOD-HZ` — one record every 100 ms. So
@@ -664,7 +664,8 @@ record lands, and then catching up.
 
 **MEASURED, AFTER THE OWNER REPORTED IT AS "MICRO RUBBERBANDING ON SOME NPCs".** The *some* is the
 band. `tools/crowd_probe.tscn` counts a near-zero frame followed by an outsized one, for bodies that
-are actually walking:
+are actually walking. **These four figures are superseded and kept only to be corrected** — the
+detector that produced them could not see the worst-affected NPCs at all, for the reason below:
 
 | | Walking NPCs | Hold-then-catch-up |
 |---|---|---|
@@ -676,18 +677,55 @@ are actually walking:
 **ADR-0007 ASKED FOR THE FIX IN WRITING** — "10 Hz far-NPC updates require the interpolation buffer
 to stretch for those entities" — and only the timestamp half of that note was ever built.
 
-**THE STRETCH IS NOT BUILT, AND THAT IS A DECISION RATHER THAN AN OVERSIGHT.** Sampling the far band
-one far-interval further back was implemented and could not be shown to help: every run captured
-0–3 walking far NPCs, too few to compare, and one run drew **no moving far NPC at all** — consistent
-with the deeper sample falling off the back of a track that has not filled, which would *freeze* the
-far crowd rather than smooth it. Shipping an unvalidated netcode change into the exact band a player
-is complaining about is the wrong trade, so it was reverted and recorded here.
+**BOTH HALVES ARE BUILT NOW, AND THE ONE THIS SECTION NAMED WAS THE SMALLER ONE.** The owner
+reported it a second time — *"NPCs which are far away don't walk smoothly but stutter a bit"* —
+which is what unblocked it: the stretch had been reverted for want of evidence, and that is the
+evidence.
 
-**THE INSTRUMENT'S OWN LIMIT IS PART OF THE FINDING.** `FramePacing` watched the first twelve bodies
-in child order — spawn order, not a spread — so the far-band rate was computed from one or three
-NPCs. It watches 48 now. A future attempt needs a sample that holds steady across an A/B, and the
-spawn point must be pinned by restarting the server between runs, or the two halves land at
-different spawn points and are not comparable.
+**THE STRETCH IS REAL AND IT WAS NOT THE CAUSE.** Built, it took a synthetic far-band stream from
+**5.01 % to 0.00 %** in `test_far_band_interpolation.gd` and moved the live figure by **0.01 of a
+point**. A fix that measures perfectly and changes nothing live is a fix aimed at the wrong
+mechanism.
+
+**THE CAUSE IS `SnapshotAssembler`, AND IT IS THE SAME CLASS AS THE FAREWELL DEFECT.** That class
+carries the crowd forward, which is right on the wire — absence means "no update", so every
+consumer is handed the whole crowd every tick. `NpcView` then pushed **all of it** into the
+interpolator, re-stamping a three-tick-old position with this tick's time. The interpolator has no
+way to tell that apart from an observation and honours it exactly: **two ticks drawn motionless,
+then three ticks of ground covered in one.** A staircase, not an underrun. The further away the
+NPC the worse it is, because rate LOD is what opens the gap.
+
+| | Far band, synthetic | Far band, live |
+|---|---|---|
+| Carried-forward records pushed | **13.20 %** | **2.17 %** |
+| Skipped as not-news | **0.00 %** | **0.03 %** |
+
+The live pair is a matched A/B: same seed, same spawn point (`12, 0, 36`), first client on a fresh
+server both times, 7 and 8 walking far NPCs. The near band is the control and does not move —
+0.01 % against 0.02 %.
+
+**AND THE 1.68 % THIS SECTION PUBLISHED WAS MEASURING THE WRONG BODIES.** `FramePacing` decided
+whether a body was walking from its **median** frame step — and a staircase's median step is
+**zero**, so the NPCs stuttering worst failed the "is this walking?" test and were excluded as
+standing. It counted 2 walking far NPCs where the corrected instrument counts 7. The reference is
+the **mean** now: a staircase and a smooth walk cover the same ground, so both read as a stroll,
+while a genuinely idle NPC still reads as ~0. **The guard added to stop counting idle NPCs was
+what hid the defect** — the same shape as trap 3, in an instrument rather than a test.
+
+**THE TWO FIXES ARE BOTH REQUIRED AND ONLY ONE IS VISIBLE.** Dropping the duplicates leaves an
+honest 10 Hz track, and a 10 Hz track under a 100 ms buffer is exactly the underrun this section
+described from the start. `CrowdWire.crowd_extra_delay()` is what covers it, derived as one
+far-band send interval so retuning `TUN-NET-NPC-RATE-LOD-HZ` carries it.
+
+**IT IS APPLIED TO THE WHOLE CROWD RATHER THAN THE FAR BAND, AND THAT IS THE DECISION.** Banding it
+would put a discontinuity at `TUN-NET-NPC-RATE-LOD-RADIUS` — an NPC crossing it would have its
+whole time base shift by one interval and jump — and a delay that varies with distance is a delay
+that drifts as the player walks, which is an adaptive buffer by accident and ASM-0021 refuses
+those. The price is the near crowd drawn 100 ms staler, affordable because **nothing reads a drawn
+NPC's position**: pawn and NPC share no collision layer and every gameplay radius resolves
+server-side. `NpcView.drop_margin()` reads the **total** lag, not the buffer, or a deeper view
+would start dropping NPCs the server still holds.
+
 
 ---
 
