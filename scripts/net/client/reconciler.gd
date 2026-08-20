@@ -118,6 +118,16 @@ func _snap_and_replay(authoritative: PredictedState) -> void:
 	# Where the pawn WAS drawn, minus where it now is. Handing the difference to
 	# the visuals is what turns a snap into a slide.
 	_offset += drawn - ctx.position
+	# **AND THE ENGINE MUST NOT SLIDE IT A SECOND TIME.** With
+	# `physics_interpolation` on (US-0045), Godot blends between a body's last two
+	# recorded transforms — so a snap it was never told about is drawn as a glide
+	# toward the corrected position, *on top of* the decaying offset above. Two
+	# blends running at once against one correction is felt as micro rubberbanding,
+	# and it is exactly what TDD-04's "the simulation snaps, the visual blends"
+	# forbids: the snap must be instantaneous, and `PersonaVisuals` must be the only
+	# thing that softens it.
+	if ctx.body != null:
+		(ctx.body as Node3D).reset_physics_interpolation()
 	replays += 1
 
 

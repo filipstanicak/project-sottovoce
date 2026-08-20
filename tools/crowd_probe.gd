@@ -67,7 +67,7 @@ var _timing := false
 
 func _process(_delta: float) -> void:
 	if _timing:
-		_pacing.sample(_view.get_children())
+		_pacing.sample(_view.get_children(), _view.observer())
 
 
 func _ready() -> void:

@@ -653,6 +653,44 @@ feature.
 | 3b | **Delta encoding, NPCs** | **measured: 7 % of the as-built figure** | **BUILT, US-0031.** `NpcDelta`, keyed per NPC and advanced on the ack. No protocol change: *absent* already meant "no update". 119 % → 111 % |
 | 4 | **Rate LOD** | **measured: 24 % of the as-built figure** | **BUILT, US-0031.** `TUN-NET-NPC-RATE-LOD-RADIUS` / `-HZ`, staggered by index so the peak falls with the mean. 155 % → 119 %. It is scoped to NPCs on purpose: a *player* at 46 m interpolated at 10 Hz would be visibly coarse, and the justification below does not hold for them. NPCs beyond 45 m at 10 Hz. Interpolation error at walking speed is < 15 cm — far below every gameplay radius, and those NPCs are outside all of them anyway |
 
+### 7.2.1 The far band has no interpolation margin, and it is felt
+
+**THE ARITHMETIC LEAVES NOTHING IN HAND.** `TUN-NET-INTERP-BUFFER` is 100 ms, and an NPC beyond
+`TUN-NET-NPC-RATE-LOD-RADIUS` is sent at `TUN-NET-NPC-RATE-LOD-HZ` — one record every 100 ms. So
+the render clock sits **exactly on** the newest sample with nothing spare, and `SnapshotInterpolator`
+refuses to extrapolate by design (US-0034, and rightly: an extrapolated player who was about to stop
+walks through a wall). Any jitter in arrival therefore leaves a far NPC **held** until the next
+record lands, and then catching up.
+
+**MEASURED, AFTER THE OWNER REPORTED IT AS "MICRO RUBBERBANDING ON SOME NPCs".** The *some* is the
+band. `tools/crowd_probe.tscn` counts a near-zero frame followed by an outsized one, for bodies that
+are actually walking:
+
+| | Walking NPCs | Hold-then-catch-up |
+|---|---|---|
+| Inside `TUN-NET-NPC-RATE-LOD-RADIUS`, at `S1` | 7 | **0.13 %** |
+| Beyond it, at `S1` | 1 | **1.68 %** |
+| Inside, at `S4` | 1 | **0.15 %** |
+| Beyond it, at `S4` | 3 | **3.08 %** |
+
+**ADR-0007 ASKED FOR THE FIX IN WRITING** — "10 Hz far-NPC updates require the interpolation buffer
+to stretch for those entities" — and only the timestamp half of that note was ever built.
+
+**THE STRETCH IS NOT BUILT, AND THAT IS A DECISION RATHER THAN AN OVERSIGHT.** Sampling the far band
+one far-interval further back was implemented and could not be shown to help: every run captured
+0–3 walking far NPCs, too few to compare, and one run drew **no moving far NPC at all** — consistent
+with the deeper sample falling off the back of a track that has not filled, which would *freeze* the
+far crowd rather than smooth it. Shipping an unvalidated netcode change into the exact band a player
+is complaining about is the wrong trade, so it was reverted and recorded here.
+
+**THE INSTRUMENT'S OWN LIMIT IS PART OF THE FINDING.** `FramePacing` watched the first twelve bodies
+in child order — spawn order, not a spread — so the far-band rate was computed from one or three
+NPCs. It watches 48 now. A future attempt needs a sample that holds steady across an A/B, and the
+spawn point must be pinned by restarting the server between runs, or the two halves land at
+different spawn points and are not comparable.
+
+---
+
 ### 7.3 Upstream
 
 | Component | Calculation | Bytes/s |

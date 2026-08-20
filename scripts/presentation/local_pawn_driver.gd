@@ -82,6 +82,9 @@ func _ready() -> void:
 	if not machine.spawn_into(ctx, PawnStateId.IDLE):
 		set_physics_process(false)
 	_body.global_position = ctx.position
+	# A spawn is a teleport, and the engine would otherwise draw the pawn sliding in
+	# from wherever the node last was. See `Reconciler._snap_and_replay`.
+	_body.reset_physics_interpolation()
 	_attach_feel_readout()
 
 

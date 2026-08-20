@@ -21,20 +21,27 @@
 class_name FramePacing
 extends RefCounted
 
-## How many bodies to watch. A sample, not a census: the question is whether *any*
-## position changed this frame, and twelve moving bodies answer it as well as
-## seventy at a twelfth of the cost.
-const WATCHED := 12
+## How many bodies to watch.
+##
+## **TWELVE WAS TOO FEW, AND THE WAY IT FAILED IS WORTH KNOWING.** The bodies are
+## taken in child order, which is spawn order, not a spread across the district —
+## so four consecutive runs sampled 0, 1 and 3 *walking* NPCs beyond
+## `TUN-NET-NPC-RATE-LOD-RADIUS`, and two of them reported no far band at all. A
+## per-band rate computed from one NPC is not a measurement, and an A/B against it
+## cannot decide anything.
+const WATCHED := 48
 
 var _frames: PackedFloat32Array = PackedFloat32Array()
 var _last_usec: int = 0
 var _drawn: Dictionary = {}
 var _render_frames: int = 0
 var _moved_frames: int = 0
+var _steps: Dictionary = {}
+var _far: Dictionary = {}
 
 
 ## Call once per rendered frame, with the nodes whose motion should be judged.
-func sample(bodies: Array) -> void:
+func sample(bodies: Array, observer: Vector3 = Vector3.INF) -> void:
 	var now := Time.get_ticks_usec()
 	if _last_usec > 0:
 		_frames.append(float(now - _last_usec) / 1000.0)
@@ -55,10 +62,30 @@ func sample(bodies: Array) -> void:
 		var was: Variant = _drawn.get(body.name)
 		if was != null and not (was as Vector3).is_equal_approx(at):
 			moved = true
+		if was != null:
+			_note_step(body.name, (was as Vector3).distance_to(at), at, observer)
 		_drawn[body.name] = at
 	_render_frames += 1
 	if moved:
 		_moved_frames += 1
+
+
+## **A HOLD FOLLOWED BY A CATCH-UP IS WHAT RUBBERBANDING IS.** A body drawn from
+## `SnapshotInterpolator` stops moving whenever the render clock passes its newest
+## sample — the interpolator refuses to extrapolate, by design — and then jumps
+## when the next record lands. Counted per body against that body's own median
+## step, and split by distance, because `TUN-NET-NPC-RATE-LOD-RADIUS` is where the
+## send rate drops to `TUN-NET-NPC-RATE-LOD-HZ` and the buffer margin vanishes.
+func _note_step(name: String, step: float, at: Vector3, observer: Vector3) -> void:
+	if not _steps.has(name):
+		_steps[name] = []
+	(_steps[name] as Array).append(step)
+	if observer != Vector3.INF:
+		_far[name] = Vector2(at.x - observer.x, at.z - observer.z).length() > _lod_radius()
+
+
+static func _lod_radius() -> float:
+	return Tuning.net.npc_rate_lod_radius
 
 
 ## The lines a reader needs, or one saying why there are none.
@@ -83,6 +110,7 @@ func lines() -> Array[String]:
 		)
 	)
 	out.append_array(_motion_lines())
+	out.append_array(_stall_lines())
 	return out
 
 
@@ -121,3 +149,76 @@ func _motion_lines() -> Array[String]:
 		)
 	)
 	return out
+
+
+## **HOLD-THEN-CATCH-UP, WHICH IS WHAT RUBBERBANDING ACTUALLY IS.**
+##
+## The first version of this counted every frame whose step was near zero, and
+## **an NPC standing at an idle anchor is near zero on every frame** — the crowd's
+## commonest state by design, 8-25 s at a time. It reported 36-43 % for the far
+## band and could not tell a stalled interpolator from a person standing still.
+##
+## A hold only matters if the body then *catches up*: a frame that barely moves
+## followed by one that moves far more than usual. Idle NPCs never produce the
+## second half. Only bodies that are genuinely walking are counted at all.
+func _stall_lines() -> Array[String]:
+	var out: Array[String] = []
+	for band: bool in [false, true]:
+		var walking := 0
+		var events := 0
+		var frames := 0
+		for name: String in _steps:
+			if bool(_far.get(name, false)) != band:
+				continue
+			var steps: Array = _steps[name]
+			var median := _median(steps)
+			# A body whose median frame step is under a third of a stroll step is
+			# standing, not walking, and has nothing to stall.
+			if median < _stroll_step() / 3.0:
+				continue
+			walking += 1
+			frames += steps.size()
+			events += _catch_ups(steps, median)
+		if walking == 0:
+			continue
+		out.append(
+			(
+				"  %s: %d walking NPCs, %d hold-then-catch-up events in %d frames (%.2f %%)"
+				% [
+					"beyond the rate-LOD radius" if band else "inside the rate-LOD radius",
+					walking,
+					events,
+					frames,
+					float(events) / float(maxi(frames, 1)) * 100.0
+				]
+			)
+		)
+	return out
+
+
+## A frame that barely moved, immediately followed by one that moved far more than
+## this body's own median.
+static func _catch_ups(steps: Array, median: float) -> int:
+	var found := 0
+	for i: int in range(steps.size() - 1):
+		if float(steps[i]) < median * 0.25 and float(steps[i + 1]) > median * 1.8:
+			found += 1
+	return found
+
+
+## What one rendered frame of walking looks like, from the tunables rather than
+## from the sample: a stroll divided by the measured frame rate.
+func _stroll_step() -> float:
+	if _frames.is_empty():
+		return 0.0
+	var total := 0.0
+	for value: float in _frames:
+		total += float(value)
+	var mean_ms := total / float(_frames.size())
+	return Tuning.crowd.npc_speed_stroll * mean_ms / 1000.0
+
+
+static func _median(values: Array) -> float:
+	var sorted := values.duplicate()
+	sorted.sort()
+	return float(sorted[sorted.size() / 2]) if sorted.size() > 0 else 0.0
