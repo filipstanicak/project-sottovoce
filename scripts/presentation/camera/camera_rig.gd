@@ -101,6 +101,24 @@ func arm_distance() -> float:
 ## Rendered rate, not the physics tick: the camera is presentation, and a camera
 ## that moved at 60 Hz on a 144 Hz display would judder against a pawn whose
 ## position is interpolated.
+##
+## **THE PAWN'S POSITION IS NOT INTERPOLATED, SO THAT LAST CLAUSE IS A PREMISE AND
+## NOT A FACT.** `LocalPawnDriver` writes `ctx.position` in `_physics_process` at
+## 60 Hz, nothing smooths it between ticks, and
+## `physics/common/physics_interpolation` is not set in `project.godot`. This
+## function therefore recomputes the arm 160 times a second from a value that
+## changes 60 times a second: `_distance` and `fov` creep smoothly while the anchor
+## steps.
+##
+## Measured on a live client drawing 70 NPCs: frame interval **mean 6.22 ms, p95
+## 11.52, max 14.32, and 0 of 1286 frames over 20 ms** — so the judder the owner
+## reports is **not** a frame-rate problem, it is this cadence mismatch. It is
+## least visible in an empty district, where the whole view steps together and
+## reads as normal, and most visible with a crowd, which is what the owner
+## observed. `tools/crowd_probe.tscn` prints the pacing.
+##
+## Left as it is rather than fixed here: interpolating the pawn changes how the
+## game *feels*, and M1's feel gate is judged at the controls by an owner.
 func _process(delta: float) -> void:
 	if _driver == null:
 		return
