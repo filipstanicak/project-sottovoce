@@ -1864,7 +1864,7 @@ it as an unticked line; it is a missing *test*, not a missing tick.
 over a criterion that is not true makes the whole backlog unreadable as a status
 view.
 
-### Fifteen things that will cost you an hour if you do not know them
+### Sixteen things that will cost you an hour if you do not know them
 
 1. **Two things are GENERATED.** `scripts/core/ids.gd`, `scripts/core/tuning/*.gd`
    and `tuning_index.gd` come from `tools/tuning_codegen/run_all.py`; the map
@@ -2007,6 +2007,21 @@ view.
     operation whose failure mode is indistinguishable from its success.
     `test_claude_md_counts_are_current.gd` now guards the script counts, which
     are readable from disk; the assertion counts are a snapshot and say so.
+
+16. **KILLING GODOT MID-RUN CORRUPTS `.godot/`, AND THE SYMPTOM IS A SUITE THAT
+    HANGS FOREVER WITH NO OUTPUT AND NO ERROR.** `taskkill //F` is the only way to
+    stop a headless server on Windows, and doing it while an import or a suite is
+    in flight leaves the import cache inconsistent. The integration suite then
+    starts, prints its header, and never finishes — no failure, no message, no
+    progress. **Every one of the 32 scripts still passes when run alone**, which is
+    what makes it so misleading: bisecting finds nothing, and a `git stash` control
+    on clean `HEAD` hangs identically, so it reads as "the machine is broken"
+    rather than "the cache is". The fix is `rm -rf .godot` followed by
+    `godot --headless --path . --editor --quit-after 600`, after which the suite
+    ran 32 scripts and 234 tests in 168.9 s. Cost most of an afternoon on
+    2026-08-20. **Godot's stdout is buffered when redirected, so a single header
+    line and nothing else is normal for a healthy run too** — do not read silence
+    as a hang until the process has had its full expected runtime.
 
 ### Local environment
 
