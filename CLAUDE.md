@@ -220,21 +220,32 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 *Updated 2026-08-20 (checkpoint after #123). Keep this section current — it is the first thing a fresh
 session reads, and a stale one is worse than none.*
 
-**AND THE CROWD PERF HEADLINE IS STALE: `test_crowd_perf.gd` IS MARGINAL ON CI,
-NOT COMFORTABLE.** This section has published **p95 0.59-0.64 ms** against a
-1.75 ms budget since US-0047. Measured on a quiet machine at this checkpoint it is
-**0.89-0.93**, and on CI's runner, which is the number that decides a pull
-request, the last three runs read **1.067, 1.249 and 1.815** — the third of those
-**failed the build**. So the real headroom is a few tens of a percent, not the 3x
-the local figure implies, and the next thing added to the crowd stage will fail
-there rather than here.
+**AND THE CROWD PERF "DRIFT" IS RETRACTED — THERE ISN'T ONE.** The previous
+checkpoint recorded p95 0.59-0.64 as stale and published 0.89-0.95 with an
+unexplained regression. **Measured properly the next day, that was wrong.** From a
+`git archive` extraction on a quiet machine, the commit that first published those
+figures reads **mean 0.521, p95 0.575**, and `HEAD` twenty-three PRs later reads
+**mean 0.536-0.559, p95 0.590-0.807**. The 0.89-0.95 readings were transient
+machine state, taken in a session that was repeatedly starting and killing headless
+servers, and they are withdrawn from every document that carried them.
 
-**IT IS NOT EXPLAINED, AND IT IS NOT TODAY'S CHANGE.** An A/B against `main`'s
-`Steering` put the fidget guard at or below baseline once it stopped taking two
-square roots — `length()` followed by `normalized()` roots the same vector twice,
-78 NPCs a tick. **The first A/B of it was vacuous**: `git stash push` on a file
-with no uncommitted changes creates no stash, so both halves measured the same
-code and agreed perfectly. Check that a stash exists before believing one.
+**THE ONLY REAL MOVEMENT IS +7 TO +10 %, AND IT IS ACCOUNTED FOR.** Bisected across
+seven commits with no step anywhere: ordinary ticks 0.497 to 0.530, the 2 s pass
+1.215 to 1.340. `MAP-VETRAIO` gained anchors over the same span — **62 to 67, +8 %**
+— when the Fondaco's missing row was fixed, and both figures track it.
+
+**WHAT IS REAL IS THAT THE GATE'S STATISTIC WAS BADLY CHOSEN.** The distribution is
+**bimodal by construction**: 2 of 90 ticks carry the 2 s pass at ~1.34 ms and 88
+cost ~0.53, so a p95 over 90 samples is the **~4.5th highest** and lands exactly on
+the boundary. Three identical local runs moved the **mean 3 %** and the **p95 38 %**
+(0.586, 0.598, 0.723). On CI, ~2.4x slower, the same estimator read 1.067, 1.249
+and then **1.815 — failing a build with nothing behind it.** The gate asserts the
+**ordinary-tick** p95 now and prints the whole-population figure beside it; the pass
+is still guarded by `test_the_two_second_pass_is_what_the_max_is`. TDD-08 §11.2.2.
+
+**CI IS ABOUT 2.4x THIS MACHINE** — mean 1.08-1.29 against 0.53 — which is the one
+part of the earlier finding that stands: a wall-clock budget asserted on a shared
+runner has far less headroom than a local number implies.
 
 **AND EVERY PROCESSION WALKS THROUGH SOLID GEOMETRY — 15 TO 28 % OF EACH ROUTE.**
 The island is not the whole of it. Sampled every half metre along the interpolated
@@ -2016,7 +2027,7 @@ US-0024 measures it against clips that do not exist.
 | | |
 |---|---|
 | CI | 7 jobs. **Running again as of 2026-08-07 after a two-day outage** — run `31200490320`, all seven green. The seven commits merged during the outage were never through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | **41 arch + 93 unit + 32 integration scripts**, holding 154 + 809 + 236 tests and 239 + 6404 + 644 assertions. **Eleven are `pending` by design** — two of them in the integration suite, reporting that Piazza del Vetro is a disconnected island and that an NPC aimed into the void never gives up. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **170.9 s** of the 180 s it is allowed, up from 87.7 s at M2 — **9 s of headroom left, and the next integration test has to justify itself hard against that**. `test_server_tick_budget.gd` cost 9.8 s of it and is a gate line; the one before it, the 2 s pass A/B, samples ninety ticks **twice** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **Nine of those are in the unit suite** — `test_cull_radius_price.gd` among them, reporting that the cull-radius curve is FLAT and the budget is missed at every legal radius. — `test_upstream_bandwidth.gd` reports the 145 % upstream miss, **`test_crowd_bandwidth.gd` the 112 % downstream projection and `test_crowd_wire_cost.gd` the 155 % it actually costs today**, `test_circuit_separation.gd` US-0043's 0.51 m circuits, **`test_spawn_points.gd` two of GDD-05 §2.7's own rules** — rule 6's nine unoccluded spawn pairs and the clone minimum S3/S4 cannot hold — and `test_clone_animation_parity.gd` the missing clip library. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
+| Tests | **41 arch + 93 unit + 32 integration scripts**, holding 154 + 809 + 236 tests and 239 + 6404 + 645 assertions. **Eleven are `pending` by design** — two of them in the integration suite, reporting that Piazza del Vetro is a disconnected island and that an NPC aimed into the void never gives up. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **170.9 s** of the 180 s it is allowed, up from 87.7 s at M2 — **9 s of headroom left, and the next integration test has to justify itself hard against that**. `test_server_tick_budget.gd` cost 9.8 s of it and is a gate line; the one before it, the 2 s pass A/B, samples ninety ticks **twice** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **Nine of those are in the unit suite** — `test_cull_radius_price.gd` among them, reporting that the cull-radius curve is FLAT and the budget is missed at every legal radius. — `test_upstream_bandwidth.gd` reports the 145 % upstream miss, **`test_crowd_bandwidth.gd` the 112 % downstream projection and `test_crowd_wire_cost.gd` the 155 % it actually costs today**, `test_circuit_separation.gd` US-0043's 0.51 m circuits, **`test_spawn_points.gd` two of GDD-05 §2.7's own rules** — rule 6's nine unoccluded spawn pairs and the clone minimum S3/S4 cannot hold — and `test_clone_animation_parity.gd` the missing clip library. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
 | Tuning | 288 tunables across 14 resource classes; all 31 cross-field invariants assert — split across `TuningInvariants` and `TuningInvariantsTech` since the first file hit 400 lines, with one entry point still. **Eight IDs are deprecated** and recorded in TUNABLES §19 — never reused |
 | Autoloads | All eight. `Tuning` precomputes 89 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |

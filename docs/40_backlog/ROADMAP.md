@@ -388,12 +388,16 @@ No gameplay rules replicated — there are none yet. No NPCs. Movement only.
 > and asks whether each is *on* the mesh, and every point on an isolated island passes that.
 > Coverage is not connectivity. Found from the controls, not from a test.
 >
-> **AND `test_crowd_perf.gd` IS MARGINAL ON CI RATHER THAN COMFORTABLE.** This roadmap and CLAUDE.md
-> have carried **p95 0.59-0.64 ms** against a 1.75 budget since US-0047. A quiet local machine reads
-> **0.89-0.93**, and CI's runner - the number that decides a pull request - read **1.067, 1.249 and
-> 1.815** across three consecutive runs, the third of which **failed the build**. The headroom is
-> tens of a percent, not 3x. Unexplained, and the next addition to the crowd stage will fail there
-> rather than locally.
+> **AND `test_crowd_perf.gd`'s GATE STATISTIC WAS BADLY CHOSEN (corrected 2026-08-21).** An earlier
+> version of this note claimed the published p95 of 0.59-0.64 ms was stale and that the crowd had
+> silently grown 50 % more expensive. **That is retracted**: measured from a clean extraction, the
+> commit that published it reads mean 0.521 / p95 0.575 and `HEAD` reads mean 0.536-0.559 / p95
+> 0.590-0.807. The high readings were transient machine state.
+>
+> The real defect was in the statistic. The distribution is bimodal — 2 of 90 ticks carry the 2 s
+> director pass — so a p95 over 90 samples sits on the boundary between the two populations and
+> swings 38 % while the mean holds to 3 %. On CI, ~2.4x slower, it read 1.815 once and **failed a
+> build with no regression behind it.** The gate asserts the ordinary-tick p95 now. TDD-08 §11.2.2.
 
 > **Status after the M3 gate, 2026-08-19: EVERY STORY IS BUILT, THE GATE IS RUN, AND A CLIENT
 > DRAWS THE CROWD.** Four of US-0048's ten lines are met — including **server tick p99 at 2.15 ms
