@@ -309,6 +309,56 @@ scene naming it. The two text readouts moved clear of it —
 `DistrictMap.RESERVED_WIDTH` — because text with no background under an opaque
 panel made both unreadable.
 
+**THE FOUR PROCESSION ROUTES ARE RE-AUTHORED, AND US-0043 IS DONE.** They had been
+transcribed from GDD-05 §2.5's prose and never measured against the floor table:
+14-28 % of each ran through masonry or over no floor, `CIRC-A` and `CIRC-B` passed
+within **0.51 m** against a rule of 8, and the declared periods implied **2.6-3.2
+m/s** — twice stroll and faster than `TUN-SPEED-RUN`.
+
+| | Length | Period | Walked at stroll | Implied |
+|---|---|---|---|---|
+| `CIRC-A` | 84.0 m | 60 s | 60 s | 1.40 m/s |
+| `CIRC-B` | 84.0 m | 60 s | 60 s | 1.40 m/s |
+| `CIRC-C` | 81.0 m | 58 s | 58 s | 1.40 m/s |
+| `CIRC-D` | 100.0 m | 71 s | 71 s | 1.41 m/s |
+
+**SEPARATION IS HELD BY DISTANCE, NOT BY TIMING**, and that is the decision worth
+carrying: phasing four periods so nobody ever coincides breaks the moment any period
+is retuned, where spatial disjointness holds forever. The four sit in separate zones
+at `x 45-69`, `78-115`, `94-114` and `18-28`. Furthest spawn from any circuit:
+**21.47 m of 25**. No circuit enters Piazza Secca. **Zero procession members
+trembling**, against four before.
+
+**ONE OF §2.5's ROUTES CANNOT EXIST, AND THAT IS LEVEL GEOMETRY RATHER THAN AN
+OVERSIGHT.** `CIRC-B` is documented "Loggia → Mercato Piccolo → Loggia", and
+**Mercato is reachable from the Loggia only through Piazza Secca**, which the same
+section forbids a circuit from entering. It is the Loggia's east half now; §2.5
+records the amendment.
+
+**AND THE TEST THAT ASSERTED THE DEFECT IS WHAT CLOSED IT.** It demanded every
+circuit's implied speed **exceed** stroll, failing with "circuit 0 now fits its
+declared period — retick US-0043's first criterion". Re-authoring made it fail
+exactly that way. It asserts the property now: **the speed is the invariant and the
+period is the read-out**, because `Steering` honours the speed — so a route too long
+for its period silently overruns it, which is how this survived two milestones.
+
+**BUT NPCs STILL FALL OUT OF THE WORLD, AND THAT WAS NEVER THE ROUTES.** With every
+route measuring fully walkable a live server still lost **19 bodies in 45 seconds**.
+Recording *where* named it at once:
+
+```
+(43.3, 35.7)  0.3 m outside Loggia        (45.7, 94.8)  0.3 m outside PonteCorto
+(43.0, 35.0)  0.7 m outside MouthWest     (22.5, 95.5)  0.5 m outside FondacoStreet
+(42.9, 31.1)  0.8 m outside MouthWest     (30.3, 65.7)  0.3 m outside ViaDelleLampe
+```
+
+**Every fall is 0.2-1.1 m outside a floor edge** — the alley mouth, the bridge, the
+warehouse street, a seam between two floors. RVO jostles bodies sideways off a
+navmesh already eroded by the agent radius and **there is no wall anywhere to stop
+them**. That is the missing walls, and it is the same gap that lets a player walk off
+the piazza's south edge. **A count could not have found this**: it said the district
+leaks, and only the positions said where.
+
 **PIAZZA DEL VETRO IS CONNECTED: THE TWO ALLEY MOUTHS GDD-05 §2.1 DRAWS ARE
 BUILT.** Its schematic has always marked the piazza's south edge at z = 30 as a
 wall pierced by two openings — the `╥` marks — with matching arcade openings into
@@ -2088,7 +2138,7 @@ US-0024 measures it against clips that do not exist.
 | | |
 |---|---|
 | CI | 7 jobs. **Running again as of 2026-08-07 after a two-day outage** — run `31200490320`, all seven green. The seven commits merged during the outage were never through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | **41 arch + 94 unit + 32 integration scripts**, holding 154 + 814 + 237 tests and 239 + 6411 + 645 assertions. **Ten are `pending` by design** — two of them in the integration suite, reporting that Piazza del Vetro is a disconnected island and that an NPC aimed into the void never gives up. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **170.9 s** of the 180 s it is allowed, up from 87.7 s at M2 — **9 s of headroom left, and the next integration test has to justify itself hard against that**. `test_server_tick_budget.gd` cost 9.8 s of it and is a gate line; the one before it, the 2 s pass A/B, samples ninety ticks **twice** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **Nine of those are in the unit suite** — `test_cull_radius_price.gd` among them, reporting that the cull-radius curve is FLAT and the budget is missed at every legal radius. — `test_upstream_bandwidth.gd` reports the 145 % upstream miss, **`test_crowd_bandwidth.gd` the 112 % downstream projection and `test_crowd_wire_cost.gd` the 155 % it actually costs today**, `test_circuit_separation.gd` US-0043's 0.51 m circuits, **`test_spawn_points.gd` two of GDD-05 §2.7's own rules** — rule 6's nine unoccluded spawn pairs and the clone minimum S3/S4 cannot hold — and `test_clone_animation_parity.gd` the missing clip library. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
+| Tests | **41 arch + 94 unit + 32 integration scripts**, holding 154 + 816 + 237 tests and 239 + 6412 + 645 assertions. **Eight are `pending` by design** — two of them in the integration suite, reporting that Piazza del Vetro is a disconnected island and that an NPC aimed into the void never gives up. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **170.9 s** of the 180 s it is allowed, up from 87.7 s at M2 — **9 s of headroom left, and the next integration test has to justify itself hard against that**. `test_server_tick_budget.gd` cost 9.8 s of it and is a gate line; the one before it, the 2 s pass A/B, samples ninety ticks **twice** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **Seven of those are in the unit suite** — `test_cull_radius_price.gd` among them, reporting that the cull-radius curve is FLAT and the budget is missed at every legal radius. — `test_upstream_bandwidth.gd` reports the 145 % upstream miss, **`test_crowd_bandwidth.gd` the 112 % downstream projection and `test_crowd_wire_cost.gd` the 155 % it actually costs today**, `test_circuit_separation.gd` US-0043's 0.51 m circuits, **`test_spawn_points.gd` two of GDD-05 §2.7's own rules** — rule 6's nine unoccluded spawn pairs and the clone minimum S3/S4 cannot hold — and `test_clone_animation_parity.gd` the missing clip library. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
 | Tuning | 288 tunables across 14 resource classes; all 31 cross-field invariants assert — split across `TuningInvariants` and `TuningInvariantsTech` since the first file hit 400 lines, with one entry point still. **Eight IDs are deprecated** and recorded in TUNABLES §19 — never reused |
 | Autoloads | All eight. `Tuning` precomputes 89 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |

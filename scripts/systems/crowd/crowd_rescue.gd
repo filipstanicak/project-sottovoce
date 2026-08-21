@@ -30,6 +30,12 @@ extends RefCounted
 ## nothing reads it to make a decision.
 var rescued: int = 0
 
+## Where the last few went over, in x/z. **The count alone cannot name a cause** —
+## it says the district leaks without saying where the hole is, and the first
+## re-authoring of the routes left it leaking at nineteen bodies a minute with every
+## route measuring fully walkable.
+var fell_at: Array[Vector2] = []
+
 
 ## Put back anything that has fallen below the world, and count it.
 ##
@@ -49,5 +55,9 @@ func sweep(pool: NpcPool, map: MapData) -> void:
 		if body == null or body.global_position.y > VetraioLayout.NAV_BAKE_FLOOR:
 			continue
 		rescued += 1
+		var over := body.global_position
+		fell_at.append(Vector2(over.x, over.z))
+		while fell_at.size() > 24:
+			fell_at.remove_at(0)
 		body.velocity = Vector3.ZERO
 		body.global_position = map.idle_anchors[index % map.idle_anchors.size()]

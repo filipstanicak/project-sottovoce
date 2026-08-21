@@ -206,65 +206,58 @@ const SPAWNS: Array = [
 ## The four blend-group circuits, GDD-05 §2.5. Closed loops; no circuit enters
 ## Piazza Secca, because the empty plaza staying empty is its entire function.
 const CIRCUITS: Array = [
+	# **RE-AUTHORED 2026-08-21 AGAINST THE GEOMETRY, WHICH NOTHING HAD EVER DONE.**
+	# The shipped routes were transcribed from GDD-05 §2.5's prose and never checked:
+	# 14-28 % of each ran through building masses or over no floor, CIRC-A and CIRC-B
+	# passed within 0.51 m of each other against a rule of 8 m, and the declared
+	# periods implied 2.6-3.2 m/s — twice `TUN-CROWD-NPC-SPEED-STROLL`, which would
+	# be a speed cheat wearing a crowd.
+	#
+	# **EVERY ROUTE IS NOW A CLOSED RECTANGLE INSIDE ONE OR TWO FLOOR RECTANGLES**,
+	# and the four are **spatially disjoint by more than 8 m**. Separation is a
+	# property of where they are rather than of when they are there: phasing four
+	# periods so nobody ever coincides is a constraint that breaks the moment any
+	# period is retuned, where distance holds forever.
+	#
+	# **THE PERIOD IS DERIVED, NOT DECLARED.** Each is its own length divided by
+	# `TUN-CROWD-NPC-SPEED-STROLL`, so the number here is what a group actually
+	# takes. That is what makes 55-75 s true rather than aspirational.
 	[
+		# **DENSE -> MEDIUM, AND THE ONLY ROUTE THROUGH THE PIAZZA.** Down the east
+		# alley mouth, west along the Loggia, back up the west mouth, east across the
+		# market. It uses **both** mouths rather than doubling back through one,
+		# because a route that retraces itself walks a procession into its own tail.
+		# Clear of the stall row at z 18-20. Serves S6 at 21.5 m.
 		"CIRC-A",
-		58.0,
-		[
-			Vector2(40.0, 15.0),
-			Vector2(60.0, 15.0),
-			Vector2(74.0, 22.0),
-			Vector2(60.0, 45.0),
-			Vector2(40.0, 45.0),
-			Vector2(16.0, 44.0),
-			Vector2(14.0, 34.0),
-			Vector2(32.0, 16.0),
-		]
+		60.0,
+		[Vector2(69.0, 24.0), Vector2(69.0, 42.0), Vector2(45.0, 42.0), Vector2(45.0, 24.0)]
 	],
 	[
+		# **THE LOGGIA'S EAST HALF.** GDD-05 §2.5 asks for "Loggia -> Mercato Piccolo
+		# -> Loggia", and **that route cannot exist**: Mercato is reachable from the
+		# Loggia only through Piazza Secca, which the same section forbids a circuit
+		# from entering. The arcade alone is what is left; §2.5 records the amendment.
+		# Serves S5 at 20 m.
 		"CIRC-B",
-		71.0,
-		[
-			Vector2(36.0, 45.0),
-			Vector2(56.0, 45.0),
-			Vector2(76.0, 45.0),
-			Vector2(98.0, 46.0),
-			Vector2(104.0, 72.0),
-			Vector2(104.0, 86.0),
-			Vector2(98.0, 60.0),
-			Vector2(76.0, 47.0),
-			Vector2(56.0, 47.0),
-		]
+		60.0,
+		[Vector2(78.0, 45.0), Vector2(115.0, 45.0), Vector2(115.0, 50.0), Vector2(78.0, 50.0)]
 	],
 	[
+		# **DENSE -> LOW.** The market's east side and the warehouse street, the only
+		# pair of zones joined without crossing the empty plaza. Clear of StallE
+		# (z 72-74) and StallF (x 96-102). Serves S4 at 0 m and S5 at 7 m.
 		"CIRC-C",
-		74.0,
-		[
-			Vector2(100.0, 80.0),
-			Vector2(106.0, 60.0),
-			Vector2(104.0, 34.0),
-			Vector2(112.0, 60.0),
-			Vector2(110.0, 97.0),
-			Vector2(80.0, 97.0),
-			Vector2(47.0, 97.0),
-			Vector2(47.0, 92.0),
-			Vector2(60.0, 91.0),
-			Vector2(90.0, 91.0),
-		]
+		58.0,
+		[Vector2(94.0, 77.0), Vector2(114.0, 77.0), Vector2(114.0, 97.5), Vector2(94.0, 97.5)]
 	],
 	[
+		# **MEDIUM -> LOW.** Via delle Lampe into Vicolo Stretto and back, clear of
+		# `VicoloWestWall` (x 0-12). The longest of the four and still inside the
+		# band. Serves S1 at 10.8 m, S2 at 2 m and S3 at 17.3 m — three of the six
+		# spawns, which is what lets the other routes stay short.
 		"CIRC-D",
-		66.0,
-		[
-			Vector2(44.0, 12.0),
-			Vector2(28.0, 12.0),
-			Vector2(14.0, 20.0),
-			Vector2(14.0, 40.0),
-			Vector2(20.0, 68.0),
-			Vector2(24.0, 84.0),
-			Vector2(18.0, 60.0),
-			Vector2(22.0, 40.0),
-			Vector2(34.0, 14.0),
-		]
+		71.0,
+		[Vector2(18.0, 45.0), Vector2(18.0, 85.0), Vector2(28.0, 85.0), Vector2(28.0, 45.0)]
 	],
 ]
 

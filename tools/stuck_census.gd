@@ -20,15 +20,14 @@ const MAP := "res://data/maps/map_vetraio.tres"
 const SAMPLE_EVERY := 900
 const SAMPLES := 4
 
-## One second at the physics rate: the window a tremble is judged inside.
+## One second at the physics rate: the window a tremble is judged inside. Ground
+## covered in one window against displacement achieved names a fidget.
 const WINDOW := 60
 
-## Ground covered inside one window against the displacement it achieved. Moving
-## this far to get nowhere is not walking, it is fidgeting.
 const TREMBLE_PATH := 0.10
 const TREMBLE_NET := 0.02
 
-## A walk that ends this far from an anchor never got there.
+## A walk ending this far from an anchor never got there.
 const SHORT := 0.5
 
 var _root: Node
@@ -65,6 +64,7 @@ func _run() -> void:
 	_report_circuits()
 	_report_floaters()
 	_report_inside_masonry()
+	_report_where_they_fell()
 	Net.bind_router(null, null)
 	get_tree().quit(0)
 
@@ -186,9 +186,7 @@ func _report_the_gap() -> void:
 
 func _street_centres() -> Array:
 	var out: Array = []
-	for row: Array in VetraioLayout.FLOORS:
-		if not is_equal_approx(float(row[5]), VetraioLayout.STREET_Y):
-			continue
+	for row: Array in LevelGeometry.street_floors():
 		var mid := Vector3(
 			float(row[1]) + float(row[3]) * 0.5, 0.0, float(row[2]) + float(row[4]) * 0.5
 		)
@@ -211,12 +209,7 @@ func _walkable_point(near: Vector3) -> Vector3:
 
 
 func _on_a_floor(at: Vector2) -> bool:
-	for row: Array in VetraioLayout.FLOORS:
-		if not is_equal_approx(float(row[5]), VetraioLayout.STREET_Y):
-			continue
-		if Rect2(float(row[1]), float(row[2]), float(row[3]), float(row[4])).has_point(at):
-			return true
-	return false
+	return LevelGeometry.on_a_floor(at)
 
 
 func _inside_stalls() -> Array:
@@ -234,11 +227,7 @@ func _stall_note(at: Vector3) -> String:
 
 
 func _stall_at(at: Vector3) -> String:
-	for stall: Array in VetraioLayout.STALLS:
-		var r := Rect2(float(stall[1]), float(stall[2]), float(stall[3]), float(stall[4]))
-		if r.has_point(Vector2(at.x, at.z)):
-			return str(stall[0])
-	return ""
+	return LevelGeometry.stall_at(Vector2(at.x, at.z))
 
 
 ## **CAN THE FOUR PROCESSIONS ACTUALLY WALK THEIR ROUTES?** GDD-05 SS2.5.
@@ -306,11 +295,7 @@ func _report_route_solidity(points: Array) -> void:
 
 
 func _block_at(at: Vector2) -> String:
-	for block: Array in VetraioLayout.BLOCKS:
-		var r := Rect2(float(block[1]), float(block[2]), float(block[3]), float(block[4]))
-		if r.has_point(at):
-			return str(block[0])
-	return ""
+	return LevelGeometry.block_at(at)
 
 
 ## **IS THIS NPC WALKING A PROCESSION?** The distinction decides where a fix goes.
@@ -335,8 +320,7 @@ func _procession_of(index: int) -> String:
 
 ## **IS ANYBODY STANDING ON NOTHING?** Reported as NPCs "floating above the hole".
 ## Asks how high they are and whether they walk a procession, since `drive_to` aims
-## a member straight at its slot with no path query and is the one thing that can
-## put a body over ground the navmesh does not cover. US-0041.
+## a member at its slot with no path query. US-0041.
 func _report_floaters() -> void:
 	var over_nothing: Array = []
 	for index: int in _pool.active_count():
@@ -392,3 +376,24 @@ func _report_inside_masonry() -> void:
 				% [entry[0], at.x, at.y, at.z, entry[2], _procession_of(int(entry[0]))]
 			)
 		)
+
+
+## **WHERE THE DISTRICT LEAKS.** A count says bodies are going over; only a position
+## says which edge. US-0041.
+func _report_where_they_fell() -> void:
+	var director := _root.get_node_or_null("Systems/CrowdDirector")
+	if director == null:
+		return
+	var rescue := director.get("_rescue") as CrowdRescue
+	if rescue == null:
+		return
+	print("--- fell out of the world: %d, last few by position ---" % rescue.rescued)
+	for at: Vector2 in rescue.fell_at:
+		print("  (%.1f, %.1f)%s" % [at.x, at.y, _edge_note(at)])
+
+
+## Which floor a fall was closest to leaving, so the reader does not have to hold
+## the layout in their head.
+func _edge_note(at: Vector2) -> String:
+	var edge := LevelGeometry.nearest_edge(at)
+	return "  %.1f m outside %s" % [edge[0], edge[1]]

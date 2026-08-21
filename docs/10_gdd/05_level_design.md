@@ -214,6 +214,25 @@ keeps the five spots strategically distinct without needing five different mecha
 
 **No circuit enters Piazza Secca.** The empty plaza stays empty; that is its entire function.
 
+> **THE FOUR ROUTES WERE RE-AUTHORED ON 2026-08-21, AND THIS TABLE'S ZONE SEQUENCES ARE AMENDED.**
+> The waypoints in `VetraioLayout.CIRCUITS` had been transcribed from the prose above and never
+> measured: 14–28 % of each ran through building masses or over no floor, two passed within 0.51 m
+> of one another, and the declared periods implied twice stroll speed. Each is now a closed
+> rectangle inside one or two floor rectangles, walking its declared period at exactly
+> `TUN-CROWD-NPC-SPEED-STROLL`: **CIRC-A 84 m / 60 s, CIRC-B 84 / 60, CIRC-C 81 / 58, CIRC-D
+> 100 / 71.**
+>
+> **CIRC-B's DOCUMENTED ROUTE CANNOT EXIST.** "Loggia → Mercato Piccolo → Loggia" requires
+> crossing **Piazza Secca**, which the rule directly above forbids: Mercato Piccolo touches only
+> Piazza Secca and Fondaco Street, and the Loggia touches neither. It is the Loggia's east half
+> now. The other three keep their character — CIRC-A dense→medium through the piazza and the two
+> alley mouths, CIRC-C dense→low across the market and the warehouse street, CIRC-D medium→low
+> through Via delle Lampe and Vicolo Stretto.
+>
+> **Separation is now held by distance rather than by timing**, so it survives any period being
+> retuned. Furthest spawn from a circuit: 21.47 m of 25.
+
+
 > **AND ALL FOUR ROUTES RUN THROUGH SOLID GEOMETRY (2026-08-20).** Sampled every half metre along
 > the interpolated route, not at the waypoints: **CIRC-A 15.8 %, CIRC-B 15.4 %, CIRC-C 28.0 %,
 > CIRC-D 19.8 %** of each route is inside a building mass or over no floor. Five waypoints are
