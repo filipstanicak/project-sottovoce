@@ -11,6 +11,8 @@ extends Node
 
 const MAP := "res://data/maps/map_vetraio.tres"
 
+var _fallen_reported: int = 0
+
 @onready var director: MatchDirector = $MatchDirector
 @onready var router: RpcRouter = $NetServer/RpcRouter
 @onready var pawns: PawnHost = $World/Pawns
@@ -176,7 +178,29 @@ func _wire_end_of_tick() -> void:
 ## the client never predicted — felt as a tug toward the previous input. US-0028's
 ## repeat is correct for a *lost* command; this line is how you find out whether it
 ## is firing for merely *late* ones.
+## **A CROWD THAT FALLS OUT OF THE WORLD SAYS SO.** `CrowdRescue` puts a fallen NPC
+## back rather than letting the district quietly drain, and the count must be zero
+## on a map whose routes are walkable — so a line here is a level-data defect
+## reporting itself. Logged once per rise, not per tick.
+func _log_the_fallen() -> void:
+	var fallen := crowd_director.rescued_from_the_void()
+	if fallen == _fallen_reported:
+		return
+	_fallen_reported = fallen
+	Log.warn(
+		(
+			(
+				"crowd fell out of the world: %d put back so far — a route crosses ground "
+				+ "that does not exist (test_circuit_separation.gd)"
+			)
+			% fallen
+		),
+		&"crowd"
+	)
+
+
 func _log_starvation(_ctx: MatchContext, _dt: float) -> void:
+	_log_the_fallen()
 	if director.ctx.tick % 300 != 0 or director.starved_ticks == 0:
 		return
 	Log.info(

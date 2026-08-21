@@ -2,22 +2,17 @@
 ##
 ##     godot --headless --path . res://tools/stuck_census.tscn -- --seed 4242
 ##
-## The owner reported *"a few npcs who are trembling a little bit. They also dont
-## move and appear stuck"*. Two very different faults produce that and they are
-## fixed in different places: if the **server** position fidgets, steering or RVO is
-## doing it; if the server is still, the tremble is drawn rather than simulated and
-## belongs to the wire or the interpolator.
+## Two faults produce "trembling and stuck" and they are fixed in different places:
+## if the **server** position fidgets, steering or RVO is doing it; if the server is
+## still, the tremble is drawn and belongs to the wire or the interpolator.
 ##
-## **IT IS JUDGED IN ONE-SECOND WINDOWS, AND THE FIRST VERSION WAS NOT.** Asking
-## whether a body went nowhere across the whole watch reports **zero** for an NPC
-## that fidgets for ten seconds and then walks off, which is exactly the case being
-## looked for. Ground covered inside a window, against the displacement achieved in
-## that same window, is what names it.
+## **JUDGED IN ONE-SECOND WINDOWS.** Asking whether a body went nowhere across the
+## whole watch reports **zero** for one that fidgets and then walks off, which is
+## the case being looked for.
 ##
-## **AND THIS TOOL CANNOT DECIDE A SMALL A/B.** The navigation layer is not
-## reproducible run to run: the same seed and the same code gave 10 and then 7
-## trembling body-seconds of 4680. Anything at that scale needs a deterministic
-## test instead, and `test_navmesh_coverage.gd` holds it.
+## **IT CANNOT DECIDE A SMALL A/B**, and says so: the navigation layer is not
+## reproducible run to run — the same seed and code gave 10 then 7 trembling
+## body-seconds of 4680. That scale needs a deterministic test. US-0041.
 extends Node
 
 const SERVER_ROOT := "res://scenes/server_root.tscn"
@@ -69,6 +64,7 @@ func _run() -> void:
 	_report_the_gap()
 	_report_circuits()
 	_report_floaters()
+	_report_inside_masonry()
 	Net.bind_router(null, null)
 	get_tree().quit(0)
 
@@ -137,12 +133,9 @@ func _report_trembling() -> void:
 		)
 
 
-## **AN ANCHOR DOES NOT HAVE TO BE INSIDE AN OBSTACLE TO BE UNREACHABLE**, and
-## proximity is the wrong test for it. `map_get_closest_point` is a 3D
-## nearest-polygon query that knows nothing about connectivity, so an anchor inside
-## a stall answers with the stall's own **top** — on the navmesh, 0.9 m up, and
-## unreachable across a step the bake's `NAV_MAX_CLIMB` refuses. That is the
-## disguise US-0041's Npc003 wore. This walks instead of measuring.
+## **PROXIMITY IS THE WRONG TEST.** `map_get_closest_point` knows nothing about
+## connectivity, so an anchor inside a stall answers with the stall's own **top** —
+## on the navmesh and unreachable. This walks instead of measuring.
 func _report_unreachable_anchors() -> void:
 	var from := _walkable_point(Vector3(60.0, 0.0, 45.0))
 	var off: Array = []
@@ -340,15 +333,10 @@ func _procession_of(index: int) -> String:
 	return ""
 
 
-## **IS ANYBODY STANDING ON NOTHING?** Reported from the controls: "some NPCs
-## floating above the hole, where they should normally fall down".
-##
-## `Steering._apply_safe_velocity` applies gravity on the physics frame and only
-## when the body is not on the floor, so a body over the void should fall. This
-## asks whether any actually are, how high they are, and — the question that
-## decides where the fix goes — whether they are walking a procession, since
-## `drive_to` aims a formation member straight at its slot with no path query and
-## is the one thing that can put a body over ground the navmesh does not cover.
+## **IS ANYBODY STANDING ON NOTHING?** Reported as NPCs "floating above the hole".
+## Asks how high they are and whether they walk a procession, since `drive_to` aims
+## a member straight at its slot with no path query and is the one thing that can
+## put a body over ground the navmesh does not cover. US-0041.
 func _report_floaters() -> void:
 	var over_nothing: Array = []
 	for index: int in _pool.active_count():
@@ -371,5 +359,36 @@ func _report_floaters() -> void:
 			(
 				"  index %d at (%.1f, %.2f, %.1f)  vy %.3f  grounded %s%s"
 				% [entry[0], at.x, at.y, at.z, entry[2], entry[3], _procession_of(int(entry[0]))]
+			)
+		)
+
+
+## **IS ANY NPC STANDING INSIDE A BUILDING?** Reported as NPCs moving "through
+## objects like a vaultable wall". The stall census above only asks about `STALLS`;
+## `BLOCKS` are the solid masses and five circuit waypoints sit inside them. A
+## client-drawn NPC has no collider at all, so if the server says a body is inside a
+## wall, the client draws it there. US-0041.
+func _report_inside_masonry() -> void:
+	var inside: Array = []
+	for index: int in _pool.active_count():
+		var body := _pool.body_of(index)
+		if body == null:
+			continue
+		var at := body.global_position
+		var block := _block_at(Vector2(at.x, at.z))
+		if block != "":
+			inside.append([index, at, block])
+	print(
+		(
+			"--- NPCs standing INSIDE a building mass: %d of %d ---"
+			% [inside.size(), _pool.active_count()]
+		)
+	)
+	for entry: Array in inside.slice(0, 12):
+		var at := entry[1] as Vector3
+		print(
+			(
+				"  index %d at (%.1f, %.2f, %.1f) inside %s%s"
+				% [entry[0], at.x, at.y, at.z, entry[2], _procession_of(int(entry[0]))]
 			)
 		)

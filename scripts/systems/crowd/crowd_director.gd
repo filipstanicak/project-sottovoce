@@ -53,6 +53,7 @@ var _intent := CrowdIntent.new()
 var _alarm := CrowdAlarm.new()
 var _clones := CloneBalance.new()
 var _bands := CrowdBands.new()
+var _rescue := CrowdRescue.new()
 
 ## The shared grid, held from `setup()` so the public startle and corpse entry
 ## points can be called from outside a tick — `SYS-KILL` resolves a kill in the
@@ -138,6 +139,9 @@ func tick(ctx: MatchContext, dt: float) -> void:
 	if _pool == null:
 		return
 	_tick = ctx.tick
+	# **BEFORE `_reindex`, BECAUSE THE HASH IS BUILT FROM THESE POSITIONS.** A body
+	# 200 m under the district would otherwise be indexed there for a tick.
+	_rescue.sweep(_pool, _map)
 	_reindex(ctx)
 	_bands.evaluate(ctx.pawns)
 	# **THE 2 S TIMER RUNS BEFORE THE BRAINS**, so a slot assigned this tick is a
@@ -168,6 +172,12 @@ func tick(ctx: MatchContext, dt: float) -> void:
 ## rebuilt afterwards would answer every brain with the previous tick's crowd
 ## while every *system* downstream got this tick's. One of the two would be wrong
 ## and neither would say so.
+## How many NPCs have fallen out of the world and been put back. **Zero on a
+## district whose routes are walkable** — see `CrowdRescue`.
+func rescued_from_the_void() -> int:
+	return _rescue.rescued
+
+
 func _reindex(ctx: MatchContext) -> void:
 	var active := _pool.active_count()
 	for index: int in active:
