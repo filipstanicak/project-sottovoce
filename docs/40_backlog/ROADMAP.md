@@ -370,6 +370,29 @@ No gameplay rules replicated — there are none yet. No NPCs. Movement only.
 
 **Exit:** 80 NPCs with clones, blend groups, startle/gawk, ≤ 2 ms/frame.
 
+> **2026-08-21, LATER — THE LEVEL IS SOUND: THE ISLAND, THE ROUTES AND THE WALLS ARE ALL DONE.**
+> `US-0043` is `done`, six of six, after being open since M3 began.
+>
+> - **The piazza is connected.** The two alley mouths §2.1 has always drawn are built at x = 45 and
+>   x = 69. `PiazzaDelVetro` reaches every other street; unreachable idle anchors fell **24 → 8**.
+> - **The four routes are re-authored against the geometry**, each a closed rectangle on real floor,
+>   spatially disjoint by more than 8 m, walking its declared period at exactly stroll: 84 m / 60 s,
+>   84 / 60, 81 / 58, 100 / 71. Furthest spawn from a circuit 21.47 m of 25.
+> - **The district has walls**, derived from the floor table rather than listed —
+>   `VetraioGround.parapets()` fences every edge bordering neither floor nor block. NPCs falling out
+>   of the world went **19 in 45 s → 0 in 50 s**, and `test_the_district_is_enclosed.gd` samples
+>   2574 edge points to keep it that way.
+>
+> **WHAT STILL BLOCKS THE M3 EXIT IS NOT THE LEVEL.** It is the same three things as before:
+> **no animation clips on either rig**, no clone meshes on the wire, and gate lines needing an owner
+> at a windowed client. The level-data items that remain — 8 idle anchors inside market stalls, the
+> clone-minimum contradiction at S3/S4/S5, and §2.7 rule 6's nine unoccluded spawn pairs — are all
+> reported by tests and none of them is a code defect.
+>
+> **AND THE CROWD-PERF "REGRESSION" WAS RETRACTED**: there was never one. See §11.2.2.
+>
+> The two earlier reports follow, kept because each was true when written.
+>
 > **2026-08-21 — THE ISLAND IS FIXED; THE ROUTES ARE NOT.** The two alley mouths GDD-05 §2.1 has
 > always drawn are built, at x = 45 and x = 69, both 2.6 m wide. `PiazzaDelVetro` now reaches every
 > other street, unreachable idle anchors fall **24 → 8** (all eight inside market stalls, US-0041's
