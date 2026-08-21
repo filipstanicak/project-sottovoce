@@ -67,6 +67,7 @@ func _run() -> void:
 	_report_unreachable_anchors()
 	_report_islands()
 	_report_the_gap()
+	_report_circuits()
 	Net.bind_router(null, null)
 	get_tree().quit(0)
 
@@ -120,12 +121,17 @@ func _report_trembling() -> void:
 			% [busy.size(), seconds, watched]
 		)
 	)
+	var members := 0
+	for entry: Array in busy:
+		if _procession_of(int(entry[0])) != "":
+			members += 1
+	print("  of those, %d are walking a procession circuit" % members)
 	for entry: Array in busy.slice(0, 10):
 		var at := entry[2] as Vector3
 		print(
 			(
-				"  index %d trembled for %d s, at (%.1f, %.1f)%s"
-				% [entry[0], entry[1], at.x, at.z, _stall_note(at)]
+				"  index %d trembled for %d s, at (%.1f, %.1f)%s%s"
+				% [entry[0], entry[1], at.x, at.z, _stall_note(at), _procession_of(int(entry[0]))]
 			)
 		)
 
@@ -238,4 +244,96 @@ func _stall_at(at: Vector3) -> String:
 		var r := Rect2(float(stall[1]), float(stall[2]), float(stall[3]), float(stall[4]))
 		if r.has_point(Vector2(at.x, at.z)):
 			return str(stall[0])
+	return ""
+
+
+## **CAN THE FOUR PROCESSIONS ACTUALLY WALK THEIR ROUTES?** GDD-05 SS2.5.
+##
+## `CrowdCircuit` interpolates between waypoints and `CrowdFormations` drives NPCs
+## at them, so a waypoint that is inside a building or on the far side of a cut is
+## a slot no NPC can occupy. Nothing has ever checked either: `test_circuit_
+## separation.gd` measures how close two routes pass, which is a different question.
+func _report_circuits() -> void:
+	print("--- can each procession walk its own route? ---")
+	for circuit: Array in VetraioLayout.CIRCUITS:
+		var name := str(circuit[0])
+		var points: Array = circuit[2]
+		var in_block: Array = []
+		var off_floor: Array = []
+		var unreachable := 0
+		for point: Vector2 in points:
+			var at := Vector3(point.x, VetraioLayout.STREET_Y, point.y)
+			var block := _block_at(point)
+			if block != "":
+				in_block.append("(%.0f, %.0f) in %s" % [point.x, point.y, block])
+			elif not _on_a_floor(point):
+				off_floor.append("(%.0f, %.0f)" % [point.x, point.y])
+			if _how_short(Vector3(60.0, 0.0, 45.0), at) > 1.0:
+				unreachable += 1
+		print(
+			(
+				"  %-8s %d waypoints: %d inside a block, %d off any floor, %d unreachable"
+				% [name, points.size(), in_block.size(), off_floor.size(), unreachable]
+			)
+		)
+		for note: String in in_block:
+			print("      BLOCKED  " + note)
+		for note: String in off_floor:
+			print("      NO FLOOR " + note)
+		_report_route_solidity(points)
+
+
+## **THE WAYPOINTS ARE NOT THE ROUTE.** `CrowdCircuit` interpolates between them and
+## `CrowdFormations` drives members at a slot on that line, so a segment that clips
+## a corner puts a slot inside masonry even when both of its endpoints are clear.
+## Sampled every half metre, which is a third of `TUN-CROWD-GROUP-SPACING`.
+func _report_route_solidity(points: Array) -> void:
+	var solid := 0
+	var nowhere := 0
+	var sampled := 0
+	for i: int in points.size():
+		var a: Vector2 = points[i]
+		var b: Vector2 = points[(i + 1) % points.size()]
+		var steps := int(maxf(1.0, a.distance_to(b) / 0.5))
+		for k: int in steps:
+			var at := a.lerp(b, float(k) / float(steps))
+			sampled += 1
+			if _block_at(at) != "":
+				solid += 1
+			elif not _on_a_floor(at):
+				nowhere += 1
+	var bad := float(solid + nowhere) / float(maxi(sampled, 1)) * 100.0
+	print(
+		(
+			"      route: %d of %d sampled points unwalkable (%.1f %%) - %d in masonry, %d over nothing"
+			% [solid + nowhere, sampled, bad, solid, nowhere]
+		)
+	)
+
+
+func _block_at(at: Vector2) -> String:
+	for block: Array in VetraioLayout.BLOCKS:
+		var r := Rect2(float(block[1]), float(block[2]), float(block[3]), float(block[4]))
+		if r.has_point(at):
+			return str(block[0])
+	return ""
+
+
+## **IS THIS NPC WALKING A PROCESSION?** The distinction decides where a fix goes.
+##
+## A formation member is driven by `Steering.drive_to` — straight at its slot, with
+## **no path query at all**, deliberately, because a slot moves every tick and
+## pathing to one would starve `RepathQueue`. That is safe only while the route is
+## walkable. Five of the four circuits' waypoints are **inside solid blocks**, so a
+## member driven at a slot there presses into a wall and stays.
+func _procession_of(index: int) -> String:
+	var director := _root.get_node_or_null("Systems/CrowdDirector")
+	if director == null:
+		return ""
+	var formations := director.get("_formations") as CrowdFormations
+	if formations == null:
+		return ""
+	for g: int in formations.groups.size():
+		if index in formations.groups[g].occupants:
+			return "  PROCESSION group %d" % g
 	return ""
