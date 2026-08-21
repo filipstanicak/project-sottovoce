@@ -154,3 +154,38 @@ static func _box(who: String, r: Rect2, side: Vector2, from: float, to: float, n
 		return [name, from, z, to - from, t, VetraioLayout.H_VAULT]
 	var x := (r.position.x - t) if side.x < 0.0 else r.end.x
 	return [name, x, from, t, to - from, VetraioLayout.H_VAULT]
+
+
+## **AN ANCHOR INSIDE A MARKET STALL IS A SEAT NOBODY CAN TAKE.** The grid above has
+## no obstacle filter, so two anchors landed inside each of StallA-D — **8 of 67
+## unreachable on foot**, and `map_get_closest_point` hides it by answering with the
+## stall's own **top**, which is on the navmesh and unreachable from the street.
+##
+## **NUDGED, NOT DROPPED.** Deleting them would take the count to 59 and leave S6 —
+## which has exactly `TUN-CROWD-CLONE-LOCAL-MIN` seats of 8 — short, so the fix for
+## an unusable anchor would have created a starved spawn point. Moving each to the
+## nearest walkable metre keeps the count, keeps the market's declared density, and
+## makes the seat real.
+##
+## The search is a widening ring at half-metre steps, which resolves every one of
+## these inside two metres because a stall is 6 x 2 m and the aisle is beside it.
+static func clear_of_obstacles(at: Vector2) -> Vector3:
+	if _is_usable(at):
+		return Vector3(at.x, 0.0, at.y)
+	var radius := 0.5
+	while radius <= 4.0:
+		for step: int in 16:
+			var angle := TAU * float(step) / 16.0
+			var near := at + Vector2(cos(angle), sin(angle)) * radius
+			if _is_usable(near):
+				return Vector3(near.x, 0.0, near.y)
+		radius += 0.5
+	# Nothing within four metres. Left where it is rather than moved somewhere
+	# arbitrary: a wrong anchor that stays put is findable, one that teleports is not.
+	return Vector3(at.x, 0.0, at.y)
+
+
+static func _is_usable(at: Vector2) -> bool:
+	if not on_a_floor(at):
+		return false
+	return stall_at(at) == "" and block_at(at) == ""

@@ -374,7 +374,7 @@ func _place_anchors(zones: Array[MapZone]) -> Array[Vector3]:
 		while x < zone.bounds.end.x:
 			var z := zone.bounds.position.z + minf(step.y, span.y) * 0.5
 			while z < zone.bounds.end.z:
-				out.append(Vector3(x, 0.0, z))
+				out.append(VetraioGround.clear_of_obstacles(Vector2(x, z)))
 				z += step.y
 			x += step.x
 	return out
