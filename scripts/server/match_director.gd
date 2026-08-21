@@ -71,6 +71,27 @@ signal input_applied(peer: int, command: InputCommand, dt: float)
 ## US-0026's authority work; it is recorded here rather than invented.
 const CATCH_UP := 1
 
+## **HOW MANY EMPTY TICKS ARE STILL "LATE" RATHER THAN "LOST".**
+##
+## The client sends `TUN-NET-CLIENT-INPUT-RATE` 60 commands a second and the server
+## consumes `_frames_per_tick` 2 of them per tick at 30 Hz. **That is exactly 60 a
+## second against exactly 60 a second — there is no margin at all**, so a single
+## burst in arrival empties the queue for one tick even on localhost, with nothing
+## lost and nothing wrong.
+##
+## Repeating there injects two steps the client never predicted. Measured with a
+## real client driven for ten seconds: the one run of four that logged
+## `input starvation: 2 repeats` is the one run of four whose reconciliation error
+## was not **0.000 m** — it read mean 0.042, max 0.075, which is exactly one command
+## at `TUN-SPEED-RUN`. The other three logged no starvation and read zero.
+##
+## **ONE EMPTY TICK IS JITTER; SEVERAL IN A ROW IS LOSS.** `CATCH_UP` repays a
+## deficit at one command a tick, so a late burst is absorbed within a few ticks and
+## never needed a repeat. A genuinely lost command still gets one, `GRACE` ticks
+## later — 33 ms at 30 Hz, well inside `TUN-NET-INTERP-BUFFER`, and far cheaper than
+## a phantom step on every jitter.
+const GRACE := 1
+
 ## An authorised input is to be applied to `peer`'s pawn, at the input rate.
 ## US-0028 connects the server pawn simulation to this.
 ## The match's context. Constructed here, torn down here, and the only thing a
@@ -87,6 +108,10 @@ var starved_ticks: int = 0
 var _systems: Dictionary = {}
 var _queues: Dictionary = {}
 var _last_command: Dictionary = {}
+
+## Consecutive ticks a peer's queue has been empty. Reset by any arrival, so it
+## counts a run rather than a total — one is late, several is lost.
+var _dry_ticks: Dictionary = {}
 
 var _frames_per_tick: int = 2
 var _frame: int = 0
@@ -156,6 +181,7 @@ func system_for(stage: StringName) -> GameSystem:
 func forget(peer: int) -> void:
 	_queues.erase(peer)
 	_last_command.erase(peer)
+	_dry_ticks.erase(peer)
 
 
 ## How many commands are waiting for `peer`. For tests and diagnostics.
@@ -309,9 +335,19 @@ func _drain(peer: int) -> int:
 ## always meant to be — the answer to a command that is **lost**, not one that is
 ## late.
 func _repeat_last(peer: int, applied: int) -> void:
-	if applied > 0 or not _last_command.has(peer):
+	if applied > 0:
+		_dry_ticks[peer] = 0
+		return
+	if not _last_command.has(peer):
+		return
+	var dry := int(_dry_ticks.get(peer, 0)) + 1
+	_dry_ticks[peer] = dry
+	# **AND A SINGLE EMPTY TICK IS NOT LOSS.** See `GRACE`: at 60 commands a second
+	# against 60 consumed a second there is no margin, so one empty tick is ordinary
+	# burstiness on localhost. Repeating there is a step the client never predicted.
+	if dry <= GRACE:
 		return
 	starved_ticks += 1
 	var command := _last_command[peer] as InputCommand
-	for _i: int in _frames_per_tick - applied:
+	for _i: int in _frames_per_tick:
 		input_applied.emit(peer, command, MatchContext.step_dt())

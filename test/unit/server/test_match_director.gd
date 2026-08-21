@@ -142,14 +142,66 @@ func test_a_tick_with_no_input_at_all_repeats_rather_than_stalling() -> void:
 	_run_frames(2)
 	assert_eq(_substeps.size(), 1, "the one command that arrived was not applied once")
 
+	# **THE FIRST EMPTY TICK IS FORGIVEN**, see `GRACE`. The repeat lands on the
+	# second, which is still inside `TUN-NET-INTERP-BUFFER`.
 	_substeps = []
+	_run_frames(2)
 	_run_frames(2)
 	assert_eq(
 		_substeps.size(),
 		2,
-		"a tick with no input at all did not fill its substeps, so the pawn stalled"
+		"a peer whose input really stopped never got its repeat, so the pawn stalled"
 	)
 	assert_eq(_substeps[0][1], 7, "the repeat forgot what the peer was doing")
+
+
+## **ONE EMPTY TICK IS LATE, NOT LOST, AND PAYING FOR IT IS WHAT THE OWNER FEELS.**
+##
+## The client sends 60 commands a second and the server consumes exactly 60 a
+## second, so there is **no margin at all** and a burst in arrival empties the
+## queue for a tick with nothing lost. Repeating there injects two steps the client
+## never predicted.
+##
+## Measured against a real client driven for ten seconds: of four runs, the one
+## that logged `input starvation: 2 repeats` is the one whose reconciliation error
+## was not 0.000 m — mean 0.042, max 0.075, which is exactly one command at
+## `TUN-SPEED-RUN`. The other three logged no starvation and read zero throughout.
+func test_one_empty_tick_is_not_repeated_because_it_is_merely_late() -> void:
+	_give_a_pawn()
+	_director.enqueue_input(PEER, InputCommand.empty(1))
+	_director.enqueue_input(PEER, InputCommand.empty(2))
+	_run_frames(2)
+	_substeps = []
+
+	_run_frames(2)
+	assert_eq(_substeps.size(), 0, "a single late tick was paid for with a phantom step")
+
+	# And the late pair now lands, still adding up to exactly what was sent.
+	_director.enqueue_input(PEER, InputCommand.empty(3))
+	_director.enqueue_input(PEER, InputCommand.empty(4))
+	_run_frames(2)
+	assert_eq(_substeps.size(), 2, "the late commands did not arrive after the empty tick")
+
+
+## **AND AN ARRIVAL RESETS THE RUN, OR THE RULE COUNTS A TOTAL RATHER THAN A RUN.**
+## Alternating empty and full ticks is an ordinary bursty connection; if the empty
+## ones accumulated, it would earn a repeat it never needed.
+func test_alternating_empty_and_full_ticks_never_earn_a_repeat() -> void:
+	_give_a_pawn()
+	var seq := 0
+	for pair: int in 12:
+		_run_frames(2)
+		seq += 1
+		_director.enqueue_input(PEER, InputCommand.empty(seq))
+		seq += 1
+		_director.enqueue_input(PEER, InputCommand.empty(seq))
+		_run_frames(2)
+	assert_eq(
+		_substeps.size(),
+		seq,
+		"a bursty but complete feed produced more substeps than commands sent"
+	)
+	assert_eq(_director.starved_ticks, 0, "a merely bursty feed was counted as starved")
 
 
 ## **AND A SHORT TICK IS LEFT SHORT**, which is the other half of the same rule.
