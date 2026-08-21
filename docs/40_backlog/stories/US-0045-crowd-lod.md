@@ -4,7 +4,7 @@ title: Crowd LOD — update rate and animation
 version: 0.1.0
 status: in-progress
 owner: Technical Director
-last_updated: 2026-08-20
+last_updated: 2026-08-21
 depends_on: [ADR-0003, TDD-08-CROWD, BIBLE-PERF-BUDGET]
 ---
 

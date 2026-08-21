@@ -4,7 +4,7 @@ title: A hop when nothing resolves, scaled by the speed state
 version: 1.0.0
 status: done
 owner: Lead Game Designer
-last_updated: 2026-08-14
+last_updated: 2026-08-21
 depends_on: [GDD-02-PLAYER]
 ---
 
@@ -141,3 +141,28 @@ Worth keeping for the shape of it: **a latent defect became reachable the moment
 outcome existed**, and the story that exposed it was correct in every criterion above. The
 buffer arms on the press now, via `InputBits.newly_pressed` — which existed, documents itself as
 how edges are derived rather than transmitted, and had never been called.
+
+## A second mid-air stop, reported 2026-08-21, and it is not this story's defect
+
+The owner reported *"when i am at a edge into the abyss and move towards it and jump, my jump stops
+mid air so that my speed goes down to 0 m/s"* — the same words as the defect this story fixed. **It
+is a different one.** That was a held Space arming a fresh traverse sixty times a second; this
+happens on a **single press**.
+
+The chain: the probes find no floor within `TUN-TRAVERSE-GAP-PROBE-DEPTH`, so `drop_height` is
+`INF`; `_over_the_edge` classifies `DROP`, which is GDD-02 §7.2 case 3 as written; `_plan_drop`
+calls `_finite()`, which **substitutes the probe depth and invents a landing ten metres down**; and
+`DropState` zeroes velocity, interpolates to it and sets `grounded = true` **in mid-air**.
+
+**JUDGED UNREACHABLE AND DELIBERATELY LEFT.** The shipped district has no abyss, and that is now
+asserted rather than assumed: invariant 24 makes every legitimate fall measurable, and
+`test_the_district_is_enclosed.gd` requires every street-level floor edge to border floor, mass or
+parapet — 2574 points sampled, 1303 failures if the fencing is removed. Fixing the resolver would
+mean amending §7.2 case 3 or giving the pawn a state that falls under gravity rather than
+interpolating to a plan, and neither is worth doing for a case the level cannot reach.
+`test_traverse_into_the_void.gd` asserts the behaviour as it stands so a change to any of the three
+surfaces it.
+
+**AND THE FIRST FIX ATTEMPT WAS WRONG.** Returning `NONE` from the classifier fixed the symptom and
+broke `test_a_long_fall_with_nothing_found_is_still_a_drop`, whose own comment says the case "is not
+in doubt" and points at `_finite` as the poor part. Its author had already drawn that line.

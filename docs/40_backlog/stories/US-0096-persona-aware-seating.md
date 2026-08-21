@@ -4,7 +4,7 @@ title: Persona-aware initial seating
 version: 0.1.0
 status: in-progress
 owner: Technical Director
-last_updated: 2026-08-18
+last_updated: 2026-08-21
 depends_on: [TDD-08-CROWD, GDD-03-SOCIAL-STEALTH, US-0047]
 ---
 
