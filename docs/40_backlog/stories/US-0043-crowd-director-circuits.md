@@ -2,9 +2,9 @@
 id: US-0043
 title: CrowdDirector and walking-group circuits
 version: 0.1.0
-status: in-progress
+status: done
 owner: Technical Director
-last_updated: 2026-08-20
+last_updated: 2026-08-21
 depends_on: [TDD-08-CROWD, GDD-05-LEVEL]
 ---
 
@@ -25,32 +25,46 @@ circuits, and clone redistribution.
 
 ## Acceptance criteria
 
-> **Four of six, and the two that are open are both level-data findings rather than
-> unwritten code.** Both are measured, both are reported by a test, and neither can be closed
-> without re-authoring routes — which is the owner's. See the two sections below.
+> **SIX OF SIX AS OF 2026-08-21.** The two that were open were both level-data findings, and
+> both closed when the four routes were re-authored against the geometry rather than transcribed
+> from prose. Every route is now a closed rectangle inside one or two floor rectangles, the four
+> are spatially disjoint by more than 8 m, and each walks its declared period at exactly
+> `TUN-CROWD-NPC-SPEED-STROLL`.
 
-- [ ] **Four circuits with periods 55 to 75 s, from MapData.** The four circuits exist and their
-      **declared** periods are in band, asserted. The criterion stays unticked because the
-      periods are not what the groups walk: the routes are 150–237 m long, so 55–75 s implies
-      **2.6–3.2 m/s**, roughly twice `TUN-CROWD-NPC-SPEED-STROLL` and faster than
-      `TUN-SPEED-RUN`. The implementation honours the speed and the period comes out at
-      107–169 s. Measured in `test_crowd_circuit.gd`.
+- [x] **Four circuits with periods 55 to 75 s, from MapData.** Measured in
+      `test_crowd_circuit.gd`, which asserts each route walks its **declared** period at stroll
+      rather than merely declaring one in band:
 
-      > **AND TWO OF THE FOUR ROUTES CANNOT BE WALKED AT ALL (2026-08-20).** `CIRC-A` and
-      > `CIRC-D` both begin in Piazza del Vetro, which is a **disconnected navmesh island**:
-      > there is no floor between it and the Loggia for x 30–90, a 60 × 6 m void. Found from
-      > the controls — the owner reported NPCs trembling and stuck. So the period question is
-      > not the only thing wrong with these routes, and re-authoring them has to wait on the
-      > floor. GDD-05 §2.5, `test_navmesh_coverage.gd`.
+      | | Length | Declared | Walked at stroll | Implied speed |
+      |---|---|---|---|---|
+      | `CIRC-A` | 84.0 m | 60 s | 60 s | 1.40 m/s |
+      | `CIRC-B` | 84.0 m | 60 s | 60 s | 1.40 m/s |
+      | `CIRC-C` | 81.0 m | 58 s | 58 s | 1.40 m/s |
+      | `CIRC-D` | 100.0 m | 71 s | 71 s | 1.41 m/s |
+
+      > **THE TEST THAT ASSERTED THE DEFECT IS WHAT CLOSED THIS.** It used to demand that every
+      > circuit's implied speed **exceed** stroll, with a failure message reading "circuit 0 now
+      > fits its declared period — retick US-0043's first criterion". Re-authoring made it fail
+      > in exactly that way. It now asserts the property instead: the speed is the invariant and
+      > the period is the read-out, because `Steering` honours the speed, so a route too long for
+      > its period simply overruns it — which is how this went unnoticed for two milestones.
+
 - [x] **Groups of four NPCs in loose formation at 1.3 m spacing, with a joinable slot.**
       `TUN-CROWD-GROUP-SIZE` NPCs plus one slot that is **never given to an NPC**. The closest
       pair of slots is asserted to be exactly `TUN-CROWD-GROUP-SPACING`, because "loose
       formation at 1.3 m" is a number and a layout whose real minimum was 1.84 m would satisfy
       nobody's reading of it.
-- [ ] **No two circuits are within 8 m of each other simultaneously.** **Missed by 0.51 m**, and
-      by *geometry* rather than timing: CIRC-A and CIRC-B share the z = 45 stretch of the Loggia
-      spine, so re-timing them moves the closest approach by 15 cm. Reported rather than failed
-      by `test_circuit_separation.gd`.
+- [x] **No two circuits are within 8 m of each other simultaneously.** Held by **distance rather
+      than by timing**, which is the decision worth carrying: phasing four periods so nobody ever
+      coincides is a constraint that breaks the moment any period is retuned, where spatial
+      disjointness holds forever. The four occupy `x 45-69`, `x 78-115`, `x 94-114` and `x 18-28`
+      in separate zones, and `test_circuit_separation.gd` measures the closest simultaneous
+      approach every run.
+
+      > **THE OLD MISS WAS 0.51 M AND WAS GEOMETRY, NOT TIMING** — `CIRC-A` and `CIRC-B` shared
+      > the z = 45 stretch of the Loggia spine, so no re-timing could have moved it more than
+      > 15 cm.
+
 - [x] **No circuit enters the empty plaza.** Sampled at 1 m along every route against Piazza
       Secca's declared bounds. It passes, and it is the one rule the shipped routes get right
       without argument.
@@ -187,3 +201,34 @@ inside masonry with both endpoints clear. A waypoint-only check would have calle
 So re-authoring the four routes now has to satisfy: the 55-75 s period at stroll speed, the 8 m
 separation, walkable ground throughout, and a Piazza del Vetro that is currently unreachable.
 `tools/stuck_census.tscn` grades a candidate against all of it in one run.
+
+## Re-authored 2026-08-21, and what it did not fix
+
+**THE ROUTES WERE TRANSCRIBED FROM PROSE AND NEVER CHECKED.** GDD-05 §2.5 names four routes in
+words; `VetraioLayout.CIRCUITS` held waypoints that had never been measured against the floor
+table. 14-28 % of each ran through building masses or over no floor, five waypoints sat inside
+blocks outright, and the periods implied twice stroll speed.
+
+**ONE OF §2.5's ROUTES CANNOT EXIST AT ALL, AND THAT IS A LEVEL FACT RATHER THAN AN OVERSIGHT.**
+`CIRC-B` is documented as "Loggia -> Mercato Piccolo -> Loggia". **Mercato Piccolo is reachable
+from the Loggia only through Piazza Secca**, which the same section forbids a circuit from
+entering — the two floors touch nothing else in common. `CIRC-B` is the Loggia's east half now and
+§2.5 records the amendment.
+
+**AND RE-AUTHORING DID NOT STOP NPCs FALLING OUT OF THE WORLD, WHICH IS THE USEFUL PART.** With
+every route measuring fully walkable, a live server still lost **19 bodies in 45 seconds**.
+Recording *where* they went over named the cause immediately, and it is not the routes:
+
+```
+(43.3, 35.7)  0.3 m outside Loggia        (45.7, 94.8)  0.3 m outside PonteCorto
+(43.0, 35.0)  0.7 m outside MouthWest     (22.5, 95.5)  0.5 m outside FondacoStreet
+(42.9, 31.1)  0.8 m outside MouthWest     (30.3, 65.7)  0.3 m outside ViaDelleLampe
+```
+
+**Every fall is 0.2-1.1 m outside a floor edge** — at the alley mouth, the bridge, the warehouse
+street, a seam between two floors. RVO jostles bodies sideways off a navmesh already eroded by
+the agent radius, and **there is no wall anywhere to stop them**. That is the missing walls, not
+the routes, and it is the same gap that lets a player walk off the piazza's south edge.
+`CrowdRescue` puts them back and counts them meanwhile.
+
+**A count could not have found this.** It said the district leaks; only the positions said where.

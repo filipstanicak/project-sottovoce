@@ -91,17 +91,18 @@ func test_a_degenerate_route_answers_rather_than_crashing() -> void:
 	assert_eq(nothing.point_at(1.0), Vector3.ZERO)
 
 
-func test_the_shipped_circuits_take_far_longer_than_their_declared_period() -> void:
-	# **US-0043's FIRST FINDING, MEASURED HERE SO IT CANNOT BE FORGOTTEN.**
-	# `MapData.circuit_periods` declares 55–75 s per GDD-05 §5.2, and the routes in
-	# `VetraioLayout.CIRCUITS` are 150–237 m long. At `TUN-CROWD-NPC-SPEED-STROLL`
-	# a lap takes 107–169 s; at the declared period a group would walk at 2.6–3.2
-	# m/s, which is faster than `TUN-SPEED-RUN`.
+func test_every_circuit_walks_its_declared_period_at_stroll() -> void:
+	# **US-0043's FIRST FINDING, NOW THE OTHER WAY UP.** This test used to assert the
+	# defect: the shipped routes were 150-237 m against declared periods of 55-75 s,
+	# which is **2.6-3.2 m/s** — twice `TUN-CROWD-NPC-SPEED-STROLL` and faster than
+	# `TUN-SPEED-RUN`. Its failure message said "retick US-0043's first criterion",
+	# and re-authoring the routes on 2026-08-21 made it fail in exactly that way.
 	#
-	# The walking group is the **only** blend that lets a player travel while
-	# gaining anonymity (GDD-03 §4.1.2). At twice blend-walk it would be a speed
-	# cheat wearing a crowd, so the speed is what the implementation honours and
-	# this is the record of what that costs.
+	# **THE SPEED IS THE INVARIANT AND THE PERIOD IS THE READ-OUT.** The walking
+	# group is the only blend that lets a player travel while gaining anonymity
+	# (GDD-03 §4.1.2), so a group moving at anything but stroll is a speed cheat
+	# wearing a crowd. `Steering` honours the speed, which is why a route too long
+	# for its period overran it rather than speeding up — the defect was silent.
 	var map: MapData = load("res://data/maps/map_vetraio.tres")
 	assert_gt(map.circuits.size(), 0, "the map declares no circuits — the check is vacuous")
 	var speed := Tuning.crowd.npc_speed_stroll
@@ -109,20 +110,23 @@ func test_the_shipped_circuits_take_far_longer_than_their_declared_period() -> v
 		var circuit := CrowdCircuit.new()
 		circuit.setup(map.circuits[index])
 		var declared: float = map.circuit_periods[index]
+		var walked := circuit.period_at(speed)
 		gut.p(
 			(
-				"circuit %d: %.1f m, declared %.0f s (%.2f m/s), at stroll %.0f s"
-				% [
-					index,
-					circuit.length(),
-					declared,
-					circuit.length() / declared,
-					circuit.period_at(speed)
-				]
+				"circuit %d: %.1f m, declared %.0f s, walked %.0f s at stroll (%.2f m/s implied)"
+				% [index, circuit.length(), declared, walked, circuit.length() / declared]
 			)
 		)
-		assert_gt(
-			circuit.length() / declared,
-			speed,
-			"circuit %d now fits its declared period — retick US-0043's first criterion" % index
+		# Within a second: the declared period is a whole number, the length is not.
+		assert_almost_eq(
+			walked,
+			declared,
+			1.0,
+			(
+				(
+					"circuit %d declares %.0f s and takes %.0f s at stroll — the route and its "
+					+ "period disagree, and the period is the one nothing enforces"
+				)
+				% [index, declared, walked]
+			)
 		)
