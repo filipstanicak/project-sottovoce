@@ -370,6 +370,15 @@ No gameplay rules replicated — there are none yet. No NPCs. Movement only.
 
 **Exit:** 80 NPCs with clones, blend groups, startle/gawk, ≤ 2 ms/frame.
 
+> **2026-08-21 — THE ISLAND IS FIXED; THE ROUTES ARE NOT.** The two alley mouths GDD-05 §2.1 has
+> always drawn are built, at x = 45 and x = 69, both 2.6 m wide. `PiazzaDelVetro` now reaches every
+> other street, unreachable idle anchors fall **24 → 8** (all eight inside market stalls, US-0041's
+> unfiltered grid), the navmesh goes 195 → 219 polygons and the anchor count is unchanged at 67.
+> `test_the_district_is_one_connected_island` turned green by itself.
+>
+> **What still blocks the exit is the four procession routes.** 14–28 % of each runs through
+> building masses, which the floor could not fix and re-authoring must. The original report follows.
+>
 > **2026-08-20 — M3'S EXIT CRITERION CANNOT BE MET AS WRITTEN, AND THE REASON IS THE MAP.**
 > "80 NPCs with clones, blend groups, startle/gawk" reads as satisfied and is not: **Piazza del
 > Vetro is a disconnected navmesh island**. There is no floor at all between it (z 0-30) and the

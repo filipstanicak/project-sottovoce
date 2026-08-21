@@ -193,7 +193,7 @@ func _report_the_gap() -> void:
 func _street_centres() -> Array:
 	var out: Array = []
 	for row: Array in VetraioLayout.FLOORS:
-		if not is_equal_approx(float(row[6]), VetraioLayout.STREET_Y):
+		if not is_equal_approx(float(row[5]), VetraioLayout.STREET_Y):
 			continue
 		var mid := Vector3(
 			float(row[1]) + float(row[3]) * 0.5, 0.0, float(row[2]) + float(row[4]) * 0.5
@@ -218,7 +218,7 @@ func _walkable_point(near: Vector3) -> Vector3:
 
 func _on_a_floor(at: Vector2) -> bool:
 	for row: Array in VetraioLayout.FLOORS:
-		if not is_equal_approx(float(row[6]), VetraioLayout.STREET_Y):
+		if not is_equal_approx(float(row[5]), VetraioLayout.STREET_Y):
 			continue
 		if Rect2(float(row[1]), float(row[2]), float(row[3]), float(row[4])).has_point(at):
 			return true

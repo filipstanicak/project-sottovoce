@@ -232,6 +232,20 @@ keeps the five spots strategically distinct without needing five different mecha
 > into `VetraioLayout.CIRCUITS` without ever being checked against the geometry.
 > `test_circuit_separation.gd` carries it.
 
+> **RESOLVED 2026-08-21: THE TWO ALLEY MOUTHS THIS SECTION'S OWN SCHEMATIC DRAWS ARE BUILT.**
+> §2.1 marks the piazza's south edge at z = 30 as a wall pierced by two openings; neither existed
+> in `VetraioLayout.FLOORS`. `MouthWest` at x = 45 and `MouthEast` at x = 69, both `MIN_ALLEY_WIDTH`
+> 2.6 m, now bridge z 30–36. **The east one is derived rather than chosen**: `CIRC-A` already
+> crosses z = 30 at x = 69.1, so the procession was authored walking through an opening nobody had
+> cut. `PiazzaDelVetro` reaches every other street, unreachable idle anchors fall **24 → 8**, and
+> the anchor count is unchanged at 67 because the mouths are floors rather than zones. The eight
+> that remain are all **inside market stalls**, which is US-0041's unfiltered anchor grid.
+>
+> **The routes are still not walkable**, and that is separate: the mouths took CIRC-A from 15.8 %
+> to 14.1 % and left the others alone, because what remains is masonry rather than missing floor.
+>
+> The original report follows.
+>
 > **BLOCKER, 2026-08-20: PIAZZA DEL VETRO CANNOT BE WALKED TO.** `CIRC-A` and `CIRC-D` both
 > begin in the piazza, and there is **no floor at all** between it (z 0–30) and the Loggia
 > (z 36–54) for x 30–90 — a 60 × 6 m void, 90 of 90 sampled points with nothing under them.
