@@ -186,7 +186,7 @@ func _report_the_gap() -> void:
 
 func _street_centres() -> Array:
 	var out: Array = []
-	for row: Array in LevelGeometry.street_floors():
+	for row: Array in VetraioGround.street_floors():
 		var mid := Vector3(
 			float(row[1]) + float(row[3]) * 0.5, 0.0, float(row[2]) + float(row[4]) * 0.5
 		)
@@ -209,7 +209,7 @@ func _walkable_point(near: Vector3) -> Vector3:
 
 
 func _on_a_floor(at: Vector2) -> bool:
-	return LevelGeometry.on_a_floor(at)
+	return VetraioGround.on_a_floor(at)
 
 
 func _inside_stalls() -> Array:
@@ -227,7 +227,7 @@ func _stall_note(at: Vector3) -> String:
 
 
 func _stall_at(at: Vector3) -> String:
-	return LevelGeometry.stall_at(Vector2(at.x, at.z))
+	return VetraioGround.stall_at(Vector2(at.x, at.z))
 
 
 ## **CAN THE FOUR PROCESSIONS ACTUALLY WALK THEIR ROUTES?** GDD-05 SS2.5.
@@ -295,7 +295,7 @@ func _report_route_solidity(points: Array) -> void:
 
 
 func _block_at(at: Vector2) -> String:
-	return LevelGeometry.block_at(at)
+	return VetraioGround.block_at(at)
 
 
 ## **IS THIS NPC WALKING A PROCESSION?** The distinction decides where a fix goes.
@@ -395,5 +395,5 @@ func _report_where_they_fell() -> void:
 ## Which floor a fall was closest to leaving, so the reader does not have to hold
 ## the layout in their head.
 func _edge_note(at: Vector2) -> String:
-	var edge := LevelGeometry.nearest_edge(at)
+	var edge := VetraioGround.nearest_edge(at)
 	return "  %.1f m outside %s" % [edge[0], edge[1]]
