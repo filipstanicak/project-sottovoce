@@ -313,9 +313,19 @@ asked.
 > there begins alone, uniquely identifiable, and on open ground for `TUN-SUSPICION-GAIN-OPEN`
 > before they can move.
 >
-> It is a **release blocker** against GDD-03 §6.3 rule 3, it is the **idle anchors** that fail it
-> rather than any code, and `tools/anchor_census.gd` grades a change to them in one run.
-> Probability moves off Low because this is no longer hypothetical.
+> It is a **release blocker**, it is the **level data** that fails it rather than any code, and
+> `tools/anchor_census.gd` grades a change in one run. Probability moves off Low because this is no
+> longer hypothetical.
+>
+> **AND ON 2026-08-21 IT ACQUIRED AN OWNER IT COULD NOT HAVE HAD BEFORE.** It was scored against
+> GDD-03 §6.3 rule 3, which required the clone minimum *at all times* — including the tick a player
+> is placed, which **no arrangement of a crowd can satisfy on a map that seats one NPC there**. A
+> blocker nothing can close is one nobody acts on, and this one sat for two milestones. Rule 3 now
+> binds from `CloneParity.grace_seconds()` after placement and the opening arrangement is
+> **GDD-05 §2.7 rule 8's**, measured every run by `test_spawn_points.gd`: S3 4, S4 1, S5 6 of 8.
+> **The exposure is unchanged and the score does not move** — a player placed at S4 is still
+> uniquely identifiable for 19.9 s. What moved is that the fix is now a level pass with a census
+> and a tool rather than a design law no map could satisfy. TDD-08 §5.1.5.
 >
 > **AND THE FOUR-LAYER MITIGATION IS TWO LAYERS SHORT.** Layers 2 and 3 are animation parity, and
 > there are **no animation clips in this project on either rig** — see `RISK-ANIM-SCOPE`, which

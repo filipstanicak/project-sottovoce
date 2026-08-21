@@ -366,6 +366,29 @@ respawn is always satisfiable.
 > have yet.** Reported rather than patched: authoring interior massing is a level pass with an
 > owner, and it is the same class of finding as §5.2's 0.51 m circuits.
 
+> **RULE 8 ARRIVED ON 2026-08-21, AND IT IS A RE-HOMING RATHER THAN A NEW DEMAND.**
+> GDD-03 §6.3 rule 3 used to require the clone minimum "of every player" at all times, which
+> includes the tick the match places them. **Four personas at the floor need eight clone seats, and
+> three of these six spawn points cannot see eight NPCs at any arrangement of the crowd** — `S4`
+> sees **one**. A permutation cannot conjure a seat that is not there, so rule 3 was violated at
+> the first tick of every match by the level, and it stayed a reported release blocker for two
+> milestones because no code change could close it.
+>
+> Rule 3 now binds from `CloneParity.grace_seconds()` after placement — one director pass plus one
+> blend-walk of the radius, **19.9 s**, the time in which a player can walk to the crowd themselves.
+> **The exposure at `S4` is unchanged and is not excused**; what changed is that it is now a
+> level-data defect with a census, a rule number and a tool, instead of a design law nothing could
+> satisfy. `test_spawn_points.gd` grades all six every run and `tools/anchor_census.gd` grades a
+> candidate change in one.
+>
+> **THE FIX IS TO MOVE A SPAWN POINT, NOT TO FILL THE FONDACO.** §2.7 puts `S3` and `S4` in it by
+> name and §3 makes it low-density on purpose — "few NPCs, where chases go to be resolved", 3–5
+> NPCs in its own density table. Raising its density to satisfy rule 8 deletes the one place on the
+> map designed to have no crowd to hide in. `S5` is the cheap one: **10.8 m** to a legal site, still
+> "Mercato Piccolo, north". `S4`'s nearest legal 8-seat site is **55 m away at (72, 52)**, which
+> drags it to the centre and is exactly what the anti-camp spread exists to prevent — so `S3` and
+> `S4` are a real level decision and not a nudge.
+
 **Spawn placement rules:**
 
 | # | Rule | Value | Reason |
@@ -377,6 +400,7 @@ respawn is always satisfiable.
 | 5 | No spawn is in Piazza Secca or above street level | ✅ | You never begin a life already accruing suspicion. |
 | 6 | No spawn has a sightline longer than 25 m to another spawn | ❌ **measured: 9 of 15 pairs are in clear sight** | Prevents a camper covering two spawns at once. |
 | 7 | Fallback when constraints are unsatisfiable | Choose the farthest available point | **A spawn system that can fail is a crash waiting for a playtest.** |
+| 8 | Every spawn seats `TUN-CROWD-CLONE-LOCAL-MIN` clones of **each** playable persona within `TUN-CROWD-CLONE-LOCAL-RADIUS` — eight NPCs at the shipped values | ❌ **measured: S3 4, S4 1, S5 6 of 8** | **A player placed where the crowd is thin is uniquely identifiable before they can move.** Added 2026-08-21, when GDD-03 §6.3 rule 3 was scoped past the placement instant: the opening arrangement is the level's obligation and this is where it lives. |
 
 **The anti-spawn-camp analysis.** With 6 spawns, 6 players and constraint 2 at 40 m, a killer
 standing at any point covers at most **two** spawn points within 40 m. Worked from the table:
@@ -755,7 +779,7 @@ Run in order. Each stage gates the next.
 - [ ] All five hiding spots exist, each `TUN-BLEND-PROP-CAPACITY` = 1.
 - [ ] All four circuits exist with the periods in §2.5, verified by `test_circuit_separation.gd`.
 - [ ] No circuit enters Piazza Secca.
-- [ ] All six spawns exist and satisfy rules 1–7 in §2.7.
+- [ ] All six spawns exist and satisfy rules 1–8 in §2.7. **Rules 6 and 8 are measured ❌** — nine of fifteen pairs in clear sight, and S3/S4/S5 seating 4/1/6 of 8.
 - [ ] The anti-camp analysis holds: from any position, ≥ 3 spawns remain valid under `TUN-RESPAWN-MIN-DIST-FROM-KILLER`.
 - [ ] Every zone samples inside its §3 density band at ≥ 5 points.
 - [ ] Piazza Secca samples 0–1 NPCs within 6 m at every point.

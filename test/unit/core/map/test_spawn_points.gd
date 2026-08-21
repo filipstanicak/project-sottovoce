@@ -124,7 +124,15 @@ func test_no_spawn_can_see_another() -> void:
 # ---------------------------------------------------------------------------
 
 
-## **GDD-03 §6.3 RULE 3 CANNOT HOLD AT S3 AND S4, AND THE ANCHORS ARE NOT WHY.**
+## **GDD-05 §2.7 RULE 8: EVERY SPAWN POINT MUST SEAT THE CLONE MINIMUM.**
+##
+## **THIS WAS GDD-03 §6.3 RULE 3's UNTIL 2026-08-21, AND THAT IS THE FINDING THIS
+## FILE CARRIED FOR TWO MILESTONES.** Rule 3 said "at all times", which includes
+## the tick a player is placed — and no arrangement of a crowd can put eight clone
+## seats where the map offers one. A design law nothing can satisfy is one nobody
+## can act on, so it was reported and left. Rule 3 is scoped by
+## `CloneParity.grace_seconds()` now and the opening arrangement is the **level's**
+## obligation, which is a pass somebody can actually run.
 ##
 ## A player needs `TUN-CROWD-CLONE-LOCAL-MIN` clones of each of four personas
 ## within `TUN-CROWD-CLONE-LOCAL-RADIUS` — eight NPCs, so about eight idle
@@ -137,11 +145,16 @@ func test_no_spawn_can_see_another() -> void:
 ## its anchor density to satisfy the clone minimum deletes the one place on the
 ## map designed to have no crowd to hide in.
 ##
-## So three documents each say something true and the three cannot all hold. That
-## is a design decision with an owner, not a number to nudge, and it is reported
-## here rather than resolved.
+## **SO THE THREE DOCUMENTS CAN ALL HOLD NOW, AND EXACTLY ONE OF THEM IS FALSE.**
+## GDD-05 §2.7 keeps its spawn points, GDD-05 §3 keeps the Fondaco empty, GDD-03
+## §6.3 rule 3 keeps its floor — and §2.7 rule 8 is ❌, which is a level-data
+## defect with a census, a tool and an owner rather than a contradiction.
 func test_every_spawn_can_hold_the_clone_minimum() -> void:
-	var needed := PERSONAS * int(Tuning.crowd.clone_local_min)
+	# **COUNTED FROM THE TUNABLES, NEVER WRITTEN DOWN.** `CloneParity` owns the
+	# threshold so this file and `test_crowd_seating.gd` cannot grade the same map
+	# against two different numbers.
+	var needed := CloneParity.seats_required()
+	assert_eq(needed, PERSONAS * int(Tuning.crowd.clone_local_min), "the seat requirement moved")
 	var short: Array[String] = []
 	for slot: int in _map.spawn_points.size():
 		var seats := _seats_at(_map.spawn_points[slot])
@@ -149,17 +162,18 @@ func test_every_spawn_can_hold_the_clone_minimum() -> void:
 		if seats < needed:
 			short.append("S%d has %d of %d" % [slot + 1, seats, needed])
 	if short.is_empty():
-		assert_eq(short, [] as Array[String], "GDD-03 §6.3 rule 3")
+		assert_eq(short, [] as Array[String], "GDD-05 §2.7 rule 8")
 		return
 	pending(
 		(
 			(
-				"%s. S3 and S4 are in the Fondaco, which GDD-05 makes low-density on "
-				+ "purpose — it is where chases resolve. GDD-05 §2.7, GDD-05 §3 and "
-				+ "GDD-03 §6.3 rule 3 cannot all hold, and choosing between them is the "
-				+ "owner's. `tools/anchor_census.gd` grades any change in one run."
+				"%s. GDD-05 §2.7 rule 8. S3 and S4 are in the Fondaco, which GDD-05 makes "
+				+ "low-density on purpose — it is where chases resolve — so the fix is to "
+				+ "move a spawn point, not to fill the Fondaco. A player placed here is "
+				+ "covered for %.0f s by the rule-3 grace and is short of clones for it. "
+				+ "`tools/anchor_census.gd` grades any change in one run."
 			)
-			% ", ".join(short)
+			% [", ".join(short), CloneParity.grace_seconds()]
 		)
 	)
 

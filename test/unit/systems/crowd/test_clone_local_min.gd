@@ -1,14 +1,13 @@
 ## **LAYER 4 OF FOUR, AND THE ONLY ONE WHOSE FAILURE IS INVISIBLE.** US-0047,
-## TDD-08 §5 and §5.1, GDD-03 §6.3 rule 3.
+## TDD-08 §5, §5.1.4 and §5.1.5, GDD-03 §6.3 rule 3.
 ## **A UNIT TEST RUNNING A THREE-MINUTE MATCH.** The integration suite has no room
-## for 5 400 ticks of physics, so the crowd is real — real brains, real pool bodies,
-## the real hash — and only **navigation** is modelled, as a straight line at
-## `TUN-CROWD-NPC-SPEED-STROLL`: optimistic about travel, unable to flatter the rule.
+## for 5 400 ticks of physics, so the crowd is real and only **navigation** is
+## modelled, as a straight line at `TUN-CROWD-NPC-SPEED-STROLL`: optimistic about
+## travel, so it cannot flatter the rule.
 ##
 ## **THE COUNTERFACTUAL IS ASSERTED BEFORE THE GUARANTEE.** A crowd that never
-## develops a local hole satisfies the guarantee perfectly and would go green with
-## `CloneBalance` deleted, so the first test runs the same three minutes with the
-## pass switched off and requires the starvation to happen.
+## develops a hole would go green with `CloneBalance` deleted, so the first test
+## runs the same three minutes with the pass off and requires starvation.
 extends GutTest
 
 const SEED := 20260818
@@ -19,8 +18,7 @@ const PLAYERS := 6
 ## Three minutes at the 30 Hz net tick. The story's own duration.
 const MATCH_TICKS := 5400
 
-## Ticks between samples. A third of a second: nobody loses a clone faster than
-## that at walking speed, and every tick would be a second of test time for nothing.
+## A third of a second: nobody loses a clone faster than that at walking speed.
 const SAMPLE_EVERY := 10
 
 var _pool: NpcPool
@@ -60,8 +58,8 @@ func before_each() -> void:
 	_cluster_the_players()
 
 
-## **SIX PLAYERS IN ONE ZONE** — the case that matters, since local depletion is a
-## *local* failure that evenly spread players never produce.
+## **SIX PLAYERS IN ONE ZONE** — local depletion is a *local* failure that evenly
+## spread players never produce.
 func _cluster_the_players() -> void:
 	_watchers = PackedVector3Array()
 	var here: Vector3 = _map.idle_anchors[0]
@@ -112,8 +110,8 @@ func _step_the_crowd() -> void:
 		_pool.set_position(index, here + to.normalized() * step)
 
 
-## What `CrowdIntent._an_anchor` does: the reservation if there is one, otherwise
-## a seeded pick. The whole of layer 4's effect on an NPC is this one line.
+## What `CrowdIntent._an_anchor` does: the reservation if there is one, otherwise a
+## seeded pick — the whole of layer 4's effect on an NPC.
 func _next_anchor(index: int) -> Vector3:
 	var directed := _balance.take(index)
 	if directed != CrowdDirector.NO_GOAL:
@@ -132,7 +130,7 @@ func _apply(sent: Dictionary) -> void:
 
 
 ## The worst count any player had of any in-use persona, sampled through the run.
-## Returns [worst, worst_settled, samples, breaches, settle_ticks, late_breaches].
+## `[worst, worst_settled, samples, breaches, settle_ticks, late_breaches, late]`.
 func _run_the_match(rebalancing: bool) -> Array:
 	_deficits_seen = 0
 	_held_seen = 0
@@ -147,10 +145,12 @@ func _run_the_match(rebalancing: bool) -> Array:
 	var samples := 0
 	var breaches := 0
 	var late_breaches := 0
-	# **TWENTY SECONDS.** A clone crosses the local radius in about eighteen, so
-	# nothing that re-routes rather than teleporting can be judged before then —
-	# and the first seconds belong to `CrowdPlacement`, which is persona-blind.
-	var settle := interval * 10
+	# **THE GRACE GDD-03 §6.3 RULE 3 IS NOW SCOPED BY, DERIVED.** This read
+	# `interval * 10` and landed within four ticks of the derivation — a multiplier
+	# that agrees with the answer is not one that follows it, and the first retune
+	# of the radius would have parted them in silence.
+	var settle := CloneParity.grace_ticks()
+	var late_readings := 0
 	for tick: int in range(1, MATCH_TICKS + 1):
 		_step_the_crowd()
 		_reindex()
@@ -163,10 +163,8 @@ func _run_the_match(rebalancing: bool) -> Array:
 		if tick % SAMPLE_EVERY != 0:
 			continue
 		samples += 1
-		# **WHAT THE REGION ACTUALLY SUPPLIES**, against the floor it is asked to hold.
-		# If the mean sits below the floor, no accounting fixes it: the crowd near a
-		# clustered group is thinner than the rule requires, and the remedy is density
-		# rather than scheduling.
+		# **WHAT THE REGION ACTUALLY SUPPLIES**, against the floor it must hold. A mean
+		# below the floor is a density problem no accounting fixes.
 		_supply_total += float(_hash.count_within(_watchers[0], radius))
 		for persona: StringName in CrowdRoster.PLAYABLE:
 			_clone_supply += float(_hash.count_persona(_watchers[0], radius, persona))
@@ -179,8 +177,9 @@ func _run_the_match(rebalancing: bool) -> Array:
 					if tick > settle:
 						late_breaches += 1
 				if tick > settle:
+					late_readings += 1
 					worst_settled = mini(worst_settled, seen)
-	return [worst, worst_settled, samples, breaches, settle, late_breaches]
+	return [worst, worst_settled, samples, breaches, settle, late_breaches, late_readings]
 
 
 func test_the_scenario_actually_starves_without_the_director() -> void:
@@ -206,25 +205,22 @@ func test_the_scenario_actually_starves_without_the_director() -> void:
 
 
 func test_the_local_minimum_holds_over_a_clustered_match() -> void:
-	# The story's fourth criterion, with the first passes excluded: a clone crosses
-	# the radius in about eighteen seconds, so nothing that re-routes rather than
-	# teleports can be true at tick one.
+	# The story's fourth criterion, over the window GDD-03 §6.3 rule 3 binds in.
 	var result := _run_the_match(true)
 	gut.p(
 		(
 			(
-				"with the director: worst %d overall, %d after settling; "
-				+ "%d of %d readings under the floor, %d of them after settling; "
-				+ "%d fetches over %d passes"
+				"with the director: worst %d overall, %d after the %.1f s grace; "
+				+ "%d of %d readings under the floor, %d of %d after it"
 			)
 			% [
 				result[0],
 				result[1],
+				CloneParity.grace_seconds(),
 				result[3],
 				result[2] * PLAYERS * 4,
 				result[5],
-				_balance.rerouted_total,
-				_balance.passes
+				result[6]
 			]
 		)
 	)
@@ -250,10 +246,9 @@ func test_the_local_minimum_holds_over_a_clustered_match() -> void:
 	assert_gt(_balance.rerouted_total, 0, "nothing was ever fetched — the rule is inert")
 	assert_gt(_balance.held_total, 0, "nothing was ever held; only fetching cannot hold a floor")
 	# **THE RULE NEVER IGNORES A BREACH — THAT IS WHAT IT CAN GUARANTEE.** "Zero
-	# breaches, always" was asserted here for one map and was never a property of the
-	# rule: a fetched clone walks 25 m in about eighteen seconds, so a player who
-	# loses one is short for that walk however promptly help is sent. Supply is not
-	# the problem (4.27 clones of each persona on average against a floor of 2).
+	# breaches, always" was asserted here for one map and was never a property of
+	# the rule: a fetched clone walks the radius in eighteen seconds, so a player who
+	# loses one is short for that walk however promptly help is sent. TDD-08 §5.1.4.
 	assert_true(
 		_deficits_seen + _suppressed_seen >= _short_seen,
 		(
@@ -271,21 +266,29 @@ func test_the_local_minimum_holds_over_a_clustered_match() -> void:
 		int(result[0]) >= int(Tuning.crowd.clone_local_min) - 1,
 		"a clustered player fell to %d, further below the floor than one walk explains" % result[0]
 	)
-	# Under one reading in a hundred, which is the number the corpus quotes.
-	assert_lt(
-		result[3] * 100,
-		result[2] * PLAYERS * 4,
-		"the floor was under water for more than 1 %% of readings"
+	# **THE ASSERTION IS ON THE WINDOW THE RULE BINDS IN; THE WHOLE POPULATION IS
+	# PRINTED BESIDE IT.** Charging rule 3 for the readings inside its own grace
+	# measures `CrowdPlacement`'s arrangement and calls the answer layer 4's.
+	# `CloneParity` holds why the grace exists; TDD-08 §11.2.2's perf gate made the
+	# same print-the-other-one choice, so nothing looks dropped.
+	assert_gt(
+		int(result[6]), 100, "too few settled readings for the scoped assertion to mean anything"
 	)
-	# The settled worst is reported, not asserted at the floor. It is 1, and the one
-	# it is missing is the clone that is walking — see the guarantee asserted above.
+	assert_lt(
+		int(result[5]) * 100,
+		int(result[6]),
+		"the floor was under water for more than 1 %% of the readings rule 3 binds on"
+	)
+	# **THE SETTLED WORST IS REPORTED AND NOT ASSERTED, AND THAT IS NOT A GAP.** It
+	# is a minimum over a subset of the readings the assertion above covers, so
+	# `worst >= floor - 1` already implies it. It is 1, and the one it is missing is
+	# the clone that is walking — which is why US-0047's *always* stays unticked.
 	gut.p("settled worst %d against a floor of %d" % [result[1], Tuning.crowd.clone_local_min])
 
 
 func test_it_reroutes_and_never_respawns_or_repersonas() -> void:
 	# The story's second criterion, and GDD-03 §6.3 rule 4 underneath it: a server
-	# that changed a clone's identity would be describing a different city from the
-	# one every client derived from the same seed.
+	# that changed an identity describes a different city from the one clients drew.
 	var before := _pool.roster.duplicate()
 	var bodies := _pool.body_count()
 	for _pass: int in 20:
@@ -300,10 +303,9 @@ func test_it_reroutes_and_never_respawns_or_repersonas() -> void:
 
 
 func test_every_destination_is_a_place_and_never_a_player() -> void:
-	# **THE MECHANICAL HALF OF "MUST NOT READ AS CLONES FOLLOWING PLAYERS".** The
-	# target is city furniture. A clone sent to an anchor arrives and stands there
-	# like everybody else; a clone sent at a player converges on whoever is alone,
-	# which is the tell this whole system exists to avoid producing.
+	# **THE MECHANICAL HALF OF "MUST NOT READ AS CLONES FOLLOWING PLAYERS".** A clone
+	# sent to an anchor stands there like everybody else; sent at a player it
+	# converges on whoever is alone, which is the tell.
 	_starve_the_district()
 	var sent := _balance.rebalance(_hash, _pool, _watchers, CrowdRoster.PLAYABLE)
 	assert_gt(sent.size(), 0, "no re-route happened, so no destination was checked")
@@ -339,8 +341,7 @@ func test_a_reroute_does_not_re_aim_at_a_player_who_moves() -> void:
 
 func test_nobody_is_robbed_to_pay_somebody_else() -> void:
 	# Two clusters, both short. A rule that took the nearest clone regardless would
-	# move one out of A's radius to fix B's, then back again next pass — and
-	# neither player would ever hold two.
+	# move one out of A's radius to fix B's and back again — neither ever holds two.
 	var far: Vector3 = _map.idle_anchors[_map.idle_anchors.size() / 2]
 	_watchers.append(far)
 	var radius: float = Tuning.crowd.clone_local_radius

@@ -407,13 +407,20 @@ refused to conscript somebody else's minimum.**
 | (100, 70) | **6** |
 | (114, 97.5) | **0** |
 
-A permutation cannot conjure a seat that is not there. **(114, 97.5) can see no NPC at all**, so a
-player spawning there begins the match with zero clones *and* on open ground for
-`TUN-SUSPICION-GAIN-OPEN` — alone, uniquely identifiable, before they can move. GDD-03 §6.3 rule 3
-is a release blocker, and it is the **idle anchors** that fail it: that corner has none within
-25 m of its spawn point. Re-authoring them is level design with an owner, so
-`test_crowd_seating.gd` asserts what the code owes — **zero shortfalls where there is room** — and
-prints the census, exactly as `test_circuit_separation.gd` reports US-0043's 0.51 m.
+A permutation cannot conjure a seat that is not there, so a player spawning at the thinnest of them
+begins the match all but alone *and* on open ground for `TUN-SUSPICION-GAIN-OPEN` — uniquely
+identifiable, before they can move. `test_crowd_seating.gd` asserts what the code owes — **zero
+shortfalls where there is room** — and prints the census, exactly as `test_circuit_separation.gd`
+reports US-0043's 0.51 m.
+
+> **THE CENSUS MOVED AND THE FINDING DID NOT.** The figures above are US-0096's. After US-0041's
+> follow-up nudged the eight anchors that sat inside market stalls onto walkable ground, the same
+> test reads **S1 12, S2 15, S3 4, S4 1, S5 6, S6 8** — different numbers, same three spawn points
+> short. A shortfall that survives two re-authorings of the anchor grid is the zone's density, not
+> the grid's.
+>
+> **AND IT IS NO LONGER GDD-03 §6.3 RULE 3's, AS OF 2026-08-21.** It is **GDD-05 §2.7 rule 8's** —
+> see §5.1.5.
 
 
 ### 5.1.4 What the floor actually guarantees, and why it is not "always"
@@ -456,6 +463,55 @@ than one below the floor and a breach rate under 1 % of readings. US-0047's *alw
 stays unticked, as it always was.
 
 ---
+
+### 5.1.5 Rule 3 is scoped past the placement instant, and what that does and does not buy
+
+**2026-08-21.** GDD-03 §6.3 rule 3 required the local minimum "of every player", at all times —
+and all times includes the tick the match places somebody. **Three of six spawn points cannot seat
+eight clones at any arrangement**, so the rule was violated at the first tick of every match by the
+level rather than by the crowd, and it stayed a *reported* release blocker for two milestones
+because no code change could close it. **An unsatisfiable blocker stops being a decision and becomes
+a fact of the corpus**, which is the failure mode worth recording here.
+
+**THE RULE NOW BINDS FROM `CloneParity.grace_seconds()` AFTER PLACEMENT**, and the opening
+arrangement is GDD-05 §2.7 rule 8's. `CloneParity` is in Core, pure but for `Tuning`, because three
+readers need one number: this chapter's tests, `test_spawn_points.gd`, and whatever `SYS-SUSPICION`
+does about a freshly-placed player in M4.
+
+| | | |
+|---|---|---|
+| `walk_seconds()` | `TUN-CROWD-CLONE-LOCAL-RADIUS / TUN-CROWD-NPC-SPEED-STROLL` | **17.86 s** |
+| `grace_seconds()` | `TUN-CROWD-DIRECTOR-INTERVAL` + the walk | **19.86 s**, 596 ticks, 4.1 % of a match |
+| `seats_required()` | `TUN-CROWD-CLONE-LOCAL-MIN` × the playable personas | **8** |
+
+**IT IS DERIVED AND DELIBERATELY NOT A TUNABLE.** Every term is already tuned and a fourth number
+could be set to a value the first three contradict — a grace shorter than the walk would bind the
+rule before anybody could satisfy it. Same reasoning as `CloneBalance._anchors_for`'s 2.8 m margin.
+
+**ONE NUMBER SERVES BOTH ENDS OF THE RULE, AND THAT IS INVARIANT 1 RATHER THAN LUCK.** It is how
+long a fetched clone takes to reach the player *and* how long the player takes to reach the crowd,
+because `TUN-CROWD-NPC-SPEED-STROLL` is forced equal to `TUN-SPEED-BLENDWALK`. So a player placed in
+a thin corner never has to **run** to buy back anonymity, which design law 1 would charge them for.
+`test_clone_parity_scope.gd` asserts that equality alongside the grace, because the derivation would
+keep computing after the two diverged and would no longer mean what this section says.
+
+**AND `test_clone_local_min.gd` NOW ASSERTS THE WINDOW THE RULE BINDS IN.** It carried a `settle` of
+`interval * 10` — 600 ticks, which was within four of the derivation and is now `grace_ticks()`;
+**a multiplier that agrees with the answer is not one that follows it.** The measured split, over a
+clustered three-minute match:
+
+| | Readings under the floor |
+|---|---|
+| Whole run | 71 of 12 960 |
+| **After the grace — asserted** | **47 of 11 544, 0.41 %** |
+
+The whole population is printed beside the assertion, the same choice §11.2.2's perf gate makes, so
+nothing looks dropped. **The residual is still the journey** — §5.1.4's finding is untouched, the
+guarantee is still "a breach is never ignored", and US-0047's *always* criterion stays unticked.
+
+**WHAT THE SCOPE DOES NOT BUY IS ANY CHANGE AT `S4`.** A player placed there still sees one NPC
+within 25 m and is still uniquely identifiable for the grace. The exposure is identical; only its
+owner moved, from a design law no map could satisfy to a level rule with a census and a tool.
 
 ---
 
@@ -614,6 +670,7 @@ corpus has already shipped three claims of the second kind that were the first.
 | `tools/anchor_census.gd` | Grades a set of idle anchors: zones wanted-vs-placed, clone seats per spawn point, and where a legal anchor could go | **Exists**, US-0096. Not in the original table, and not a system — a level-data instrument. Run it after any change to the anchor grid; it is what found `Fondaco` receiving **zero** anchors |
 | `scripts/presentation/npc_view.gd` | Client-side view | **Exists.** One `GreyboxBody` per NPC index, interpolated `TUN-NET-INTERP-BUFFER` in the past like `RemotePawns`. **Absence means "no update", never "gone"** — the opposite rule, because culling, rate LOD and the delta all omit NPCs a client must keep drawing. It culls by distance instead, one margin wider than the server. **Nothing wears a persona**: the roster needs `match_seed` and no client is told it until `SYS-MATCH` |
 | `scripts/core/crowd_roster.gd` | The derived roster | **Exists**, US-0039. In Core, not here, because both peers derive it |
+| `scripts/core/clone_parity.gd` | **When rule 3 binds**, and the seat count that makes it satisfiable: `grace_seconds()`, `walk_seconds()`, `seats_required()` | **Exists**, 2026-08-21. Not in the original table. In Core rather than here because three readers need one number — §5's tests, `test_spawn_points.gd`, and M4's `SYS-SUSPICION`; and **not** on `CloneBalance`, which was at 399 of its 400 lines and owns the journey rather than the rule |
 
 ---
 
@@ -636,7 +693,7 @@ a table saying "X asserts Y" is what stops anybody checking by hand.
 | `test_gawk_corpse_phases.gd` | Cluster disperses at 6 s; corpse persists to 20 s | `test_gawk_and_corpses.gd`, US-0044 |
 | `test_clone_roster_parity.gd` | Three peers derive identical rosters from one seed | `test/unit/core/test_crowd_roster.gd` — the roster is pure, so parity is asked directly rather than across peers |
 | `test_clone_animation_parity.gd` | Every `anonymous_clip_names` entry exists in the clone library | Not written. **US-0046**, and there are no clips |
-| `test_clone_local_min.gd` | Over a 3-minute clustered match, every player always had ≥ 2 same-persona clones within 25 m | `test/unit/systems/crowd/test_clone_local_min.gd`, US-0047 — a **unit** test, because 5 400 ticks of physics do not fit the integration budget; see §5.1.2. **100 readings of 12 960 under the floor after settling, never below 1** — the figure this row first carried, 2 of 12 960, was a property of one anchor arrangement and is retracted in §5.1.4. What it asserts is that **a breach is never ignored**, so the *always* criterion is reported rather than ticked. Its counterfactual runs first and requires the starvation to actually happen |
+| `test_clone_local_min.gd` | Over a 3-minute clustered match, every player always had ≥ 2 same-persona clones within 25 m | `test/unit/systems/crowd/test_clone_local_min.gd`, US-0047 — a **unit** test, because 5 400 ticks of physics do not fit the integration budget; see §5.1.2. **47 of 11 544 readings under the floor after the grace — 0.41 % — never below 1**, with 71 of 12 960 over the whole run printed beside it. Two earlier figures this row carried are retracted: 2 of 12 960 was a property of one anchor arrangement (§5.1.4) and 100 of 12 960 predates the stall-anchor nudge. **The assertion is on the window rule 3 binds in** as of 2026-08-21 — §5.1.5. What it guarantees is that **a breach is never ignored**, so the *always* criterion is reported rather than ticked. Its counterfactual runs first and requires the starvation to actually happen |
 | `test_crowd_seating.gd` | The opening arrangement satisfies the local minimum at every spawn point that has room, and is a permutation of the placement | `test/unit/systems/crowd/test_crowd_seating.gd`, US-0096. Not in the original table. **It prints a seat census**, because three of six spawn points cannot hold the minimum at any arrangement — see §5.1.3 |
 | `test_director_runs_layer_four.gd` | The shipped `CrowdDirector` really calls layer 4, on the 2 s timer, and `CrowdIntent` really prefers the reservation | `test/unit/systems/crowd/test_director_runs_layer_four.gd`, US-0047. Not in the original table. **A criterion can be true of a class and false of the game**, which is what happened to US-0039's pool |
 | `test_far_band_path_validity.gd` | A Far agent tolerates more path drift than a Near one, and the multiplier is the band's own stride | `test/unit/systems/crowd/test_far_band_path_validity.gd`, US-0041's last line. Not in the original table. **Its first version passed while the Far band got nothing**: the seed agreed with the answer, so genuinely-Far agents compared equal and were skipped — measured Near 5.0, Mid 15.0, **Far 5.0** |
@@ -645,10 +702,11 @@ a table saying "X asserts Y" is what stops anybody checking by hand.
 | `test_npc_speed_matches_blendwalk.gd` | `TUN-CROWD-NPC-SPEED-STROLL == TUN-SPEED-BLENDWALK` | Invariant 1 in `test/unit/core/tuning/test_tuning_ranges.gd`. **And measured on a walking crowd** by `test_crowd_moves.gd`, which is the half a tuning check cannot see |
 | `test_flee_slower_than_sprint.gd` | `TUN-CROWD-NPC-SPEED-FLEE < TUN-SPEED-SPRINT` | Invariant 14, same file |
 | `test_navmesh_coverage.gd` | Every street-level playable point is on the navmesh; no roof or balcony is | `test/integration/test_navmesh_coverage.gd`, **and** a same-named unit test of `MapData`'s declarations. Both exist and they check different things |
-| `test_circuit_separation.gd` (US-0043's own note) | Circuit periods, the empty plaza, and the 8 m separation rule | `test/unit/core/map/test_circuit_separation.gd`. **The separation rule is missed by 0.51 m and reported rather than failed** — CIRC-A and CIRC-B share the z=45 spine, so it is geometry rather than timing |
+| `test_circuit_separation.gd` (US-0043's own note) | Circuit periods, the empty plaza, and the 8 m separation rule | `test/unit/core/map/test_circuit_separation.gd`. **This row said "missed by 0.51 m" until 2026-08-21 and was stale**: the four routes were re-authored against the floor table and the closest simultaneous approach is now **21.20 m** against a rule of 8. Separation is held by **distance rather than timing** — the four sit in disjoint zones, so no retune of a period can break it |
 | `test_npcview_is_inert.gd` | `NpcView` has no agent, no brain, no `step()` | Not written. **US-0045/0046** |
 | `test_no_midmatch_instantiate.gd` | No NPC is instantiated or freed between match start and end | Partly: `test/integration/test_npc_pool.gd` asserts `body_count()` never falls and that `activate()` refuses to grow |
 | `test_spatial_hash_correctness.gd` | Hash queries match brute-force results for 1000 random queries | `test/unit/systems/crowd/test_spatial_hash.gd` |
+| `test_clone_parity_scope.gd` | **The conditions rule 3's scope rests on**: the grace is one pass plus one walk, a player can blend-walk the radius inside it, the two walks are one walk (invariant 1), and the grace is a window rather than an exemption | `test/unit/core/crowd/test_clone_parity_scope.gd`, 2026-08-21. Not in the original table. Falsified against a halved grace: two of five go red. Same shape as `test_the_district_is_enclosed.gd` — **a scope is only honest while the thing it defers to is true**, and that stops being true quietly |
 
 ---
 

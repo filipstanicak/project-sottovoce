@@ -526,11 +526,52 @@ These are the rules that make anonymity real. Each is a release blocker if viola
 |---|---|---|
 | 1 | A clone uses the **same mesh, materials, shader and animation set** as the player persona. No "NPC variant" material, no reduced-bone rig within `TUN-COMPASS-RANGE-MAX`. | Players learn to spot the difference and anonymity is dead. |
 | 2 | **Animation parity**: every animation a player performs while Anonymous exists identically on the clone. See §6.5. | Same. |
-| 3 | Clone count per persona stays within `TUN-CROWD-CLONES-PER-PERSONA-MIN/MAX` (8–12) **globally**, and `TUN-CROWD-CLONE-LOCAL-MIN` (2) **within `TUN-CROWD-CLONE-LOCAL-RADIUS` (25 m) of every player**. | Global sufficiency with local depletion is the silent failure: the last Lucerna in the south market is unique and does not know it. |
+| 3 | Clone count per persona stays within `TUN-CROWD-CLONES-PER-PERSONA-MIN/MAX` (8–12) **globally**, and `TUN-CROWD-CLONE-LOCAL-MIN` (2) **within `TUN-CROWD-CLONE-LOCAL-RADIUS` (25 m) of every player who has been in the world longer than `CloneParity.grace_seconds()`** — see below. The opening arrangement is [`05_level_design.md`](05_level_design.md) §2.7 rule 8's. | Global sufficiency with local depletion is the silent failure: the last Lucerna in the south market is unique and does not know it. |
 | 4 | Clone personas are assigned from `match_seed` (ASM-0025), identically on every peer. | "I saw a Lucerna by the furnace" becomes a lie; the social layer breaks. |
 | 5 | **Every persona in use by a player must have clones.** If nobody plays Cantatrice, Cantatrice clones may still spawn (harmless). If someone plays Cantatrice, clones are mandatory. | A player with zero clones is a marked man. |
 | 6 | Per-instance variation (colour, accessory) is **forbidden** on clones. | Any variation the player cannot also have is a discriminator. Any variation the player *can* have is a cosmetic system, which is out of scope (`SCOPE_FENCE` OUT #3) for exactly this reason. |
 | 7 | Clones must be able to occupy every blend action a player can. | A player sitting on a bench that no NPC ever sits on is a player sitting alone on a bench. |
+
+#### Rule 3 does not bind at the instant a player is placed
+
+> **Amended 2026-08-21. The rule read "of every player", full stop, from M0 until then.**
+
+**A RULE NOTHING CAN SATISFY IS A RULE NOBODY CAN ACT ON.** Four personas at the floor need
+**eight clone seats** within the radius. Three of `MAP-VETRAIO`'s six spawn points offer 4, 6 and
+**1**, and no arrangement of a crowd can put eight bodies where the map seats one — so rule 3 was
+violated at the first tick of every match, by the level rather than by the crowd. It was recorded
+as a release blocker in US-0096, re-recorded in TDD-08 §5.1.3, and carried unresolved through two
+milestones with a `pending` test naming it. **That is what an unsatisfiable blocker does: it stops
+being a decision and becomes a fact of the corpus.**
+
+**THE SCOPE IS THE RULE'S OWN PURPOSE.** Rule 3 protects a player from being the only instance of
+their persona **where they are standing**. At the instant of placement a player has not chosen
+where they are standing — the match chose — so what the rule can fairly require is that they are
+covered from the moment they could have moved.
+
+**THE GRACE IS THAT MOVE, AND IT IS DERIVED RATHER THAN CHOSEN.** `CloneParity.grace_seconds()` is
+one `TUN-CROWD-DIRECTOR-INTERVAL` — the soonest the crowd can notice — plus one crossing of
+`TUN-CROWD-CLONE-LOCAL-RADIUS` at `TUN-CROWD-NPC-SPEED-STROLL`. **19.9 s at the shipped values,
+4.1 % of a match.** It is deliberately not a tunable: every term is already tuned, and a fourth
+number could be set to a value the first three contradict.
+
+**IT IS ONE NUMBER SERVING BOTH ENDS OF THE RULE, AND THAT IS NOT A COINCIDENCE.** It is how long a
+fetched clone takes to reach the player *and* how long the player takes to reach the crowd, because
+**invariant 1 forces `TUN-CROWD-NPC-SPEED-STROLL` to equal `TUN-SPEED-BLENDWALK`** — the two walks
+are the same walk. So a player placed in a thin corner is never asked to **run** to buy back their
+anonymity, which is design law 1 charging them for the map's shortfall.
+
+**WHAT THIS DOES NOT DO IS EXCUSE THE OPENING ARRANGEMENT, AND THE DISTINCTION IS THE WHOLE POINT.**
+A player placed at `S4` still begins with one NPC within 25 m and is still uniquely identifiable
+for the grace. Nothing about their exposure changed. What changed is **whose defect it is**:
+[`05_level_design.md`](05_level_design.md) §2.7 rule 8 now requires a spawn point to seat the
+minimum, `test_spawn_points.gd` grades every spawn against it, and the fix is to move a spawn point
+— a level pass with an owner and a tool — rather than a design law no map could satisfy.
+
+**AND THE SCOPE IS ONLY HONEST WHILE ITS CONDITIONS HOLD**, so they are asserted rather than left
+as prose. `test_clone_parity_scope.gd` requires the grace to be at least one blend-walk of the
+radius and strictly less than a match, and falsifies both against a shortened grace — the same
+treatment `test_the_district_is_enclosed.gd` gives the traversal case it exists to keep unreachable.
 
 ### 6.4 Startle and Gawk propagation
 
@@ -1090,7 +1131,7 @@ the profile of a minimap, and the reason there is no minimap.
 - [ ] The NPC state machine implements exactly the five states in §6.1 with Startle as a global interrupt from all four others.
 - [ ] Startle propagation is capped at two hops (`has_propagated`); `test_startle_propagation.gd` asserts no cascade beyond 2 hops in a 90-NPC dense cluster.
 - [ ] Gawk never reduces a crowd pocket below `TUN-BLEND-POCKET-MIN-NPC`; asserted by `test_gawk_pocket_preservation.gd`.
-- [ ] Clone-authoring rules 1–7 (§6.3) each have a corresponding automated or checklist check.
+- [ ] Clone-authoring rules 1–7 (§6.3) each have a corresponding automated or checklist check. Rule 3's scope is asserted by `test_clone_parity_scope.gd`; its opening-arrangement half is §2.7 rule 8's.
 - [ ] `test_clone_animation_parity.gd` passes: every Anonymous-reachable player clip has an identically-named clone clip, for all four personas.
 - [ ] The contract cycle maintains invariant I across 10 000 randomised event sequences (`test_contract_cycle_fuzz.gd`): kills, respawns, joins, disconnects and simultaneous batches.
 - [ ] No player is ever assigned themselves, at any n, under any relaxation path.

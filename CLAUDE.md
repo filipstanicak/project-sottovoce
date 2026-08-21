@@ -220,6 +220,62 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 *Updated 2026-08-21 (checkpoint after #134). Keep this section current — it is the first thing a fresh
 session reads, and a stale one is worse than none.*
 
+**THE CLONE-MINIMUM CONTRADICTION IS DECIDED: GDD-03 §6.3 RULE 3 NO LONGER BINDS
+AT THE INSTANT A PLAYER IS PLACED.** The owner chose the third of three priced
+options on 2026-08-21. Three documents each said something true and the three
+could not all hold — §2.7 puts S3 and S4 in the Fondaco, §3 makes the Fondaco
+empty on purpose, and rule 3 demanded eight clone seats at every spawn. **The map
+seats 4, 1 and 6 of 8 at three of six**, and a permutation cannot conjure a seat
+that is not there, so rule 3 was violated at the first tick of every match **by
+the level**.
+
+**A RELEASE BLOCKER NOTHING CAN SATISFY IS ONE NOBODY ACTS ON**, and this one sat
+for two milestones being re-reported. Rule 3 binds from
+`CloneParity.grace_seconds()` after placement now, and the opening arrangement is
+**GDD-05 §2.7 rule 8's** — a level rule with a census, a `pending` test and a tool.
+
+**THE GRACE IS DERIVED AND DELIBERATELY NOT A TUNABLE: 19.86 s, 596 ticks, 4.1 %
+of a match.** One `TUN-CROWD-DIRECTOR-INTERVAL` — the soonest the crowd can notice
+— plus one crossing of `TUN-CROWD-CLONE-LOCAL-RADIUS` at
+`TUN-CROWD-NPC-SPEED-STROLL`. A fourth number here could be set to a value the
+first three contradict.
+
+**ONE NUMBER SERVES BOTH ENDS OF THE RULE, AND THAT IS INVARIANT 1 RATHER THAN
+LUCK.** It is how long a fetched clone takes to reach the player *and* how long
+the player takes to walk to the crowd, because stroll is forced equal to
+blend-walk. **So a player placed in a thin corner never has to run to buy back
+anonymity**, which design law 1 would charge them for.
+
+**IT CHANGES NOTHING ABOUT S4's EXPOSURE AND MUST NOT BE READ AS IF IT DID.** A
+player placed at (114, 97.5) still sees **one** NPC within 25 m and is still
+uniquely identifiable for the grace. **Only the owner of the defect moved** — from
+a design law no map could satisfy to a level pass somebody can run. The fix is to
+**move a spawn point, not to fill the Fondaco**: S5 is 10.8 m from a legal site,
+S4's nearest is **55 m away at (72, 52)**, which drags it to the centre and is
+what the anti-camp spread exists to prevent.
+
+**AND THE SCOPE IS ONLY HONEST WHILE ITS CONDITIONS HOLD, SO THEY ARE ASSERTED.**
+`test_clone_parity_scope.gd` requires the grace to be at least one blend-walk of
+the radius — otherwise the rule binds on a position the match chose and the only
+escape costs speed — and strictly less than a match. Falsified against a halved
+grace: two of five go red. Same shape as `test_the_district_is_enclosed.gd`.
+
+**`test_clone_local_min.gd` ASSERTS THE SCOPED WINDOW NOW AND PRINTS THE WHOLE
+POPULATION BESIDE IT** — §11.2.2's choice, so nothing looks dropped. **71 of
+12 960 readings under the floor over the run, 47 of 11 544 after the grace, 0.41
+%.** Its `settle` was `interval * 10` and landed within four ticks of the
+derivation; **a multiplier that agrees with the answer is not one that follows
+it**. US-0047's *always* criterion **stays unticked** — the scoping excuses the
+opening arrangement, not the mid-match troughs, and no re-routing rule beats a
+walk.
+
+**AND AUDITING TDD-08's TABLES FOUND TWO ROWS STALE**, which is the fourth time
+that audit has paid: the test table still said `test_circuit_separation.gd`
+reported 0.51 m circuits (re-authored; **21.20 m** now) and quoted a clone-floor
+figure from before the stall-anchor nudge. The test function itself was still
+named `..._is_measured_and_currently_missed` while passing because the miss was
+fixed — trap 3's reading hazard inside a test name.
+
 **AND THE CROWD PERF "DRIFT" IS RETRACTED — THERE ISN'T ONE.** The previous
 checkpoint recorded p95 0.59-0.64 as stale and published 0.89-0.95 with an
 unexplained regression. **Measured properly the next day, that was wrong.** From a
@@ -984,10 +1040,11 @@ it three times as "low density, few NPCs — where chases go to be resolved", gi
 its anchor density to satisfy the clone minimum **deletes the one place on the map
 designed to have no crowd to hide in.**
 
-**SO THREE DOCUMENTS EACH SAY SOMETHING TRUE AND THE THREE CANNOT ALL HOLD** —
-GDD-05 §2.7, GDD-05 §3/§4.4, and GDD-03 §6.3 rule 3, which is a release blocker.
-Choosing between them is a design decision with an owner, and the options are
-priced: move S3/S4 out of the Fondaco (the nearest legal 8-seat site for S4 is
+**THAT CONTRADICTION IS RESOLVED AS OF 2026-08-21 — SEE THE TOP OF THIS SECTION.**
+GDD-05 §2.7, GDD-05 §3/§4.4 and GDD-03 §6.3 rule 3 can all hold now, and exactly
+one of them is measured false: **§2.7 rule 8**, which is where the opening
+arrangement's obligation went. The census below is still the outstanding level
+work and the options were priced as: move S3/S4 out of the Fondaco (the nearest legal 8-seat site for S4 is
 **55 m away at (72, 52)**, which drags it to the centre and is what the anti-camp
 spread exists to prevent); raise the Fondaco's density; or scope rule 3 so it does
 not bind at the spawn instant. **S5 is the cheap one** — 10.8 m to a legal site,
@@ -2228,7 +2285,7 @@ US-0024 measures it against clips that do not exist.
 | | |
 |---|---|
 | CI | 7 jobs. **Running again as of 2026-08-07 after a two-day outage** — run `31200490320`, all seven green. The seven commits merged during the outage were never through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | **41 arch + 96 unit + 32 integration scripts**, holding 154 + 821 + 237 tests and 239 + 6421 + 645 assertions. **Seven are `pending` by design** — two of them in the integration suite, reporting that Piazza del Vetro is a disconnected island and that an NPC aimed into the void never gives up. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **170.9 s** of the 180 s it is allowed, up from 87.7 s at M2 — **9 s of headroom left, and the next integration test has to justify itself hard against that**. `test_server_tick_budget.gd` cost 9.8 s of it and is a gate line; the one before it, the 2 s pass A/B, samples ninety ticks **twice** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **Six of those are in the unit suite** — `test_cull_radius_price.gd` among them, reporting that the cull-radius curve is FLAT and the budget is missed at every legal radius. — `test_upstream_bandwidth.gd` reports the 145 % upstream miss, **`test_crowd_bandwidth.gd` the 112 % downstream projection and `test_crowd_wire_cost.gd` the 155 % it actually costs today**, `test_circuit_separation.gd` US-0043's 0.51 m circuits, **`test_spawn_points.gd` two of GDD-05 §2.7's own rules** — rule 6's nine unoccluded spawn pairs and the clone minimum S3/S4 cannot hold — and `test_clone_animation_parity.gd` the missing clip library. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
+| Tests | **41 arch + 97 unit + 32 integration scripts**, holding 154 + 832 + 237 tests and 239 + 6431 + 645 assertions. **Seven are `pending` by design** — **six in the unit suite and one in the integration suite**, which reports that an NPC aimed into the void never gives up. The island `pending` beside it **turned green by itself** when the alley mouths were built, which is what a `pending` naming its own blocker is for. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **171.3 s** of the 180 s it is allowed, up from 87.7 s at M2 — **under 9 s of headroom left, and the next integration test has to justify itself hard against that**. `test_server_tick_budget.gd` cost 9.8 s of it and is a gate line; the one before it, the 2 s pass A/B, samples ninety ticks **twice** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **The six are**: `test_upstream_bandwidth.gd` reporting the 145 % upstream miss, `test_crowd_bandwidth.gd` the 112 % downstream projection, `test_crowd_wire_cost.gd` the 112 % it actually costs, **`test_spawn_points.gd` twice — GDD-05 §2.7 rule 6's nine unoccluded spawn pairs and rule 8's S3 4, S4 1, S5 6 of 8 seats** — and `test_clone_animation_parity.gd` the missing clip library. **Two entries this row carried are gone because their findings closed**: `test_circuit_separation.gd`'s 0.51 m circuits (re-authored, now 21.20 m) and `test_cull_radius_price.gd`'s flat curve, which asserts rather than pends. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
 | Tuning | 288 tunables across 14 resource classes; all 31 cross-field invariants assert — split across `TuningInvariants` and `TuningInvariantsTech` since the first file hit 400 lines, with one entry point still. **Eight IDs are deprecated** and recorded in TUNABLES §19 — never reused |
 | Autoloads | All eight. `Tuning` precomputes 89 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |
@@ -2265,7 +2322,7 @@ grep -c '^- \[ \]' docs/40_backlog/stories/*.md
 | US-0030 | `render_state` per observer | **the three culling criteria are DONE** — US-0030's cull landed once M3 gave it a crowd. `render_state` needs `SYS-DETECTION`, which is M4's |
 | US-0036 | "every netcode test runs at all four profiles" | true only of the harness's own agreement test; the rest are pure and have no wire to give a latency to |
 | US-0037 | match end below minimum players | `SYS-MATCH`'s, in M4. **The timeout criterion was ticked at the M2 gate** — a hard-killed client took the same `peer left` → `pawn freed` path across four real processes |
-| US-0047 | "always had 2 within 25 m"; "does not read as following" | **"Always" is not achievable and the reason is a walk**: a fetched clone crosses 25 m in ~18 s, so a player who loses one is short for that walk. Supply is not the constraint — 4.27 clones of each persona on average against a floor of 2. 100 of 12 960 readings under the floor, never below 1, and **of 21 short pairs the pass saw, 18 already had a clone coming and 6 were dispatched**: the rule never ignores a breach, and that is what is asserted. The second criterion's readable half needs a client that has ever rendered a clone |
+| US-0047 | "always had 2 within 25 m"; "does not read as following" — **and rule 3's scoping is not what ticks the first one** | **"Always" is not achievable and the reason is a walk**: a fetched clone crosses 25 m in ~18 s, so a player who loses one is short for that walk. Supply is not the constraint — 4.27 clones of each persona on average against a floor of 2. **47 of 11 544 readings under the floor after the grace, 0.41 %**, never below 1, and of the short pairs the pass saw, most already had a clone coming and the rest were dispatched: the rule never ignores a breach, and that is what is asserted. The second criterion's readable half needs a client that has ever rendered a clone |
 | US-0046 | layers 2 and 3, footstep parity, the idle cycler | **there are no animation clips in this project, on either rig.** Layer 2's declaration half asserts and its library half reports; layer 3's check exists with no call site because a call site needs an `AnimationTree`; footsteps need `Audio.play()`, a stub until US-0075. ANIMATION_SPEC §8 costs the parity set at 14 × 4 personas × 2 rigs |
 | US-0045 | the three client-LOD lines | **US-0046.** `NpcView` exists now and draws the crowd; what is missing is the **mesh and the `AnimationTree`**, so animation LOD, the silhouette-fairness check and mesh LOD still have nothing to band. There are no animation clips on either rig |
 | US-0048 | six of the ten M3 gate lines | **the gate is RUN.** Four are met — `test_crowd_perf.gd`, `test_clone_local_min.gd`, the risk re-score, and **server tick p99 at 2.15 ms of 8.0**, measured here by booting the real `server_root.tscn`. Of the six left, `test_crowd_bandwidth.gd` is a **measured miss** at 112 % and not a blocked line; the rest wait on clone meshes on the wire, animation clips, and an owner at a windowed client. **The tag is the owner's call** |
