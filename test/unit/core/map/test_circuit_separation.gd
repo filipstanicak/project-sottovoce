@@ -75,7 +75,7 @@ func test_no_circuit_enters_the_empty_plaza() -> void:
 	assert_eq(intrusions.size(), 0, "a circuit crosses the empty plaza:\n" + "\n".join(intrusions))
 
 
-func test_circuit_separation_is_measured_and_currently_missed() -> void:
+func test_circuit_separation_is_measured_and_now_holds() -> void:
 	# **REPORTED, NOT FAILED — AND THE REASON MATTERS.** Two adjacent groups would
 	# form a super-pocket and a trivially safe travelling corridor (GDD-05 §5.2),
 	# so this is a real rule. It is missed by **geometry**: CIRC-A and CIRC-B both

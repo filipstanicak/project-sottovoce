@@ -370,6 +370,21 @@ No gameplay rules replicated — there are none yet. No NPCs. Movement only.
 
 **Exit:** 80 NPCs with clones, blend groups, startle/gawk, ≤ 2 ms/frame.
 
+> **2026-08-21, LATEST — THE CLONE-MINIMUM CONTRADICTION IS DECIDED, AND ONE RELEASE BLOCKER
+> BECAME A LEVEL RULE.** GDD-03 §6.3 rule 3 required `TUN-CROWD-CLONE-LOCAL-MIN` clones of each
+> in-use persona near every player **at all times**, which includes the tick the match places
+> somebody — and three of six spawn points seat **4, 1 and 6** of the eight that needs. No
+> arrangement of a crowd can conjure a seat that is not there, so the rule was broken at the first
+> tick of every match by the level, and it was re-reported through two milestones without moving.
+>
+> **The owner scoped it.** Rule 3 binds from `CloneParity.grace_seconds()` after placement —
+> **19.86 s**, one director pass plus one blend-walk of the local radius, derived from three
+> existing tunables and deliberately not a fourth. The opening arrangement is now **GDD-05 §2.7
+> rule 8**, measured every run by `test_spawn_points.gd`.
+>
+> **S4's exposure is unchanged and the risk score does not move.** What moved is that the fix is a
+> level pass with a census and a tool instead of a design law nothing could satisfy. TDD-08 §5.1.5.
+>
 > **2026-08-21, LATER — THE LEVEL IS SOUND: THE ISLAND, THE ROUTES AND THE WALLS ARE ALL DONE.**
 > `US-0043` is `done`, six of six, after being open since M3 began.
 >

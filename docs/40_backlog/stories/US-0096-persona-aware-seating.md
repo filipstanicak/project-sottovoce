@@ -77,7 +77,7 @@ seats** inside `TUN-CROWD-CLONE-LOCAL-RADIUS`. What `MAP-VETRAIO` actually offer
 **A permutation cannot conjure a seat that is not there.** Three of six spawn points are short
 of seats outright, and one of them — **(114, 97.5) — can see no NPC at all within 25 m.**
 
-That is worse than a clone-parity problem. GDD-03 §6.3 rule 3 is a **release blocker**, and a
+That is worse than a clone-parity problem. It is a **release blocker**, and a
 player spawning at (114, 97.5) starts the match with *zero* clones of their own persona and
 nobody at all nearby — which also puts them on open ground for `TUN-SUSPICION-GAIN-OPEN`, alone,
 in the first seconds, before they can move. **The cause is the idle anchors: that corner of the
@@ -87,6 +87,16 @@ district has none within 25 m of its spawn point**, and `CrowdPlacement` deals f
 anchors against six competing rules is level design with an owner, and this story does not invent
 one. `test_crowd_seating.gd` asserts what the *code* owes — zero shortfalls where there is room —
 and prints the seat census on every run, so the day the anchors move, the number moves with it.
+
+> **RESOLVED ON 2026-08-21, AND NOT BY MOVING AN ANCHOR.** The owner took the third of the three
+> priced options: **GDD-03 §6.3 rule 3 is scoped past the placement instant**, and the opening
+> arrangement is **GDD-05 §2.7 rule 8's**. Two of this story's own sentences turned out to be the
+> reason it could not be closed — "the cause is the idle anchors" and "re-authoring them is the
+> owner's". **The cause is not the anchors.** The grid has been re-authored twice since (US-0096's
+> Fondaco fix, then the stall nudge) and the census moved 3/6/0 → 4/1/6 with the *same three*
+> spawn points short. It is the Fondaco's density, which GDD-05 §3 makes low **on purpose**, so the
+> fix is to move a spawn point rather than to fill the zone — and that is now a level rule with a
+> number, not a design law nothing could satisfy. TDD-08 §5.1.5.
 
 ## Design
 

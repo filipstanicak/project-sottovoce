@@ -3,8 +3,9 @@
 ##
 ## US-0047's director closes a local hole in about eighteen seconds, because that
 ## is how long a clone takes to walk 25 m. A match that *begins* with a hole is
-## therefore a match whose first twenty seconds the rule cannot cover — measured,
-## 2 readings of 12 960, all of them at the start. This is the other end of it.
+## therefore a match whose first twenty seconds the rule cannot cover — which is
+## why rule 3 no longer binds there, and why `CrowdSeating` is what makes the
+## opening honest rather than merely forgiven. This is the other end of it.
 ##
 ## **THE COUNTERFACTUAL RUNS FIRST.** Every assertion here is that a spawn point is
 ## not short of a persona. If the round-robin arrangement were never short of one,
@@ -59,7 +60,7 @@ func _seats(centre: Vector3) -> int:
 
 ## Can this spawn point hold the minimum for all four personas at any arrangement?
 func _feasible(centre: Vector3) -> bool:
-	return _seats(centre) >= int(Tuning.crowd.clone_local_min) * CrowdRoster.PLAYABLE.size()
+	return _seats(centre) >= CloneParity.seats_required()
 
 
 ## `[worst, short_pairs, short_pairs_at_spawn_points_that_had_room]`. The third is
@@ -88,7 +89,7 @@ func test_how_many_seats_each_spawn_point_can_even_see() -> void:
 	# a spawn point cannot see that many NPCs at all, the constraint is the map's
 	# and not the code's.
 	var radius: float = Tuning.crowd.clone_local_radius
-	var needed := int(Tuning.crowd.clone_local_min) * CrowdRoster.PLAYABLE.size()
+	var needed := CloneParity.seats_required()
 	var starved := 0
 	for centre: Vector3 in _map.spawn_points:
 		var seats := 0
@@ -105,10 +106,12 @@ func test_how_many_seats_each_spawn_point_can_even_see() -> void:
 		)
 	)
 	# **REPORTED, NOT FAILED — IT IS THE LEVEL'S, LIKE US-0043's CIRCUITS.** Three of
-	# `MAP-VETRAIO`'s six spawn points cannot see 8 NPCs within 25 m and one sees
-	# **none at all**, so GDD-03 §6.3 rule 3 is unsatisfiable there at match start by
-	# any arrangement. Re-authoring the idle anchors is the owner's; this assertion
-	# only refuses a district where *nothing* is testable.
+	# `MAP-VETRAIO`'s six spawn points cannot see 8 NPCs within 25 m and the thinnest
+	# sees **one**, so no arrangement satisfies the floor there at match start. That
+	# is **GDD-05 §2.7 rule 8** as of 2026-08-21 and no longer GDD-03 §6.3 rule 3,
+	# which is scoped past the placement instant by `CloneParity.grace_seconds()` —
+	# `test_spawn_points.gd` grades it. This assertion only refuses a district where
+	# *nothing* is testable.
 	assert_lt(
 		starved,
 		_map.spawn_points.size(),

@@ -28,7 +28,7 @@ by re-routing existing clones.
 - [x] Runs on the 2 s director timer, never per tick.
 - [x] Re-ROUTES existing clones; never respawns or re-personas them.
 - [x] Retargets the nearest idle clone toward an under-served region.
-- [ ] Over a 3-minute clustered match, every player always had at least 2 same-persona clones within 25 m.
+- [ ] Over a 3-minute clustered match, every player always had at least 2 same-persona clones within 25 m. **Still unticked after rule 3 was scoped on 2026-08-21, and the scoping is not what would tick it.** The grace excuses the opening arrangement, not the mid-match troughs: 71 readings of 12 960 under the floor over the whole run, **47 of 11 544 after the grace** — 0.41 %, never below 1. A fetched clone needs eighteen seconds to cross 25 m and no re-routing rule beats a walk, so *always* is not a property this rule can have. What it guarantees is that a breach is never ignored. TDD-08 §5.1.4 and §5.1.5.
       — **Not achievable, and the reason is a walk rather than a shortage.** A fetched clone
       crosses 25 m in about eighteen seconds, so a player who loses one is short for that whole
       walk however promptly help is dispatched. Supply is not the constraint: the clustered region
