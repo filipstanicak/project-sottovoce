@@ -115,6 +115,18 @@ func _attach_net_readout() -> void:
 	if not OS.has_feature("debug") or not ResourceLoader.exists(NET_PATH):
 		return
 	(load(NET_PATH) as GDScript).attach(self, self)
+	_attach_district_map()
+
+
+## A coloured district and a map of it, in debug builds only and by the same two
+## guards. **NOT A MINIMAP**: never-do #12 forbids one as a permanent design law,
+## and this cannot ship — `scripts/debug/` is excluded from all three release
+## presets and `test_no_scene_references_debug.gd` refuses any scene naming it.
+func _attach_district_map() -> void:
+	const MAP_PATH := "res://scripts/debug/district_map.gd"
+	if not OS.has_feature("debug") or not ResourceLoader.exists(MAP_PATH):
+		return
+	(load(MAP_PATH) as GDScript).attach(self, self)
 
 
 func _physics_process(delta: float) -> void:

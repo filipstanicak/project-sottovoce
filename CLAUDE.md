@@ -269,6 +269,34 @@ masonry with both endpoints clear. CIRC-A has **no** bad waypoint and 15.8 % of 
 route. `test_circuit_separation.gd` carries it, `pending`, and
 `tools/stuck_census.tscn` grades a candidate route in one run.
 
+**AND THE "FLOATING NPCs" ARE FALLING OUT OF THE WORLD — THE WIRE JUST CANNOT SAY
+SO.** Reported from the controls as NPCs hovering over the hole instead of
+dropping. Measured on the server: **four of 78 are at y −135 to −200 m, still
+accelerating at −51 to −62 m/s**, and all four are members of **procession group 1,
+`CIRC-B`**, whose route crosses x ≈ 101, z 54–66 where there is no floor at all.
+`CrowdFormations` drives members straight at the slot with no path query, so they
+walk off the edge and never come back.
+
+**THE CLIENT DRAWS THEM ON THE STREET BECAUSE `height_to_u8` CLAMPS TO 0..255.**
+The NPC height byte spans 0 to 12.75 m at 5 cm, so y = −200 encodes as **0**. The
+clamp is right — its own comment says pinning is debuggable where wrapping would
+put a market NPC on a rooftop — but it makes a **server** defect look like a
+rendering one. A crowd that loses members to a hole all match is a slow drain
+nothing reports.
+
+**THE FIX IS THE ROUTES, NOT THE CLAMP**, and it is the outstanding level-design
+work: 14–28 % of every procession route is unwalkable.
+
+**AND THERE IS A DEBUG DISTRICT MAP NOW, WHICH IS NOT A MINIMAP.** Never-do #12
+forbids one as a permanent design law. `scripts/debug/district_map.gd` tints each
+street-level floor by hue and draws the same colours as a map in the top-left, with
+the crowd as dots and anything below the street in red. It **cannot ship**: all
+three release presets exclude `scripts/debug/`, `LocalPawnDriver` loads it behind
+`OS.has_feature("debug")`, and `test_no_scene_references_debug.gd` refuses any
+scene naming it. The two text readouts moved clear of it —
+`DistrictMap.RESERVED_WIDTH` — because text with no background under an opaque
+panel made both unreadable.
+
 **PIAZZA DEL VETRO IS CONNECTED: THE TWO ALLEY MOUTHS GDD-05 §2.1 DRAWS ARE
 BUILT.** Its schematic has always marked the piazza's south edge at z = 30 as a
 wall pierced by two openings — the `╥` marks — with matching arcade openings into

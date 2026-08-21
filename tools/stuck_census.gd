@@ -68,6 +68,7 @@ func _run() -> void:
 	_report_islands()
 	_report_the_gap()
 	_report_circuits()
+	_report_floaters()
 	Net.bind_router(null, null)
 	get_tree().quit(0)
 
@@ -337,3 +338,38 @@ func _procession_of(index: int) -> String:
 		if index in formations.groups[g].occupants:
 			return "  PROCESSION group %d" % g
 	return ""
+
+
+## **IS ANYBODY STANDING ON NOTHING?** Reported from the controls: "some NPCs
+## floating above the hole, where they should normally fall down".
+##
+## `Steering._apply_safe_velocity` applies gravity on the physics frame and only
+## when the body is not on the floor, so a body over the void should fall. This
+## asks whether any actually are, how high they are, and — the question that
+## decides where the fix goes — whether they are walking a procession, since
+## `drive_to` aims a formation member straight at its slot with no path query and
+## is the one thing that can put a body over ground the navmesh does not cover.
+func _report_floaters() -> void:
+	var over_nothing: Array = []
+	for index: int in _pool.active_count():
+		var body := _pool.body_of(index)
+		if body == null:
+			continue
+		var at := body.global_position
+		if _on_a_floor(Vector2(at.x, at.z)):
+			continue
+		over_nothing.append([index, at, body.velocity.y, body.is_on_floor()])
+	print(
+		(
+			"--- NPCs standing over no floor: %d of %d ---"
+			% [over_nothing.size(), _pool.active_count()]
+		)
+	)
+	for entry: Array in over_nothing.slice(0, 12):
+		var at := entry[1] as Vector3
+		print(
+			(
+				"  index %d at (%.1f, %.2f, %.1f)  vy %.3f  grounded %s%s"
+				% [entry[0], at.x, at.y, at.z, entry[2], entry[3], _procession_of(int(entry[0]))]
+			)
+		)
