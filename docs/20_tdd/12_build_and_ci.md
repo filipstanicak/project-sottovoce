@@ -94,7 +94,36 @@ Same enumeration, same refusal (§1.5) — with one asymmetry worth keeping stra
 path under `assets/` is a `.gdkeep`. The emptiness check therefore belongs to the whole-tree
 enumeration and only there.
 
-### 1.3 Enforcement status — read this before trusting the word "required"
+### 1.3 Enforcement status — **real since 2026-08-21**
+
+**`main` IS PROTECTED BY THE SERVER NOW, AND IT IS VERIFIED RATHER THAN ASSERTED.**
+The repository went public on 2026-08-20, which makes rulesets free, and
+`.github/main-ruleset.json` is applied and `active` with `current_user_can_bypass:
+never`. Tested by pushing straight at `main` with `--no-verify`, so the client hook
+could not answer for it:
+
+```
+remote: - Changes must be made through a pull request.
+remote: - 7 of 7 required status checks are expected.
+ ! [remote rejected] -> main (push declined due to repository rule violations)
+```
+
+**AND THE RULESET DID NOT EXIST.** This section said "the ruleset JSON is ready to
+apply unchanged" from M0 until it was applied, and there was no such file anywhere
+in the repository — trap 14, the fourth instance, and the claim is what stopped
+anybody checking. It exists now, at `.github/main-ruleset.json`, and is applied
+with `gh api -X POST repos/<owner>/<repo>/rulesets --input .github/main-ruleset.json`.
+
+**What it enforces:** a pull request for every change to the default branch, squash
+as the only merge method, all **seven** checks green, and no deletion or
+force-push. The contexts are the job **names** from `ci.yml`, not the job ids — a
+distinction that silently matches nothing if it is got wrong, since a check that
+never reports is simply "expected" forever.
+
+The table below describes what was true **before** that, and is kept because §1.3.1
+and §1.3.2 refer to it.
+
+#### 1.3.0 What enforcement looked like until 2026-08-21
 
 GitHub's **branch protection and rulesets both require GitHub Pro on a private
 repository.** On the current plan the API returns:
@@ -126,10 +155,16 @@ That single command is a required step in any new clone. It stops the accidental
 push and the automated one — the actual risk on a solo repo — and it stops
 nothing done deliberately.
 
-**Promote this to real enforcement when the plan allows.** Either GitHub Pro, or
-making the repository public — but public is gated on the originality review in
-`docs/00_meta/IP_GUARDRAILS.md`, so it is not a shortcut. The ruleset JSON is
-ready to apply unchanged.
+**Promote this to real enforcement when the plan allows.** — **Done on 2026-08-21**;
+see §1.3 above. The originality review it was gated on came out clean: four hits in
+3390 blobs of history, every one of them a franchise-holder's name appearing inside a
+*prohibition* — "never use X's terminology" — rather than as game vocabulary.
+
+**AND `ip-guard` CAUGHT THIS PARAGRAPH ON ITS FIRST RUN**, because the sentence above
+originally named the company. Only `IP_GUARDRAILS.md` and `.ci/banned_terms.txt` are
+excluded, and every other file means it — including a document *about* the scan. That
+is the guard behaving exactly as §6.1 intends, and it is worth knowing before writing
+prose about the terms list.
 
 ### 1.3.1 Actions stopped running on 2026-08-05 and resumed on 2026-08-07
 

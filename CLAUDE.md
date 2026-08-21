@@ -561,6 +561,19 @@ hid the defect**, which is trap 3's shape inside an instrument rather than a tes
 an honest 10 Hz track, and a 10 Hz track under a 100 ms buffer is the underrun the
 document described from the start. TDD-04 §7.2.1.
 
+**`main` IS PROTECTED BY THE SERVER AS OF 2026-08-21, AND IT IS VERIFIED.** The
+ruleset is applied and `active`, `current_user_can_bypass: never`. Tested by pushing
+straight at `main` with `--no-verify` so the client hook could not answer for it:
+*"Changes must be made through a pull request. 7 of 7 required status checks are
+expected. push declined due to repository rule violations."* **US-0002/0003/0004/
+0005's four "required check on `main`" criteria are true for the first time.**
+
+**AND THE RULESET DID NOT EXIST.** TDD-12 said "the ruleset JSON is ready to apply
+unchanged" from M0 onward and there was no such file in the repository — **trap 14
+again**, and the claim is exactly what stopped anybody checking. It is
+`.github/main-ruleset.json` now. The required contexts are the job **names** from
+`ci.yml`, not job ids: a wrong name matches nothing and reports "expected" forever.
+
 **AND CI CAN RUN AGAIN: THE REPOSITORY IS PUBLIC AS OF 2026-08-20.** Actions is free
 for public repositories on standard runners, and all seven jobs are `ubuntu-22.04`.
 Before that, the free allowance was exhausted and jobs were refused — see trap 6,

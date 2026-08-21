@@ -4,7 +4,7 @@ title: Architecture test guards
 version: 0.1.0
 status: done
 owner: Technical Director
-last_updated: 2026-08-04
+last_updated: 2026-08-21
 depends_on: [TDD-01-ARCHITECTURE, BIBLE-TEST-PLAN]
 ---
 
@@ -35,7 +35,8 @@ weakened instead.
 - [x] `test_file_naming.gd` — file name matches class_name.
 - [x] `test_function_lengths.gd` — no function over 40 lines.
 - [x] Arch suite completes in under 5 s.
-- [ ] `test` job required on `main`.
+- [x] `test` job required on `main`.
+      > **True since 2026-08-21**, verified by pushing straight at `main` with `--no-verify` so the client hook could not answer for it: *"Changes must be made through a pull request. 7 of 7 required status checks are expected."* `.github/main-ruleset.json`, TDD-12 §1.3.
 
 ## Test notes
 

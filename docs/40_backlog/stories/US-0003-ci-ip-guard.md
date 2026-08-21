@@ -4,7 +4,7 @@ title: CI — IP guard
 version: 0.1.0
 status: done
 owner: Technical Director
-last_updated: 2026-08-04
+last_updated: 2026-08-21
 depends_on: [DOC-IP-GUARDRAILS, TDD-12-BUILD]
 ---
 
@@ -31,7 +31,8 @@ artefacts and playtester vocabulary, and the cost grows superlinearly.
 - [x] `.ci/banned_terms.txt` contains every term from IP_GUARDRAILS §2.1–2.3.
 - [x] `.ci/ip_guard_exclude.txt` lists exactly two files.
 - [x] The job scans code, comments, docs, filenames and paths, case-insensitively.
-- [ ] It is a hard failure and a required check on `main`.
+- [x] It is a hard failure and a required check on `main`.
+      > **True since 2026-08-21**, verified by pushing straight at `main` with `--no-verify` so the client hook could not answer for it: *"Changes must be made through a pull request. 7 of 7 required status checks are expected."* `.github/main-ruleset.json`, TDD-12 §1.3.
 - [x] A commit with a banned term in a comment fails the build (verified deliberately).
 
 ## Test notes
