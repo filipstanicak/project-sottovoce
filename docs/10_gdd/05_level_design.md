@@ -251,6 +251,18 @@ keeps the five spots strategically distinct without needing five different mecha
 > into `VetraioLayout.CIRCUITS` without ever being checked against the geometry.
 > `test_circuit_separation.gd` carries it.
 
+> **AND THE DISTRICT HAS PARAPETS NOW (2026-08-21).** This section draws walls throughout and the
+> greybox had **none**, so nothing stopped a body walking into a void: NPCs went over at 0.2–1.1 m
+> outside a floor edge, nineteen a minute, and a player could walk off the piazza's south edge.
+> `VetraioGround.parapets()` derives an `H_VAULT` parapet for every street-level floor edge that
+> borders neither floor nor block — **derived from the floor table rather than listed**, so a floor
+> added later is fenced automatically. They sit outside the floor, so a 2.6 m alley mouth keeps its
+> full walkable width. **Zero falls in fifty seconds after, against nineteen in forty-five.**
+>
+> At vault height a civilian never crosses one and a player who means to still can, which is the
+> difference between falling and jumping — but it does add vaultable edges throughout the district,
+> which is a traversal-design consequence worth knowing.
+
 > **RESOLVED 2026-08-21: THE TWO ALLEY MOUTHS THIS SECTION'S OWN SCHEMATIC DRAWS ARE BUILT.**
 > §2.1 marks the piazza's south edge at z = 30 as a wall pierced by two openings; neither existed
 > in `VetraioLayout.FLOORS`. `MouthWest` at x = 45 and `MouthEast` at x = 69, both `MIN_ALLEY_WIDTH`

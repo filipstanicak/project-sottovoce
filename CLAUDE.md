@@ -309,6 +309,26 @@ scene naming it. The two text readouts moved clear of it —
 `DistrictMap.RESERVED_WIDTH` — because text with no background under an opaque
 panel made both unreadable.
 
+**AND THE DISTRICT HAS WALLS NOW, WHICH IT NEVER HAD.** GDD-05 §2.1 draws them;
+`VetraioLayout` had **none at all**, so nothing anywhere stopped a body walking into
+a void — nineteen NPCs a minute went over, and a player could walk off the piazza's
+south edge. **Zero falls in fifty seconds after**, against 19 in 45 before.
+
+**DERIVED FROM THE FLOOR TABLE, NEVER LISTED.** `VetraioGround.parapets()` walks
+every street-level floor edge in one-metre steps, probes half a metre outside, and
+emits a run of parapet wherever there is neither floor nor block. **Hand-listing
+void edges is the transcription that produced four unwalkable routes**; a floor
+added later is fenced without anybody remembering to. They sit **outside** the
+floor, so the walkable width of a 2.6 m alley mouth is unchanged, and they are
+`H_VAULT` — a civilian never goes over one and a player who means to still can,
+which is the difference between falling and jumping. Navmesh 219 → 211 polygons.
+
+**`VetraioGround` IS IN CORE BECAUSE THE GENERATOR CANNOT SEE `tools/`.** Three
+readers now need "is this point walkable" — the census, the circuit test and the
+generator — and the two that had written their own **both** filtered street floors
+with `row[6]`, the *material string*, which `float()` parses to `0.0` and equals
+`STREET_Y`. Neither ever skipped anything. One class, one rule.
+
 **THE FOUR PROCESSION ROUTES ARE RE-AUTHORED, AND US-0043 IS DONE.** They had been
 transcribed from GDD-05 §2.5's prose and never measured against the floor table:
 14-28 % of each ran through masonry or over no floor, `CIRC-A` and `CIRC-B` passed
@@ -2143,7 +2163,7 @@ US-0024 measures it against clips that do not exist.
 | Autoloads | All eight. `Tuning` precomputes 89 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |
 | Boot | Branches on `--server`; 7 CLI flags parsed in pure Core; 5 export presets |
-| Map | `MAP-VETRAIO` greybox, 120 × 120 m. Client loads 28 meshes, server loads none. **The street surface is exactly `STREET_Y`** — floors used to straddle their declared height, putting every walkable top 0.1 m high, which made the 0.9 m stalls unvaultable and three spawn points float over nothing. **Lit as of US-0091** — one key light and a sky, because nothing in the project had ever created either and the district rendered near-black. **The navmesh is baked at build time and committed** (US-0041): **219 polygons across 12 floors** since the two alley mouths landed, and it sits **0.400 m above the street**, which is why steering applies gravity rather than trusting the snap |
+| Map | `MAP-VETRAIO` greybox, 120 × 120 m. Client loads 28 meshes, server loads none. **The street surface is exactly `STREET_Y`** — floors used to straddle their declared height, putting every walkable top 0.1 m high, which made the 0.9 m stalls unvaultable and three spawn points float over nothing. **Lit as of US-0091** — one key light and a sky, because nothing in the project had ever created either and the district rendered near-black. **The navmesh is baked at build time and committed** (US-0041): **211 polygons across 12 floors**, with a derived `H_VAULT` parapet on every floor edge that borders a drop, and it sits **0.400 m above the street**, which is why steering applies gravity rather than trusting the snap |
 | Pawn | 14 states declared — **the Jog rung was removed in US-0090** and `Jog` is a retired ID absent from `ALL`. Transition edges asserted against the normative diagram. **Eleven implemented**: five locomotion + `Vault`, `Climb`, `Drop`, `KillAnim`, `Stunned`, `Blended`. `Respawning`, `StunAnim` and `Dead` are M4 |
 | Traversal | **Complete.** Probes cast, all seven §7.2 cases resolve from real geometry, both forgiveness windows open, and vault, mantle, climb, drop and gap jump all perform. **Case 7 hops as of US-0093** — an impulse, not a state, scaled by the speed rung and adding nothing horizontal. **The action buffer arms on the PRESS, not the hold** — arming from the held bit spent a traverse every frame a finger stayed down |
 | Crowd | 90 bodies pre-allocated, 78 active, each with a brain and a `CrowdContext` allocated beside it. One `SpatialHash` on `MatchContext`, rebuilt at the **top** of the crowd stage so the brains and every downstream system read the same grid — 0.0561 ms, allocating nothing. `CrowdDirector` ticks them at the `crowd` stage and translates the five flags `NpcBrain.step()` deliberately does not read into `handle()` calls; `Steering` moves the bodies from the **avoidance callback**, on the physics frame, and knows nothing about states — it takes a point and a speed. Repath is FIFO and capped at three a tick. **Four processions of four walk the map's circuits** (US-0043), each with a fifth slot no NPC may take, at a pace throttled by its worst straggler. **Banded by distance** as of US-0045 — 20/45/70 m, strides 1/3/15, staggered by index — and `CrowdBands` also scales each agent's `path_max_distance` by its band's stride (US-0041's last line), which is the one path query `RepathQueue` does not stagger. **All five states are reachable** as of US-0044: a sprinting player startles the crowd once a second, a wave propagates one hop at 0.4, and a corpse gathers six onlookers who walk to it and disperse before it fades. Violence has an entry point and no caller until M4. **On the wire as of US-0030/US-0031**: `SnapshotBuilder._fill_crowd` sends each observer the NPCs within `TUN-NET-NPC-CULL-RADIUS`, positionally and never visually, at `TUN-NET-NPC-RATE-LOD-HZ` beyond `TUN-NET-NPC-RATE-LOD-RADIUS` and staggered by `(tick + index) % stride`, delta-encoded per NPC against the client's **ack**. **Drawn on a client** as of US-0045 by `NpcView`, which culls at the same radius one margin wider, treats absence as "no update" rather than "gone", and dresses nobody. **Departure is a value, not silence** — one out-of-range record — and `CrowdWire.is_farewell()` holds that rule for both `NpcView` and `SnapshotAssembler`, which must agree on it: when only the view knew it, the assembler carried one goodbye forward into every later snapshot and the view created and freed a body from it once per tick. **Clone-parity layer 4 hangs off the same 2 s pass as the formations** (US-0047): `CloneBalance` holds the clones already near a player and fetches one when a persona is short, always to a map anchor and never at the player. **The floor is decided on clones that have ARRIVED**: crediting one still walking satisfied the minimum in expectation while the player was short in fact for the eighteen seconds of the journey |
