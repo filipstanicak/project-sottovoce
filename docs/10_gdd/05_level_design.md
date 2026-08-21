@@ -214,6 +214,24 @@ keeps the five spots strategically distinct without needing five different mecha
 
 **No circuit enters Piazza Secca.** The empty plaza stays empty; that is its entire function.
 
+> **AND ALL FOUR ROUTES RUN THROUGH SOLID GEOMETRY (2026-08-20).** Sampled every half metre along
+> the interpolated route, not at the waypoints: **CIRC-A 15.8 %, CIRC-B 15.4 %, CIRC-C 28.0 %,
+> CIRC-D 19.8 %** of each route is inside a building mass or over no floor. Five waypoints are
+> inside blocks outright — CIRC-D's `(28, 12)` and `(14, 20)` in Fornace Row, CIRC-B's `(98, 60)`
+> and CIRC-C's `(106, 60)` and `(112, 60)` in the Mercato north wall — and CIRC-C's `(60, 91)` is
+> over nothing.
+>
+> **CrowdFormations drives members straight at a slot with no path query**, by design (US-0043),
+> so a member whose slot is inside masonry presses into the wall and stays there. That is what the
+> owner reported as NPCs trembling and stuck; the bodies were measured against Fornace Row's east
+> wall at the z of CIRC-D's own waypoint.
+>
+> **The waypoints are not the route.** CIRC-A has no bad waypoint and 15.8 % of a bad route,
+> because `CrowdCircuit` interpolates and a segment that clips a corner puts a slot inside masonry
+> with both endpoints clear. These routes were authored as prose in this section and transcribed
+> into `VetraioLayout.CIRCUITS` without ever being checked against the geometry.
+> `test_circuit_separation.gd` carries it.
+
 > **BLOCKER, 2026-08-20: PIAZZA DEL VETRO CANNOT BE WALKED TO.** `CIRC-A` and `CIRC-D` both
 > begin in the piazza, and there is **no floor at all** between it (z 0–30) and the Loggia
 > (z 36–54) for x 30–90 — a 60 × 6 m void, 90 of 90 sampled points with nothing under them.

@@ -141,3 +141,79 @@ func _plaza() -> MapZone:
 		if zone.is_theatre:
 			return zone
 	return null
+
+
+## **CAN A PROCESSION WALK ITS OWN ROUTE?** GDD-05 SS2.5, US-0043.
+##
+## Nothing had ever asked. The rule above measures how close two routes pass, which
+## is a different question, and `CrowdFormations` drives members with
+## `Steering.drive_to` — **straight at the slot, with no path query at all**,
+## deliberately, because a slot moves every tick and pathing to one would starve
+## `RepathQueue`. That is safe only while the route itself is walkable.
+##
+## **THE WAYPOINTS ARE NOT THE ROUTE.** `CrowdCircuit` interpolates between them, so
+## a segment that clips a corner puts a slot inside masonry with both endpoints
+## clear. Sampled every half metre, a third of `TUN-CROWD-GROUP-SPACING`.
+##
+## Reports rather than fails, like the separation rule above and for the same
+## reason: re-authoring four routes against six competing constraints is level
+## design with an owner. `tools/stuck_census.tscn` grades a candidate in one run.
+func test_every_circuit_stays_on_walkable_ground() -> void:
+	var data := load(MAP) as MapData
+	var report: PackedStringArray = []
+	var worst := 0.0
+	for circuit: Array in VetraioLayout.CIRCUITS:
+		var solid := 0
+		var nowhere := 0
+		var sampled := 0
+		var points: Array = circuit[2]
+		for i: int in points.size():
+			var a: Vector2 = points[i]
+			var b: Vector2 = points[(i + 1) % points.size()]
+			var steps := int(maxf(1.0, a.distance_to(b) / 0.5))
+			for k: int in steps:
+				var at := a.lerp(b, float(k) / float(steps))
+				sampled += 1
+				if _inside_a_block(at):
+					solid += 1
+				elif not _on_a_street_floor(at):
+					nowhere += 1
+		var share := float(solid + nowhere) / float(maxi(sampled, 1)) * 100.0
+		worst = maxf(worst, share)
+		if solid + nowhere > 0:
+			report.append(
+				(
+					"%s: %.1f %% of its route is unwalkable (%d in masonry, %d over nothing)"
+					% [str(circuit[0]), share, solid, nowhere]
+				)
+			)
+	assert_gt(data.circuits.size(), 0, "no circuits in the map data; this asserted nothing")
+	if report.is_empty():
+		return
+	pending(
+		(
+			"every procession walks through solid geometry. "
+			+ ", ".join(report)
+			+ ". CrowdFormations drives members straight at a slot with no path query, so a "
+			+ "member whose slot is inside masonry presses into the wall and stays there — "
+			+ "which is what the owner reported as NPCs trembling and stuck. The routes were "
+			+ "authored as prose in GDD-05 SS2.5 and transcribed without being checked against "
+			+ "the geometry. Re-authoring them is level design with an owner."
+		)
+	)
+
+
+func _inside_a_block(at: Vector2) -> bool:
+	for block: Array in VetraioLayout.BLOCKS:
+		if Rect2(float(block[1]), float(block[2]), float(block[3]), float(block[4])).has_point(at):
+			return true
+	return false
+
+
+func _on_a_street_floor(at: Vector2) -> bool:
+	for row: Array in VetraioLayout.FLOORS:
+		if not is_equal_approx(float(row[6]), VetraioLayout.STREET_Y):
+			continue
+		if Rect2(float(row[1]), float(row[2]), float(row[3]), float(row[4])).has_point(at):
+			return true
+	return false

@@ -162,3 +162,28 @@ already exists.
 `CrowdFormations` is a second file rather than more of `CrowdDirector`, which is where TDD-08 §8
 puts it. The director already owns the tick, the brains and the steering; one file holding all of
 that plus formations would pass 400 lines before US-0044 adds a corpse to it.
+
+
+## The routes were never checked against the geometry (2026-08-20)
+
+Both open criteria already needed the routes re-authored. This is the third and largest reason,
+and it is the one with a visible symptom.
+
+**15 TO 28 % OF EVERY ROUTE IS UNWALKABLE** — inside a building mass or over no floor. Sampled
+every half metre along the interpolated route: **CIRC-A 15.8 %, CIRC-B 15.4 %, CIRC-C 28.0 %,
+CIRC-D 19.8 %**. Five waypoints are inside blocks outright, two of them CIRC-D's in `FornaceRow`.
+
+**AND THAT IS THE TREMBLING THE OWNER REPORTED.** `CrowdFormations` drives members with
+`drive_to` — straight at the slot, **no path query at all**, which this story chose deliberately
+because a slot moves every tick and pathing to one would starve `RepathQueue` at three queries a
+tick. The choice is still right; it is only safe while the route is walkable. A member whose slot
+is inside masonry presses into the wall and stays. Measured trembling bodies sat at
+**x 30.4-31.0, z 11.4-12.7**, which is `FornaceRow`'s east wall at the z of CIRC-D's `(28, 12)`.
+
+**THE WAYPOINTS ARE NOT THE ROUTE.** CIRC-A has **no** bad waypoint and 15.8 % of a bad route,
+because `CrowdCircuit` interpolates between them and a segment that clips a corner puts a slot
+inside masonry with both endpoints clear. A waypoint-only check would have called CIRC-A clean.
+
+So re-authoring the four routes now has to satisfy: the 55-75 s period at stroll speed, the 8 m
+separation, walkable ground throughout, and a Piazza del Vetro that is currently unreachable.
+`tools/stuck_census.tscn` grades a candidate against all of it in one run.
