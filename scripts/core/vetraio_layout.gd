@@ -125,6 +125,37 @@ const FLOORS: Array = [
 	["PonteCorto", 46.0, 90.0, BRIDGE_WIDTH, 9.0, STREET_Y, "MAT-GREY-FLOOR"],
 	["FondacoStreet", 0.0, 96.0, 120.0, 3.0, STREET_Y, "MAT-GREY-FLOOR"],
 	["EastStreet", 90.0, 30.0, 30.0, 6.0, STREET_Y, "MAT-GREY-FLOOR"],
+	# **THE TWO ALLEY MOUTHS GDD-05 §2.1 HAS ALWAYS DRAWN.** Its schematic marks the
+	# piazza's south edge at z = 30 as a wall pierced by two openings (the `╥` marks)
+	# with matching arcade openings into the Loggia below them. **Neither was ever
+	# built**, so nothing bridged z 30-36 for x 30-90 and the district's largest and
+	# densest space was a **disconnected navmesh island**: `PiazzaDelVetro reaches 0
+	# of 8` other streets, 24 of 67 idle anchors unreachable, and CIRC-A and CIRC-D
+	# both routed through a piazza no civilian could walk to.
+	#
+	# **THE EAST MOUTH'S POSITION IS DERIVED, NOT CHOSEN.** `CIRC-A`'s existing route
+	# crosses z = 30 at x = 69.1 on its way from (74, 22) to (60, 45) — the procession
+	# was authored walking through an opening that was never cut, so the route says
+	# where it belongs. The west mouth is the piazza's western quarter point, which is
+	# also where §2.1 draws it.
+	[
+		"MouthWest",
+		45.0 - MIN_ALLEY_WIDTH * 0.5,
+		30.0,
+		MIN_ALLEY_WIDTH,
+		6.0,
+		STREET_Y,
+		"MAT-GREY-FLOOR"
+	],
+	[
+		"MouthEast",
+		69.0 - MIN_ALLEY_WIDTH * 0.5,
+		30.0,
+		MIN_ALLEY_WIDTH,
+		6.0,
+		STREET_Y,
+		"MAT-GREY-FLOOR"
+	],
 	["LoggiaBalcony", 30.0, 36.0, 90.0, 4.0, BALCONY_Y, "MAT-GREY-FLOOR"],
 ]
 

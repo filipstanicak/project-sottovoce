@@ -259,9 +259,11 @@ func test_an_npc_sent_into_the_void_gives_up() -> void:
 	pending(
 		(
 			"an agent aimed into the void never reports arrival, so the NPC holding that "
-			+ "goal stands on the last reachable point for the rest of the match. 24 of 67 "
-			+ "idle anchors are unreachable while Piazza del Vetro is cut off. A progress "
-			+ "timeout in CrowdContext would cover it; the floor is the honest fix."
+			+ "goal stands on the last reachable point for the rest of the match. The two "
+			+ "alley mouths took the unreachable idle anchors from 24 of 67 to 8, and all "
+			+ "eight survivors sit INSIDE a market stall — CrowdPlacement grids each zone "
+			+ "with no obstacle filter (US-0041). A progress timeout in CrowdContext would "
+			+ "cover the general case; filtering those anchors is the honest fix."
 		)
 	)
 

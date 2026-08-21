@@ -4,7 +4,7 @@ title: Navmesh, agents and steering
 version: 1.0.0
 status: done
 owner: Technical Director
-last_updated: 2026-08-20
+last_updated: 2026-08-21
 depends_on: [TDD-08-CROWD, GDD-05-LEVEL]
 ---
 
@@ -275,3 +275,33 @@ run to run: the same seed and the same code gave 10, then 7.
 
 **RETRACTED:** an earlier reading of "four NPCs walked 59-75 m to achieve exactly 0.000 m" was the
 instrument comparing a 60 s path length against a 15 s displacement. Corrected, it is zero.
+
+## Resolved 2026-08-21: the two alley mouths are built
+
+GDD-05 §2.1's schematic has always drawn the piazza's south edge at z = 30 as a wall pierced by two
+openings. **Neither existed in `VetraioLayout.FLOORS`.** `MouthWest` at x = 45 and `MouthEast` at
+x = 69, both `MIN_ALLEY_WIDTH` 2.6 m — a constant this layout already carried for exactly this and
+had never used — now bridge z 30–36.
+
+**The east mouth's position is derived, not chosen.** `CIRC-A` crosses z = 30 at **x = 69.1** on its
+way from `(74, 22)` to `(60, 45)`: the procession was authored walking through an opening nobody had
+cut, so the route says where it belongs.
+
+| | Before | After |
+|---|---|---|
+| Streets `PiazzaDelVetro` reaches | 0 of 8 | **all** |
+| Idle anchors unreachable | 24 of 67 | **8** |
+| Navmesh polygons | 195 | **219** |
+| Idle anchors | 67 | **67, unchanged** |
+
+The anchor count not moving is what makes this cheap: the mouths are floors rather than zones, so no
+density figure and no seating test is disturbed. The eight remaining unreachable anchors are all
+**inside market stalls** — this story's own unfiltered anchor grid, still unfixed because filtering
+them changes a per-zone density a unit test asserts.
+
+**And one bug in this story's own tooling was found and fixed on the way.** `tools/stuck_census.gd`
+and `test_circuit_separation.gd` filtered street-level floors with `float(row[6])` — index 6 is the
+**material string**, and `float("MAT-GREY-FLOOR")` is `0.0`, which equals `STREET_Y`. So the guard
+never skipped anything and `LoggiaBalcony` at 3.5 m counted as walkable ground. It changed no
+published figure, because the balcony sits directly above the street-level `Loggia` which was
+already counted — but it would have.

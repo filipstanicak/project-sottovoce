@@ -212,7 +212,7 @@ func _inside_a_block(at: Vector2) -> bool:
 
 func _on_a_street_floor(at: Vector2) -> bool:
 	for row: Array in VetraioLayout.FLOORS:
-		if not is_equal_approx(float(row[6]), VetraioLayout.STREET_Y):
+		if not is_equal_approx(float(row[5]), VetraioLayout.STREET_Y):
 			continue
 		if Rect2(float(row[1]), float(row[2]), float(row[3]), float(row[4])).has_point(at):
 			return true
