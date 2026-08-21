@@ -2,11 +2,10 @@
 ##
 ##     godot --headless -s res://tools/generate_map_vetraio.gd
 ##
-## GENERATED, NOT AUTHORED BY HAND, for the same reason the tuning classes are:
-## every dimension comes from the metrics bible, and a hand-placed box is a
-## dimension nothing checks. The layout table is the single source; the scene and
-## the MapData are both derived from it, so a test that checks the table is
-## checking what shipped.
+## GENERATED, NOT AUTHORED BY HAND, for the same reason the tuning classes are: a
+## hand-placed box is a dimension nothing checks. The layout table is the single
+## source and both the scene and the MapData derive from it, so a test that checks
+## the table is checking what shipped.
 extends SceneTree
 
 const SCENE_OUT := "res://scenes/map/map_vetraio.tscn"
@@ -67,10 +66,9 @@ func _run() -> void:
 ## Both scenes, the navmesh and the MapData. Null on any failure.
 ##
 ## **THE BAKE COMES BEFORE THE COLLISION SCENE IS SAVED**, because the region
-## carrying the baked mesh goes *into* that scene. A navmesh resource nothing
-## publishes is a navmesh no agent can path on: the world's navigation map stays
-## empty, every query answers the origin, and the whole crowd is placed at
-## (0, 0, 0) — a missing node wearing a placement bug's clothes.
+## carrying the baked mesh goes *into* that scene. A navmesh nothing publishes is one
+## no agent can path on: every query answers the origin and the whole crowd is placed
+## at (0, 0, 0) — a missing node wearing a placement bug's clothes.
 func _write_everything() -> MapData:
 	if not _save_scene(_build_scene(true), SCENE_OUT):
 		return null
@@ -118,14 +116,11 @@ func _navmesh_settings() -> NavigationMesh:
 	return mesh
 
 
-## **BAKED HERE, NOT AT RUNTIME.** TDD-08 §7: the geometry is static and the mesh
-## is never rebaked in a match. US-0012 recorded the bake as owed precisely
-## because it needs a live tree — and this generator already runs inside the
-## engine, which is the tree it needs.
-##
-## Baking at startup instead would cost every server seconds of a countdown it
-## does not have, and would make a **level** defect appear as a *networking* one:
-## clients waiting on a server that looks hung.
+## **BAKED HERE, NOT AT RUNTIME.** TDD-08 §7: the geometry is static and the mesh is
+## never rebaked in a match. US-0012 recorded the bake as owed because it needs a
+## live tree, and this generator already runs inside one. Baking at startup would
+## cost every server seconds of a countdown it does not have, and would make a
+## **level** defect appear as a *networking* one — clients waiting on a hung server.
 func _bake_navmesh() -> NavigationMesh:
 	var mesh := _navmesh_settings()
 
@@ -246,13 +241,11 @@ func _build_scene(with_meshes: bool = true, navmesh: NavigationMesh = null) -> N
 ## guard caps a function at 40 lines, and four loops in one function was four
 ## things.
 func _add_geometry(geometry: Node3D, root: Node3D) -> void:
-	# **A FLOOR HANGS BELOW ITS SURFACE, IT DOES NOT STRADDLE IT.** `FLOORS` gives
-	# the height of the walkable SURFACE — STREET_Y 0.0, BALCONY_Y 3.5 — and the
-	# slab has to end there. Centring it on that height instead put every walkable
-	# top 0.1 m high, which is one of those errors that is invisible until it is
-	# not: the pawn stood at y = 0.10 while the 0.9 m stall counters stayed at
-	# 0.90, so they were only 0.80 m above its feet, the 0.85 m waist probe passed
-	# over them, and pressing traverse at a market stall did nothing at all.
+	# **A FLOOR HANGS BELOW ITS SURFACE, IT DOES NOT STRADDLE IT.** `FLOORS` gives the
+	# walkable SURFACE height and the slab must end there. Centring it instead put
+	# every walkable top 0.1 m high, so the 0.9 m stall counters sat only 0.80 m above
+	# a pawn's feet, the 0.85 m waist probe passed over them, and traverse at a market
+	# stall did nothing at all.
 	for f: Array in VetraioLayout.FLOORS:
 		_add_box(
 			geometry,
@@ -264,6 +257,7 @@ func _add_geometry(geometry: Node3D, root: Node3D) -> void:
 		)
 	for b: Array in VetraioLayout.BLOCKS:
 		_add_box(geometry, root, b[0], Vector3(b[1], 0.0, b[2]), Vector3(b[3], b[5], b[4]), b[6])
+	_add_parapets(geometry, root)
 	for s: Array in VetraioLayout.STALLS:
 		_add_box(
 			geometry,
@@ -282,6 +276,13 @@ func _add_geometry(geometry: Node3D, root: Node3D) -> void:
 			Vector3(1.6, VetraioLayout.H_VAULT, 1.6),
 			"MAT-BLEND"
 		)
+
+
+## Every floor edge bordering a drop, derived rather than listed. See VetraioGround.
+func _add_parapets(geometry: Node3D, root: Node3D) -> void:
+	for w: Array in VetraioGround.parapets():
+		var corner := Vector3(w[1], 0.0, w[2])
+		_add_box(geometry, root, w[0], corner, Vector3(w[3], w[5], w[4]), "MAT-VAULT")
 
 
 func _add_box(
