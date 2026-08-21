@@ -308,9 +308,14 @@ static func _plan_drop(ctx: PawnContext) -> void:
 	ctx.traverse_peak_y = ctx.position.y
 
 
-## `INF` means the probes found no floor at all. Falling forever is not a
-## manoeuvre, so an unmeasured drop is treated as the deepest one the probes can
-## see — the pawn lands somewhere rather than leaving the world.
+## `INF` means the probes found no floor at all.
+##
+## **NOTHING SHOULD REACH THIS WITH `INF` ANY MORE, AND THAT IS THE POINT.**
+## `_over_the_edge` refuses to classify an unmeasured fall at all now, and a gap
+## jump is only chosen when the marching probe found ground ahead. The substitution
+## is kept as a floor of last resort rather than a rule: inventing a landing is what
+## put the pawn down in mid-air, and the two comments in this file disagreed about
+## it for two milestones. `test_traverse_into_the_void.gd` asserts the refusal.
 static func _finite(drop: float) -> float:
 	return Tuning.movement.gap_probe_depth if drop == INF else drop
 
