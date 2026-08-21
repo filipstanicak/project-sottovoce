@@ -366,6 +366,26 @@ generator — and the two that had written their own **both** filtered street fl
 with `row[6]`, the *material string*, which `float()` parses to `0.0` and equals
 `STREET_Y`. Neither ever skipped anything. One class, one rule.
 
+**AND EVERY IDLE ANCHOR IS ON GROUND SOMEBODY CAN STAND ON: 8 UNREACHABLE → 0.**
+`_place_anchors` gridded each zone with no obstacle filter, so two anchors landed
+inside each of StallA-D. `map_get_closest_point` hid it by answering with the
+stall's own **top** — on the navmesh, 0.9 m up, unreachable from the street — which
+is the disguise US-0041's `Npc003` wore.
+
+**NUDGED, NOT DROPPED, AND THAT DISTINCTION IS THE WHOLE DECISION.** Deleting them
+takes the count 67 → 59 and leaves **S6 short**: it has exactly
+`TUN-CROWD-CLONE-LOCAL-MIN` seats of 8, and some of those eight are the stall ones.
+So the fix for an unusable anchor would have created a starved spawn point.
+`VetraioGround.clear_of_obstacles()` moves each to the nearest walkable half-metre
+instead — count unchanged at 67, market density unchanged, **S6 still 8 of 8 and
+now real rather than phantom**. Live trembling went to **0 body-seconds of 4680**.
+
+**AND THE CORPUS SAID THIS COULD NOT BE DONE.** It has claimed since US-0041 that
+filtering the stall anchors "changes the per-zone density a unit test asserts".
+**The assertions are `no zone gets zero` and `anchors ≤ idle NPCs + 8`** — 59 would
+have satisfied both. The real obstacle was S6's seat count, which nobody had
+checked; the claim was true in spirit and wrong in its reason.
+
 **THE FOUR PROCESSION ROUTES ARE RE-AUTHORED, AND US-0043 IS DONE.** They had been
 transcribed from GDD-05 §2.5's prose and never measured against the floor table:
 14-28 % of each ran through masonry or over no floor, `CIRC-A` and `CIRC-B` passed
@@ -2195,7 +2215,7 @@ US-0024 measures it against clips that do not exist.
 | | |
 |---|---|
 | CI | 7 jobs. **Running again as of 2026-08-07 after a two-day outage** — run `31200490320`, all seven green. The seven commits merged during the outage were never through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | **41 arch + 96 unit + 32 integration scripts**, holding 154 + 820 + 237 tests and 239 + 6420 + 645 assertions. **Eight are `pending` by design** — two of them in the integration suite, reporting that Piazza del Vetro is a disconnected island and that an NPC aimed into the void never gives up. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **170.9 s** of the 180 s it is allowed, up from 87.7 s at M2 — **9 s of headroom left, and the next integration test has to justify itself hard against that**. `test_server_tick_budget.gd` cost 9.8 s of it and is a gate line; the one before it, the 2 s pass A/B, samples ninety ticks **twice** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **Seven of those are in the unit suite** — `test_cull_radius_price.gd` among them, reporting that the cull-radius curve is FLAT and the budget is missed at every legal radius. — `test_upstream_bandwidth.gd` reports the 145 % upstream miss, **`test_crowd_bandwidth.gd` the 112 % downstream projection and `test_crowd_wire_cost.gd` the 155 % it actually costs today**, `test_circuit_separation.gd` US-0043's 0.51 m circuits, **`test_spawn_points.gd` two of GDD-05 §2.7's own rules** — rule 6's nine unoccluded spawn pairs and the clone minimum S3/S4 cannot hold — and `test_clone_animation_parity.gd` the missing clip library. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
+| Tests | **41 arch + 96 unit + 32 integration scripts**, holding 154 + 821 + 237 tests and 239 + 6421 + 645 assertions. **Seven are `pending` by design** — two of them in the integration suite, reporting that Piazza del Vetro is a disconnected island and that an NPC aimed into the void never gives up. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **170.9 s** of the 180 s it is allowed, up from 87.7 s at M2 — **9 s of headroom left, and the next integration test has to justify itself hard against that**. `test_server_tick_budget.gd` cost 9.8 s of it and is a gate line; the one before it, the 2 s pass A/B, samples ninety ticks **twice** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **Six of those are in the unit suite** — `test_cull_radius_price.gd` among them, reporting that the cull-radius curve is FLAT and the budget is missed at every legal radius. — `test_upstream_bandwidth.gd` reports the 145 % upstream miss, **`test_crowd_bandwidth.gd` the 112 % downstream projection and `test_crowd_wire_cost.gd` the 155 % it actually costs today**, `test_circuit_separation.gd` US-0043's 0.51 m circuits, **`test_spawn_points.gd` two of GDD-05 §2.7's own rules** — rule 6's nine unoccluded spawn pairs and the clone minimum S3/S4 cannot hold — and `test_clone_animation_parity.gd` the missing clip library. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
 | Tuning | 288 tunables across 14 resource classes; all 31 cross-field invariants assert — split across `TuningInvariants` and `TuningInvariantsTech` since the first file hit 400 lines, with one entry point still. **Eight IDs are deprecated** and recorded in TUNABLES §19 — never reused |
 | Autoloads | All eight. `Tuning` precomputes 89 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |

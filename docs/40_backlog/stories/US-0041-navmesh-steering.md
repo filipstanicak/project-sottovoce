@@ -305,3 +305,26 @@ and `test_circuit_separation.gd` filtered street-level floors with `float(row[6]
 never skipped anything and `LoggiaBalcony` at 3.5 m counted as walkable ground. It changed no
 published figure, because the balcony sits directly above the street-level `Loggia` which was
 already counted — but it would have.
+
+## And the unfiltered anchor grid is fixed (2026-08-21)
+
+This story recorded that "the idle anchors are still generated on a grid with no obstacle filter, so
+some sit inside stalls", and did not fix it because filtering them was believed to change a per-zone
+density a unit test asserts.
+
+**MEASURED, THAT REASON WAS WRONG.** The assertions are `no zone gets zero anchors` and
+`anchors <= idle NPCs + 8`; dropping the eight stall anchors would have left 59 and satisfied both.
+**The real obstacle was S6**, which holds exactly `TUN-CROWD-CLONE-LOCAL-MIN` seats of 8 — some of
+them the stall ones — so deleting an unusable anchor would have created a starved spawn point.
+Nobody had checked that.
+
+**SO THEY ARE NUDGED RATHER THAN DROPPED.** `VetraioGround.clear_of_obstacles()` moves an anchor
+that lands inside a stall or a block to the nearest walkable half-metre, searching a widening ring.
+Every one resolves within two metres, because a stall is 6 x 2 m and the aisle is beside it.
+
+| | Before | After |
+|---|---|---|
+| Idle anchors unreachable on foot | **8 of 67** | **0** |
+| Idle anchors | 67 | **67, unchanged** |
+| S6's seats within 25 m | 8 of 8, some phantom | **8 of 8, all real** |
+| Live trembling | 9 body-seconds of 4680 | **0** |
