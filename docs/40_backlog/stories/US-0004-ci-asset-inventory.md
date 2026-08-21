@@ -4,7 +4,7 @@ title: CI — asset licence inventory
 version: 0.1.0
 status: done
 owner: Technical Director
-last_updated: 2026-08-04
+last_updated: 2026-08-21
 depends_on: [DOC-ASSET-LICENSES, TDD-12-BUILD]
 ---
 
@@ -33,7 +33,8 @@ someone deleted an asset and left a claim about it, which makes the register unt
 - [x] Fails on a row with no asset.
 - [x] `assets/greybox/**` and `assets/procedural/**` are exempt.
 - [x] Extending the exemption list requires an ADR, noted in the script header.
-- [ ] Required check on `main`.
+- [x] Required check on `main`.
+      > **True since 2026-08-21**, verified by pushing straight at `main` with `--no-verify` so the client hook could not answer for it: *"Changes must be made through a pull request. 7 of 7 required status checks are expected."* `.github/main-ruleset.json`, TDD-12 §1.3.
 
 ## Test notes
 

@@ -4,7 +4,7 @@ title: CI — headless import and lint jobs
 version: 0.1.0
 status: done
 owner: Technical Director
-last_updated: 2026-08-04
+last_updated: 2026-08-21
 depends_on: [TDD-12-BUILD, ADR-0009]
 ---
 
@@ -37,7 +37,8 @@ most common cause of works-on-my-machine.
       only `project.godot`, and that narrower key was the defect — a commit adding
       only `.gd` files reused a stale cache and CI passed while skipping three test
       scripts. See [`../../20_tdd/12_build_and_ci.md`](../../20_tdd/12_build_and_ci.md) §1.4.*
-- [ ] Both jobs are required checks on `main`.
+- [x] Both jobs are required checks on `main`.
+      > **True since 2026-08-21**, verified by pushing straight at `main` with `--no-verify` so the client hook could not answer for it: *"Changes must be made through a pull request. 7 of 7 required status checks are expected."* `.github/main-ruleset.json`, TDD-12 §1.3.
 - [x] Cold import completes in ≤ 90 s.
 
 ## Test notes
