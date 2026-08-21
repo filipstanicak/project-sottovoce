@@ -46,7 +46,10 @@ static func attach(to: Node, driver: LocalPawnDriver) -> Node:
 func _ready() -> void:
 	layer = 128
 	_label = Label.new()
-	_label.position = Vector2(16, 12)
+	# **CLEAR OF THE DISTRICT MAP**, which owns the top-left corner in debug builds.
+	# Overlapping it made both unreadable: the text has no background and the map is
+	# opaque, so whichever drew second won.
+	_label.position = Vector2(DistrictMap.RESERVED_WIDTH, 12)
 	_label.add_theme_font_size_override("font_size", 15)
 	_label.add_theme_color_override("font_color", Color(0.85, 0.95, 1.0))
 	_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))

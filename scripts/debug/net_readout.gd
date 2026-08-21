@@ -72,7 +72,8 @@ static func attach(to: Node, driver: LocalPawnDriver) -> Node:
 func _ready() -> void:
 	layer = 128
 	_label = Label.new()
-	_label.position = Vector2(16.0, 220.0)
+	# Clear of the district map, which owns the top-left corner. See feel_readout.
+	_label.position = Vector2(DistrictMap.RESERVED_WIDTH, 220.0)
 	_label.add_theme_color_override("font_color", Color(0.85, 1.0, 0.85))
 	_label.add_theme_font_size_override("font_size", 13)
 	add_child(_label)
