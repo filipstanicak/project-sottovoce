@@ -131,3 +131,38 @@ The overlay built to find this is `scripts/debug/net_readout.gd`, attached by `L
 debug builds only. Its baseline is exact: standing still, 300 comparisons, error 0.000 m, 0 replays.
 
 The owner's verdict on the result: *"It works perfectly."*
+
+
+## The repeat was still too eager, and the owner felt it again (2026-08-20)
+
+Reported as the jitter coming back, with the overlay reading `STILL for the last 120 commands`
+and yet **mean 0.066 m, p95 0.075, six replays, every one `BACK 0.150`**. The stationary baseline
+is 0.000 m over 300 comparisons, and **0.075 m is exactly one command at `TUN-SPEED-RUN`**.
+
+**THE RULE WAS STRICTER AND STILL WRONG.** Changing the trigger from "fewer than a full tick" to
+"nothing at all" removed the common case and left the rest: the client sends
+`TUN-NET-CLIENT-INPUT-RATE` 60 commands a second and the server consumes `_frames_per_tick` 2 per
+tick at 30 Hz — **exactly 60 against exactly 60, with no margin at all**. A burst in arrival empties
+the queue for one tick on localhost with nothing lost, and repeating there injects two steps the
+client never predicted.
+
+`GRACE` forgives the first empty tick. `CATCH_UP` already repays the deficit at one command a tick,
+so a late burst is absorbed within a few ticks and never needed a repeat; a genuinely lost command
+still gets one a tick later, which is 33 ms and well inside `TUN-NET-INTERP-BUFFER`.
+
+**`tools/drive_probe.tscn` MADE IT REPRODUCIBLE, WHICH NO IDLE PROBE COULD.** It boots the real
+client, joins a real server and holds `input_move_forward` + `input_run` through
+`Input.action_press` — the same path a finger takes, rather than writing an `InputCommand` and
+skipping `PadSelection`, the deadzone, the latches and `SprintGate`. It refuses to run headless
+(trap 13) and refuses to report an error at all if the pawn did not travel, because every number
+below that line means something else if the key press never reached the sampler.
+
+Of four ten-second runs, **the one that logged `input starvation: 2 repeats` is the one whose
+error was not 0.000 m.** The other three logged none and read zero throughout.
+
+**AND THE FIRST A/B NEARLY ACCUSED THE WRONG COMMIT.** One run of `main` read 0.042 against one run
+of `5070ea4` at 0.000 — a clean-looking regression across three crowd-only files. Repeated, both
+builds read 0.000 twice more. **The event is too rare for one sample to separate two builds**, so
+this defect predates those commits and the fix is asserted by the unit tests instead: planted back,
+the old rule produces **46 substeps for 24 commands** on an alternating but complete feed, and
+counts 11 starved ticks where nothing was lost.
