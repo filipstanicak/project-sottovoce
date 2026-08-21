@@ -309,6 +309,36 @@ scene naming it. The two text readouts moved clear of it —
 `DistrictMap.RESERVED_WIDTH` — because text with no background under an opaque
 panel made both unreadable.
 
+**AND ONE FINDING IS OPEN AND IS THE OWNER'S: A TRAVERSAL IS PLANNED TO A LANDING
+THAT DOES NOT EXIST.** Reported from the controls — *"when i am at a edge into the
+abyss and move towards it and jump, my jump stops mid air so that my speed goes
+down to 0 m/s"*. **It is not US-0093's defect returning**; that was a held key
+arming a traverse every frame, and this happens on a single press.
+
+The chain: the probes find no floor within `TUN-TRAVERSE-GAP-PROBE-DEPTH`, so
+`drop_height` is `INF`; `_over_the_edge` classifies `DROP`, which is **§7.2 case 3
+as written**; `_plan_drop` calls `_finite()`, which **substitutes the probe depth
+for the missing number and invents a landing ten metres down**; and `DropState`
+zeroes velocity, interpolates to it, and sets `grounded = true` **in mid-air**.
+
+**THE RESOLVER ALREADY ARGUES WITH ITSELF ABOUT THIS.** `_over_the_edge`'s docstring
+says a fall the probes cannot measure "is not planned at all" and that substituting
+the depth "set the pawn down in mid-air at exactly that depth". `_finite` thirty
+lines below still does it, under a comment defending it. **Two comments in one file,
+disagreeing since US-0019.**
+
+**I CHANGED THE CLASSIFICATION AND WAS WRONG TO.** Returning `NONE` fixed the
+symptom and broke `test_a_long_fall_with_nothing_found_is_still_a_drop`, whose own
+comment says: *"§7.2 case 3 as written: no landing within range resolves to Drop. An
+unmeasured drop is a poor thing to plan — see the note on `_finite` — but the case
+is not in doubt."* The test's author had already thought about it. Reverted; the
+finding is carried by `test_traverse_into_the_void.gd`, `pending`.
+
+**BOTH FIXES ARE DESIGN DECISIONS.** Either §7.2 case 3 is amended so an unmeasured
+fall is not a manoeuvre, or the pawn gains a state that **falls under gravity**
+rather than interpolating to a plan — which it does not have, because every
+traversal in this architecture is a planned arc that discards momentum.
+
 **AND THE DISTRICT HAS WALLS NOW, WHICH IT NEVER HAD.** GDD-05 §2.1 draws them;
 `VetraioLayout` had **none at all**, so nothing anywhere stopped a body walking into
 a void — nineteen NPCs a minute went over, and a player could walk off the piazza's
@@ -2158,7 +2188,7 @@ US-0024 measures it against clips that do not exist.
 | | |
 |---|---|
 | CI | 7 jobs. **Running again as of 2026-08-07 after a two-day outage** — run `31200490320`, all seven green. The seven commits merged during the outage were never through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | **41 arch + 94 unit + 32 integration scripts**, holding 154 + 816 + 237 tests and 239 + 6412 + 645 assertions. **Eight are `pending` by design** — two of them in the integration suite, reporting that Piazza del Vetro is a disconnected island and that an NPC aimed into the void never gives up. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **170.9 s** of the 180 s it is allowed, up from 87.7 s at M2 — **9 s of headroom left, and the next integration test has to justify itself hard against that**. `test_server_tick_budget.gd` cost 9.8 s of it and is a gate line; the one before it, the 2 s pass A/B, samples ninety ticks **twice** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **Seven of those are in the unit suite** — `test_cull_radius_price.gd` among them, reporting that the cull-radius curve is FLAT and the budget is missed at every legal radius. — `test_upstream_bandwidth.gd` reports the 145 % upstream miss, **`test_crowd_bandwidth.gd` the 112 % downstream projection and `test_crowd_wire_cost.gd` the 155 % it actually costs today**, `test_circuit_separation.gd` US-0043's 0.51 m circuits, **`test_spawn_points.gd` two of GDD-05 §2.7's own rules** — rule 6's nine unoccluded spawn pairs and the clone minimum S3/S4 cannot hold — and `test_clone_animation_parity.gd` the missing clip library. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
+| Tests | **41 arch + 95 unit + 32 integration scripts**, holding 154 + 817 + 237 tests and 239 + 6415 + 645 assertions. **Nine are `pending` by design** — two of them in the integration suite, reporting that Piazza del Vetro is a disconnected island and that an NPC aimed into the void never gives up. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **170.9 s** of the 180 s it is allowed, up from 87.7 s at M2 — **9 s of headroom left, and the next integration test has to justify itself hard against that**. `test_server_tick_budget.gd` cost 9.8 s of it and is a gate line; the one before it, the 2 s pass A/B, samples ninety ticks **twice** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **Eight of those are in the unit suite** — `test_cull_radius_price.gd` among them, reporting that the cull-radius curve is FLAT and the budget is missed at every legal radius. — `test_upstream_bandwidth.gd` reports the 145 % upstream miss, **`test_crowd_bandwidth.gd` the 112 % downstream projection and `test_crowd_wire_cost.gd` the 155 % it actually costs today**, `test_circuit_separation.gd` US-0043's 0.51 m circuits, **`test_spawn_points.gd` two of GDD-05 §2.7's own rules** — rule 6's nine unoccluded spawn pairs and the clone minimum S3/S4 cannot hold — and `test_clone_animation_parity.gd` the missing clip library. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
 | Tuning | 288 tunables across 14 resource classes; all 31 cross-field invariants assert — split across `TuningInvariants` and `TuningInvariantsTech` since the first file hit 400 lines, with one entry point still. **Eight IDs are deprecated** and recorded in TUNABLES §19 — never reused |
 | Autoloads | All eight. `Tuning` precomputes 89 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |
