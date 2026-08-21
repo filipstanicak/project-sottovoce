@@ -22,12 +22,26 @@
 ## substituting the depth "set the pawn down in mid-air at exactly that depth";
 ## `_finite` thirty lines below still does it, under a comment defending it.
 ##
-## **`pending`, BECAUSE THE FIX IS A DESIGN DECISION AND BOTH OPTIONS COST
-## SOMETHING.** Classifying it `NONE` contradicts §7.2 case 3 and
-## `test_edges_that_are_steps.gd`, which asserts the classification deliberately.
-## Leaving it `DROP` and making it honest needs a state that **falls under gravity**
-## rather than interpolating to a plan — which the pawn does not have, because every
-## traversal in this architecture is a planned arc. Reported rather than chosen.
+## **AND THE DECISION WAS THAT NOTHING CHANGES, WHICH IS WHY THIS STILL PASSES.**
+## The owner asked whether a fix is needed at all given the shipped district has no
+## abyss, and it is not, because the case is **unreachable by construction**:
+##
+## 1. Invariant 24 pins `TUN-TRAVERSE-GAP-PROBE-DEPTH` at or above
+##    `TUN-TRAVERSE-CLIMB-MAX-HEIGHT`, and the tallest façade is 8.5 m — so every
+##    fall you can take legitimately is one the probes can measure, and `INF` can
+##    only mean a true void.
+## 2. **No void is reachable on foot**: every street-level floor edge borders floor,
+##    building mass or parapet. That was an assumption until
+##    `test_the_district_is_enclosed.gd`, which samples 2574 points along every edge
+##    and fires on 1303 of them if the fencing is removed.
+##
+## **THE BEHAVIOUR IS STILL WRONG AND IS DELIBERATELY LEFT.** Fixing it means either
+## amending §7.2 case 3 — which `test_edges_that_are_steps.gd` asserts on purpose —
+## or giving the pawn a state that **falls under gravity** rather than interpolating
+## to a plan, which it does not have because every traversal here is a planned arc
+## that discards momentum. Neither is worth doing for a case the level cannot reach.
+## This file asserts what the code does today so that a future change to §7.2, to
+## the probe depth, or to the fencing surfaces it rather than a player finding it.
 extends GutTest
 
 
@@ -66,25 +80,29 @@ func test_a_measurable_ledge_is_still_planned_where_the_ground_is() -> void:
 	)
 
 
-## The finding.
+## The behaviour, asserted as it is so a change to it cannot pass unnoticed.
 func test_an_unmeasured_fall_is_planned_to_an_invented_landing() -> void:
 	var ctx := _context()
 	var case := TraversalResolver.classify(ctx)
 	TraversalResolver.plan(ctx, case)
 	var invented := ctx.position.y - Tuning.movement.gap_probe_depth
 	assert_eq(case, TraversalResolver.Case.DROP, "§7.2 case 3 changed; re-read this file")
-	if not is_equal_approx(ctx.traverse_target.y, invented):
-		return
-	pending(
+	assert_true(
+		is_equal_approx(ctx.traverse_target.y, invented),
+		(
+			"the invented landing is gone, which means the behaviour changed. That is fine, but "
+			+ "this file and `test_edges_that_are_steps.gd` both describe the old one — read "
+			+ "them before deleting either."
+		)
+	)
+	gut.p(
 		(
 			(
 				"an edge with no floor below is planned to a landing %.1f m down that the probes "
 				% Tuning.movement.gap_probe_depth
 			)
-			+ "never found. DropState zeroes velocity, interpolates to it and grounds the pawn "
-			+ "there — in mid-air, at 0 m/s, which is what the owner reported. §7.2 case 3 says "
-			+ "the classification is right, so the fix is either to amend §7.2 or to give the "
-			+ "pawn a state that falls under gravity instead of interpolating to a plan. Both "
-			+ "are design decisions."
+			+ "never found; DropState zeroes velocity, interpolates to it and grounds the pawn "
+			+ "there. Unreachable while the district stays enclosed — see "
+			+ "test_the_district_is_enclosed.gd. Deliberately left."
 		)
 	)
