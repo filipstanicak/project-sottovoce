@@ -157,7 +157,14 @@ nothing done deliberately.
 
 **Promote this to real enforcement when the plan allows.** — **Done on 2026-08-21**;
 see §1.3 above. The originality review it was gated on came out clean: four hits in
-3390 blobs of history, all the word "Ubisoft" inside a prohibition.
+3390 blobs of history, every one of them a franchise-holder's name appearing inside a
+*prohibition* — "never use X's terminology" — rather than as game vocabulary.
+
+**AND `ip-guard` CAUGHT THIS PARAGRAPH ON ITS FIRST RUN**, because the sentence above
+originally named the company. Only `IP_GUARDRAILS.md` and `.ci/banned_terms.txt` are
+excluded, and every other file means it — including a document *about* the scan. That
+is the guard behaving exactly as §6.1 intends, and it is worth knowing before writing
+prose about the terms list.
 
 ### 1.3.1 Actions stopped running on 2026-08-05 and resumed on 2026-08-07
 
