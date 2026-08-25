@@ -220,6 +220,24 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 *Updated 2026-08-21 (checkpoint after #134). Keep this section current — it is the first thing a fresh
 session reads, and a stale one is worse than none.*
 
+**AND RULE 6 CONSTRAINS RULE 8 HARD, WHICH IS WHY NO SPAWN MOVED.** Teaching
+`tools/anchor_census.gd` to grade rule 6 alongside 1, 4, 5 and 8 collapsed the
+legal sites for a starved spawn from **337 to 7**, and **all seven are the same
+4 × 4 m patch of the Loggia** around (44, 52): `S3` 59.3 m away, `S5` 56.9,
+`S4` 81.8.
+
+**THE CHEAP 30 m FONDACO MOVE FOR S3 IS DEAD, AND THAT IS THE USEFUL PART.**
+(36, 98) satisfies rules 1, 4, 5 and 8 and puts **`S2` in clear sight at 32.2 m**
+and `S6` at 98.8 m. `S3` is occluded today only because **`VicoloWestWall` stands
+north of it**, and moving east loses that shield. A tool grading seats alone
+would have offered the move and undone the pass that closed rule 6 the day before.
+
+**SO RELOCATION CANNOT FIX RULE 8 FOR THREE SPAWNS — AT MOST ONE.** Rule 1 wants
+30 m between spawns and the seven sites are within six metres of each other. What
+could fix it is **more interior massing**: occlusion is what makes a site legal,
+and those seven exist because `LoggiaPier` casts one. That is the next level pass
+and it is the owner's.
+
 **THE DISTRICT HAS INTERIOR MASSING NOW, AND GDD-05 §2.7 RULE 6 HOLDS FOR THE
 FIRST TIME: 9 OF 15 SPAWN PAIRS IN CLEAR SIGHT → 0 OF 15.** The rule carried a ✅
 and was false. `BLOCKS` held **seven** masses, four of them corner blocks, and the

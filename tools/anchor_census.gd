@@ -108,9 +108,7 @@ func _report_spawns(data: MapData) -> void:
 ## `TUN-CROWD-CLONE-LOCAL-RADIUS`. Searching the floor rectangles on a 2 m grid
 ## turns "moving it will not help" from an opinion into a count.
 func _search_for_spawn_sites(data: MapData) -> void:
-	print(
-		"--- relocations legal on GDD-05 §2.7 rules 1, 4, 5 and 8, 2 m grid over every street floor ---"
-	)
+	print("--- relocations legal on GDD-05 §2.7 rules 1, 4, 5, 6 and 8, 2 m grid ---")
 	for slot: int in data.spawn_points.size():
 		var here: Vector3 = data.spawn_points[slot]
 		var others: Array[Vector3] = []
@@ -120,7 +118,7 @@ func _search_for_spawn_sites(data: MapData) -> void:
 		var result := _sites_for(here, others, data)
 		print(
 			(
-				"  spawn (%6.1f, %6.1f): %2d seats now | %d sites legal on rules 1, 4, 5 and 8"
+				"  spawn (%6.1f, %6.1f): %2d seats now | %d sites legal on rules 1, 4, 5, 6 and 8"
 				% [here.x, here.z, _seats_at(here, data), result[0]]
 			)
 		)
@@ -179,8 +177,14 @@ func _sites_for(here: Vector3, others: Array[Vector3], data: MapData) -> Array:
 
 
 ## Every GDD-05 §2.7 rule a *position* can be judged against. Rules 2, 3 and 7 are
-## the respawn system's and depend on a live match; rule 6 is a property of a whole
-## arrangement rather than of one point, and `test_spawn_points.gd` owns it.
+## the respawn system's and depend on a live match.
+##
+## **RULE 6 IS HERE AS OF 2026-08-21 AND IT IS THE ONE THAT WOULD HAVE BITTEN.** It
+## reads as a property of the whole arrangement rather than of one point, which is
+## why it was left to `test_spawn_points.gd` — but the interior massing closed it at
+## 0 of 15, and **a relocation is exactly what re-opens it**. A tool that grades a
+## candidate against the rules while omitting the one the last pass fixed is how a
+## level pass undoes the pass before it.
 func _legal(at: Vector3, others: Array[Vector3], data: MapData) -> bool:
 	if _in_a_theatre(at, data):  # rule 5
 		return false
@@ -188,7 +192,40 @@ func _legal(at: Vector3, others: Array[Vector3], data: MapData) -> bool:
 		return false
 	if _nearest_circuit(at, data) > CIRCUIT_REACH:  # rule 4
 		return false
+	if not _occluded_from_all(at, others):  # rule 6
+		return false
 	return _seats_at(at, data) >= _seats_required()  # rule 8
+
+
+## Rule 6: no other spawn may be in clear sight. The same sampled line of sight
+## `test_spawn_points.gd` measures, against blocks tall enough to stand behind.
+func _occluded_from_all(at: Vector3, others: Array[Vector3]) -> bool:
+	for other: Vector3 in others:
+		if not _blocked(Vector2(at.x, at.z), Vector2(other.x, other.z)):
+			return false
+	return true
+
+
+func _blocked(a: Vector2, b: Vector2) -> bool:
+	var eye: float = _tuning.camera.arm_height
+	for row: Array in VetraioLayout.BLOCKS:
+		if float(row[5]) < eye:
+			continue
+		if _crosses(Rect2(float(row[1]), float(row[2]), float(row[3]), float(row[4])), a, b):
+			return true
+	return false
+
+
+## Sampled at a quarter of a metre, far finer than `MIN_ALLEY_WIDTH`, so no block
+## this can miss is one a player could see past.
+static func _crosses(box: Rect2, a: Vector2, b: Vector2) -> bool:
+	if box.has_point(a) or box.has_point(b):
+		return true
+	var steps := int(a.distance_to(b) / 0.25) + 1
+	for step: int in range(1, steps):
+		if box.has_point(a.lerp(b, float(step) / float(steps))):
+			return true
+	return false
 
 
 ## Which named zone and floor a point sits in, so a candidate can be judged against
