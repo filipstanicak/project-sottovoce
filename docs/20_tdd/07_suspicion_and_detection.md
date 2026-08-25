@@ -376,6 +376,26 @@ func render_state(o: PawnServer, s: PawnServer, cycle: ContractCycle) -> int:
 
 `test_render_state_per_observer.gd` asserts all three.
 
+#### 4.1.1 Three amendments from US-0055, which built it
+
+**IT READS THE ANNOUNCED CONTRACT, NEVER THE GRAPH'S.** `SYS-CONTRACT` repairs the cycle in the
+tick a death resolves and holds the *announcement* for `TUN-CONTRACT-REASSIGN-DELAY`. Rendering
+from `cycle.contract_of()` would put a tint on a player the hunter has not been given yet — the
+silhouette arriving before the Compass, and the breath worth nothing.
+`MatchContext.announced_contracts` is that view, and it is `ContractSystem`'s own map adopted by
+reference rather than mirrored, so the two cannot drift.
+
+**THE MATRIX COSTS NO RAYCASTS AT ALL.** §4.3's ladder is written as though the render state
+needed one; it does not. §2.1's rule is `tier × relationship` and nothing else, and §2.3 draws
+the Exposed outline *through* geometry — so occlusion must not gate it. The 2–6 raycasts §4.3
+budgets belong to the Compass lock and `SCORE-FOCUS`, which are US-0058's and US-0064's.
+`DetectionSystem.raycasts_last_tick` publishes the number rather than assuming it.
+
+**A NOTICED PURSUER IS `PLAIN` TO THEIR PREY**, which §4.1's sketch does not say either way and
+§9 question 1 answers: a tint at Noticed would let prey track a merely-Noticed hunter
+continuously, making the 15 m warning radius meaningless. `HARD` at Exposed is the whole of what
+prey ever see.
+
 ### 4.2 Line of sight
 
 **One query, used by everything**, so that `SCORE-FOCUS`, the Compass lock and Cinderfall
@@ -394,6 +414,24 @@ func has_los(from: Vector3, to: Vector3, at_tick: int = -1) -> bool
 > never by being **solid**. That is the difference between social stealth and cover shooting.
 
 `at_tick >= 0` rewinds for kill/stun validation (ADR-0010); otherwise the query is current.
+
+**THE REWOUND FORM IS REFUSED RATHER THAN FAKED** (US-0056). Geometry does not move, so a rewound
+query against the world alone answers exactly as a current one — and would *look* correct while
+the players it is really about sat at today's positions. `RewoundWorld` carries those and
+`SYS-KILL` (US-0060) is what pairs the two. Until then `has_los` returns false, logs, and counts
+the refusal in `rewinds_refused`, because a caller quietly receiving `false` for a whole match
+would look like a world with no line of sight in it.
+
+**THE MASK IS THE RULE, NOT A FILTER.** The query masks `WORLD` (layer 1) alone, and NPCs,
+players and corpses all sit on `PAWN`/`NPC` — so it cannot see them however a caller writes it.
+`test_los_single_query.gd` refuses a second raycast anywhere under `scripts/systems/`,
+`scripts/net/` or `scripts/server/`, and asserts the chokepoint still casts, so the guard cannot
+pass by the query having been deleted.
+
+**AND CINDERFALL IS A SPHERE, NOT A BODY.** `TUN-CINDERFALL-BLOCKS-LOS` is honoured by testing
+the *segment* against `TUN-CINDERFALL-RADIUS` — a cloud between two players touches neither, which
+is the point of area denial. Putting a `StaticBody3D` on the `WORLD` layer for four seconds would
+also block the traversal probes, so a player could vault a cloud.
 
 ### 4.3 Cost control
 
@@ -522,8 +560,10 @@ trap 14's shape, and the claim is worse than the absence because it stops anybod
 | `scripts/core/blend/blend_kind.gd` | The five kinds, as `blend_state:u4` | **Built**, US-0053 |
 | `scripts/core/blend/blend_record.gd` | One player's blend: kind, phase, grace | **Built**, US-0053 |
 | `scripts/systems/blend/blend_system.gd` | `SYS-BLEND` | **Built**, US-0053 |
-| `scripts/systems/detection/detection_system.gd` | `SYS-DETECTION` | US-0055 |
-| `scripts/core/render_state.gd` | `RenderState` enum | US-0055 |
+| `scripts/systems/detection/detection_system.gd` | `SYS-DETECTION` and the one LOS query | **Built**, US-0055/0056 |
+| `scripts/systems/detection/cinderfall_volumes.gd` | The only occluder that is not geometry | **Built**, US-0056 |
+| `scripts/core/detection/render_state.gd` | `RenderState` enum and the anonymity rule | **Built**, US-0055 |
+| `scripts/core/detection/render_matrix.gd` | Per-observer states for one tick | **Built**, US-0055 |
 
 ---
 
@@ -553,9 +593,10 @@ trap 14's whole cost is that the claim stops anybody checking.
 | `test_blend_prop_capacity.gd` | A second player's request on an occupied prop is refused with feedback | US-0054 |
 | `test_blend_group_slot.gd` | The reserved fifth slot is claimable once; drifting past 0.8 m breaks it; nothing moves the pawn | **Built**, US-0053 |
 | `test_blend_not_cover.gd` | A blended pawn can be killed and stunned normally | **Never written as such.** Its live half is `test_blend_revalidated.gd`'s damage and stun cases: the blend *breaks* rather than absorbing. The rest needs `SYS-KILL` |
-| `test_render_state_per_observer.gd` | One player at suspicion 100: four observers get `PLAIN`, hunter gets `HARD`, prey gets `HARD` | US-0055 |
-| `test_los_ignores_npcs.gd` | A wall of 10 NPCs between two players does not block LOS | US-0056 |
-| `test_los_single_query.gd` | **Source scan:** `SCORE-FOCUS`, lock progression and Cinderfall occlusion all call `DetectionSystem.has_los` | US-0056 |
+| `test_render_state_per_observer.gd` | One player at suspicion 100: bystanders get `PLAIN`, hunter gets `HARD`, prey gets `HARD` | **Built**, US-0055 |
+| `test_detection_system.gd` | The pass reaches every ordered pair, reads the *announced* contract, and spends no raycast | **Built**, US-0055 |
+| `test_los_ignores_npcs.gd` | A wall of 10 NPCs between two players does not block LOS | **Built**, US-0056 |
+| `test_los_single_query.gd` | **Source scan:** nothing under `systems/`, `net/` or `server/` raycasts but `DetectionSystem` | **Built**, US-0056. The *consumers* half waits for US-0058 and US-0064 |
 | `test_warning_tier_gate.gd` | An Anonymous pursuer at 2 m fires no warning; a Noticed pursuer at 14 m does | US-0059 |
 | `test_warning_payload_empty.gd` | `NET-S2C-PREY-WARNING` has exactly one field | US-0059. The **signal**'s arity is already guarded by `test/arch/test_prey_warning_signal_arity.gd` |
 | `test_warning_thresholds_match.gd` | `TUN-COMPASS-WARN-MIN-TIER == TUN-STUN-MIN-TIER` (invariant §17.8) | US-0059 |

@@ -1,10 +1,10 @@
 ---
 id: US-0055
 title: Detection — per-observer render state
-version: 0.1.0
-status: draft
+version: 0.2.0
+status: done
 owner: Technical Director
-last_updated: 2026-08-03
+last_updated: 2026-08-25
 depends_on: [GDD-03-SOCIAL-STEALTH, TDD-07-SUSPICION]
 ---
 
@@ -24,13 +24,17 @@ The anonymity rule: for every ordered observer-subject pair, compute what that o
 
 ## Acceptance criteria
 
-- [ ] Anonymous subjects render PLAIN to everyone.
-- [ ] A Noticed subject renders TINTED to their hunter only.
-- [ ] An Exposed subject renders HARD to their hunter, and to their prey.
-- [ ] Everyone else sees PLAIN regardless of the subject's suspicion.
-- [ ] Computed server-side, per observer, every tick. A client NEVER computes another player's state.
-- [ ] Early-outs keep the cost to a handful of raycasts, not 30.
-- [ ] The Exposed outline is the only through-geometry effect in the game.
+- [x] Anonymous subjects render PLAIN to everyone.
+- [x] A Noticed subject renders TINTED to their hunter only.
+- [x] An Exposed subject renders HARD to their hunter, and to their prey.
+- [x] Everyone else sees PLAIN regardless of the subject's suspicion.
+- [x] Computed server-side, per observer, every tick. A client NEVER computes another player's state.
+- [x] Early-outs keep the cost to a handful of raycasts, not 30.
+      **It costs none at all** — the rule is `tier × relationship` and the Exposed outline is drawn
+      *through* geometry, so occlusion must not gate it. `raycasts_last_tick` publishes the number.
+- [x] The Exposed outline is the only through-geometry effect in the game.
+      `RenderState.draws_through_geometry()` is where that prohibition lives; **nothing draws it
+      yet**, because no client renders a remote player's state until the HUD work.
 
 ## Test notes
 

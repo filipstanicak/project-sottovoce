@@ -76,6 +76,21 @@ var lag_comp := LagCompHistory.new()
 ## what it reads is this tick's.
 var crowd_hash := SpatialHash.new()
 
+## **WHAT EACH OBSERVER SEES OF EACH SUBJECT, THIS TICK.** Filled by
+## `SYS-DETECTION` at the `detection` stage and read by `SnapshotBuilder` at the
+## `snapshot` stage — four positions apart in `SystemOrder`, with neither knowing
+## the other exists. Absent means `PLAIN`.
+var render_states := RenderMatrix.new()
+
+## **peer -> the contract that peer has been TOLD about**, which is not always the
+## one the graph holds: `SYS-CONTRACT` repairs the cycle in the tick a death
+## resolves and holds the *announcement* for `TUN-CONTRACT-REASSIGN-DELAY`.
+##
+## Detection and the Compass both follow this one. Rendering from the graph would
+## put a tint on a player the hunter has not been given yet — the silhouette
+## arriving before the Compass, and the breath worth nothing.
+var announced_contracts: Dictionary = {}
+
 ## **THE FOUR PROCESSIONS, AND THE FIFTH SLOT IN EACH THAT NO NPC MAY TAKE.**
 ## Built by `CrowdDirector.setup()` (US-0043) and published here for `SYS-BLEND`,
 ## which is the thing that empty slot was reserved for.

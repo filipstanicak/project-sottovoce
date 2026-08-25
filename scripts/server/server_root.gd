@@ -22,6 +22,7 @@ var _fallen_reported: int = 0
 @onready var crowd_director: CrowdDirector = $Systems/CrowdDirector
 @onready var contracts: ContractSystem = $Systems/ContractSystem
 @onready var suspicion: SuspicionSystem = $Systems/SuspicionSystem
+@onready var detection: DetectionSystem = $Systems/DetectionSystem
 
 
 func _ready() -> void:
@@ -148,6 +149,7 @@ func _start_the_crowd_system() -> void:
 	# this line's position: a system registered backwards still ticks in the
 	# document's order. The order here is only the reading order.
 	director.register(suspicion)
+	director.register(detection)
 
 
 ## **WAIT FOR THE MAP, OR EVERY NPC LANDS AT THE ORIGIN.** A query before the
