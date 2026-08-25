@@ -7,7 +7,26 @@
 ## `TUN-CROWD-CLONE-LOCAL-MIN` at any arrangement, one of them seeing no NPC at
 ## all. This prints the two tables that say why: what each zone asked for against
 ## what the grid gave it, and what each spawn point can see.
+##
+## **IT LOADS THE TUNING PROFILE ITSELF AND MUST.** A `-s` script gets **no
+## autoloads**, so `Tuning` does not exist here and any Core class that reads it —
+## `CloneParity`, for one — fails to compile, reporting only "nonexistent function"
+## at the call site. Trap 13's family: the diagnostic that cannot see reports the
+## same thing as a healthy answer.
 extends SceneTree
+
+## Every number this tool grades against comes from here, never from a literal.
+const PROFILE := "res://data/tuning/default/profile.tres"
+
+## GDD-05 §2.7 rule 4's 25 m. **A level-design constant, not a tunable** — it is
+## written in the rule table and nowhere else, which is why it is a literal here
+## and in `test_spawn_points.gd` and not read from the profile.
+const CIRCUIT_REACH := 25.0
+
+## How many candidate relocations to print per starved spawn.
+const SHORTLIST := 5
+
+var _tuning: TuningProfile = null
 
 
 func _init() -> void:
@@ -16,6 +35,7 @@ func _init() -> void:
 
 func _run() -> void:
 	var data := load("res://data/maps/map_vetraio.tres") as MapData
+	_tuning = load(PROFILE) as TuningProfile
 	_report_zones(data)
 	_report_spawns(data)
 	_search_for_spawn_sites(data)
@@ -65,7 +85,7 @@ func _report_zones(data: MapData) -> void:
 ## What each spawn point can see, which is what US-0096 measures the crowd by.
 func _report_spawns(data: MapData) -> void:
 	print("--- spawn points: anchors within the local radius ---")
-	var radius := 25.0
+	var radius := _radius()
 	for at: Vector3 in data.spawn_points:
 		var near := 0
 		var nearest := INF
@@ -88,7 +108,9 @@ func _report_spawns(data: MapData) -> void:
 ## `TUN-CROWD-CLONE-LOCAL-RADIUS`. Searching the floor rectangles on a 2 m grid
 ## turns "moving it will not help" from an opinion into a count.
 func _search_for_spawn_sites(data: MapData) -> void:
-	print("--- legal relocations for a starved spawn, 2 m grid over every street floor ---")
+	print(
+		"--- relocations legal on GDD-05 §2.7 rules 1, 4, 5 and 8, 2 m grid over every street floor ---"
+	)
 	for slot: int in data.spawn_points.size():
 		var here: Vector3 = data.spawn_points[slot]
 		var others: Array[Vector3] = []
@@ -98,39 +120,150 @@ func _search_for_spawn_sites(data: MapData) -> void:
 		var result := _sites_for(here, others, data)
 		print(
 			(
-				"  spawn (%6.1f, %6.1f): %2d anchors now | %d legal sites with 8+ | nearest %v"
-				% [here.x, here.z, _seats_at(here, data), result[0], result[1]]
+				"  spawn (%6.1f, %6.1f): %2d seats now | %d sites legal on rules 1, 4, 5 and 8"
+				% [here.x, here.z, _seats_at(here, data), result[0]]
+			)
+		)
+		_print_candidates(result[1], data)
+
+
+## **THE NEAREST LEGAL SITE IS NOT NECESSARILY THE RIGHT ONE**, and a tool that
+## prints one answer invites it being taken. §2.7 names where each spawn *is* —
+## "Mercato Piccolo, north" — so a relocation that satisfies every rule while moving
+## a spawn out of the district it is named for has changed the level rather than
+## repaired it. The shortlist carries its zone for exactly that judgement.
+func _print_candidates(shortlist: Array, data: MapData) -> void:
+	for candidate: Array in shortlist:
+		var at: Vector3 = candidate[0]
+		print(
+			(
+				"      %6.1f m -> (%6.1f, %6.1f)  %2d seats  %s"
+				% [candidate[1], at.x, at.z, _seats_at(at, data), _where(at, data)]
 			)
 		)
 
 
-## `[how many legal 8+-seat sites exist, the nearest one to `here`]`.
+## `[how many legal sites exist, the nearest one to `here`]`.
 ##
 ## **THE NEAREST LEGAL SITE, NOT THE BEST ONE.** GDD-05 §2.7 names where each spawn
 ## is and its anti-spawn-camp analysis assumes they are spread; dragging them all
 ## to the anchor-rich centre would satisfy the seat count and quietly put three of
 ## them inside one camper's 40 m.
+##
+## **AND "LEGAL" MEANS EVERY RULE, WHICH THIS ASKED FOR EXACTLY ONE OF UNTIL
+## 2026-08-21.** It graded candidates on seats and spawn separation and offered
+## (90, 66) as `S5`'s nearest site — which is **on Piazza Secca's own boundary**,
+## the empty theatre plaza §2.7 rule 5 exists to keep spawns out of. The filter it
+## had excluded a *floor* named `PiazzaSecca`; the plaza is a **zone** spanning
+## several floors, so the check passed over the thing it was written to catch.
+## **An instrument that grades against one of four rules answers confidently and
+## wrongly**, and this one was about to move a spawn point.
 func _sites_for(here: Vector3, others: Array[Vector3], data: MapData) -> Array:
 	var found := 0
-	var nearest := Vector3.INF
-	var nearest_gap := INF
+	var shortlist: Array = []
 	for floor_row: Array in VetraioLayout.FLOORS:
-		if floor_row[5] != VetraioLayout.STREET_Y or String(floor_row[0]) == "PiazzaSecca":
+		if floor_row[5] != VetraioLayout.STREET_Y:
 			continue
 		var x: float = floor_row[1]
 		while x < float(floor_row[1]) + float(floor_row[3]):
 			var z: float = floor_row[2]
 			while z < float(floor_row[2]) + float(floor_row[4]):
 				var at := Vector3(x, 0.0, z)
-				if _far_enough(at, others) and _seats_at(at, data) >= 8:
+				if _legal(at, others, data):
 					found += 1
-					var gap := Vector2(at.x - here.x, at.z - here.z).length()
-					if gap < nearest_gap:
-						nearest_gap = gap
-						nearest = at
+					shortlist.append([at, Vector2(at.x - here.x, at.z - here.z).length()])
 				z += 2.0
 			x += 2.0
-	return [found, nearest]
+	shortlist.sort_custom(func(a: Array, b: Array) -> bool: return a[1] < b[1])
+	return [found, shortlist.slice(0, SHORTLIST)]
+
+
+## Every GDD-05 §2.7 rule a *position* can be judged against. Rules 2, 3 and 7 are
+## the respawn system's and depend on a live match; rule 6 is a property of a whole
+## arrangement rather than of one point, and `test_spawn_points.gd` owns it.
+func _legal(at: Vector3, others: Array[Vector3], data: MapData) -> bool:
+	if _in_a_theatre(at, data):  # rule 5
+		return false
+	if not _far_enough(at, others):  # rule 1
+		return false
+	if _nearest_circuit(at, data) > CIRCUIT_REACH:  # rule 4
+		return false
+	return _seats_at(at, data) >= _seats_required()  # rule 8
+
+
+## Which named zone and floor a point sits in, so a candidate can be judged against
+## §2.7's own description of where the spawn belongs. **A point in no zone is not
+## illegal** — most of the district's street area is outside every zone rectangle.
+func _where(at: Vector3, data: MapData) -> String:
+	var parts: PackedStringArray = []
+	for zone: MapZone in data.zones:
+		if zone.bounds.has_point(Vector3(at.x, zone.bounds.position.y, at.z)):
+			parts.append(String(zone.zone_name))
+	var floor_name := "off every floor"
+	for row: Array in VetraioLayout.FLOORS:
+		if float(row[5]) != VetraioLayout.STREET_Y:
+			continue
+		if Rect2(float(row[1]), float(row[2]), float(row[3]), float(row[4])).has_point(
+			Vector2(at.x, at.z)
+		):
+			floor_name = String(row[0])
+			break
+	if parts.is_empty():
+		return floor_name + ", no zone"
+	return "%s, %s" % [floor_name, ", ".join(parts)]
+
+
+## Rule 5. **The zone data, not a floor name and not the layout's theatre table.**
+## `PiazzaSecca` is a zone spanning several floors, so filtering by floor name — what
+## this tool did until 2026-08-21 — passed over the thing rule 5 is about.
+##
+## **AND IT MUST BE THE SAME POINT-IN-BOX TEST THE ZONES THEMSELVES USE.** A first
+## fix asked `Rect2.has_point` against `VetraioLayout.THEATRES`, which is **exclusive
+## at the far edge**, while `MapZone.bounds` is an `AABB` and `AABB.has_point` is
+## **inclusive**. So (90, 66) — Piazza Secca's own eastern boundary — was reported
+## outside the plaza by one convention and inside it by the other, and the tool
+## offered it as `S5`'s nearest legal relocation. Two conventions for one question is
+## how an instrument disagrees with the game while looking correct.
+func _in_a_theatre(at: Vector3, data: MapData) -> bool:
+	for zone: MapZone in data.zones:
+		if zone.is_theatre and zone.bounds.has_point(Vector3(at.x, zone.bounds.position.y, at.z)):
+			return true
+	return false
+
+
+## Rule 4, measured against circuit **segments** rather than waypoints: §4.4 spaces
+## waypoints 6–10 m apart, so "near a corner" and "near the route" differ by half a
+## spacing. Same measurement `test_spawn_points.gd` makes.
+func _nearest_circuit(at: Vector3, data: MapData) -> float:
+	var best := INF
+	var here := Vector2(at.x, at.z)
+	for route: PackedVector3Array in data.circuits:
+		for leg: int in route.size():
+			var a: Vector3 = route[leg]
+			var b: Vector3 = route[(leg + 1) % route.size()]
+			best = minf(best, _to_segment(here, Vector2(a.x, a.z), Vector2(b.x, b.z)))
+	return best
+
+
+func _to_segment(point: Vector2, a: Vector2, b: Vector2) -> float:
+	var span := b - a
+	var length_squared := span.length_squared()
+	if length_squared < 0.0001:
+		return point.distance_to(a)
+	var t := clampf((point - a).dot(span) / length_squared, 0.0, 1.0)
+	return point.distance_to(a + span * t)
+
+
+## What `CloneParity.seats_required()` answers, computed here because that class
+## reads `Tuning` and this script has no autoloads. **Read from the profile, never
+## written down**, so the day the floor or the persona list moves this tool moves
+## with `test_spawn_points.gd` instead of grading against a number no document holds.
+func _seats_required() -> int:
+	return int(_tuning.crowd.clone_local_min) * CrowdRoster.PLAYABLE.size()
+
+
+func _radius() -> float:
+	return _tuning.crowd.clone_local_radius
 
 
 func _far_enough(at: Vector3, others: Array[Vector3]) -> bool:
@@ -145,7 +278,8 @@ func _far_enough(at: Vector3, others: Array[Vector3]) -> bool:
 ## author can actually move.
 func _seats_at(at: Vector3, data: MapData) -> int:
 	var near := 0
+	var reach := _radius()
 	for anchor: Vector3 in data.idle_anchors:
-		if Vector2(anchor.x - at.x, anchor.z - at.z).length() <= 25.0:
+		if Vector2(anchor.x - at.x, anchor.z - at.z).length() <= reach:
 			near += 1
 	return near
