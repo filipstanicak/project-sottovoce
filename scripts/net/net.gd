@@ -41,6 +41,10 @@ var is_server: bool = false
 ## Reassembles delta snapshots into whole ones. Public so a reconnect can clear it.
 var assembler := SnapshotAssembler.new()
 
+## The `EVENT`-channel S2C messages. Its own node so `net.gd` stays under 400 lines
+## with seven more M4 event messages still to come. See `EventWire`.
+var events := EventWire.new()
+
 var _peer: ENetMultiplayerPeer = null
 var _peers := PeerRegistry.new()
 var _router: RpcRouter = null
@@ -60,6 +64,8 @@ func _ready() -> void:
 	_pings.name = "PingClock"
 	_pings.setup(_peers)
 	add_child(_pings)
+	events.name = "EventWire"
+	add_child(events)
 
 
 ## Listen on `port` for at most `max_players` peers. Returns false and logs
