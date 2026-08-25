@@ -384,10 +384,26 @@ respawn is always satisfiable.
 > **THE FIX IS TO MOVE A SPAWN POINT, NOT TO FILL THE FONDACO.** §2.7 puts `S3` and `S4` in it by
 > name and §3 makes it low-density on purpose — "few NPCs, where chases go to be resolved", 3–5
 > NPCs in its own density table. Raising its density to satisfy rule 8 deletes the one place on the
-> map designed to have no crowd to hide in. `S5` is the cheap one: **10.8 m** to a legal site, still
-> "Mercato Piccolo, north". `S4`'s nearest legal 8-seat site is **55 m away at (72, 52)**, which
-> drags it to the centre and is exactly what the anti-camp spread exists to prevent — so `S3` and
-> `S4` are a real level decision and not a nudge.
+> map designed to have no crowd to hide in.
+>
+> **AND THE THREE RELOCATIONS ARE RE-PRICED, BECAUSE THE FIRST PRICING USED AN INSTRUMENT THAT
+> GRADED ONE RULE OF FOUR.** `tools/anchor_census.gd` scored candidate sites on seats and spawn
+> separation only — not rule 4's circuit reach, and its rule-5 filter excluded a *floor* named
+> `PiazzaSecca` when the plaza is a **zone** spanning several floors. It graded rules 1, 4, 5 and 8
+> as of 2026-08-21 and prints a zone-labelled shortlist, and every published distance moved:
+>
+> | | Was published | **Measured** | Where it lands |
+> |---|---|---|---|
+> | `S3` | not priced | **30.0 m** to (36, 98) | **stays in the Fondaco** — the only option that keeps a spawn's named location |
+> | `S4` | 55 m | **61.9 m** to (72, 52) | the Loggia, the centre — what the anti-camp spread exists to prevent |
+> | `S5` | 10.8 m, "still Mercato Piccolo" | **18.0 m** to (100, 52) | the Loggia. **Not Mercato Piccolo** |
+>
+> **`S5` WAS NOT THE CHEAP ONE AND ITS 10.8 m SITE WAS ILLEGAL.** (90, 66) is Piazza Secca's own
+> eastern boundary: `AABB.has_point` — what `MapZone.bounds` uses — includes the maximum face,
+> where the `Rect2` test the tool asked excludes it. **One question answered by two conventions**,
+> and the answer it gave would have put a spawn on the empty plaza's edge, which is the thing rule
+> 5 exists to prevent. So `S3` is now the cheapest move and `S5` costs its name; which of them
+> moves is a level decision and not a nudge.
 
 **Spawn placement rules:**
 

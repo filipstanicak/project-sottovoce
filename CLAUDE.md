@@ -250,9 +250,8 @@ anonymity**, which design law 1 would charge them for.
 player placed at (114, 97.5) still sees **one** NPC within 25 m and is still
 uniquely identifiable for the grace. **Only the owner of the defect moved** — from
 a design law no map could satisfy to a level pass somebody can run. The fix is to
-**move a spawn point, not to fill the Fondaco**: S5 is 10.8 m from a legal site,
-S4's nearest is **55 m away at (72, 52)**, which drags it to the centre and is
-what the anti-camp spread exists to prevent.
+**move a spawn point, not to fill the Fondaco** — and the three relocations are
+**re-priced**, below.
 
 **AND THE SCOPE IS ONLY HONEST WHILE ITS CONDITIONS HOLD, SO THEY ARE ASSERTED.**
 `test_clone_parity_scope.gd` requires the grace to be at least one blend-walk of
@@ -268,6 +267,32 @@ derivation; **a multiplier that agrees with the answer is not one that follows
 it**. US-0047's *always* criterion **stays unticked** — the scoping excuses the
 opening arrangement, not the mid-match troughs, and no re-routing rule beats a
 walk.
+
+**AND THE THREE RELOCATIONS ARE RE-PRICED, BECAUSE THE INSTRUMENT THAT PRICED
+THEM GRADED ONE RULE OF FOUR.** `tools/anchor_census.gd` scored candidate spawn
+sites on seats and spawn separation only — not rule 4's circuit reach, and its
+rule-5 filter excluded a *floor* named `PiazzaSecca` when the plaza is a **zone**
+spanning several floors. It grades rules 1, 4, 5 and 8 now and prints a
+zone-labelled shortlist per starved spawn.
+
+| | Was published | **Measured** | Where it lands |
+|---|---|---|---|
+| S3 | not priced | **30.0 m** to (36, 98) | **stays in the Fondaco** |
+| S4 | 55 m | **61.9 m** to (72, 52) | the Loggia, the centre |
+| S5 | 10.8 m, "still Mercato Piccolo" | **18.0 m** to (100, 52) | the Loggia. **Not Mercato Piccolo** |
+
+**S5 WAS NOT THE CHEAP ONE AND ITS 10.8 m SITE WAS ILLEGAL.** (90, 66) is Piazza
+Secca's own eastern boundary, and `AABB.has_point` — what `MapZone.bounds` uses —
+**includes** the maximum face where the `Rect2` test the tool asked **excludes**
+it. One question, two conventions, and the answer would have put a spawn on the
+empty plaza's edge. **S3 is the cheapest move now and it is the only one that
+keeps a spawn's named location**; which spawn moves is the owner's.
+
+**AND I CLAIMED RULE 5 WAS MEASURED NOWHERE, WHICH WAS WRONG.** It is asserted
+twice — `test_map_dead_ends.gd` for the theatre half and
+`test_street_is_where_it_says.gd` for the on-a-floor half. I had grepped
+`test_spawn_points.gd` alone and concluded from one file. The test I had written
+was a third copy and was reverted.
 
 **AND AUDITING TDD-08's TABLES FOUND TWO ROWS STALE**, which is the fourth time
 that audit has paid: the test table still said `test_circuit_separation.gd`
@@ -1045,10 +1070,9 @@ GDD-05 §2.7, GDD-05 §3/§4.4 and GDD-03 §6.3 rule 3 can all hold now, and exa
 one of them is measured false: **§2.7 rule 8**, which is where the opening
 arrangement's obligation went. The census below is still the outstanding level
 work and the options were priced as: move S3/S4 out of the Fondaco (the nearest legal 8-seat site for S4 is
-**55 m away at (72, 52)**, which drags it to the centre and is what the anti-camp
+**61.9 m away at (72, 52)**, which drags it to the centre and is what the anti-camp
 spread exists to prevent); raise the Fondaco's density; or scope rule 3 so it does
-not bind at the spawn instant. **S5 is the cheap one** — 10.8 m to a legal site,
-still "Mercato Piccolo, north".
+not bind at the spawn instant — **which is what was chosen**.
 
 **AND MEASURING GDD-05 §2.7's OWN RULES FOUND ONE OF THEM FALSE.** §2.7 carries a
 note saying rules 4 and 6 were never re-derived after the 2026-08-13 spawn move, and
