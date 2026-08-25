@@ -185,7 +185,31 @@ static func clear_of_obstacles(at: Vector2) -> Vector3:
 	return Vector3(at.x, 0.0, at.y)
 
 
+## **CLEAR OF AN OBSTACLE MEANS CLEAR BY THE AGENT RADIUS, NOT MERELY OUTSIDE IT.**
+## The navmesh is eroded by `NAV_AGENT_RADIUS`, so a point flush against a wall is
+## **off** the walkable surface — and `map_get_closest_point` then answers with
+## whatever mesh is nearest, which is the isolated patch **inside** the block. That
+## is US-0041's `Npc003` standing on a market stall, in a new costume: an anchor
+## that looks placed, snaps to something, and can never be walked away from.
+##
+## Found 2026-08-21 when interior massing put an idle anchor 0.1 m from
+## `LampeIsland`'s west face, and the connectivity test seeded a floor onto the
+## island inside that same block and reported the floor severed.
 static func _is_usable(at: Vector2) -> bool:
 	if not on_a_floor(at):
 		return false
-	return stall_at(at) == "" and block_at(at) == ""
+	var clearance := VetraioLayout.NAV_AGENT_RADIUS
+	for row: Array in VetraioLayout.BLOCKS:
+		if _grown(row, clearance).has_point(at):
+			return false
+	for row: Array in VetraioLayout.STALLS:
+		if _grown(row, clearance).has_point(at):
+			return false
+	return true
+
+
+## An obstacle's footprint widened by `by` on every side.
+static func _grown(row: Array, by: float) -> Rect2:
+	return Rect2(
+		float(row[1]) - by, float(row[2]) - by, float(row[3]) + by * 2.0, float(row[4]) + by * 2.0
+	)

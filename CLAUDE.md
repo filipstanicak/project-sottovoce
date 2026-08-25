@@ -220,6 +220,61 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 *Updated 2026-08-21 (checkpoint after #134). Keep this section current — it is the first thing a fresh
 session reads, and a stale one is worse than none.*
 
+**THE DISTRICT HAS INTERIOR MASSING NOW, AND GDD-05 §2.7 RULE 6 HOLDS FOR THE
+FIRST TIME: 9 OF 15 SPAWN PAIRS IN CLEAR SIGHT → 0 OF 15.** The rule carried a ✅
+and was false. `BLOCKS` held **seven** masses, four of them corner blocks, and the
+district's whole middle had none at all — so **no spawn position could have
+satisfied it**, and the anti-spawn-camp analysis was asserted against geometry the
+greybox did not have. Seven masses now: 14 blocks, navmesh 211 → 255 polygons.
+
+**NONE OF THE SEVEN IS INVENTED TO FIT A SIGHTLINE.** Each is something the corpus
+already named and had never built: the wall §2.1 draws between Piazza Secca and
+Mercato Piccolo; the warehouse blocks §2.1 row 105 draws interrupting the Fondaco;
+a **pier** for the Loggia, which §2.1's legend calls a *covered arcade* and which
+was a 90 × 18 m hall spanning the district; and the **weigh-house** GDD-03 §6.2
+gives `PERSONA-PESATORE`'s clones as an idle anchor and which had no geometry.
+
+**THE GAPS ARE LOAD-BEARING AND THE FIRST VERSION PROVED IT.** A wall that fully
+spans a room turns it into an island: 1 099 orphaned cells of `MercatoPiccolo` and
+`FondacoStreet`, and `CIRC-C` broken in ten places. Measured after: **100 % of
+walkable ground reachable, all four circuits walkable, anchors unchanged at 67, and
+every spawn's seat census unchanged — S6 still exactly 8 of 8.**
+
+**IT WAS DESIGNED AGAINST A THROWAWAY HARNESS, NOT AGAINST THE SUITE.** A 0.5 m
+flood fill plus a sightline sampler, cross-checked against the real test on the one
+quantity both compute — it reproduced the 9 clear pairs exactly — and then iterated
+in seconds instead of in three-minute bakes. **What it could not model is the agent
+radius**, and that is where both of the real defects were.
+
+**AND `clear_of_obstacles` WAS PLACING ANCHORS FLUSH AGAINST WALLS.** It required a
+point to be *outside* an obstacle and the navmesh is eroded by
+`NAV_AGENT_RADIUS` — so a point against a face is **off** the mesh, and
+`map_get_closest_point` then answers with the isolated patch **inside** the block.
+That is US-0041's `Npc003` standing on a market stall, in a new costume: an anchor
+that looks placed, snaps to something, and can never be walked away from. The
+massing put one 0.1 m from `LampeIsland`'s west face. It requires the radius as
+clearance now, and the anchor count did not move.
+
+**THE SAME DEFECT HAD ALREADY FOOLED THE CONNECTIVITY TEST, TWICE AND
+DIFFERENTLY.** `test_the_district_is_one_connected_island` seeded each floor at its
+raw **centre**, which is only walkable while no floor has a building in the middle
+of it — `ViaDelleLampe` and `MercatoPiccolo` both reported **0 of 10**, a courtyard
+reading as a severed island. Seeding at the nearest obstacle-free point fixed one
+and left the other, because that point was `LampeIsland`'s east face **exactly** and
+snapping it to the mesh pulled it onto the island *inside* the block. It seeds at a
+navmesh point clear by the agent radius now, **and the nudge is guarded**: a floor
+buried entirely under mass would otherwise seed onto its neighbour and report itself
+perfectly connected, forever.
+
+**ONE PUBLISHED NUMBER GOT WORSE AND IT IS NOT ONE A PLAYER PAYS.** The cull-radius
+sweep's floor row read **93.4 kbit/s, 97 % — closing the budget** — and now reads
+**100.0, 104 %**, so `test_cull_radius_price.gd` reports rather than asserts. **The
+shipped figure is identical at 107.6 kbit/s, 112 %.** What was lost is a
+hypothetical escape route nobody had chosen; the cause is seven masses rerouting a
+strolling crowd, since only **4 of 67 anchors moved at all**. The sweep is
+reproducible to 0.1 kbit/s, which is what makes the comparison worth reporting.
+TDD-04 §7.1.2.
+
 **THE CLONE-MINIMUM CONTRADICTION IS DECIDED: GDD-03 §6.3 RULE 3 NO LONGER BINDS
 AT THE INSTANT A PLAYER IS PLACED.** The owner chose the third of three priced
 options on 2026-08-21. Three documents each said something true and the three
@@ -2314,7 +2369,7 @@ US-0024 measures it against clips that do not exist.
 | Autoloads | All eight. `Tuning` precomputes 89 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |
 | Boot | Branches on `--server`; 7 CLI flags parsed in pure Core; 5 export presets |
-| Map | `MAP-VETRAIO` greybox, 120 × 120 m. Client loads 28 meshes, server loads none. **The street surface is exactly `STREET_Y`** — floors used to straddle their declared height, putting every walkable top 0.1 m high, which made the 0.9 m stalls unvaultable and three spawn points float over nothing. **Lit as of US-0091** — one key light and a sky, because nothing in the project had ever created either and the district rendered near-black. **The navmesh is baked at build time and committed** (US-0041): **211 polygons across 12 floors**, with a derived `H_VAULT` parapet on every floor edge that borders a drop, and it sits **0.400 m above the street**, which is why steering applies gravity rather than trusting the snap |
+| Map | `MAP-VETRAIO` greybox, 120 × 120 m. Client loads 28 meshes, server loads none. **The street surface is exactly `STREET_Y`** — floors used to straddle their declared height, putting every walkable top 0.1 m high, which made the 0.9 m stalls unvaultable and three spawn points float over nothing. **Lit as of US-0091** — one key light and a sky, because nothing in the project had ever created either and the district rendered near-black. **The navmesh is baked at build time and committed** (US-0041): **255 polygons across 12 floors and 14 blocks**, with a derived `H_VAULT` parapet on every floor edge that borders a drop, and it sits **0.400 m above the street**, which is why steering applies gravity rather than trusting the snap |
 | Pawn | 14 states declared — **the Jog rung was removed in US-0090** and `Jog` is a retired ID absent from `ALL`. Transition edges asserted against the normative diagram. **Eleven implemented**: five locomotion + `Vault`, `Climb`, `Drop`, `KillAnim`, `Stunned`, `Blended`. `Respawning`, `StunAnim` and `Dead` are M4 |
 | Traversal | **Complete.** Probes cast, all seven §7.2 cases resolve from real geometry, both forgiveness windows open, and vault, mantle, climb, drop and gap jump all perform. **Case 7 hops as of US-0093** — an impulse, not a state, scaled by the speed rung and adding nothing horizontal. **The action buffer arms on the PRESS, not the hold** — arming from the held bit spent a traverse every frame a finger stayed down |
 | Crowd | 90 bodies pre-allocated, 78 active, each with a brain and a `CrowdContext` allocated beside it. One `SpatialHash` on `MatchContext`, rebuilt at the **top** of the crowd stage so the brains and every downstream system read the same grid — 0.0561 ms, allocating nothing. `CrowdDirector` ticks them at the `crowd` stage and translates the five flags `NpcBrain.step()` deliberately does not read into `handle()` calls; `Steering` moves the bodies from the **avoidance callback**, on the physics frame, and knows nothing about states — it takes a point and a speed. Repath is FIFO and capped at three a tick. **Four processions of four walk the map's circuits** (US-0043), each with a fifth slot no NPC may take, at a pace throttled by its worst straggler. **Banded by distance** as of US-0045 — 20/45/70 m, strides 1/3/15, staggered by index — and `CrowdBands` also scales each agent's `path_max_distance` by its band's stride (US-0041's last line), which is the one path query `RepathQueue` does not stagger. **All five states are reachable** as of US-0044: a sprinting player startles the crowd once a second, a wave propagates one hop at 0.4, and a corpse gathers six onlookers who walk to it and disperse before it fades. Violence has an entry point and no caller until M4. **On the wire as of US-0030/US-0031**: `SnapshotBuilder._fill_crowd` sends each observer the NPCs within `TUN-NET-NPC-CULL-RADIUS`, positionally and never visually, at `TUN-NET-NPC-RATE-LOD-HZ` beyond `TUN-NET-NPC-RATE-LOD-RADIUS` and staggered by `(tick + index) % stride`, delta-encoded per NPC against the client's **ack**. **Drawn on a client** as of US-0045 by `NpcView`, which culls at the same radius one margin wider, treats absence as "no update" rather than "gone", and dresses nobody. **Departure is a value, not silence** — one out-of-range record — and `CrowdWire.is_farewell()` holds that rule for both `NpcView` and `SnapshotAssembler`, which must agree on it: when only the view knew it, the assembler carried one goodbye forward into every later snapshot and the view created and freed a body from it once per tick. **Clone-parity layer 4 hangs off the same 2 s pass as the formations** (US-0047): `CloneBalance` holds the clones already near a player and fetches one when a persona is short, always to a map anchor and never at the player. **The floor is decided on clones that have ARRIVED**: crediting one still walking satisfied the minimum in expectation while the player was short in fact for the eighteen seconds of the journey |
