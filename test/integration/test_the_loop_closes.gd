@@ -131,8 +131,13 @@ func test_the_input_sender_pushes_every_sampled_command() -> void:
 	# script typed twice produces "trying to assign input_sender.gd to
 	# input_sender.gd". Loading the resource is unambiguous and is what the scene
 	# does anyway.
+	# **`autofree`, NOT `add_child_autofree`.** The sender is driven by hand here and
+	# has no reason to be in the tree — and `InputSender._ready()` logs an error when
+	# it finds no driver at `driver_path`, so parenting it would add a spurious error
+	# line to the suite output to fix a leak. Left unfreed it was the integration
+	# suite's only orphan.
 	var script := load("res://scripts/net/client/input_sender.gd") as GDScript
-	var sender: Node = script.new()
+	var sender: Node = autofree(script.new())
 	for i: int in 5:
 		sender._on_command_sampled(InputCommand.empty(i))
 	assert_eq(sender.sent_count(), 5, "a sampled command was not sent")
