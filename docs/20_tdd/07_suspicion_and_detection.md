@@ -108,11 +108,41 @@ static func integrate(s: SuspicionState, t: SuspicionTuning, dt: float) -> float
     return clampf(s.value + (gain - decay) * dt, 0.0, t.max_value)
 ```
 
-**`TUN-SUSPICION-DECAY-DELAY` (0.6 s, 18 ticks) closes the tap-sprint exploit.** Without it, a
-player alternating sprint and stroll at 4 Hz would gain 25/s half the time and lose 8/s the
-other half, netting +8.5/s while travelling at ~4.2 m/s average — better than running at 14/s.
-The delay makes stop-start movement strictly worse than committing.
-`test_suspicion_tapsprint.gd` asserts exactly this.
+**`TUN-SUSPICION-DECAY-DELAY` (0.6 s, 18 ticks) closes MOST of the tap-sprint exploit.** Without
+it, a player alternating sprint and stroll at 4 Hz gains 25/s half the time and loses 8/s the
+other half, netting +8.5/s while travelling at ~4.2 m/s average. With it they pay the full sprint
+rate for every sprint tick.
+
+**MEASURED 2026-08-21, AND "STRICTLY WORSE THAN COMMITTING" IS NOT TRUE AT THE SHIPPED VALUES:**
+2.024 pts/m without the delay, **2.976 with it, against a run's 3.111**. The delay adds 47 % and
+leaves tap-sprinting **4.3 % cheaper per metre** than committing. GDD-03 §3.3 property 2 carries
+the two candidate closures — neither of which is the integrator's, and the likely one is that a
+real pawn cannot alternate at 4 Hz through `TUN-SPEED-RUN-RESOLVE` and the sprint double-tap.
+`test_suspicion_tapsprint.gd` reports the gap rather than failing, and asserts the 47 % the delay
+demonstrably buys.
+
+### 2.1.1 Two amendments from US-0051, which built it
+
+**`evaluate_tier` LETS A RISE SKIP A RUNG AND A FALL NOT.** The sketch above walks one rung per
+tick in both directions, so a stunned player — `TUN-STUN-FORCES-EXPOSED` sets the scalar to 100
+outright — would read **Noticed** for a tick before reaching Exposed. A rule that *forces* a tier
+is not kept if it lands a tick late, and the same is true of `ABIL-WHISPERBOLT`'s wind-up.
+**Nothing forces a tier downward**: the only ways down are decay and a blend crush, and a crush
+takes 1.2 s — 36 ticks — so passing through Noticed on the way down is a real moment rather than
+an artefact.
+
+**`gain_rate()` IS PUBLIC, AND THAT IS WHAT KEEPS THE DELAY HONEST.** The owner has to know
+whether a tick counted as a gain in order to advance `ticks_since_gain`, and a caller that
+re-derived it could disagree with the integrator about what a gain was — arming the decay delay
+on a different tick from the one that earned it. One function, one answer.
+
+**AND GDD-03 §3.5's WORKED TIMELINE IS STALE, WHICH IS WHY NO TEST REPRODUCES IT.** US-0051's
+test note asks for the 45-second timeline to within 0.1 points at every timestamp. That timeline
+is driven by a **jog at +4/s**, and `TUN-SUSPICION-GAIN-JOG` is *deprecated with no successor*
+(TUNABLES §19, 2026-08-12) along with the Jog rung itself. Re-run on the current ladder the same
+actions cost +14/s and the player reaches **Exposed at 7.9 s** rather than brushing Noticed —
+which inverts what the example teaches. Re-authoring a worked example is design prose and is the
+owner's; the integrator is tested against §3.3, which is unambiguous and current.
 
 ### 2.2 Impulses
 

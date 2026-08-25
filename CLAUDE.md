@@ -220,6 +220,51 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 *Updated 2026-08-21 (checkpoint after #134). Keep this section current — it is the first thing a fresh
 session reads, and a stale one is worse than none.*
 
+**US-0051 IS DONE, EIGHT OF EIGHT: THE SUSPICION INTEGRATOR EXISTS** — and it
+found two things wrong with the documents it was built from.
+
+**THE TAP-SPRINT EXPLOIT IS NOT CLOSED, AND THE NUMBER IS 4.3 %.** GDD-03 §3.3 and
+TDD-07 §2.1 both say `TUN-SUSPICION-DECAY-DELAY` makes stop-start "strictly worse
+than committing". Measured in suspicion **per metre**, which is what a player
+actually spends to cross the district:
+
+| | pts/m |
+|---|---|
+| Tap-sprint, no delay (the exploit as written) | 2.024 |
+| Tap-sprint, with the delay | **2.976** |
+| Committing to a run | **3.111** |
+
+**The delay adds 47 % and leaves stop-start cheaper than committing.** Closing the
+rest needs `TUN-SUSPICION-GAIN-SPRINT` at **26.1** rather than 25.0 — inside its own
+20–32 band, and a `TUN-` change is the owner's — **or** the speed ladder already
+closes it, since a real pawn cannot alternate at 4 Hz through
+`TUN-SPEED-RUN-RESOLVE` and the sprint double-tap. **That half is unverified**: the
+test drives `speed_state` directly and nothing yet drives real pawn states through
+the integrator. Reported as `pending`.
+
+**AND THE COUNTERFACTUAL CAUGHT THE PRIMARY TEST MEASURING THE WRONG THING.** The
+first version ran twelve seconds; **both patterns saturate at 100 in that time**, so
+`value / metres` collapses to `100 / metres` — a comparison of **distances**, which
+tap-sprinting "wins" purely by being slower. It passed. What failed was the
+counterfactual — defeat the delay and the exploit must reappear — because the
+saturated measurement could not see the exploit either way. **A test whose
+counterfactual fails is telling you the primary test is measuring something else.**
+
+**GDD-03 §3.5's WORKED 45-SECOND TIMELINE CANNOT BE REPRODUCED.** US-0051's test
+note asks for it to 0.1 points; it is driven by a **jog at +4/s**, and
+`TUN-SUSPICION-GAIN-JOG` is **deprecated with no successor** along with the rung
+itself (US-0090, 2026-08-12). On the current ladder the same actions reach
+**Exposed at 7.9 s** rather than brushing Noticed — which inverts what the example
+teaches, since its whole point is a hunter who was never noticed. Re-authoring a
+worked example is design prose and is the owner's; the integrator is tested against
+§3.3, which is unambiguous and current.
+
+**AND `evaluate_tier` AMENDS TDD-07 §2.3's SKETCH: A RISE MAY SKIP A RUNG AND A
+FALL MAY NOT.** That sketch walks one rung per tick in both directions, so a stunned
+player — `TUN-STUN-FORCES-EXPOSED` sets the scalar to 100 outright — would read
+Noticed for a tick first. **A rule that forces a tier is not kept if it lands a tick
+late.** Nothing forces a tier downward, so a fall still passes through.
+
 **US-0050 IS FOUR OF SIX: `SYS-CONTRACT` IS IN THE SHIPPED SERVER.** A peer that
 joins is inserted into the cycle, a peer that leaves is removed in the tick it
 leaves, and `NET-S2C-CONTRACT-ASSIGNED` goes out to the holder alone — a **wire
@@ -2510,7 +2555,7 @@ US-0024 measures it against clips that do not exist.
 | | |
 |---|---|
 | CI | 7 jobs. **Running again as of 2026-08-07 after a two-day outage** — run `31200490320`, all seven green. The seven commits merged during the outage were never through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | **41 arch + 103 unit + 32 integration scripts**, holding 154 + 871 + 237 tests and 239 + 23 304 + 645 assertions — the assertion count tripled at US-0049, because `test_contract_cycle_fuzz.gd` checks the invariant after every one of 10 000 events. **Seven are `pending` by design** — **six in the unit suite and one in the integration suite**, which reports that an NPC aimed into the void never gives up. The island `pending` beside it **turned green by itself** when the alley mouths were built, which is what a `pending` naming its own blocker is for. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **171.3 s** of the 180 s it is allowed, up from 87.7 s at M2 — **under 9 s of headroom left, and the next integration test has to justify itself hard against that**. `test_server_tick_budget.gd` cost 9.8 s of it and is a gate line; the one before it, the 2 s pass A/B, samples ninety ticks **twice** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **The six are**: `test_upstream_bandwidth.gd` reporting the 145 % upstream miss, `test_crowd_bandwidth.gd` the 112 % downstream projection, `test_crowd_wire_cost.gd` the 112 % it actually costs, **`test_spawn_points.gd` twice — GDD-05 §2.7 rule 6's nine unoccluded spawn pairs and rule 8's S3 4, S4 1, S5 6 of 8 seats** — and `test_clone_animation_parity.gd` the missing clip library. **Two entries this row carried are gone because their findings closed**: `test_circuit_separation.gd`'s 0.51 m circuits (re-authored, now 21.20 m) and `test_cull_radius_price.gd`'s flat curve, which asserts rather than pends. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
+| Tests | **41 arch + 106 unit + 32 integration scripts**, holding 154 + 892 + 237 tests and 239 + 23 347 + 645 assertions — the assertion count tripled at US-0049, because `test_contract_cycle_fuzz.gd` checks the invariant after every one of 10 000 events. **Eight are `pending` by design** — **seven in the unit suite and one in the integration suite**, which reports that an NPC aimed into the void never gives up. The island `pending` beside it **turned green by itself** when the alley mouths were built, which is what a `pending` naming its own blocker is for. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **171.3 s** of the 180 s it is allowed, up from 87.7 s at M2 — **under 9 s of headroom left, and the next integration test has to justify itself hard against that**. `test_server_tick_budget.gd` cost 9.8 s of it and is a gate line; the one before it, the 2 s pass A/B, samples ninety ticks **twice** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **The six are**: `test_upstream_bandwidth.gd` reporting the 145 % upstream miss, `test_crowd_bandwidth.gd` the 112 % downstream projection, `test_crowd_wire_cost.gd` the 112 % it actually costs, **`test_spawn_points.gd` twice — GDD-05 §2.7 rule 6's nine unoccluded spawn pairs and rule 8's S3 4, S4 1, S5 6 of 8 seats** — and `test_clone_animation_parity.gd` the missing clip library. **Two entries this row carried are gone because their findings closed**: `test_circuit_separation.gd`'s 0.51 m circuits (re-authored, now 21.20 m) and `test_cull_radius_price.gd`'s flat curve, which asserts rather than pends. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
 | Tuning | 288 tunables across 14 resource classes; all 31 cross-field invariants assert — split across `TuningInvariants` and `TuningInvariantsTech` since the first file hit 400 lines, with one entry point still. **Eight IDs are deprecated** and recorded in TUNABLES §19 — never reused |
 | Autoloads | All eight. `Tuning` precomputes 89 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |
