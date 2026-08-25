@@ -220,6 +220,42 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 *Updated 2026-08-21 (checkpoint after #134). Keep this section current — it is the first thing a fresh
 session reads, and a stale one is worse than none.*
 
+**M4 HAS STARTED, AND THE OWNER SIGNED OFF THE LEVEL FIRST: "it looks and feels
+great."** That is the judgement that closes three milestones of level work — the
+piazza connected, the routes re-authored, the district walled, the interior massed,
+rule 6 closed and rule 8 down to one spawn.
+
+**US-0049 IS DONE, SEVEN OF SEVEN: `ContractCycle`.** GDD-03 §7's Hamiltonian cycle
+as a pure Core type — `contract(pi) = p(i+1 mod n)`, the ordered list is the whole
+representation, and **the repair is the removal**: deleting a node from a cycle
+leaves a cycle, so the victim's pursuer inherits by construction and nobody is
+contractless for an instant. That property is why a cycle beat a random matching,
+and it is asserted rather than assumed.
+
+**THE ANTI-REPEAT RULE WAS INERT, TWICE, AND ONLY ONE TEST COULD SEE IT.**
+`remove()` cleared the departing peer's contract history — and **the only reader of
+that history is the insertion that happens when they come back**. Then `open()` did
+not record the deal it had just made, so the first respawn of a match had no
+history either. Measured: **26 of 40 seeds avoided the repeat, 40 of 40 after.**
+Both are the same shape — *a rule that is present and never reached* — neither
+errored, and **the 10 000-event fuzz could not find either**, because a cycle with
+no history is a perfectly valid cycle.
+
+**`assert_valid()` RETURNS A STRING RATHER THAN ASSERTING**, because GDScript
+strips `assert()` from release builds: a validity check written as an assertion is
+one that does not exist in the shipped game. Empty means sound.
+
+**AND A JOIN IS THE SAME CALL AS A RESPAWN**, with the constraints vacuous, rather
+than §7.2's separate random insertion — so the two cannot drift apart. `apply()`
+does every removal before any insertion, which is what stops a respawn landing
+beside somebody who leaves in the same batch.
+
+**THE FUZZ ASSERTS ITS OWN COVERAGE BEFORE IT ASSERTS THE INVARIANT.** 10 000
+events over 200 sequences — 5 334 removals, 4 491 insertions, 1 222 batches —
+visiting cycle sizes 0 to 9, and it fails if it never reached two players, one
+player or a full lobby. A run that did nothing but joins would otherwise pass
+every assertion in the file.
+
 **GDD-05 §2.7 RULE 8 IS DOWN TO ONE SPAWN: S4 1 → 9 SEATS, S5 6 → 9, AND NOBODY
 MOVED.** The market was zoned as a corner of itself. §2.3 gives
 `LOC-MERCATOPICCOLO` **5–8 NPCs/6 m** and calls it "the second-safest ground — so
@@ -2442,7 +2478,7 @@ US-0024 measures it against clips that do not exist.
 | | |
 |---|---|
 | CI | 7 jobs. **Running again as of 2026-08-07 after a two-day outage** — run `31200490320`, all seven green. The seven commits merged during the outage were never through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | **41 arch + 97 unit + 32 integration scripts**, holding 154 + 832 + 237 tests and 239 + 6431 + 645 assertions. **Seven are `pending` by design** — **six in the unit suite and one in the integration suite**, which reports that an NPC aimed into the void never gives up. The island `pending` beside it **turned green by itself** when the alley mouths were built, which is what a `pending` naming its own blocker is for. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **171.3 s** of the 180 s it is allowed, up from 87.7 s at M2 — **under 9 s of headroom left, and the next integration test has to justify itself hard against that**. `test_server_tick_budget.gd` cost 9.8 s of it and is a gate line; the one before it, the 2 s pass A/B, samples ninety ticks **twice** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **The six are**: `test_upstream_bandwidth.gd` reporting the 145 % upstream miss, `test_crowd_bandwidth.gd` the 112 % downstream projection, `test_crowd_wire_cost.gd` the 112 % it actually costs, **`test_spawn_points.gd` twice — GDD-05 §2.7 rule 6's nine unoccluded spawn pairs and rule 8's S3 4, S4 1, S5 6 of 8 seats** — and `test_clone_animation_parity.gd` the missing clip library. **Two entries this row carried are gone because their findings closed**: `test_circuit_separation.gd`'s 0.51 m circuits (re-authored, now 21.20 m) and `test_cull_radius_price.gd`'s flat curve, which asserts rather than pends. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
+| Tests | **41 arch + 100 unit + 32 integration scripts**, holding 154 + 854 + 237 tests and 239 + 22 269 + 645 assertions — the assertion count tripled at US-0049, because `test_contract_cycle_fuzz.gd` checks the invariant after every one of 10 000 events. **Seven are `pending` by design** — **six in the unit suite and one in the integration suite**, which reports that an NPC aimed into the void never gives up. The island `pending` beside it **turned green by itself** when the alley mouths were built, which is what a `pending` naming its own blocker is for. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **171.3 s** of the 180 s it is allowed, up from 87.7 s at M2 — **under 9 s of headroom left, and the next integration test has to justify itself hard against that**. `test_server_tick_budget.gd` cost 9.8 s of it and is a gate line; the one before it, the 2 s pass A/B, samples ninety ticks **twice** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **The six are**: `test_upstream_bandwidth.gd` reporting the 145 % upstream miss, `test_crowd_bandwidth.gd` the 112 % downstream projection, `test_crowd_wire_cost.gd` the 112 % it actually costs, **`test_spawn_points.gd` twice — GDD-05 §2.7 rule 6's nine unoccluded spawn pairs and rule 8's S3 4, S4 1, S5 6 of 8 seats** — and `test_clone_animation_parity.gd` the missing clip library. **Two entries this row carried are gone because their findings closed**: `test_circuit_separation.gd`'s 0.51 m circuits (re-authored, now 21.20 m) and `test_cull_radius_price.gd`'s flat curve, which asserts rather than pends. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
 | Tuning | 288 tunables across 14 resource classes; all 31 cross-field invariants assert — split across `TuningInvariants` and `TuningInvariantsTech` since the first file hit 400 lines, with one entry point still. **Eight IDs are deprecated** and recorded in TUNABLES §19 — never reused |
 | Autoloads | All eight. `Tuning` precomputes 89 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |

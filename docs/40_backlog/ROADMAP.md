@@ -370,6 +370,20 @@ No gameplay rules replicated — there are none yet. No NPCs. Movement only.
 
 **Exit:** 80 NPCs with clones, blend groups, startle/gawk, ≤ 2 ms/frame.
 
+> **2026-08-21, M4 HAS STARTED — THE OWNER SIGNED OFF THE LEVEL: *"it looks and feels great."***
+> That judgement closes three milestones of level work: the piazza connected, the four routes
+> re-authored, the district walled, the interior massed, §2.7 rule 6 closed at 0 of 15 spawn pairs
+> and rule 8 down from three short spawns to one.
+>
+> **US-0049 is `done`, seven of seven.** `ContractCycle` is GDD-03 §7's Hamiltonian cycle as a
+> pure Core type, and **the repair is the removal** — deleting a node from a cycle leaves a cycle,
+> so the victim's pursuer inherits by construction and nobody is contractless for an instant.
+>
+> **And the anti-repeat rule was inert twice**, in ways the 10 000-event fuzz could not find:
+> `remove()` cleared the history whose only reader is the *return*, and `open()` never recorded the
+> deal it had just made. 26 of 40 seeds avoided a repeat contract; 40 of 40 after. A rule that is
+> present and never reached errors nowhere. GDD-03 §7.6.
+>
 > **2026-08-21, LATEST — THE CLONE-MINIMUM CONTRADICTION IS DECIDED, AND ONE RELEASE BLOCKER
 > BECAME A LEVEL RULE.** GDD-03 §6.3 rule 3 required `TUN-CROWD-CLONE-LOCAL-MIN` clones of each
 > in-use persona near every player **at all times**, which includes the tick the match places
