@@ -241,10 +241,27 @@ suspicion = clamp(suspicion + impulse, 0.0, 100.0)
    concurrent decay, so the ladder's costs are the *full* costs shown in §3.2, not net-of-decay
    ones. Without this, a cheap gain against −8/s decay would be *negative* and the ladder would
    invert.
-2. **`TUN-SUSPICION-DECAY-DELAY` (0.6 s) closes the tap-sprint exploit.** Without it, a player
-   alternating sprint and stroll at 4 Hz would gain 25/s for half the time and lose 8/s for
-   the other half, netting +8.5/s while travelling at ~4.2 m/s average — better than running
-   at 14/s. The delay makes stop-start movement strictly worse than committing.
+2. **`TUN-SUSPICION-DECAY-DELAY` (0.6 s) closes the tap-sprint exploit** — **mostly. Measured
+   2026-08-21 and the claim is amended.** Without it, a player alternating sprint and stroll at
+   4 Hz gains 25/s for half the time and loses 8/s for the other half, netting +8.5/s while
+   travelling at ~4.2 m/s average. With the delay they pay the **full** sprint rate for every
+   sprint tick: 12.5/s at the same 4.2 m/s. In suspicion **per metre**, which is what a player
+   actually spends to cross the district:
+
+   | | pts/m |
+   |---|---|
+   | Tap-sprint, no delay (the exploit as written) | **2.024** |
+   | Tap-sprint, with the delay | **2.976** |
+   | Committing to a run | **3.111** |
+
+   **The delay adds 47 % to the tap-sprinter's cost and leaves them 4.3 % cheaper than running**,
+   so "strictly worse than committing" is not true at the shipped values. Two things could close
+   the rest and neither is the integrator's: `TUN-SUSPICION-GAIN-SPRINT` at **26.1** rather than
+   25.0, inside its own 20–32 band; or the **speed ladder**, since a real pawn cannot alternate
+   at 4 Hz through `TUN-SPEED-RUN-RESOLVE` and the sprint double-tap. The second is the likely
+   answer and is **unverified** — `test_suspicion_tapsprint.gd` drives `speed_state` directly,
+   and nothing yet drives real pawn states through the integrator. It reports the gap rather
+   than failing.
 3. **Sources are additive with a clamp** (ASM-0018). A sprinting player on a roof with nobody
    nearby accrues 25 + 18 + 6 = **49/s**, reaching Exposed in 1.4 s. Additive stacking means
    compounding bad choices compounds the cost — the alternative (max-of) would make the second
