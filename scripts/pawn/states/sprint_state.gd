@@ -17,10 +17,6 @@ func target_speed() -> float:
 	return Tuning.movement.sprint
 
 
-func _ground_rate(_ctx: PawnContext) -> float:
-	return Tuning.suspicion.gain_sprint
-
-
 func camera_fov(_ctx: PawnContext) -> float:
 	return Tuning.camera.fov_sprint
 

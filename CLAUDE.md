@@ -217,7 +217,7 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 
 ## Where the work is right now
 
-*Updated 2026-08-25 (US-0053). Keep this section current — it is the first thing a fresh
+*Updated 2026-08-25 (the rival ladder). Keep this section current — it is the first thing a fresh
 session reads, and a stale one is worse than none.*
 
 **US-0053 IS SEVEN OF EIGHT: THE CROWD PAYS OUT.** `SYS-BLEND` is live. Stand
@@ -277,17 +277,48 @@ optimistically on both peers and let the server break it, the way a vault is, or
 never predict it and drive the pose from `blend_state`. A real decision with
 prediction consequences, and not in this story's criteria.
 
-**AND THERE IS A SECOND, WRONG SUSPICION LADDER IN `scripts/pawn/`.**
-`PawnState.suspicion_rate()` and twelve overrides implement the whole thing again
-— roof toll, decay, climb, vault, and `BlendedState`'s crush — and **nothing in
-the shipped game calls any of it**. It is not merely a duplicate but one that
-**disagrees**: `scripts/pawn/` contains no `gain_open`, no `decay_delay`, no
-`stillness_mult` and no speed ceiling, so standing alone in an empty plaza costs
-**−8/s** there against **+6/s** in `SuspicionMath` — opposite signs on the
-mechanic that makes an empty plaza dangerous — and tap-sprinting is free. Four
-unit-test files assert it in detail, which is what makes it look maintained.
-**Reported, not removed**: thirteen call sites across eleven files plus two test
-files, and it deserves its own change and its own argument.
+**AND THE SECOND, WRONG SUSPICION LADDER IN `scripts/pawn/` IS GONE.**
+`PawnState.suspicion_rate()` and twelve overrides implemented the whole thing
+again — roof toll, decay, climb, vault, and `BlendedState`'s crush — and
+**nothing in the shipped game ever called any of it**. It was not merely a
+duplicate but one that **disagreed**: `scripts/pawn/` had no `gain_open`, no
+`decay_delay`, no `stillness_mult` and no speed ceiling, so standing alone in an
+empty plaza *recovered* anonymity at **−8/s** there against **+6/s** in
+`SuspicionMath` — opposite signs on the mechanic that makes an empty plaza
+dangerous — and tap-sprinting was free. Four unit-test files asserted it in
+detail, which is exactly what made it look maintained.
+
+**`StunnedState.enter()` WAS THE WORST OF IT, BECAUSE IT WAS A WRITE.**
+`ctx.suspicion = Tuning.suspicion.max_value` in code that is **replayed during
+prediction reconciliation** — a client deciding its own gameplay state, never-do
+#3 — and it *set* the value once where TUNABLES §17 asks for it to be **held**
+for `TUN-STUN-FREEZE`, so the decay it re-armed began eating the punishment on
+the next tick. `SuspicionSystem._force_exposed_while_stunned()` holds it now,
+after the integrator, which is a ceiling rather than a nudge.
+
+**ONE DOCUMENTED RULE HAD TO BE CARRIED ACROSS RATHER THAN DELETED.** GDD-02
+§6.1's cost table prices a **mantle** at "+11.4 (climb rate × duration)" and a
+vault at nothing — and `PawnStateId.VAULT` is *both*, so the state alone cannot
+say which. `SuspicionState.mantling` is that bit, and it reuses the `CLIMB`
+source rather than claiming a sixth: hauling yourself onto a ledge is climbing to
+anyone watching. Found by `test_vault_state.gd` failing on the deleted function
+rather than by reading the table.
+
+**`test_roof_toll.gd` WAS RE-AUTHORED, NOT DELETED.** Its eight properties are
+real and only three were covered elsewhere; it moved to
+`test/unit/core/suspicion/` and drives `SuspicionMath`. **And its first new
+assertion was wrong in an instructive way**: "dropping off a roof is free" read
+18.0, because a pawn falling from `ROOF_Y` is still above
+`TUN-SUSPICION-ROOF-HEIGHT` and still paying the toll. The drop is free; the roof
+you drop from is not. It compares against `IDLE` at the same height now.
+
+**AND THE NEW GUARD'S FIRST VERSION HAD A HOLE THE SHAPE OF ITS OWN EXCEPTION.**
+`test_pawn_holds_no_suspicion_rule.gd` allows `scripts/pawn/` exactly one
+`Tuning.suspicion` field — `break_on_speed`, which is a state *transition*. The
+first version asked whether the **file** mentioned an allowed field anywhere, so
+`blended_state.gd` was waved through for every other field as well. Falsified
+against a planted crush rate it stayed green while the function scan beside it
+went red. It is per **line** now, and names the field and the line number.
 
 ---
 
@@ -2704,7 +2735,7 @@ US-0024 measures it against clips that do not exist.
 | | |
 |---|---|
 | CI | 7 jobs. **Running again as of 2026-08-07 after a two-day outage** — run `31200490320`, all seven green. The seven commits merged during the outage were never through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | **43 arch + 112 unit + 32 integration scripts**, holding 164 + 951 + 239 tests and 387 + 23 597 + 651 assertions — the assertion count tripled at US-0049, because `test_contract_cycle_fuzz.gd` checks the invariant after every one of 10 000 events. **Eight are `pending` by design** — **seven in the unit suite and one in the integration suite**, which reports that an NPC aimed into the void never gives up. The island `pending` beside it **turned green by itself** when the alley mouths were built, which is what a `pending` naming its own blocker is for. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **162-172 s** of the 180 s it is allowed, up from 87.7 s at M2 — **under 9 s of headroom left, and the next integration test has to justify itself hard against that**. `test_server_tick_budget.gd` cost 9.8 s of it and is a gate line; the one before it, the 2 s pass A/B, samples ninety ticks **twice** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **The six are**: `test_upstream_bandwidth.gd` reporting the 145 % upstream miss, `test_crowd_bandwidth.gd` the 112 % downstream projection, `test_crowd_wire_cost.gd` the 112 % it actually costs, **`test_spawn_points.gd` twice — GDD-05 §2.7 rule 6's nine unoccluded spawn pairs and rule 8's S3 4, S4 1, S5 6 of 8 seats** — and `test_clone_animation_parity.gd` the missing clip library. **Two entries this row carried are gone because their findings closed**: `test_circuit_separation.gd`'s 0.51 m circuits (re-authored, now 21.20 m) and `test_cull_radius_price.gd`'s flat curve, which asserts rather than pends. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
+| Tests | **44 arch + 112 unit + 32 integration scripts**, holding 169 + 951 + 239 tests and 534 + 23 609 + 651 assertions — the assertion count tripled at US-0049, because `test_contract_cycle_fuzz.gd` checks the invariant after every one of 10 000 events. **Eight are `pending` by design** — **seven in the unit suite and one in the integration suite**, which reports that an NPC aimed into the void never gives up. The island `pending` beside it **turned green by itself** when the alley mouths were built, which is what a `pending` naming its own blocker is for. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **162-172 s** of the 180 s it is allowed, up from 87.7 s at M2 — **under 9 s of headroom left, and the next integration test has to justify itself hard against that**. `test_server_tick_budget.gd` cost 9.8 s of it and is a gate line; the one before it, the 2 s pass A/B, samples ninety ticks **twice** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **The six are**: `test_upstream_bandwidth.gd` reporting the 145 % upstream miss, `test_crowd_bandwidth.gd` the 112 % downstream projection, `test_crowd_wire_cost.gd` the 112 % it actually costs, **`test_spawn_points.gd` twice — GDD-05 §2.7 rule 6's nine unoccluded spawn pairs and rule 8's S3 4, S4 1, S5 6 of 8 seats** — and `test_clone_animation_parity.gd` the missing clip library. **Two entries this row carried are gone because their findings closed**: `test_circuit_separation.gd`'s 0.51 m circuits (re-authored, now 21.20 m) and `test_cull_radius_price.gd`'s flat curve, which asserts rather than pends. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
 | Tuning | 288 tunables across 14 resource classes; all 31 cross-field invariants assert — split across `TuningInvariants` and `TuningInvariantsTech` since the first file hit 400 lines, with one entry point still. **Eight IDs are deprecated** and recorded in TUNABLES §19 — never reused |
 | Autoloads | All eight. `Tuning` precomputes 89 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |

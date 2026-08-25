@@ -102,11 +102,25 @@ func test_it_does_not_discount_the_rung_the_player_chose() -> void:
 	# Run charges TUN-SUSPICION-GAIN-RUN whether or not you are scanning. Moving
 	# at a civilian's pace while paying a runner's price is the correct answer:
 	# scanning is a cost, never a refund.
-	var run := _machine.state_for(PawnStateId.RUN)
-	var scanning := _drive(PawnStateId.RUN, true, 60)
-	var plain := _drive(PawnStateId.RUN, false, 60)
-	assert_eq(run.suspicion_rate(scanning), run.suspicion_rate(plain))
-	assert_gt(run.suspicion_rate(scanning), 0.0, "running stopped costing anything at all")
+	#
+	# **ASKED OF `SuspicionMath`, WHICH IS THE LADDER THE SERVER RUNS.** It used to
+	# ask `PawnState.suspicion_rate()`, a second implementation nothing called. And
+	# the property is now *structural* as well as measured: `SuspicionState` has no
+	# field for the scan bit, so scanning cannot reach the rate however the two
+	# contexts differ.
+	var scanning := _rate_for(_drive(PawnStateId.RUN, true, 60))
+	var plain := _rate_for(_drive(PawnStateId.RUN, false, 60))
+	assert_eq(scanning, plain, "crowd-scan changed what running costs")
+	assert_gt(scanning, 0.0, "running stopped costing anything at all")
+
+
+## What `SYS-SUSPICION` would charge this pawn, read the way it reads it.
+func _rate_for(ctx: PawnContext) -> float:
+	var s := SuspicionState.new()
+	s.speed_state = ctx.state_id
+	s.on_roof = ctx.position.y >= Tuning.suspicion.roof_height
+	s.nearest_npc_distance = 0.5
+	return SuspicionMath.gain_rate(s, Tuning.suspicion)
 
 
 func test_two_pawns_differing_only_in_the_scan_bit_end_up_the_same() -> void:

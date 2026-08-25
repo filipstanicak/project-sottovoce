@@ -144,6 +144,41 @@ actions cost +14/s and the player reaches **Exposed at 7.9 s** rather than brush
 which inverts what the example teaches. Re-authoring a worked example is design prose and is the
 owner's; the integrator is tested against §3.3, which is unambiguous and current.
 
+### 2.1.2 The ladder lives in exactly one place, as of 2026-08-25
+
+`scripts/pawn/` carried a **second, complete implementation** of everything in §2.1 from M1 —
+`PawnState.suspicion_rate()` and twelve overrides, with a roof toll, a decay, a climb rate, a
+mantle rate and a blend crush. **Nothing in the shipped game ever called any of it**, and four
+unit-test files asserted it in detail, which is exactly what made it look maintained.
+
+It was not merely a duplicate. It **disagreed**, because a pawn state cannot see the crowd and
+has no memory between ticks:
+
+| | `scripts/pawn/` | `SuspicionMath` |
+|---|---|---|
+| Standing alone in an empty plaza | **−8/s** (decays) | **+6/s** (`TUN-SUSPICION-GAIN-OPEN`) |
+| Tap-sprinting | free — no `TUN-SUSPICION-DECAY-DELAY` | the delay applies |
+| `PASV-STILLNESS` | absent | `TUN-PASV-STILLNESS-MULT` |
+| Decay above stroll | applied | refused (`TUN-SUSPICION-DECAY-SPEED-CEILING`) |
+
+Opposite signs on the mechanic that makes an empty plaza dangerous. It is deleted, and
+`test/arch/test_pawn_holds_no_suspicion_rule.gd` refuses a `suspicion_rate`, a write to
+`suspicion`/`tier`/`active_sources`, and any `Tuning.suspicion` field other than
+`TUN-BLEND-BREAK-ON-SPEED` — which is a state *transition* rather than a rate.
+
+**`StunnedState.enter()` WAS THE WORST OF IT, BECAUSE IT WAS A WRITE.**
+`ctx.suspicion = Tuning.suspicion.max_value` sat in code replayed during prediction
+reconciliation — a client deciding its own gameplay state — and it *set* the value once where
+TUNABLES §17 asks for it to be **held** at Exposed for `TUN-STUN-FREEZE`, so the decay it
+re-armed began eating the punishment on the next tick. `SuspicionSystem` holds it after the
+integrator now, which is a ceiling rather than a nudge.
+
+**AND ONE DOCUMENTED RULE HAD TO BE CARRIED ACROSS.** GDD-02 §6.1 prices a **mantle** at
+"+11.4 (climb rate × duration)" and a vault at nothing, and `PawnStateId.VAULT` is *both* — so
+the state alone cannot say which. `SuspicionState.mantling` is that bit, and it sets the `CLIMB`
+source rather than claiming a sixth: hauling yourself onto a ledge is climbing to anyone
+watching, and the HUD word is honest for either.
+
 ### 2.2 Impulses
 
 Instant sources are applied **outside** the integrator, once, at the event
@@ -506,6 +541,8 @@ trap 14's whole cost is that the claim stops anybody checking.
 | `test_suspicion_tapsprint.gd` | 4 Hz sprint/stroll alternation yields **higher** suspicion per metre than continuous running | **Built** and `pending`: 4.3 % cheaper, not higher (§2.1) |
 | `test_suspicion_additive.gd` | Sprint + roof + open = 49/s → Exposed in 1.4 s | **Never written.** It is `test_suspicion_math.gd`'s `test_sources_sum_additively` |
 | `test_suspicion_sources.gd` | `gain_rate()` equals the sum of the bits `of()` sets, over every combination | **Built**, US-0052 |
+| `test_roof_toll.gd` | The 18/s toll applies regardless of speed, is added rather than swapped, and blocks decay | **Built** US-0020, re-authored against `SuspicionMath` 2026-08-25 |
+| `test_pawn_holds_no_suspicion_rule.gd` | `scripts/pawn/` declares no rate, writes no mirrored field and reads no threshold | **Built**, arch guard, 2026-08-25 |
 | `test_suspicion_hysteresis.gd` | No tier oscillates faster than 1 Hz under any input pattern | **Built**, US-0051 |
 | `test_suspicion_impulse_debounce.gd` | Five NPC bumps in 0.5 s apply one impulse; five spaced a cooldown apart apply five | **Built**, US-0052 |
 | `test_suspicion_system.gd` | The world is read from this tick's hash; the value reaches the pawn; a crossing is announced once | **Built**, US-0052 |

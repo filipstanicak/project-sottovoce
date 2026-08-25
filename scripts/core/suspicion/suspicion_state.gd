@@ -40,6 +40,14 @@ var nearest_npc_distance: float = INF
 ## own reading of the state, or the two can disagree about what a gain was.
 var ticks_since_gain: int = 0
 
+## **THE TRAVERSE IN PROGRESS IS A MANTLE RATHER THAN A VAULT.** GDD-02 §6.1's
+## cost table prices a mantle at "+11.4 (climb rate × duration)" and a vault at
+## nothing, and `PawnStateId.VAULT` covers both — so the ladder cannot tell them
+## apart from the state alone. A bool rather than the `TraversalResolver.Case`,
+## because this record is the integrator's whole world and it has no business
+## knowing what a drop-swing is.
+var mantling: bool = false
+
 ## True while a blend action is held. Overrides gain and decay both.
 var blending: bool = false
 
@@ -56,6 +64,7 @@ func duplicate_state() -> SuspicionState:
 	out.speed_state = speed_state
 	out.on_roof = on_roof
 	out.nearest_npc_distance = nearest_npc_distance
+	out.mantling = mantling
 	out.ticks_since_gain = ticks_since_gain
 	out.blending = blending
 	out.has_stillness = has_stillness

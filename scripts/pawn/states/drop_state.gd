@@ -45,12 +45,6 @@ func drives_position() -> bool:
 	return true
 
 
-## Free. Falling is not an athletic display; it is gravity, and every civilian is
-## subject to it.
-func suspicion_rate(_ctx: PawnContext) -> float:
-	return 0.0
-
-
 func camera_fov(_ctx: PawnContext) -> float:
 	return Tuning.camera.fov_run
 

@@ -72,11 +72,6 @@ func test_a_full_stratum_climb_costs_what_the_cost_table_says() -> void:
 	assert_almost_eq(seconds * Tuning.suspicion.gain_climb, 38.6, 1.5, "the 9 m toll moved")
 
 
-func test_it_costs_the_climb_rate_throughout() -> void:
-	_plan(4.0)
-	assert_eq(_state.suspicion_rate(_ctx), Tuning.suspicion.gain_climb)
-
-
 func test_climbing_costs_less_per_second_than_standing_on_the_roof() -> void:
 	# §6: "Lower than roof-presence because a climb is brief and sometimes
 	# necessary; the roof you arrive at is what really costs." If these inverted,
