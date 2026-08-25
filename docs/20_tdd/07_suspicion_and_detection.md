@@ -251,6 +251,34 @@ func _should_break(pawn: PawnServer) -> bool:
         or pawn.state_id == &"Stunned"
 ```
 
+### 3.1.1 Four amendments from US-0053, which built it
+
+**`BlendSystem` IS NOT A `GameSystem`, AND §5's SIGNATURE IS AMENDED.** `MatchDirector` permits
+**one system per stage** and refuses a second with a log error. §1's diagram draws blend
+resolution as *step 1 inside the `SYS-SUSPICION` box*, and TDD-01 §4.1's rationale for
+*crowd before suspicion* is already written as "…**and blend-pocket validity depends on NPC
+positions**" — so the blend belongs to stage 4 rather than to a stage of its own. It is a pure
+`RefCounted` that `SuspicionSystem` owns and resolves first, which is the same shape as
+`ContractCycle` under `ContractSystem` and `SnapshotDelta` under `SnapshotBuilder`, and it keeps
+the decision askable in a test with no director present.
+
+**ENTERING IS NOT YET BLENDED AND LEAVING IS NO LONGER BLENDED.** §4.1 says entry is 0.35 s
+during which "you are vulnerable and visibly transitioning", so the crush cannot have started —
+a player would otherwise be paid for a commitment they have not finished making. `BlendRecord`
+carries a four-value phase (`OUT ENTERING HELD LEAVING`); **the phase is not on the wire**, which
+carries the *kind* only, because `EVT-BLEND-STATE-CHANGED` and `blend_state:u4` both name the
+five kinds and nothing else.
+
+**A BREAK IS NOT AN EXIT.** US-0053's sixth criterion says a scattered pocket ends the blend
+**that tick**, so a break has no 0.30 s of standing up. A blend that is being *left*, by
+contrast, is no longer re-validated: the crowd walking off during those 0.30 s must not convert a
+clean exit into a break.
+
+**THE SLOT WALKS AND THE PLAYER KEEPS UP — NOTHING MOVES THE PAWN.** The group blend *judges*
+rather than steers. Driving a blended player toward their formation slot would put the server in
+charge of a position the client predicts, and every tick of the blend would be a reconciliation;
+it would also take the agency GDD-03 §4.1.2 trades for mobility without charging for it.
+
 ### 3.2 The blend-score grace window
 
 `TUN-BLEND-SCORE-GRACE` 1.0 s (30 ticks). A player may initiate a kill up to one second after
@@ -261,8 +289,15 @@ leaving a blend and still earn `SCORE-BLENDED` (+200).
 ## This is what makes the blend-then-strike play legible and reliable rather
 ## than frame-perfect — the single most valuable bonus in the game must not
 ## depend on 33 ms of timing.
-ctx.blend_grace_ticks = Tuning.ticks(&"TUN-BLEND-SCORE-GRACE")
+BlendRecord.grace_ticks = Tuning.ticks(&"TUN-BLEND-SCORE-GRACE")
 ```
+
+**IT ARMS ON ANY EXIT FROM `HELD`, INCLUDING A BREAK** (US-0053). The alternative — only a
+deliberate exit qualifies — hands a hunter a way to deny +200 by sprinting past a pocket and
+scattering it, which *pays* the reckless approach the whole design exists to charge for. A player
+who was blended a second ago was blended. An interrupted **entry** arms nothing: pressing the key
+near a crowd and being scattered 0.1 s later is not a blend, and crediting it would make the
+bonus reachable by tapping.
 
 ### 3.3 Concealment prop capacity
 
@@ -414,10 +449,16 @@ func stage() -> StringName                        ## &"suspicion"
 func tick(ctx: MatchContext, dt: float) -> void
 func report_npc_bump(peer: int, ctx: MatchContext) -> bool   ## no caller — see below
 
-class_name BlendSystem extends GameSystem
-func request_blend(peer: int, target_id: int) -> bool     ## validates capacity and range
-func release_blend(peer: int) -> void
-func is_blended(peer: int) -> bool
+## **NOT a GameSystem** — see §3.1.1. One system per stage, and the blend is step 1
+## of the suspicion pass. `SuspicionSystem.blend` is the instance.
+class_name BlendSystem extends RefCounted
+signal blend_changed(peer: int, kind: int)                ## EVT-BLEND-STATE-CHANGED, server half
+func request(peer: int, ctx: MatchContext) -> int         ## the kind taken, or NONE — never silence
+func report_damage(peer: int, ctx: MatchContext) -> void  ## breaks; never absorbs
+func forget(peer: int, ctx: MatchContext) -> void         ## releases the formation slot too
+func resolve(ctx: MatchContext) -> void                   ## step 1 of the suspicion pass
+func is_crushing(peer: int) -> bool                       ## feeds SuspicionState.blending
+func wire_kind(peer: int) -> int                          ## the snapshot's blend_state:u4
 func grace_ticks_remaining(peer: int) -> int              ## read by KillSystem for SCORE-BLENDED
 
 class_name DetectionSystem extends GameSystem
@@ -443,7 +484,9 @@ trap 14's shape, and the claim is worse than the absence because it stops anybod
 | `scripts/core/suspicion/suspicion_sources.gd` | The `active_sources` bitfield (§2.2.2) | **Built**, US-0052 |
 | `scripts/core/suspicion/suspicion_impulses.gd` | The impulse queue and the bump debounce (§2.2) | **Built**, US-0052 |
 | `scripts/systems/suspicion/suspicion_system.gd` | `SYS-SUSPICION` | **Built**, US-0052 |
-| `scripts/systems/blend/blend_system.gd` | `SYS-BLEND` | US-0053 |
+| `scripts/core/blend/blend_kind.gd` | The five kinds, as `blend_state:u4` | **Built**, US-0053 |
+| `scripts/core/blend/blend_record.gd` | One player's blend: kind, phase, grace | **Built**, US-0053 |
+| `scripts/systems/blend/blend_system.gd` | `SYS-BLEND` | **Built**, US-0053 |
 | `scripts/systems/detection/detection_system.gd` | `SYS-DETECTION` | US-0055 |
 | `scripts/core/render_state.gd` | `RenderState` enum | US-0055 |
 
@@ -468,10 +511,11 @@ trap 14's whole cost is that the claim stops anybody checking.
 | `test_suspicion_system.gd` | The world is read from this tick's hash; the value reaches the pawn; a crossing is announced once | **Built**, US-0052 |
 | `test_suspicion_is_never_predicted.gd` | No client file computes a suspicion value or writes a mirrored field | **Built**, US-0052 |
 | `test_suspicion_is_wired_into_the_server.gd` | The system is in `server_root.tscn` **and registered** | **Built**, US-0052 |
-| `test_blend_revalidated.gd` | A pocket dropping below 4 NPCs breaks the blend **that tick** | US-0053 |
-| `test_blend_grace.gd` | A kill initiated 0.9 s after blend exit earns `SCORE-BLENDED`; at 1.1 s it does not | US-0053 |
+| `test_blend_revalidated.gd` | A pocket dropping below 4 NPCs breaks the blend **that tick** | **Built**, US-0053 |
+| `test_blend_grace.gd` | A kill initiated 0.9 s after blend exit earns `SCORE-BLENDED`; at 1.1 s it does not | **Built**, US-0053 |
 | `test_blend_prop_capacity.gd` | A second player's request on an occupied prop is refused with feedback | US-0054 |
-| `test_blend_not_cover.gd` | A blended pawn can be killed and stunned normally | US-0053, needs `SYS-KILL` |
+| `test_blend_group_slot.gd` | The reserved fifth slot is claimable once; drifting past 0.8 m breaks it; nothing moves the pawn | **Built**, US-0053 |
+| `test_blend_not_cover.gd` | A blended pawn can be killed and stunned normally | **Never written as such.** Its live half is `test_blend_revalidated.gd`'s damage and stun cases: the blend *breaks* rather than absorbing. The rest needs `SYS-KILL` |
 | `test_render_state_per_observer.gd` | One player at suspicion 100: four observers get `PLAIN`, hunter gets `HARD`, prey gets `HARD` | US-0055 |
 | `test_los_ignores_npcs.gd` | A wall of 10 NPCs between two players does not block LOS | US-0056 |
 | `test_los_single_query.gd` | **Source scan:** `SCORE-FOCUS`, lock progression and Cinderfall occlusion all call `DetectionSystem.has_los` | US-0056 |

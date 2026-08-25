@@ -13,6 +13,13 @@
 ## construction; a shape query would be a second answer to a question that already
 ## has one, at six queries a tick, against a world the hash was built from.
 ##
+## **IT OWNS `SYS-BLEND` AND RESOLVES IT FIRST**, which is TDD-07 §1's diagram
+## exactly: blend resolution is *step 1* of this pass, before the gain sum, because
+## a held blend overrides gain and decay both. `MatchDirector` permits one system
+## per stage and TDD-01 §4.1 already files blend-pocket validity under the crowd →
+## suspicion boundary, so the blend is not a stage of its own — it is a pure
+## collaborator this system ticks, the way `ContractSystem` owns `ContractCycle`.
+##
 ## **THE VALUE LIVES ON `PawnContext`, NOT HERE.** The snapshot builder reads
 ## `pawn.suspicion`, so a copy held in this system would be a second authority —
 ## and a respawn zeroing one and not the other is the kind of disagreement that
@@ -31,6 +38,10 @@ signal tier_changed(peer: int, tier: int, sources: int)
 ## — see `report_npc_bump` for the one that is blocked and why.
 var impulses := SuspicionImpulses.new()
 
+## **`SYS-BLEND`, RESOLVED AT STEP 1 OF THIS PASS.** Public because `RpcRouter`
+## has to hand it `INPUT-BLEND` and `SYS-KILL` will read its grace window.
+var blend := BlendSystem.new()
+
 ## peer -> `SuspicionState`. Only `ticks_since_gain` survives a tick; everything
 ## else is re-read from the world at the top of the pass.
 var _states: Dictionary = {}
@@ -48,10 +59,31 @@ func stage() -> StringName:
 ## One pass over the pawns. Six of them, at 30 Hz.
 func tick(ctx: MatchContext, dt: float) -> void:
 	_release_departed(ctx)
+	# **STEP 1, BEFORE ANY GAIN IS SUMMED.** A blend re-validated after the
+	# integrator would crush a value the same tick's gain had already added to, and
+	# a pocket that scattered would cost the player a tick of anonymity they had
+	# been told they still had.
+	_drain_blend_requests(ctx)
+	blend.resolve(ctx)
 	for peer: int in ctx.pawn_contexts.keys():
 		var pawn := ctx.pawn_contexts[peer] as PawnContext
 		if pawn != null and _is_in_the_world(pawn):
 			_advance(peer, pawn, ctx, dt)
+
+
+## Spend every `INPUT-BLEND` the pawn substep latched since the last tick.
+##
+## **CONSUMED HERE AND NOWHERE ELSE.** The latch is set on the press edge at 60 Hz
+## by `PawnInputBuffer`; leaving it set would make one press a blend request on
+## every subsequent tick, which is the held-key defect US-0093 cost an afternoon to.
+func _drain_blend_requests(ctx: MatchContext) -> void:
+	for peer: int in ctx.pawn_contexts.keys():
+		var pawn := ctx.pawn_contexts[peer] as PawnContext
+		if pawn == null or not pawn.blend_requested:
+			continue
+		pawn.blend_requested = false
+		if _is_in_the_world(pawn):
+			blend.request(peer, ctx)
 
 
 ## **A PLAYER WHO IS NOT IN THE WORLD IS NOT OBSERVABLE.** GDD-02 §3.1: a life
@@ -79,6 +111,11 @@ func _release_departed(ctx: MatchContext) -> void:
 	for peer: int in _states.keys():
 		if not ctx.pawn_contexts.has(peer):
 			_forget(peer)
+			# **AND THE FORMATION SLOT WITH IT.** ENet reuses peer ids, so a slot
+			# left claimed is one the next joiner inherits and can never release —
+			# and `CrowdFormations.claim()` refuses a taken slot rather than
+			# evicting, so the group would be unjoinable for the rest of the match.
+			blend.forget(peer, ctx)
 
 
 func _forget(peer: int) -> void:
@@ -103,7 +140,7 @@ func _state_for(peer: int, pawn: PawnContext) -> SuspicionState:
 func _advance(peer: int, pawn: PawnContext, ctx: MatchContext, dt: float) -> void:
 	var t := Tuning.suspicion
 	var s := _state_for(peer, pawn)
-	_read_the_world(s, pawn, ctx, t)
+	_read_the_world(peer, s, pawn, ctx, t)
 
 	# **STEP 3: IMPULSES, BEFORE THE INTEGRATOR AND AT A FIXED POSITION.** They
 	# also re-arm the decay delay, because `ticks_since_gain` means *ticks since
@@ -127,19 +164,23 @@ func _advance(peer: int, pawn: PawnContext, ctx: MatchContext, dt: float) -> voi
 	pawn.suspicion = s.value
 	pawn.tier = SuspicionMath.evaluate_tier(s.value, previous, t)
 	pawn.active_sources = SuspicionSources.of(s, t)
+	pawn.blend_state = blend.wire_kind(peer)
 	if pawn.tier != previous:
 		tier_changed.emit(peer, pawn.tier, pawn.active_sources)
 
 
 ## Everything the integrator is allowed to know, read from this tick's world.
 func _read_the_world(
-	s: SuspicionState, pawn: PawnContext, ctx: MatchContext, t: SuspicionTuning
+	peer: int, s: SuspicionState, pawn: PawnContext, ctx: MatchContext, t: SuspicionTuning
 ) -> void:
 	# **THE PAWN OWNS THE VALUE**, so a respawn that zeroes it is honoured without
 	# this system being told.
 	s.value = pawn.suspicion
 	s.speed_state = pawn.state_id
-	s.blending = pawn.blend_state != 0
+	# **THE CRUSH RUNS IN `HELD` ONLY.** Entry is 0.35 s of visible, vulnerable
+	# transition and exit is 0.30 s of standing up; neither buys anonymity, or a
+	# player would be paid for a commitment they have not finished making.
+	s.blending = blend.is_crushing(peer)
 
 	# **HORIZONTAL SPEED, AND THAT IS NOT A ROUNDING DETAIL.** A grounded
 	# `CharacterBody3D` keeps a small downward velocity from its floor snap, which

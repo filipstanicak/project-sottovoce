@@ -52,6 +52,12 @@ static func tick(ctx: PawnContext, input: InputCommand) -> void:
 	elif ctx.traverse_buffer_ticks > 0:
 		ctx.traverse_buffer_ticks -= 1
 
+	# **SET, NEVER CLEARED HERE.** `SYS-BLEND` consumes it; clearing it on a frame
+	# with no press would give the latch a one-frame life and lose every press that
+	# landed on the first of a net tick's two steps.
+	if InputBits.is_set(pressed, InputBits.BLEND):
+		ctx.blend_requested = true
+
 	if InputBits.is_set(pressed, InputBits.ABILITY_1 | InputBits.ABILITY_2):
 		ctx.ability_buffer_ticks = Tuning.step_ticks(&"TUN-ABILITY-INPUT-BUFFER")
 	elif ctx.ability_buffer_ticks > 0:

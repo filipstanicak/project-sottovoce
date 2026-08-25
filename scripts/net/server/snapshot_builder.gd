@@ -19,7 +19,7 @@
 ## | Missing | Whose |
 ## |---|---|
 ## | Delta and rate LOD **for NPCs** | US-0031 — and it is now the whole gap |
-## | Compass, render state, cooldowns, blend state | M4's systems — the fields exist and read zero |
+## | Compass, render state, cooldowns | M4's systems — the fields exist and read zero |
 ##
 ## **SUSPICION, TIER AND THE SOURCE BITFIELD ARE FILLED AS OF US-0052**, from the
 ## pawn's own context. They cost nothing on the wire: the own block is sent in
@@ -243,6 +243,7 @@ func _fill_own(snapshot: Snapshot, peer: int) -> void:
 	snapshot.suspicion = own.suspicion
 	snapshot.tier = own.tier
 	snapshot.active_sources = own.active_sources
+	snapshot.blend_state = own.blend_state
 
 
 ## Everybody else, by **slot**. The observer is skipped rather than filtered out

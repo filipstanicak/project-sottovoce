@@ -92,6 +92,15 @@ func test_the_two_pawn_dictionaries_never_disagree() -> void:
 		_host.context_for(PEER),
 		"MatchContext holds a different context object from the one PawnHost simulates"
 	)
+	# **`peer_id` WAS DECLARED IN M1 AND NEVER WRITTEN UNTIL US-0053.** Nothing read
+	# it, so nothing was wrong — and the first thing that would have, `SYS-BLEND`
+	# asking which formation slot this player holds, would have asked about peer
+	# **zero**. `CrowdFormations.group_of_peer(0)` answers with the first *unclaimed*
+	# group, so a player who never joined one would have read as standing in its
+	# slot: a confidently wrong answer rather than an empty one.
+	assert_eq(
+		_host.context_for(PEER).peer_id, PEER, "the pawn context does not know whose pawn it is"
+	)
 	_host.despawn(PEER)
 	assert_eq(_ctx.pawns.keys(), _ctx.pawn_contexts.keys(), "a freed pawn left one dictionary only")
 	assert_false(_ctx.pawn_contexts.has(PEER), "a freed pawn stayed in pawn_contexts")
