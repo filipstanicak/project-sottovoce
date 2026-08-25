@@ -289,6 +289,11 @@ func test_the_local_minimum_holds_over_a_clustered_match() -> void:
 func test_it_reroutes_and_never_respawns_or_repersonas() -> void:
 	# The story's second criterion, and GDD-03 §6.3 rule 4 underneath it: a server
 	# that changed an identity describes a different city from the one clients drew.
+	#
+	# **STARVED FIRST, BECAUSE THE PRECONDITION MUST NOT BE LUCK.** It relied on a
+	# cluster developing a hole by itself until `MercatoStallRow` was resized and the
+	# anchors moved under it; the guard below then fired on a test proving nothing.
+	_starve_the_district()
 	var before := _pool.roster.duplicate()
 	var bodies := _pool.body_count()
 	for _pass: int in 20:

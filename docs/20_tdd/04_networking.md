@@ -459,11 +459,23 @@ each value so the delta and the rate-LOD stagger respond to it. **The curve is f
 
 | Cull radius | Of budget | NPCs reachable over six spawn points |
 |---|---|---|
-| 70.0 m, shipped | 113 % | 283 |
-| 67.5 m | 104 % | 268 |
-| 65.0 m | 112 % | 253 |
-| 62.5 m | 104 % | 239 |
-| 60.0 m, invariant 17's floor | 104 % | 213 |
+| 70.0 m, shipped | 108 % | 282 |
+| 67.5 m | 107 % | 272 |
+| 65.0 m | 106 % | 242 |
+| 62.5 m | 106 % | 233 |
+| 60.0 m, invariant 17's floor | 104 % | 225 |
+
+> **AND THE WHOLE CURVE CAME DOWN ON 2026-08-21, FOR A REASON THAT HAS NOTHING TO DO WITH THE
+> WIRE.** `MercatoStallRow` was resized to close GDD-05 §2.7 rule 8 at `S4` and `S5`, taking the
+> district from **67 idle anchors to 70** — and spreading the same 78 NPCs over three more anchors
+> thins the worst-case cluster. **As built, downstream fell from 107.6 kbit/s (112 %) to 100.6
+> (105 %)**: the first movement on this budget since M2, bought by a level-data fix rather than by
+> anything in this chapter.
+>
+> **It does not close the budget and the curve is still flat**, which is the finding this section
+> exists for. But it says something the sweep could not: the worst-case snapshot is dominated by
+> **how tightly the crowd stands**, not by how far the radius reaches — and anchor layout is a
+> lever nobody had counted as a bandwidth one.
 
 > **RE-MEASURED 2026-08-21, AFTER THE INTERIOR MASSING, AND ONE ROW MATTERS.** The figures above
 > are the current ones; the table previously read 113 / 104 / 112 / 113 / 110 and had gone stale

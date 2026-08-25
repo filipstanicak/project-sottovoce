@@ -220,8 +220,38 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 *Updated 2026-08-21 (checkpoint after #134). Keep this section current — it is the first thing a fresh
 session reads, and a stale one is worse than none.*
 
-**RELOCATION CANNOT FIX RULE 8 FOR ANY OF S3, S4 OR S5: THERE ARE ZERO LEGAL
-SITES**, grading GDD-05 §2.7 rules 1, 4, 5, 6 and 8 together.
+**GDD-05 §2.7 RULE 8 IS DOWN TO ONE SPAWN: S4 1 → 9 SEATS, S5 6 → 9, AND NOBODY
+MOVED.** The market was zoned as a corner of itself. §2.3 gives
+`LOC-MERCATOPICCOLO` **5–8 NPCs/6 m** and calls it "the second-safest ground — so
+the map has two poles rather than one", and `MercatoStallRow` covered **72 m² of a
+900 m² market**: six anchors against Piazza del Vetro's twenty. Same shape as
+US-0096's `Fondaco` receiving zero — a zone whose extent does not match the space
+it names.
+
+**THE SIZE IS DECIDED BY THE ANCHOR BUDGET AND THE DIRECTION BY THE SPAWN
+CENSUS.** 78 NPCs less the 16 walking circuits leaves ~62 idle, and
+`test_navmesh_coverage.gd` refuses more than **70** anchors — *"a zone whose
+anchors cannot be filled is not dense, it only claims to be"*. The map carried 67,
+so the whole district could afford **three**. Spanning both stall rows wants 15,
+measured at **76, and fails that assertion**. Extending north buys nothing (S4
+stays 6); **z = 76 is the northernmost placement that reaches S4**. 12 × 6 →
+12 × 10.
+
+**AND IT MADE THE CROWD CHEAPER ON THE WIRE, WHICH NOBODY EXPECTED.** Spreading 78
+NPCs over 70 anchors instead of 67 thins the worst-case cluster: downstream
+**107.6 kbit/s (112 %) → 100.6 (105 %)** — the first movement on that budget since
+M2, bought by a level-data fix rather than by anything in the netcode. It still
+misses, and the cull curve is still flat, but the worst snapshot is dominated by
+**how tightly the crowd stands**, not by how far the radius reaches. TDD-04
+§7.1.2.
+
+**S3 CANNOT BE FIXED THIS WAY AND THAT IS A DESIGN LIMIT.** It is in the Fondaco,
+which §3 makes low-density on purpose, and no market is within 25 m. Closing it
+needs a larger crowd — a `TUN-CROWD-COUNT` change with a bandwidth cost — or the
+rule-3 grace, which is where it sits.
+
+**RELOCATION WAS THE OTHER ROUTE AND IT IS CLOSED: THERE ARE ZERO LEGAL SITES**
+for any of S3, S4 or S5, grading GDD-05 §2.7 rules 1, 4, 5, 6 and 8 together.
 
 **AND THIS CORPUS BRIEFLY SAID "SEVEN", WHICH WAS WRONG.** PR #141 published
 *"7 legal sites in a 4 × 4 m patch of the Loggia, so at most one of the three can
