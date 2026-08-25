@@ -459,11 +459,28 @@ each value so the delta and the rate-LOD stagger respond to it. **The curve is f
 
 | Cull radius | Of budget | NPCs reachable over six spawn points |
 |---|---|---|
-| 70.0 m, shipped | 113 % | 284 |
-| 67.5 m | 104 % | 266 |
-| 65.0 m | 112 % | 251 |
-| 62.5 m | 113 % | 241 |
-| 60.0 m, invariant 17's floor | 110 % | 221 |
+| 70.0 m, shipped | 113 % | 283 |
+| 67.5 m | 104 % | 268 |
+| 65.0 m | 112 % | 253 |
+| 62.5 m | 104 % | 239 |
+| 60.0 m, invariant 17's floor | 104 % | 213 |
+
+> **RE-MEASURED 2026-08-21, AFTER THE INTERIOR MASSING, AND ONE ROW MATTERS.** The figures above
+> are the current ones; the table previously read 113 / 104 / 112 / 113 / 110 and had gone stale
+> across two re-authorings of the idle-anchor grid. **The floor row is the change worth naming:
+> before the massing it read 93.4 kbit/s, 97 % — it closed the budget — and it now reads 100.0,
+> 104 %, so it does not.**
+>
+> **THE SHIPPED FIGURE DID NOT MOVE: 107.6 kbit/s, 112 %, before and after.** What was lost is a
+> hypothetical escape route, not any bandwidth a player pays for — culling at the invariant floor
+> is a `TUN-` change with a gameplay consequence that nobody has chosen, and it was never priced.
+> The cause is that seven new masses reroute a strolling crowd, not that anchors moved: **only 4
+> of 67 anchors moved at all**, by 0.5 to 4.0 m.
+>
+> **AND THE SWEEP IS REPRODUCIBLE TO 0.1 kbit/s**, which is what makes the comparison worth
+> reporting — two consecutive runs of the post-massing build gave identical figures at every
+> radius. The conclusion is unchanged and is now stronger: **the knob turns and the bytes do not
+> move**, at any radius the invariant permits.
 
 **THE KNOB TURNS AND THE BYTES DO NOT MOVE.** Culling from 70 m to the floor removes **22 % of
 the reachable crowd and about 3 % of the bytes**, because everything it removes lies beyond

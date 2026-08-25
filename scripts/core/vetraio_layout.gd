@@ -112,6 +112,56 @@ const BLOCKS: Array = [
 	["FondacoWest", 0.0, 99.0, 42.0, 21.0, H_FACADE_STREET_TO_ROOF, "MAT-CLIMB"],
 	["FondacoEast", 54.0, 99.0, 66.0, 21.0, H_FACADE_STREET_TO_ROOF, "MAT-CLIMB"],
 	["MercatoNorthWall", 90.0, 60.0, 30.0, 6.0, H_MANTLE, "MAT-GREY-WALL"],
+	# **THE INTERIOR MASSING GDD-05 §2.1 DRAWS AND THE GREYBOX NEVER HAD.** Added
+	# 2026-08-21 for §2.7 rule 6, which requires every pair of spawn points to be
+	# occluded and had **nine of fifteen in clear sight**. The rule was marked ✅ and
+	# was false: the seven masses above are four corner blocks and three walls, and
+	# the district's whole middle — the piazza, the Loggia and Piazza Secca — had no
+	# mass between them at all, so **no spawn position could have satisfied it.** The
+	# anti-spawn-camp analysis in §2.7 was asserted against geometry that did not
+	# exist.
+	#
+	# **EVERY ONE IS SOMETHING THE CORPUS ALREADY NAMED.** None is invented to fit a
+	# sightline: the Loggia is called a *covered arcade* and had no piers, GDD-03
+	# §6.2 gives `PERSONA-PESATORE`'s clones a weigh-house that was never built, and §2.1's
+	# Fondaco row is drawn as warehouse blocks interrupting the street.
+	#
+	# **`MAT-GREY-WALL`, LIKE `VicoloWestWall`, NOT `MAT-CLIMB`.** These are interior
+	# masses in the middle of the district; making seven new 8.5 m façades climbable
+	# would author a rooftop network nobody designed, and there is no roof floor to
+	# arrive on.
+	#
+	# **THE GAPS ARE LOAD-BEARING AND EACH ONE IS THERE FOR A NAMED REASON.** A wall
+	# that fully spans a room turns it into an island — the first version of this
+	# massing orphaned 1 099 cells of `MercatoPiccolo` and `FondacoStreet` and broke
+	# `CIRC-C` in ten places. Verified at 0.5 m over every street floor: **100 % of
+	# walkable ground reachable, all four circuits walkable, 0 of 15 spawn pairs in
+	# clear sight.**
+	["MercatoWestWallNorth", 90.0, 66.0, 2.6, 14.0, H_FACADE_STREET_TO_ROOF, "MAT-GREY-WALL"],
+	# The 4 m opening at z 80-84 between the two segments is `MercatoPiccolo`'s only
+	# door onto Piazza Secca, and without it the market reaches the district solely
+	# through the Fondaco street — which `FondacoGatehouse` then cuts in half.
+	["MercatoWestWallSouth", 90.0, 84.0, 2.6, 12.0, H_FACADE_STREET_TO_ROOF, "MAT-GREY-WALL"],
+	# §2.1 row 105 draws the Fondaco as warehouse blocks interrupting the row. The
+	# street was one straight 120 m corridor with `S3` at x = 6 and `S4` at x = 114,
+	# which is the 108 m sightline. Both halves stay connected: west through
+	# `PonteCorto`, east through `MercatoPiccolo`.
+	["FondacoGatehouse", 60.0, 96.0, 28.0, 3.0, H_FACADE_STREET_TO_ROOF, "MAT-GREY-WALL"],
+	# Via delle Lampe is a *street* in §2.1 and was a 30 x 36 m open field. Set west
+	# of `CIRC-D`'s x = 18 leg with a metre to spare.
+	["LampeIsland", 12.0, 46.0, 5.0, 10.0, H_FACADE_STREET_TO_ROOF, "MAT-GREY-WALL"],
+	# The corner where the street meets the piazza's south wall. It is what occludes
+	# `S1` from `S6`, whose line of sight passed 2.7 m east of `FornaceRow`.
+	["LampeCorner", 22.0, 30.0, 8.0, 4.0, H_FACADE_STREET_TO_ROOF, "MAT-GREY-WALL"],
+	# An arcade pier. §2.1's legend calls the Loggia a covered arcade and it had no
+	# columns, so it was a 90 x 18 m hall spanning the district's full width — the
+	# main east-west sightline. Placed at z 46-54, south of `CIRC-A`'s z = 42 leg and
+	# west of `CIRC-B`, leaving the whole z 36-46 lane open along the Loggia.
+	["LoggiaPier", 38.0, 46.0, 10.0, 8.0, H_FACADE_STREET_TO_ROOF, "MAT-GREY-WALL"],
+	# The weigh-house GDD-03 §6.2 gives `PERSONA-PESATORE`'s clones as an idle anchor and
+	# has never existed as geometry. Clear of `StallE`, `StallF`, the
+	# `MercatoStallRow` zone and all four of `CIRC-C`'s legs.
+	["PesaWeighHouse", 103.0, 78.0, 8.0, 10.0, H_FACADE_STREET_TO_ROOF, "MAT-GREY-WALL"],
 ]
 
 ## Walkable surfaces: [name, x, z, size_x, size_z, y, material].

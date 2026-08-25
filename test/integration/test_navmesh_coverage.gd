@@ -168,21 +168,45 @@ func test_the_district_is_one_connected_island() -> void:
 	await _ready_map()
 	var seeds: Array[Vector3] = []
 	var names: PackedStringArray = []
+	var stranded: PackedStringArray = []
 	for floor_row: Array in VetraioLayout.FLOORS:
 		if not is_equal_approx(float(floor_row[5]), VetraioLayout.STREET_Y):
 			continue
-		seeds.append(
-			Vector3(
-				float(floor_row[1]) + float(floor_row[3]) * 0.5,
-				VetraioLayout.STREET_Y,
-				float(floor_row[2]) + float(floor_row[4]) * 0.5
-			)
-		)
+		# **THE CENTRE OF A FLOOR IS NOT NECESSARILY ON IT.** This seeded each floor
+		# at its raw centre until 2026-08-21, which is only walkable while no floor
+		# has a building in the middle of it. Interior massing put `LampeIsland` over
+		# `ViaDelleLampe`'s centre and `PesaWeighHouse` over `MercatoPiccolo`'s, and
+		# both floors reported **0 of 10** — a courtyard read as a severed island.
+		# The question is whether the floor is connected, not whether one arbitrary
+		# point on it happens to be outside a wall.
+		var rect := VetraioGround.rect_of(floor_row)
+		# **AND OUTSIDE A BLOCK IS NOT THE SAME AS ON THE NAVMESH.** The first version
+		# of this nudge stopped at `clear_of_obstacles`, which answered x = 17.000 for
+		# `ViaDelleLampe` — `LampeIsland`'s east face exactly. The mesh is inset by
+		# `agent_radius`, so a point flush against a wall is off it, and the floor
+		# reported 0 of 10 again for a second and different reason. Ask the navmesh
+		# where it actually is.
+		var seed := _closest(VetraioGround.clear_of_obstacles(rect.get_center()))
+		# **AND THE NUDGE IS GUARDED, OR IT HIDES THE THING IT IS FOR.**
+		# `clear_of_obstacles` widens until it finds walkable ground, so a floor
+		# buried entirely under a block would seed onto its NEIGHBOUR and then report
+		# itself perfectly connected — vacuously, forever.
+		if not rect.has_point(Vector2(seed.x, seed.z)):
+			stranded.append("%s has no walkable point of its own" % floor_row[0])
+			continue
+		seeds.append(Vector3(seed.x, VetraioLayout.STREET_Y, seed.z))
 		names.append(str(floor_row[0]))
+	assert_eq(
+		stranded,
+		[] as PackedStringArray,
+		"a street-level floor is entirely covered by building mass: " + " ".join(stranded)
+	)
 	# **THE REFERENCE CANNOT BE ASSUMED, BECAUSE IT MIGHT BE THE ISLAND.** Measuring
 	# every floor against `seeds[0]` named all nine of them, since `seeds[0]` is the
 	# piazza. Count how many others each floor can reach instead, and the minority
 	# is what is cut off — no floor has to be trusted in advance.
+	for i: int in seeds.size():
+		gut.p("  seed %-16s %v" % [names[i], seeds[i]])
 	var reach: Array[int] = []
 	for i: int in seeds.size():
 		var found := 0

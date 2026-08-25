@@ -354,17 +354,30 @@ respawn is always satisfiable.
 > is measured against segments rather than waypoints on purpose: §4.4 spaces waypoints 6–10 m
 > apart, so "near a corner" and "near the route" can differ by half a spacing.
 >
-> **Rule 6 does not.** Every pair is already further apart than 25 m — the closest is 30.86 m —
-> so the rule can only mean every pair must be **occluded**, and **nine of fifteen are not**. The
-> worst is `S4 → S5` at **30.86 m**, the closest pair on the map and the one the anti-spawn-camp
-> table below leans on hardest.
+> **Rule 6 did not hold, and the cause was not where the spawns are.** Every pair is already
+> further apart than 25 m — the closest is 30.86 m — so the rule can only mean every pair must be
+> **occluded**, and **nine of fifteen were not**. `VetraioLayout.BLOCKS` held **seven** masses,
+> four of them corner blocks, and the district's whole middle had no building mass in it at all:
+> no spawn position can occlude a 120 m open span, so the anti-spawn-camp analysis below was
+> asserted against geometry the greybox did not have.
 >
-> **THE CAUSE IS NOT WHERE THE SPAWNS ARE.** `VetraioLayout.BLOCKS` holds **seven** masses, four
-> of them corner blocks, and the district's whole middle — Piazza del Vetro, the Loggia and
-> Piazza Secca — has no building mass between them. No spawn position can occlude a 120 m open
-> span, so **the anti-spawn-camp analysis below is asserted against geometry the greybox does not
-> have yet.** Reported rather than patched: authoring interior massing is a level pass with an
-> owner, and it is the same class of finding as §5.2's 0.51 m circuits.
+> **THE INTERIOR MASSING IS BUILT AS OF 2026-08-21 AND RULE 6 HOLDS: 0 OF 15.** Seven masses, and
+> **none of them invented to fit a sightline** — each is something the corpus already named and
+> had never built:
+>
+> | Mass | What it is | What it occludes |
+> |---|---|---|
+> | `MercatoWestWallNorth` / `-South` | the wall §2.1 draws between Piazza Secca and Mercato Piccolo, with a 4 m opening at z 80-84 | `S2`–`S5`, `S2`–`S4` |
+> | `FondacoGatehouse` | §2.1 row 105 draws the Fondaco as warehouse blocks interrupting the row; it was one straight 120 m corridor | `S3`–`S4`, the 108 m sightline |
+> | `LoggiaPier` | §2.1's legend calls the Loggia a **covered arcade** and it had no columns — a 90 × 18 m hall spanning the district | `S2`–`S6`, `S1`–`S5` |
+> | `PesaWeighHouse` | the weigh-house GDD-03 §6.2 gives `PERSONA-PESATORE`'s clones as an idle anchor, never built as geometry | `S4`–`S5`, the closest pair |
+> | `LampeIsland`, `LampeCorner` | Via delle Lampe is a *street* in §2.1 and was a 30 × 36 m open field | `S1`–`S2`, `S1`–`S6`, `S1`–`S4` |
+>
+> **THE GAPS ARE LOAD-BEARING.** A wall that fully spans a room turns it into an island: the first
+> version orphaned 1 099 cells of `MercatoPiccolo` and `FondacoStreet` and broke `CIRC-C` in ten
+> places. Measured after: **100 % of walkable ground reachable, all four circuits walkable, the
+> idle-anchor count unchanged at 67 and every spawn's seat census unchanged.** Navmesh 211 → 255
+> polygons.
 
 > **RULE 8 ARRIVED ON 2026-08-21, AND IT IS A RE-HOMING RATHER THAN A NEW DEMAND.**
 > GDD-03 §6.3 rule 3 used to require the clone minimum "of every player" at all times, which
@@ -414,7 +427,7 @@ respawn is always satisfiable.
 | 3 | Minimum distance to *any* living player | `TUN-RESPAWN-MIN-DIST-FROM-ANY-PLAYER` 12 m | Never spawn inside anyone's kill range. |
 | 4 | Every spawn is within 25 m of a blend-group circuit | ✅ **measured, worst 22.50 m (S3)** | A freshly-respawned player must have a safe travel option quickly. |
 | 5 | No spawn is in Piazza Secca or above street level | ✅ | You never begin a life already accruing suspicion. |
-| 6 | No spawn has a sightline longer than 25 m to another spawn | ❌ **measured: 9 of 15 pairs are in clear sight** | Prevents a camper covering two spawns at once. |
+| 6 | No spawn has a sightline longer than 25 m to another spawn | ✅ **measured: 0 of 15 pairs in clear sight**, since the interior massing of 2026-08-21 | Prevents a camper covering two spawns at once. |
 | 7 | Fallback when constraints are unsatisfiable | Choose the farthest available point | **A spawn system that can fail is a crash waiting for a playtest.** |
 | 8 | Every spawn seats `TUN-CROWD-CLONE-LOCAL-MIN` clones of **each** playable persona within `TUN-CROWD-CLONE-LOCAL-RADIUS` — eight NPCs at the shipped values | ❌ **measured: S3 4, S4 1, S5 6 of 8** | **A player placed where the crowd is thin is uniquely identifiable before they can move.** Added 2026-08-21, when GDD-03 §6.3 rule 3 was scoped past the placement instant: the opening arrangement is the level's obligation and this is where it lives. |
 
