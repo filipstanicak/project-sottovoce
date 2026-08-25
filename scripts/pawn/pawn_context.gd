@@ -79,6 +79,18 @@ var tier: int = 0
 var active_sources: int = 0
 
 var blend_state: int = 0
+
+## **`INPUT-BLEND` WAS PRESSED, AND NOBODY HAS SPENT IT YET.** A latch rather than
+## a counter: `PawnInputBuffer` arms it on the press *edge* at 60 Hz and
+## `SYS-BLEND` consumes it at 30, so it exists only to survive the step between
+## the two rates. Two presses inside one net tick are one intent, and the second
+## is correctly lost.
+##
+## **NOT A BUFFER, BECAUSE A BLEND RACES NOTHING.** `TUN-TRAVERSE-INPUT-BUFFER`
+## forgives an input pressed before the wall arrives; a blend has no geometry to
+## be early for, so a window here would be a gameplay constant invented to fill a
+## shape rather than to answer a question.
+var blend_requested: bool = false
 var stun_lockout_until_tick: int = 0
 
 ## The physics body, or NULL in a unit test. EVERY STATE MUST TOLERATE NULL —
@@ -104,6 +116,7 @@ func reset_for_spawn(at: Vector3, facing: float) -> void:
 	tier = 0
 	active_sources = 0
 	blend_state = 0
+	blend_requested = false
 	traverse_buffer_ticks = 0
 	ability_buffer_ticks = 0
 	ledge_magnet_ticks = 0

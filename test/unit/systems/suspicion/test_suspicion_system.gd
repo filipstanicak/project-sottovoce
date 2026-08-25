@@ -213,6 +213,60 @@ func test_a_departed_peer_leaves_nothing_for_whoever_inherits_the_id() -> void:
 	)
 
 
+func test_a_held_blend_crushes_the_value_and_reaches_the_wire() -> void:
+	# **THE LOOP US-0051 BUILT AND NOTHING CLOSED.** `SuspicionMath.integrate()` has
+	# had a linear crush since the integrator existed and `blending` was permanently
+	# false, so that branch never executed in a live server. This is the assertion
+	# that says it does.
+	_crowd_at(_pocket())
+	_pawn.suspicion = _t.max_value
+	_sys.blend.request(PEER, _ctx)
+	# **ONE TICK SHORT OF THE WINDOW.** `blend.resolve()` is step 1 of the pass, so
+	# on the tick the window closes the record is already HELD when the integrator
+	# reads it and the crush legitimately runs that same tick — 2.78 points, which
+	# is `TUN-SUSPICION-MAX` over `TUN-BLEND-CRUSH-TIME` at one net tick. Asserting
+	# at the window itself measures an off-by-one in the harness, not in the rule.
+	_tick(maxi(Tuning.ticks(&"TUN-BLEND-ENTRY-TIME"), 1) - 1)
+	assert_eq(_pawn.blend_state, BlendKind.Kind.POCKET, "the blend never reached the wire field")
+	assert_eq(_pawn.suspicion, _t.max_value, "the crush ran inside the entry window")
+	_tick(Tuning.ticks(&"TUN-BLEND-CRUSH-TIME") + 1)
+	assert_almost_eq(_pawn.suspicion, 0.0, 0.5, "a held blend did not crush 100 to zero")
+
+
+func test_the_press_is_spent_once_however_long_the_key_is_held() -> void:
+	# **THE HELD-KEY DEFECT, DESIGNED OUT.** `PawnInputBuffer` arms the latch on the
+	# press edge and this system clears it; leaving it set would make one press a
+	# blend request on every subsequent tick, which is US-0093's afternoon in a new
+	# place — enter, leave, enter, leave, thirty times a second.
+	_crowd_at(_pocket())
+	_pawn.blend_requested = true
+	_tick(1)
+	assert_false(_pawn.blend_requested, "the blend latch was not consumed")
+	assert_eq(_pawn.blend_state, BlendKind.Kind.POCKET, "the latched press never entered a blend")
+	_tick(60)
+	assert_eq(_pawn.blend_state, BlendKind.Kind.POCKET, "one press was spent more than once")
+
+
+func test_a_blend_reports_no_active_sources() -> void:
+	# A source list naming reasons the value is *not* rising would be the opposite
+	# of an explanation. Sprinting on a roof, alone, while blended: nothing listed.
+	_crowd_at(_pocket())
+	_pawn.state_id = PawnStateId.SPRINT
+	_pawn.position = Vector3(0.0, ROOF_Y, 0.0)
+	_sys.blend.request(PEER, _ctx)
+	_tick(maxi(Tuning.ticks(&"TUN-BLEND-ENTRY-TIME"), 1) + 1)
+	assert_true(_sys.blend.is_crushing(PEER), "the blend never reached HELD")
+	assert_eq(_pawn.active_sources, SuspicionSources.NONE, "a blended player listed sources")
+
+
+## Four NPCs standing a metre away — a pocket by TUN-BLEND-POCKET-MIN-NPC.
+func _pocket() -> PackedVector3Array:
+	var at := PackedVector3Array()
+	for i: int in int(_t.blend_pocket_min_npc):
+		at.append(Vector3(cos(float(i)), 0.0, sin(float(i))))
+	return at
+
+
 func test_two_players_are_judged_separately() -> void:
 	# The pass is per pawn. A shared reading would make one player's sprint cost
 	# their neighbour, which is the least debuggable failure this system could have.

@@ -68,6 +68,13 @@ func _build_record(peer: int, pawn: CharacterBody3D) -> Dictionary:
 		Log.error("pawn_server.tscn is missing its state machine or probes", &"pawn")
 		return {}
 	var ctx := PawnContext.new()
+	# **DECLARED IN M1 AND NEVER WRITTEN UNTIL US-0053.** Nothing read it, so
+	# nothing was wrong — and the first thing that would have (`SYS-BLEND` asking
+	# `CrowdFormations` which slot this player holds) would have asked about peer
+	# **zero**, which `group_of_peer` answers with the first *unclaimed* group.
+	# A confidently wrong answer rather than an empty one, and every test would
+	# have passed because tests set the field.
+	ctx.peer_id = peer
 	ctx.body = pawn
 	ctx.reset_for_spawn(_spawn_point(), 0.0)
 	if not machine.spawn_into(ctx, PawnStateId.IDLE):

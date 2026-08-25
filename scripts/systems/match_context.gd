@@ -76,6 +76,16 @@ var lag_comp := LagCompHistory.new()
 ## what it reads is this tick's.
 var crowd_hash := SpatialHash.new()
 
+## **THE FOUR PROCESSIONS, AND THE FIFTH SLOT IN EACH THAT NO NPC MAY TAKE.**
+## Built by `CrowdDirector.setup()` (US-0043) and published here for `SYS-BLEND`,
+## which is the thing that empty slot was reserved for.
+##
+## It is on the context rather than reached through the director for the reason
+## the router learned the hard way: a system whose answers come from another
+## system's field cannot be *asked a question* in a test. Null wherever there is
+## no crowd — the integration harness and every client — so a caller must check.
+var formations: CrowdFormations = null
+
 ## **THE CROWD.** Ninety pre-allocated NPC bodies and the roster derived for them
 ## (US-0039). Null until `server_root.gd` stands it up — a system must check,
 ## because the integration harness has no crowd and neither does a client.

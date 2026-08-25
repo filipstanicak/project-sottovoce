@@ -111,6 +111,7 @@ func setup(ctx: MatchContext) -> void:
 	_rebalance_ticks = maxi(Tuning.ticks(&"TUN-CROWD-DIRECTOR-INTERVAL"), 1)
 	_sweep_ticks = maxi(Tuning.ticks(&"TUN-CROWD-STARTLE-SPRINT-INTERVAL"), 1)
 	_formations.setup(ctx.map)
+	ctx.formations = _formations  # SYS-BLEND claims the fifth slot US-0043 reserved.
 	_clones.setup(ctx.map, _rng)
 	_intent.setup(_pool, ctx.map, _rng, _formations, _corpses, _clones)
 	_goals.resize(_pool.body_count())
