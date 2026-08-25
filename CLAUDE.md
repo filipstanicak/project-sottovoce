@@ -217,8 +217,31 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 
 ## Where the work is right now
 
-*Updated 2026-08-25 (US-0055/0056). Keep this section current — it is the first thing a fresh
-session reads, and a stale one is worse than none.*
+*Updated 2026-08-25 (checkpoint after #151). Keep this section current — it is the first thing a
+fresh session reads, and a stale one is worse than none.*
+
+## M4 IS SEVEN OF FIFTEEN, AND NOTHING IS PLAYABLE YET
+
+**Built:** `SYS-CONTRACT` (US-0049, US-0050), `SYS-SUSPICION` (US-0051, US-0052),
+`SYS-BLEND`'s two crowd blends (US-0053), `SYS-DETECTION` (US-0055, US-0056).
+
+**Not started:** the Compass (US-0057, US-0058), the prey warning (US-0059),
+`SYS-KILL` (US-0060), `SYS-STUN` (US-0061), `SYS-SPAWN` (US-0062), the gate
+(US-0063). `SYS-BLEND`'s two prop blends are US-0054.
+
+**A LIVE SERVER NOW ASSIGNS CONTRACTS, ACCRUES SUSPICION, HONOURS BLENDS AND
+COMPUTES WHO CAN SEE WHOM — AND A PLAYER CANNOT PERCEIVE ANY OF IT.** Every one of
+those values reaches the wire and **no client draws a single one**: there is no
+HUD (US-0084, M5), no Compass, no kill, no score and no match end. What is
+runnable is exactly what was runnable at M3 — a headless server, windowed clients,
+a crowd of 78, and a pawn that walks. **Do not read the sections below as
+progress toward something visible.** The next thing a player could *feel* is
+US-0057's Compass.
+
+**AND FOUR SYSTEMS NOW TICK THAT DID NOT AT THE M3 GATE**, so US-0048's server-tick
+figure is superseded — see the re-measurement under US-0055 below.
+
+---
 
 **US-0055 IS DONE AND US-0056 IS THREE OF FIVE: SUSPICION IS SOMETHING ANOTHER
 PLAYER CAN SEE.** `SYS-DETECTION` computes a render state for every ordered pair
@@ -2819,15 +2842,17 @@ US-0024 measures it against clips that do not exist.
 | Input | 20 `InputMap` actions from 14 live `INPUT-` IDs — `INPUT-SHOULDER` is retired via `InputActions.DEPRECATED`, still in the corpus and bound to nothing, KBM + pad. Chain GDD-02 → `Ids` → `InputActions` → `project.godot`, guarded on every hop, both directions. **Sampled once per physics frame by `LocalPawnDriver`, the only caller** — see trap 12. The mouse is **captured** on boot; `INPUT-MENU` releases, a click takes it back. **Only a mapped gamepad holds the joypad bindings** — `PadSelection`, applied through the one `InputMap` writer, because a set of sim pedals was steering |
 
 **Forty criteria are deliberately unticked**, each blocked by something real — counted
-from the `done` and `in-progress` stories on 2026-08-16. **Nine of them arrived at once**:
-US-0048 moved from `draft` to `in-progress` when its first instrument was built, so the M3
-gate's own checklist now counts. That is the honest direction — a story with work in it is
-not a draft — but the nine are gate lines waiting on US-0045, 0046 and 0047, not stalled work. A prose count of these has now drifted four times, so they are a table — and the
-story files are the source of truth, not this. Regenerate the count rather than
-editing it:
+from the `done` and `in-progress` stories on **2026-08-25**. It was also forty on
+2026-08-16, which is a coincidence rather than a stall: US-0055 closed seven and
+US-0052/0053/0056 opened four between them. Nine of the forty are US-0048's M3
+gate lines, which count because a story with work in it is not a draft. A prose
+count of these has drifted four times, so they are a table — and the story files
+are the source of truth, not this. Regenerate the count rather than editing it:
 
 ```bash
-grep -c '^- \[ \]' docs/40_backlog/stories/*.md
+total=0; for f in docs/40_backlog/stories/*.md; do
+  case "$(grep -m1 '^status:' "$f")" in *done|*in-progress)
+    total=$((total + $(grep -c '^- \[ \]' "$f")));; esac; done; echo "$total"
 ```
 
 | Story | Unticked | Blocked by |

@@ -323,6 +323,30 @@ var lag_comp: LagCompHistory
 var map: MapData
 ```
 
+**AS BUILT, 2026-08-25.** The fields arrive with the systems that own them, so the sketch above
+is a plan rather than an inventory. What is actually on it, and why each is here rather than
+reachable through the system that fills it — *a system whose answers come from another system's
+field cannot be asked a question in a test*:
+
+| Field | Written by | Read by |
+|---|---|---|
+| `tick`, `phase`, `map`, `rng`, `match_seed` | `MatchDirector`, `server_root` | everything |
+| `pawns` — peer -> `CharacterBody3D` | `PawnHost` | crowd LOD, startle, the snapshot |
+| `pawn_contexts` — peer -> `PawnContext` | `PawnHost`, **on the line beside `pawns`** | suspicion, blend, detection |
+| `slots` — peer -> wire slot | `Net` at the handshake | anything that names a player on the wire |
+| `lag_comp` | `LagCompRecorder` | nothing until `SYS-KILL` |
+| `crowd_hash` | `CrowdDirector`, top of the `crowd` stage | suspicion, blend, startle, gawk |
+| `crowd` — `NpcPool` | `server_root` | the crowd systems and the snapshot |
+| `formations` | `CrowdDirector.setup()` | `SYS-BLEND`, for the fifth slot |
+| `announced_contracts` | `ContractSystem`, **adopted by reference** | `SYS-DETECTION`, and the Compass at US-0057 |
+| `render_states` | `SYS-DETECTION` | `SnapshotBuilder`, four stages later |
+
+**`cycle` and `score_log` are still absent.** The cycle lives on `ContractSystem` because
+detection needs the *announced* view rather than the graph's, and `ScoreLog` is US-0064's.
+`GameSystem` and `MatchContext` are also in `scripts/systems/` rather than `scripts/core/`, where
+§6's file table puts them: `GameSystem extends Node` and a context holding live pawns is server
+state, not a value type.
+
 ```gdscript
 ## Base class for every HUD widget. A widget's ENTIRE input is its view model.
 ## A widget that calls get_node() outside its own subtree is a defect (ADR-0006).

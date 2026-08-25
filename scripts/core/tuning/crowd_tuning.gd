@@ -41,8 +41,12 @@ extends Resource
 @export var clones_per_persona_max: int = 12
 
 ## The crowd director maintains at least this many clones of each in-use persona within 25 m of
-## each player. Without this rule the statistical guarantee above fails locally, which is where
-## it matters.
+## each player, from CloneParity.grace_seconds() after that player is placed — GDD-03 §6.3 rule
+## 3, scoped 2026-08-21, TDD-08 §5.1.5. The grace is derived and deliberately not a tunable: one
+## TUN-CROWD-DIRECTOR-INTERVAL plus one crossing of TUN-CROWD-CLONE-LOCAL-RADIUS at TUN-CROWD-
+## NPC-SPEED-STROLL, 19.9 s, because a fourth number here could be set to a value the first three
+## contradict. The opening arrangement is [GDD-05](../10_gdd/05_level_design.md) §2.7 rule 8's.
+## Without this rule the statistical guarantee above fails locally, which is where it matters.
 ## TUN-CROWD-CLONE-LOCAL-MIN
 @export_range(1, 4, 1) var clone_local_min: int = 2
 
