@@ -40,24 +40,23 @@ static func integrate(s: SuspicionState, t: SuspicionTuning, dt: float) -> float
 ## function used** to decide whether the tick counted as a gain — a caller that
 ## re-derived it could disagree with the integrator about what a gain was, and the
 ## decay delay would arm on a different tick from the one that earned it.
+##
+## **THE RATE IS THE SUM OF THE ACTIVE SOURCES, LITERALLY** (US-0052). The
+## conditions live in `SuspicionSources.of()` and nowhere else, because the HUD
+## prints those bits beside this number — and two functions applying the same
+## conditions independently is how a source list comes to explain a value it no
+## longer describes. One decision, read two ways.
 static func gain_rate(s: SuspicionState, t: SuspicionTuning) -> float:
-	var gain := 0.0
-	if s.speed_state == PawnStateId.RUN:
-		gain += t.gain_run
-	elif s.speed_state == PawnStateId.SPRINT:
-		gain += t.gain_sprint
-	elif s.speed_state == PawnStateId.CLIMB:
-		gain += t.gain_climb
-	if s.on_roof:
-		gain += t.gain_roof
-	if s.nearest_npc_distance > t.open_radius:
-		gain += t.gain_open
-	return gain
+	return SuspicionSources.rate(SuspicionSources.of(s, t), t)
 
 
 ## Did this tick earn anything? The owner resets `ticks_since_gain` on true.
+##
+## Blending needs no test of its own here: `SuspicionSources.of()` returns nothing
+## while a blend is held, which is the same statement `integrate()` makes by
+## early-returning on it.
 static func gained(s: SuspicionState, t: SuspicionTuning) -> bool:
-	return not s.blending and gain_rate(s, t) > 0.0
+	return gain_rate(s, t) > 0.0
 
 
 ## Points per second of decay, given the gain this tick already produced.

@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3 uid="uid://bs0ttovserverroot"]
+[gd_scene load_steps=12 format=3 uid="uid://bs0ttovserverroot"]
 
 [ext_resource type="PackedScene" path="res://scenes/map/map_vetraio_collision.tscn" id="1_map"]
 [ext_resource type="Script" path="res://scripts/server/match_director.gd" id="2_director"]
@@ -10,6 +10,7 @@
 [ext_resource type="Script" path="res://scripts/systems/crowd/npc_pool.gd" id="8_crowd"]
 [ext_resource type="Script" path="res://scripts/systems/crowd/crowd_director.gd" id="9_crowddir"]
 [ext_resource type="Script" path="res://scripts/systems/contract/contract_system.gd" id="10_contract"]
+[ext_resource type="Script" path="res://scripts/systems/suspicion/suspicion_system.gd" id="11_suspicion"]
 
 ; Server topology. NO PRESENTATION NODES — the release server export excludes
 ; scripts/presentation/, scripts/mirrors/ and scenes/ui/ entirely, so anything
@@ -36,6 +37,13 @@ script = ExtResource("9_crowddir")
 ; resolves and nobody is contractless at a tick boundary. US-0050.
 [node name="ContractSystem" type="Node" parent="Systems"]
 script = ExtResource("10_contract")
+
+; SYS-SUSPICION. The scalar every other social system reads, at the `suspicion`
+; stage — AFTER `crowd`, because TUN-SUSPICION-GAIN-OPEN asks whether an NPC is
+; within 6 m and last tick's answer lets a player be "alone" inside a pocket that
+; has already re-formed. US-0052.
+[node name="SuspicionSystem" type="Node" parent="Systems"]
+script = ExtResource("11_suspicion")
 
 [node name="World" type="Node3D" parent="."]
 

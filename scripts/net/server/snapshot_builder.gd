@@ -19,7 +19,11 @@
 ## | Missing | Whose |
 ## |---|---|
 ## | Delta and rate LOD **for NPCs** | US-0031 — and it is now the whole gap |
-## | Suspicion, tier, compass, render state | M3 and M4's systems — the fields exist and read zero |
+## | Compass, render state, cooldowns, blend state | M4's systems — the fields exist and read zero |
+##
+## **SUSPICION, TIER AND THE SOURCE BITFIELD ARE FILLED AS OF US-0052**, from the
+## pawn's own context. They cost nothing on the wire: the own block is sent in
+## full every tick and those three bytes were already in it.
 class_name SnapshotBuilder
 extends Node
 
@@ -230,6 +234,15 @@ func _fill_own(snapshot: Snapshot, peer: int) -> void:
 	snapshot.own_state = own.state_id
 	snapshot.own_state_timer = own.state_timer_ticks
 	snapshot.own_grounded = own.grounded
+
+	# **THE OWN-GAMEPLAY BLOCK, TO THE OWNER AND NOBODY ELSE** (US-0052). There is
+	# no field anywhere else in the format for another player's suspicion, tier or
+	# sources — an observer learns `render_state`, two bits, and that is the whole
+	# of it. The rule is the format's rather than a filter's, which is why it
+	# cannot be broken by a later caller.
+	snapshot.suspicion = own.suspicion
+	snapshot.tier = own.tier
+	snapshot.active_sources = own.active_sources
 
 
 ## Everybody else, by **slot**. The observer is skipped rather than filtered out

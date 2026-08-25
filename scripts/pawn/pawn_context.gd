@@ -71,6 +71,13 @@ var traverse_peak_y: float = 0.0
 # --- Gameplay (SERVER-AUTHORITATIVE — mirrored, NEVER predicted) ---
 var suspicion: float = 0.0
 var tier: int = 0
+
+## `SuspicionSources` bits, written by `SYS-SUSPICION` and read straight onto the
+## wire. It sits beside the value it explains because the HUD prints the two
+## together, and a snapshot that carried one without the other would leave a
+## player looking at a number with no attribution — GDD-03 §13's failure mode 3.
+var active_sources: int = 0
+
 var blend_state: int = 0
 var stun_lockout_until_tick: int = 0
 
@@ -95,6 +102,7 @@ func reset_for_spawn(at: Vector3, facing: float) -> void:
 	state_timer_ticks = 0
 	suspicion = 0.0
 	tier = 0
+	active_sources = 0
 	blend_state = 0
 	traverse_buffer_ticks = 0
 	ability_buffer_ticks = 0
