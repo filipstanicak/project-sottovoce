@@ -325,7 +325,28 @@ const CIRCUITS: Array = [
 ## rather than aspirational.
 const ZONES: Array = [
 	["VetroStallRow", 36.0, 14.0, 42.0, 6.0, MapZone.Density.DENSE, false],
-	["MercatoStallRow", 94.0, 70.0, 12.0, 6.0, MapZone.Density.DENSE, false],
+	# **THE MARKET WAS ZONED AS A CORNER OF ITSELF.** §2.3 gives `LOC-MERCATOPICCOLO`
+	# 5–8 NPCs/6 m and calls it "the second-safest ground — exists so the map has two
+	# poles rather than one", and this row covered **72 m² of a 900 m² market**: six
+	# anchors against Piazza del Vetro's twenty, which is one pole and a corner. Same
+	# shape as US-0096's `Fondaco`, whose grid cell was wider than the zone so it got
+	# **zero**: a zone whose extent does not match the space it names.
+	#
+	# **THE SIZE IS DECIDED BY THE ANCHOR BUDGET, NOT BY THE MARKET.** 78 NPCs less
+	# the 16 walking circuits leaves ~62 idle, and `test_navmesh_coverage.gd` refuses
+	# more than 70 anchors — *"a zone whose anchors cannot be filled is not dense, it
+	# only claims to be"*. The map already carries 67, so the whole district can
+	# afford **three more**. Spanning both stall rows wants 15 and was measured at 76,
+	# which fails that assertion; this is the largest widening that fits.
+	#
+	# **AND THE DIRECTION WAS DECIDED BY THE SPAWN CENSUS.** It covered `StallE`'s row
+	# at z 70–76; it now runs from between the two stalls to the south edge of
+	# `StallF` at z 86. Extending **north** buys nothing — `S4` stays at 6 of 8 seats.
+	# Extending south to z = 76 is the northernmost placement that reaches it:
+	# **`S4` 1 → 9 and `S5` 6 → 9**, so two of GDD-05 §2.7 rule 8's three failures close
+	# without moving a spawn point. `S3` is unreachable from any market and stays
+	# short: it is in the Fondaco, which §3 makes low-density on purpose.
+	["MercatoStallRow", 94.0, 76.0, 12.0, 10.0, MapZone.Density.DENSE, false],
 	["LoggiaSpine", 30.0, 40.0, 60.0, 6.0, MapZone.Density.MEDIUM, false],
 	["ViaDelleLampe", 10.0, 30.0, 12.0, 36.0, MapZone.Density.MEDIUM, false],
 	["VicoloStretto", 12.0, 66.0, 22.0, 24.0, MapZone.Density.LOW, false],

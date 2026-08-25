@@ -417,12 +417,33 @@ respawn is always satisfiable.
 > cannot be fixed at all without contradicting §3's low-density Fondaco, and why they stay ❌ under
 > the GDD-03 §6.3 rule 3 grace.
 >
-> **`S5` IS DIFFERENT AND IS A LEVEL-DATA DEFECT.** §2.3 gives `LOC-MERCATOPICCOLO` **5–8 NPCs/6 m**
-> and calls it "the second-safest ground — exists so the map has two poles rather than one". Its
-> only DENSE zone, `MercatoStallRow`, is **12 x 6 m inside a 30 x 30 m market**: 72 m² of 900,
-> six anchors against Piazza del Vetro's twenty. That is the same shape as US-0096's `Fondaco`
-> receiving zero anchors. Widening it is the fix for `S5`, and it moves every crowd figure, so it
-> is priced separately and is the owner's.
+> **AND THAT DEFECT IS FIXED: `S4` AND `S5` NOW SEAT NINE.** §2.3 gives `LOC-MERCATOPICCOLO`
+> **5–8 NPCs/6 m** and calls it "the second-safest ground — exists so the map has two poles rather
+> than one". Its only DENSE zone, `MercatoStallRow`, was **12 x 6 m inside a 30 x 30 m market**:
+> 72 m² of 900, six anchors against Piazza del Vetro's twenty. Same shape as US-0096's `Fondaco`
+> receiving zero — a zone whose extent does not match the space it names. It is 12 x 10 m now.
+>
+> **THE SIZE IS DECIDED BY THE ANCHOR BUDGET AND THE DIRECTION BY THE SPAWN CENSUS.** 78 NPCs less
+> the 16 walking circuits leaves ~62 idle, and `test_navmesh_coverage.gd` refuses more than **70**
+> anchors — *"a zone whose anchors cannot be filled is not dense, it only claims to be"*. The map
+> carried 67, so the district could afford **three**. Spanning both stall rows wants 15, measured
+> at 76, and fails that assertion. Extending **north** buys nothing (`S4` stays at 6); z = 76 is
+> the northernmost placement that reaches `S4`.
+>
+> | | Seats before | **After** |
+> |---|---|---|
+> | `S4` | 1 | **9** |
+> | `S5` | 6 | **9** |
+> | `S3` | 4 | 4 — unreachable from any market |
+>
+> **AND IT MADE THE CROWD CHEAPER ON THE WIRE, WHICH NOBODY EXPECTED.** Spreading 78 NPCs over 70
+> anchors instead of 67 thins the worst-case cluster: downstream fell from **107.6 kbit/s (112 %)
+> to 100.6 (105 %)**, the first movement on that budget since M2. TDD-04 §7.1.2.
+>
+> **`S3` CANNOT BE FIXED THIS WAY AND THAT IS A DESIGN LIMIT, NOT AN OVERSIGHT.** It is in the
+> Fondaco, which §3 makes low-density on purpose, and no market is within 25 m of it. Closing it
+> needs either a larger crowd — a `TUN-CROWD-COUNT` change with a bandwidth cost — or accepting it
+> under the GDD-03 §6.3 rule 3 grace, which is where it sits.
 >
 > **THE 30 m FONDACO OPTION FOR `S3` IS DEAD EITHER WAY.** (36, 98) is inside the
 > `PonteCortoApproaches` theatre space, and it puts `S2` in **clear sight at 32.2 m**. `S3` is
@@ -464,7 +485,7 @@ respawn is always satisfiable.
 | 5 | No spawn is in Piazza Secca or above street level | ✅ | You never begin a life already accruing suspicion. |
 | 6 | No spawn has a sightline longer than 25 m to another spawn | ✅ **measured: 0 of 15 pairs in clear sight**, since the interior massing of 2026-08-21 | Prevents a camper covering two spawns at once. |
 | 7 | Fallback when constraints are unsatisfiable | Choose the farthest available point | **A spawn system that can fail is a crash waiting for a playtest.** |
-| 8 | Every spawn seats `TUN-CROWD-CLONE-LOCAL-MIN` clones of **each** playable persona within `TUN-CROWD-CLONE-LOCAL-RADIUS` — eight NPCs at the shipped values | ❌ **measured: S3 4, S4 1, S5 6 of 8** | **A player placed where the crowd is thin is uniquely identifiable before they can move.** Added 2026-08-21, when GDD-03 §6.3 rule 3 was scoped past the placement instant: the opening arrangement is the level's obligation and this is where it lives. |
+| 8 | Every spawn seats `TUN-CROWD-CLONE-LOCAL-MIN` clones of **each** playable persona within `TUN-CROWD-CLONE-LOCAL-RADIUS` — eight NPCs at the shipped values | ❌ **measured: S3 4 of 8. S4 and S5 closed on 2026-08-21** (1 → 9 and 6 → 9) when `MercatoStallRow` was resized | **A player placed where the crowd is thin is uniquely identifiable before they can move.** Added 2026-08-21, when GDD-03 §6.3 rule 3 was scoped past the placement instant: the opening arrangement is the level's obligation and this is where it lives. |
 
 **The anti-spawn-camp analysis.** With 6 spawns, 6 players and constraint 2 at 40 m, a killer
 standing at any point covers at most **two** spawn points within 40 m. Worked from the table:
