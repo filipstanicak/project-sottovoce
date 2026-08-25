@@ -394,6 +394,29 @@ respawn is always satisfiable.
 > satisfy. `test_spawn_points.gd` grades all six every run and `tools/anchor_census.gd` grades a
 > candidate change in one.
 >
+> **AND RULE 6 NOW CONSTRAINS RULE 8 HARD — MEASURED 2026-08-21, AFTER THE MASSING.**
+> `tools/anchor_census.gd` grades a candidate against rules 1, 4, 5, 6 and 8 together. Adding
+> rule 6 collapsed the legal sites for a starved spawn from **337 to 7**, and **all seven are the
+> same 4 x 4 m patch of the Loggia** around (44, 52):
+>
+> | | Legal sites | Nearest | Lands in |
+> |---|---|---|---|
+> | `S3` | 7 | **59.3 m** | the Loggia |
+> | `S4` | 7 | **81.8 m** | the Loggia |
+> | `S5` | 7 | **56.9 m** | the Loggia |
+>
+> **THE 30 m FONDACO OPTION FOR `S3` IS DEAD, AND THAT IS THE USEFUL PART.** (36, 98) satisfies
+> rules 1, 4, 5 and 8 and puts `S2` in **clear sight at 32.2 m** and `S6` at 98.8 m. `S3` is
+> occluded today only because **`VicoloWestWall` stands north of it**; moving it east loses that
+> shield. A tool that graded seats alone would have offered the move and undone the pass that
+> closed rule 6.
+>
+> **SO AT MOST ONE OF THE THREE CAN BE RELOCATED AT ALL.** Rule 1 requires 30 m between spawns and
+> the seven legal sites are within six metres of each other, so two of them cannot both move
+> there. Relocation cannot fix rule 8 for three spawn points; what could is **more interior
+> massing** — occlusion is what makes a site legal, and the seven exist because `LoggiaPier` casts
+> one. That is the next level pass, and it is the owner's.
+>
 > **THE FIX IS TO MOVE A SPAWN POINT, NOT TO FILL THE FONDACO.** §2.7 puts `S3` and `S4` in it by
 > name and §3 makes it low-density on purpose — "few NPCs, where chases go to be resolved", 3–5
 > NPCs in its own density table. Raising its density to satisfy rule 8 deletes the one place on the
