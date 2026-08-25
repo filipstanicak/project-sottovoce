@@ -158,6 +158,7 @@ func _advance(peer: int, pawn: PawnContext, ctx: MatchContext, dt: float) -> voi
 	var earned := SuspicionMath.gained(s, t)
 	s.value = SuspicionMath.integrate(s, t, dt)
 	s.ticks_since_gain = 0 if earned else s.ticks_since_gain + 1
+	_force_exposed_while_stunned(s, pawn, t)
 
 	# **STEPS 6 AND 7: TIER, WITH HYSTERESIS, AND THE EVENT.**
 	var previous: int = pawn.tier
@@ -169,6 +170,18 @@ func _advance(peer: int, pawn: PawnContext, ctx: MatchContext, dt: float) -> voi
 		tier_changed.emit(peer, pawn.tier, pawn.active_sources)
 
 
+## **`TUN-STUN-FORCES-EXPOSED`: HELD AT THE MAXIMUM FOR THE WHOLE FREEZE**, which
+## is what TUNABLES §17 asks for and `Stunned`'s own duration is. It lived in
+## `StunnedState.enter()` until US-0053 and was wrong twice there: predicted code
+## writing gameplay state, and a single *set* rather than a hold, so the decay it
+## re-armed began eating the punishment on the next tick.
+func _force_exposed_while_stunned(s: SuspicionState, pawn: PawnContext, t: SuspicionTuning) -> void:
+	if pawn.state_id != PawnStateId.STUNNED or not Tuning.combat.forces_exposed:
+		return
+	s.value = t.max_value
+	s.ticks_since_gain = 0
+
+
 ## Everything the integrator is allowed to know, read from this tick's world.
 func _read_the_world(
 	peer: int, s: SuspicionState, pawn: PawnContext, ctx: MatchContext, t: SuspicionTuning
@@ -177,6 +190,7 @@ func _read_the_world(
 	# this system being told.
 	s.value = pawn.suspicion
 	s.speed_state = pawn.state_id
+	s.mantling = pawn.traverse_case == TraversalResolver.Case.MANTLE
 	# **THE CRUSH RUNS IN `HELD` ONLY.** Entry is 0.35 s of visible, vulnerable
 	# transition and exit is 0.30 s of standing up; neither buys anonymity, or a
 	# player would be paid for a commitment they have not finished making.

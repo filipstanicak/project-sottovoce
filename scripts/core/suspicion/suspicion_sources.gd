@@ -53,6 +53,12 @@ static func of(s: SuspicionState, t: SuspicionTuning) -> int:
 		bits |= SPRINT
 	elif s.speed_state == PawnStateId.CLIMB:
 		bits |= CLIMB
+	elif s.speed_state == PawnStateId.VAULT and s.mantling:
+		# **A MANTLE COSTS THE CLIMB RATE AND A VAULT COSTS NOTHING**, GDD-02 §6.1 —
+		# and `PawnStateId.VAULT` is both. It reuses the `CLIMB` bit rather than
+		# claiming a sixth: hauling yourself onto a ledge *is* climbing to anyone
+		# watching, and the HUD word is honest for either.
+		bits |= CLIMB
 	if s.on_roof:
 		bits |= ROOF
 	if s.nearest_npc_distance > t.open_radius:

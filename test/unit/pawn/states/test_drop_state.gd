@@ -213,12 +213,5 @@ func test_nothing_below_fatal_interrupts_a_fall() -> void:
 	machine.free()
 
 
-func test_falling_is_free() -> void:
-	# Dropping down is the cheap direction, and §6.1's route economy needs it to
-	# stay that way. What a long fall costs is time, never anonymity.
-	_plan_fall(VetraioLayout.ROOF_Y, VetraioLayout.STREET_Y)
-	assert_eq(_state.suspicion_rate(_ctx), 0.0, "falling charged suspicion")
-
-
 func test_the_plan_owns_the_position() -> void:
 	assert_true(_state.drives_position())

@@ -74,12 +74,6 @@ func step(_ctx: PawnContext, _input: InputCommand, _delta: float) -> StringName:
 	return STAY
 
 
-## Suspicion generated per second in this state. READ FROM TUNING, never a
-## literal — every gameplay number lives in `data/tuning/default/*.tres`.
-func suspicion_rate(_ctx: PawnContext) -> float:
-	return 0.0
-
-
 func camera_fov(_ctx: PawnContext) -> float:
 	return Tuning.camera.fov_stroll
 

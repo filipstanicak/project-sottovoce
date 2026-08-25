@@ -45,13 +45,6 @@ func drives_position() -> bool:
 	return true
 
 
-## Nothing for a vault, climb-rate for a mantle.
-func suspicion_rate(ctx: PawnContext) -> float:
-	if ctx.traverse_case == TraversalResolver.Case.MANTLE:
-		return Tuning.suspicion.gain_climb
-	return 0.0
-
-
 func camera_fov(_ctx: PawnContext) -> float:
 	return Tuning.camera.fov_stroll
 

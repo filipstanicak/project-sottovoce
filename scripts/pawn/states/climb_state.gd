@@ -37,12 +37,6 @@ func drives_position() -> bool:
 	return true
 
 
-## Per second, for as long as the climb lasts. The *arrival* is what really
-## costs: standing on a roof is `TUN-SUSPICION-GAIN-ROOF`, half again as much.
-func suspicion_rate(_ctx: PawnContext) -> float:
-	return Tuning.suspicion.gain_climb
-
-
 ## GDD-02 §2.1 frames a climb at 62°, between stroll and run. It borrowed the
 ## Jog rung's 65° until that rung was deprecated; `TUN-CAM-FOV-CLIMB` promotes
 ## the documented number to an ID of its own rather than reaching for whichever

@@ -16,10 +16,6 @@ func target_speed() -> float:
 	return Tuning.movement.stroll
 
 
-func _ground_rate(_ctx: PawnContext) -> float:
-	return _decay_rate()
-
-
 func camera_fov(_ctx: PawnContext) -> float:
 	return Tuning.camera.fov_stroll
 

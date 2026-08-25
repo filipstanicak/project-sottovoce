@@ -31,15 +31,6 @@ func camera_fov(_ctx: PawnContext) -> float:
 	return Tuning.camera.fov_blend
 
 
-## Suspicion crushes toward zero over TUN-BLEND-CRUSH-TIME. Negative because the
-## rate is added: blending is the one state that actively buys anonymity back.
-func suspicion_rate(_ctx: PawnContext) -> float:
-	var crush_seconds := Tuning.suspicion.blend_crush_time
-	if crush_seconds <= 0.0:
-		return 0.0
-	return -Tuning.suspicion.max_value / crush_seconds
-
-
 func step(ctx: PawnContext, input: InputCommand, _delta: float) -> StringName:
 	if input.blend:
 		return PawnStateId.IDLE

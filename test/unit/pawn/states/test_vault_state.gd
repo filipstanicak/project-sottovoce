@@ -101,16 +101,29 @@ func test_it_ends_exactly_when_the_tunable_says() -> void:
 func test_a_vault_costs_nothing() -> void:
 	# **THE ONLY FREE ATHLETIC MOVE.** Deliberate, and load-bearing for design
 	# law 4: a patient player needs routes, not just the option to stand still.
+	#
+	# **ASKED OF `SuspicionMath`.** It used to ask `VaultState.suspicion_rate()`, a
+	# second ladder nothing in the shipped game called.
 	_plan_vault()
-	assert_eq(_state.suspicion_rate(_ctx), 0.0, "a vault charged suspicion")
+	assert_eq(_rate_for(_ctx), 0.0, "a vault charged suspicion")
 
 
 func test_a_mantle_costs_the_climb_rate() -> void:
 	# Hauling yourself onto a two-metre wall is visibly athletic, and a civilian
-	# does not do it.
+	# does not do it. GDD-02 §6.1 prices it at "+11.4 (climb rate × duration)".
 	_plan_mantle()
-	assert_eq(_state.suspicion_rate(_ctx), Tuning.suspicion.gain_climb)
+	assert_eq(_rate_for(_ctx), Tuning.suspicion.gain_climb, "a mantle stopped costing the climb")
 	assert_gt(Tuning.suspicion.gain_climb, 0.0, "the climb rate stopped costing anything")
+
+
+## What `SYS-SUSPICION` would charge this pawn, read the way it reads it —
+## including the one thing `PawnStateId.VAULT` alone cannot say.
+func _rate_for(ctx: PawnContext) -> float:
+	var s := SuspicionState.new()
+	s.speed_state = ctx.state_id
+	s.mantling = ctx.traverse_case == TraversalResolver.Case.MANTLE
+	s.nearest_npc_distance = 0.5
+	return SuspicionMath.gain_rate(s, Tuning.suspicion)
 
 
 # ------------------------------------------------------- interruptibility --

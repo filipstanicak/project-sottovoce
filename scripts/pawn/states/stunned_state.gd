@@ -45,17 +45,6 @@ func is_interruptible(_ctx: PawnContext) -> bool:
 	return false
 
 
-## Forced to maximum. Everyone nearby now knows exactly what you are, which is
-## the other half of the punishment.
-func suspicion_rate(_ctx: PawnContext) -> float:
-	return 0.0
-
-
-func enter(ctx: PawnContext) -> void:
-	super(ctx)
-	ctx.suspicion = Tuning.suspicion.max_value
-
-
 func step(ctx: PawnContext, _input: InputCommand, _delta: float) -> StringName:
 	if ctx.state_timer_ticks >= Tuning.step_ticks(&"TUN-STUN-FREEZE"):
 		return PawnStateId.IDLE
