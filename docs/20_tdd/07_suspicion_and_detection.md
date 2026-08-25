@@ -157,8 +157,43 @@ Instant sources are applied **outside** the integrator, once, at the event
 | Witnessed kill | +25 | Per kill, if any **player** had LOS at initiation |
 | Invalid stun | +20 | Per attempt |
 
-Impulses queue on `PawnContext` and are drained at pipeline step 3, so ordering within a tick is
-deterministic regardless of the order events fired.
+Impulses are drained at pipeline step 3, so ordering within a tick is deterministic regardless of
+the order events fired.
+
+### 2.2.1 Three amendments from US-0052, which built the system
+
+**THE QUEUE IS THE SYSTEM'S, NOT `PawnContext`'s.** That object lives in `scripts/pawn/`, which
+is replayed during prediction reconciliation — a client replaying twenty commands would walk a
+queue of gameplay impulses twenty times, which is never-do #3 with a queue in front of it.
+`SuspicionImpulses` holds them, which also makes the debounce a thing a test can *ask about*
+rather than infer from a value.
+
+**AN IMPULSE RE-ARMS `TUN-SUSPICION-DECAY-DELAY`.** `ticks_since_gain` means *ticks since this
+player last did something suspicious*, and a shove is unambiguously that. Without the re-arm, a
+bump taken by a player whose decay was already running is refunded from the tick it lands on —
+and two players sitting at 15, one from running and one from a shove, would decay differently.
+A decay curve that carried information about *how* the value was earned is a channel nothing in
+the design intends.
+
+**THE ORDER TWO IMPULSES ARRIVE IN CANNOT MATTER, AND THAT IS ARITHMETIC RATHER THAN
+DISCIPLINE.** Every impulse is positive and the sum is clamped once, so `min(max, a + b)` is the
+answer whichever came first. `SuspicionImpulses` refuses a negative value outright: a
+*reduction* is decay's job or a blend's, and both have rules — the speed ceiling, the delay, the
+linear crush — that an impulse would route around.
+
+### 2.2.2 The active-source bitfield is the same decision as the gain
+
+`active_sources` is a `u8` on the wire (NETWORK_PROTOCOL §4) and prints under the tier as the
+words that answer *"why am I visible?"* — GDD-03 §13's failure mode 3 is **suspicion is opaque**,
+and a player who cannot attribute their suspicion cannot learn from it.
+
+**`SuspicionSources.of()` IS THE ONLY PLACE THOSE CONDITIONS ARE APPLIED**, and
+`SuspicionMath.gain_rate()` returns the sum of the rates of exactly the bits it sets. Computing
+the list separately would drift from the value it explains the first time a condition was
+retuned — with no error, and with the symptom being a player who reads "sprinting" while the
+number climbs because they are alone, and who then learns to stop reading the channel at all.
+`test_suspicion_sources.gd` sweeps every combination of state × roof × alone × blending and
+asserts the two agree, then asserts the sweep reached every bit.
 
 ### 2.3 Hysteresis
 
@@ -367,12 +402,17 @@ hunters lock through crowds, which would make the crowd cosmetic.
 
 ## 5. Interfaces
 
+**`SuspicionSystem` AS BUILT** (US-0052). It has no `value_of`/`tier_of`: the value and the tier
+live on `PawnContext`, which is what `SnapshotBuilder` reads, and a copy held in the system would
+be a second authority for the number the whole social layer is judged against.
+
 ```gdscript
 class_name SuspicionSystem extends GameSystem
+signal tier_changed(peer: int, tier: int, sources: int)
+var impulses := SuspicionImpulses.new()          ## queue() / bump() / drain()
+func stage() -> StringName                        ## &"suspicion"
 func tick(ctx: MatchContext, dt: float) -> void
-func queue_impulse(peer: int, kind: StringName, amount: float) -> void
-func value_of(peer: int) -> float                 ## server only
-func tier_of(peer: int) -> int
+func report_npc_bump(peer: int, ctx: MatchContext) -> bool   ## no caller — see below
 
 class_name BlendSystem extends GameSystem
 func request_blend(peer: int, target_id: int) -> bool     ## validates capacity and range
@@ -391,40 +431,56 @@ func warning_fired_this_tick(prey: int) -> bool
 
 ## 6. Files this chapter creates
 
-| Path | Purpose |
-|---|---|
-| `scripts/core/math/suspicion_math.gd` | Pure integrator + tier evaluation (§2) |
-| `scripts/core/suspicion_state.gd` | `SuspicionState` input struct |
-| `scripts/systems/suspicion_system.gd` | `SYS-SUSPICION` |
-| `scripts/systems/blend_system.gd` | `SYS-BLEND` |
-| `scripts/systems/detection_system.gd` | `SYS-DETECTION` |
-| `scripts/core/render_state.gd` | `RenderState` enum |
+**AUDITED 2026-08-25 AGAINST THE REPOSITORY.** Three of the six paths in the original table were
+wrong — the suspicion files live under `scripts/core/suspicion/` and `scripts/systems/suspicion/`
+rather than loose in `core/math/` and `systems/`. A table that names a path nothing occupies is
+trap 14's shape, and the claim is worse than the absence because it stops anybody checking.
+
+| Path | Purpose | State |
+|---|---|---|
+| `scripts/core/suspicion/suspicion_math.gd` | Pure integrator + tier evaluation (§2) | **Built**, US-0051 |
+| `scripts/core/suspicion/suspicion_state.gd` | `SuspicionState` input struct | **Built**, US-0051 |
+| `scripts/core/suspicion/suspicion_sources.gd` | The `active_sources` bitfield (§2.2.2) | **Built**, US-0052 |
+| `scripts/core/suspicion/suspicion_impulses.gd` | The impulse queue and the bump debounce (§2.2) | **Built**, US-0052 |
+| `scripts/systems/suspicion/suspicion_system.gd` | `SYS-SUSPICION` | **Built**, US-0052 |
+| `scripts/systems/blend/blend_system.gd` | `SYS-BLEND` | US-0053 |
+| `scripts/systems/detection/detection_system.gd` | `SYS-DETECTION` | US-0055 |
+| `scripts/core/render_state.gd` | `RenderState` enum | US-0055 |
 
 ---
 
 ## 7. Test hooks
 
-| Test | Asserts |
-|---|---|
-| `test_suspicion_math.gd` | Reproduces the GDD-03 §3.5 worked 45 s timeline to within 0.1 points at every listed timestamp |
-| `test_suspicion_exclusive.gd` | Gain and decay never both apply in one tick |
-| `test_suspicion_tapsprint.gd` | 4 Hz sprint/stroll alternation yields **higher** suspicion per metre than continuous running |
-| `test_suspicion_additive.gd` | Sprint + roof + open = 49/s → Exposed in 1.4 s |
-| `test_suspicion_hysteresis.gd` | No tier oscillates faster than 1 Hz under any input pattern |
-| `test_suspicion_impulse_debounce.gd` | Five NPC bumps in 0.5 s apply one impulse |
-| `test_blend_revalidated.gd` | A pocket dropping below 4 NPCs breaks the blend **that tick** |
-| `test_blend_grace.gd` | A kill initiated 0.9 s after blend exit earns `SCORE-BLENDED`; at 1.1 s it does not |
-| `test_blend_prop_capacity.gd` | A second player's request on an occupied prop is refused with feedback |
-| `test_blend_not_cover.gd` | A blended pawn can be killed and stunned normally |
-| `test_render_state_per_observer.gd` | One player at suspicion 100: four observers get `PLAIN`, hunter gets `HARD`, prey gets `HARD` |
-| `test_los_ignores_npcs.gd` | A wall of 10 NPCs between two players does not block LOS |
-| `test_los_single_query.gd` | **Source scan:** `SCORE-FOCUS`, lock progression and Cinderfall occlusion all call `DetectionSystem.has_los` |
-| `test_warning_tier_gate.gd` | An Anonymous pursuer at 2 m fires no warning; a Noticed pursuer at 14 m does |
-| `test_warning_payload_empty.gd` | `NET-S2C-PREY-WARNING` has exactly one field |
-| `test_warning_thresholds_match.gd` | `TUN-COMPASS-WARN-MIN-TIER == TUN-STUN-MIN-TIER` (invariant §17.8) |
-| `test_lock_through_crowd.gd` | A lock cannot complete through a walking group's incidental gaps |
-| `test_lock_decay_faster.gd` | A broken lock drains 1.4× faster than it filled |
-| `test_portrait_permanent.gd` | Portrait stays revealed after the 1.5 s reveal ends, and resets on reassignment |
+**AUDITED 2026-08-25.** Twenty-three rows, of which **eight are files that exist**. Two named
+tests were never written under those names and their property is asserted elsewhere; the other
+thirteen belong to systems M4 has not built. Recorded here rather than left as claims, because
+trap 14's whole cost is that the claim stops anybody checking.
+
+| Test | Asserts | State |
+|---|---|---|
+| `test_suspicion_math.gd` | ~~Reproduces the GDD-03 §3.5 worked 45 s timeline~~ — **the timeline is stale** (§2.1.1). Asserts §3.3's eight properties instead | **Built**, US-0051 |
+| `test_suspicion_exclusive.gd` | Gain and decay never both apply in one tick | **Never written.** It is `test_suspicion_math.gd`'s first two tests |
+| `test_suspicion_tapsprint.gd` | 4 Hz sprint/stroll alternation yields **higher** suspicion per metre than continuous running | **Built** and `pending`: 4.3 % cheaper, not higher (§2.1) |
+| `test_suspicion_additive.gd` | Sprint + roof + open = 49/s → Exposed in 1.4 s | **Never written.** It is `test_suspicion_math.gd`'s `test_sources_sum_additively` |
+| `test_suspicion_sources.gd` | `gain_rate()` equals the sum of the bits `of()` sets, over every combination | **Built**, US-0052 |
+| `test_suspicion_hysteresis.gd` | No tier oscillates faster than 1 Hz under any input pattern | **Built**, US-0051 |
+| `test_suspicion_impulse_debounce.gd` | Five NPC bumps in 0.5 s apply one impulse; five spaced a cooldown apart apply five | **Built**, US-0052 |
+| `test_suspicion_system.gd` | The world is read from this tick's hash; the value reaches the pawn; a crossing is announced once | **Built**, US-0052 |
+| `test_suspicion_is_never_predicted.gd` | No client file computes a suspicion value or writes a mirrored field | **Built**, US-0052 |
+| `test_suspicion_is_wired_into_the_server.gd` | The system is in `server_root.tscn` **and registered** | **Built**, US-0052 |
+| `test_blend_revalidated.gd` | A pocket dropping below 4 NPCs breaks the blend **that tick** | US-0053 |
+| `test_blend_grace.gd` | A kill initiated 0.9 s after blend exit earns `SCORE-BLENDED`; at 1.1 s it does not | US-0053 |
+| `test_blend_prop_capacity.gd` | A second player's request on an occupied prop is refused with feedback | US-0054 |
+| `test_blend_not_cover.gd` | A blended pawn can be killed and stunned normally | US-0053, needs `SYS-KILL` |
+| `test_render_state_per_observer.gd` | One player at suspicion 100: four observers get `PLAIN`, hunter gets `HARD`, prey gets `HARD` | US-0055 |
+| `test_los_ignores_npcs.gd` | A wall of 10 NPCs between two players does not block LOS | US-0056 |
+| `test_los_single_query.gd` | **Source scan:** `SCORE-FOCUS`, lock progression and Cinderfall occlusion all call `DetectionSystem.has_los` | US-0056 |
+| `test_warning_tier_gate.gd` | An Anonymous pursuer at 2 m fires no warning; a Noticed pursuer at 14 m does | US-0059 |
+| `test_warning_payload_empty.gd` | `NET-S2C-PREY-WARNING` has exactly one field | US-0059. The **signal**'s arity is already guarded by `test/arch/test_prey_warning_signal_arity.gd` |
+| `test_warning_thresholds_match.gd` | `TUN-COMPASS-WARN-MIN-TIER == TUN-STUN-MIN-TIER` (invariant §17.8) | US-0059 |
+| `test_lock_through_crowd.gd` | A lock cannot complete through a walking group's incidental gaps | US-0058 |
+| `test_lock_decay_faster.gd` | A broken lock drains 1.4× faster than it filled | US-0058 |
+| `test_portrait_permanent.gd` | Portrait stays revealed after the 1.5 s reveal ends, and resets on reassignment | US-0058 |
 
 ---
 
@@ -447,8 +503,15 @@ Against `TUN-PERF-GAMEPLAY-BUDGET` 2.0 ms (client mirror) and
 | Mirror application + tier transition lerp | ≤ 0.05 ms | Client computes nothing here |
 | **Client total** | **≤ 0.05 ms** | |
 
-**The nearest-NPC query is the item to watch.** A naive O(pawns × NPCs) scan is 540 distance
-checks per tick. The spatial hash from [`08_crowd_system.md`](08_crowd_system.md) §6 reduces
+**The nearest-NPC query is the item to watch, and US-0052 built it against the shared hash rather
+than a physics query** — `test_suspicion_is_wired_into_the_server.gd` refuses `intersect_shape`,
+`intersect_ray` and `PhysicsServer3D` anywhere in the system, because a shape query would be a
+second answer to a question the grid already holds, six times a tick, against a world the grid
+was built from at the top of the same tick. **Neither server row is measured yet**: the whole
+suspicion stage is well inside `test_server_tick_budget.gd`'s 2.27 ms maximum for six pawns and
+the full crowd, and separating 0.05 ms out of that needs a profiler this project does not have.
+
+A naive O(pawns × NPCs) scan is 540 distance checks per tick. The spatial hash from [`08_crowd_system.md`](08_crowd_system.md) §6 reduces
 this to a handful of bucket lookups, and it is shared with blend validation and Startle
 propagation.
 
@@ -461,4 +524,5 @@ propagation.
 | 1 | Should the **Noticed** tint be visible to the prey as well as the hunter, giving a graduated warning instead of a cliff? | **No** for MVP. It would let prey track a Noticed hunter continuously, making the 15 m warning radius meaningless and handing prey a tracking tool | M4 |
 | 2 | `TUN-SUSPICION-GAIN-WITNESSED-KILL` (+25) is an addition beyond the brief, added to give theatre spaces mechanical weight. | Keep, measure at M4. It can be set to 0 to disable with no other change | M4 |
 | 3 | LOS uses a single centre-to-centre ray. Should it sample multiple points (head, torso, feet) so a player half-behind cover is partially occluded? | Single ray for MVP. Multi-sample triples the cost for a nuance that mostly affects lock progression, where the 1.6 s fill already forgives brief breaks | M5 |
-| 4 | Should `PawnContext`'s server-authoritative fields (`suspicion`, `tier`, `blend_state`) move to a separate mirrored object, so predicting them is structurally impossible rather than merely forbidden? | Probably yes. Deferred to the M4 review alongside TDD-06 open question 3 | M4 |
+| 4 | Should `PawnContext`'s server-authoritative fields (`suspicion`, `tier`, `active_sources`, `blend_state`) move to a separate mirrored object, so predicting them is structurally impossible rather than merely forbidden? | **Still open, and US-0052 bought most of the value without moving them.** `PredictedState` has nowhere to put gameplay state and `test_suspicion_is_never_predicted.gd` asserts both that and the absence of any client-side write. What a separate object would additionally buy is that a *server* system could not write them from the wrong stage, which nothing has yet tried to do | M4 |
+| 5 | Nothing calls `SuspicionSystem.report_npc_bump()`, because `npc_server.tscn` and `pawn_server.tscn` both mask `WORLD` only — a pawn and an NPC pass through each other and there is no contact to report. Should the crowd be solid? | **The owner's**, and it is a feel decision rather than a systems one: it changes how movement through a dense pocket reads. Charging `TUN-SUSPICION-GAIN-NPC-BUMP` for an overlap the player felt nothing from would be an impulse with no tell, which design law 3 forbids as firmly for a cost as for an ability | M4 |

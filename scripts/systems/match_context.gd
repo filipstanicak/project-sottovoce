@@ -33,6 +33,19 @@ var phase: int = MatchPhase.Phase.LOBBY
 ## director exposes it now because the pawn substep walks it.
 var pawns: Dictionary = {}
 
+## **peer id -> `PawnContext`**, the simulation state behind those bodies.
+##
+## A second dictionary rather than a richer one, because `pawns` holds the
+## `CharacterBody3D` and four consumers want exactly that — positions, bands,
+## startle radii. A system wanting *state* wanted the body's owner and could not
+## reach it: `PawnHost.context_for()` is server plumbing, not a dependency, and
+## `SYS-SUSPICION` needs velocity, state and elevation every tick.
+##
+## **THE TWO ARE WRITTEN AND ERASED TOGETHER, IN `PawnHost`, ON ADJACENT LINES**,
+## and `test_pawn_host.gd` asserts they never disagree. Two dictionaries keyed the
+## same way is a drift risk worth naming rather than one worth hiding.
+var pawn_contexts: Dictionary = {}
+
 ## `MapData` for the loaded map. Read-only to systems.
 var map: MapData = null
 

@@ -75,6 +75,28 @@ func test_the_context_reaches_the_match() -> void:
 	assert_false(_ctx.pawns.has(PEER), "a freed pawn stayed in the match context")
 
 
+func test_the_two_pawn_dictionaries_never_disagree() -> void:
+	# **`pawns` HOLDS BODIES AND `pawn_contexts` HOLDS STATE** (US-0052), written
+	# and erased on adjacent lines here. Two dictionaries keyed the same way is a
+	# drift risk, and the drift is silent in the worst direction: `SYS-SUSPICION`
+	# walks the contexts, so a peer present in one and not the other is a player
+	# whose suspicion never moves while everything else about them works.
+	_host.spawn(PEER)
+	assert_eq(
+		_ctx.pawns.keys(),
+		_ctx.pawn_contexts.keys(),
+		"the two pawn dictionaries hold different peers"
+	)
+	assert_same(
+		_ctx.pawn_contexts[PEER],
+		_host.context_for(PEER),
+		"MatchContext holds a different context object from the one PawnHost simulates"
+	)
+	_host.despawn(PEER)
+	assert_eq(_ctx.pawns.keys(), _ctx.pawn_contexts.keys(), "a freed pawn left one dictionary only")
+	assert_false(_ctx.pawn_contexts.has(PEER), "a freed pawn stayed in pawn_contexts")
+
+
 func test_a_peer_that_leaves_takes_its_pawn_with_it() -> void:
 	_host.spawn(PEER)
 	_host.despawn(PEER)

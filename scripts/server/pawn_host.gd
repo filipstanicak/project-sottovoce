@@ -51,6 +51,7 @@ func spawn(peer: int) -> bool:
 		return false
 	_pawns[peer] = record
 	_ctx.pawns[peer] = pawn
+	_ctx.pawn_contexts[peer] = record["ctx"] as PawnContext
 	Log.info(
 		"pawn spawned for peer %d at %v" % [peer, (record["ctx"] as PawnContext).position], &"pawn"
 	)
@@ -84,6 +85,7 @@ func despawn(peer: int) -> void:
 	(record["pawn"] as Node).queue_free()
 	_pawns.erase(peer)
 	_ctx.pawns.erase(peer)
+	_ctx.pawn_contexts.erase(peer)
 	Log.info("pawn freed for peer %d" % peer, &"pawn")
 	pawn_freed.emit(peer)
 
