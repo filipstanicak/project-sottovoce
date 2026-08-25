@@ -255,6 +255,32 @@ boundary.
 `TUN-CONTRACT-REPAIR-DEBOUNCE` 0.25 s batches multiple deaths in one pass, so a double kill
 produces one rebuild rather than two conflicting ones.
 
+### 5.1 What US-0049 and US-0050 built, and how the two rules above coexist
+
+**2026-08-21.** The sketch above is amended in four places by the code that now exists.
+
+**A REMOVAL IS NOT A REBUILD, WHICH IS WHY "SAME TICK" AND "BATCHED" ARE NOT IN CONFLICT.**
+Deleting a node from a cycle leaves a cycle, so removals apply **immediately** and cannot
+conflict with one another. What the debounce governs is the **announcement** and the
+**insertions** — the operations that *choose* something. The graph is never behind.
+
+**THE KILLER AND THE INHERITING PURSUER ARE THE SAME PLAYER, BY CONSTRUCTION**, since a contract
+can only be killed by its holder. So the player who inherits is the one who earned the breath.
+
+**A KILL ANNOUNCES TWICE, AND THE FIRST BEAT WAS MISSING.** `TUN-CONTRACT-REASSIGN-DELAY` was
+implemented as *hold the new contract* and left the old one standing — so for three seconds a
+hunter's Compass pointed at the corpse they had just made. The clear is immediate and the name
+arrives after the breath; slot 0 is "nobody" on the wire, so both beats are one message kind and
+the Compass has one rule instead of two. **Nobody is ever pointed at a player who is not living**,
+and that is asserted every tick rather than at the settled state, which is how it was found.
+
+**`assert_valid()` RETURNS A STRING, NOT `void`.** GDScript strips `assert()` from release builds,
+so the sketch's debug-only check would not exist in the shipped game. Empty means sound.
+
+**AND THE METHOD NAMES ARE `remove` / `insert` / `apply`**, not `on_death` / `on_respawn` /
+`on_join` / `on_disconnect`: the Core type does not know what a death *is*. `ContractSystem` owns
+those four verbs, and a join is the same call as a respawn with the constraints vacuous.
+
 ---
 
 ## 6. `SYS-MATCH` and `SYS-SPAWN`

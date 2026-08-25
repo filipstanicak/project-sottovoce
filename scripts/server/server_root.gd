@@ -20,6 +20,7 @@ var _fallen_reported: int = 0
 @onready var lag_comp: LagCompRecorder = $NetServer/LagCompRecorder
 @onready var crowd: NpcPool = $World/Crowd
 @onready var crowd_director: CrowdDirector = $Systems/CrowdDirector
+@onready var contracts: ContractSystem = $Systems/ContractSystem
 
 
 func _ready() -> void:
@@ -138,6 +139,9 @@ func _place_the_crowd(count: int) -> void:
 func _start_the_crowd_system() -> void:
 	director.register(crowd_director)
 	crowd_director.form_groups()
+	director.register(contracts)
+	contracts.setup(director.ctx)
+	contracts.contract_issued.connect(_on_contract_issued)
 
 
 ## **WAIT FOR THE MAP, OR EVERY NPC LANDS AT THE ORIGIN.** A query before the
@@ -219,6 +223,19 @@ func _log_starvation(_ctx: MatchContext, _dt: float) -> void:
 func _on_peer_joined(peer: int) -> void:
 	if pawns.spawn(peer):
 		router.set_pawn_owner(peer, true)
+		contracts.report_join(peer, director.ctx)
+
+
+## **THE ONE PLACE A CONTRACT REACHES THE WIRE.** `SYS-CONTRACT` deals in peer ids
+## because it is the authority; **peer ids never travel** (US-0029), so the slot
+## mapping happens here and nowhere else.
+##
+## `NET-S2C-CONTRACT-ASSIGNED` carries the slot and the reason and **nothing else**:
+## no persona, no position, no tier. The crowd's entire value is that a contract is
+## one of about seventy-eight candidates until you earn better, and a field on this
+## message is the cheapest possible way to give that away.
+func _on_contract_issued(peer: int, contract: int, reason: int) -> void:
+	Net.events.send_contract(peer, director.ctx.slots.slot_of(contract), reason)
 
 
 ## **EVERY OWNER OF PER-PEER STATE IS TOLD, IN ONE PLACE.** ENet reuses peer ids,
@@ -226,6 +243,7 @@ func _on_peer_joined(peer: int) -> void:
 ## makes their input arrive in the past, a stale pawn flag authorises input for
 ## somebody else's pawn, and a stale pawn keeps simulating with nobody driving it.
 func _on_peer_left(peer: int) -> void:
+	contracts.report_disconnect(peer, director.ctx)
 	pawns.despawn(peer)
 	router.forget(peer)
 	director.forget(peer)

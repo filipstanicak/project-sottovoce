@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3 uid="uid://bs0ttovserverroot"]
+[gd_scene load_steps=11 format=3 uid="uid://bs0ttovserverroot"]
 
 [ext_resource type="PackedScene" path="res://scenes/map/map_vetraio_collision.tscn" id="1_map"]
 [ext_resource type="Script" path="res://scripts/server/match_director.gd" id="2_director"]
@@ -9,6 +9,7 @@
 [ext_resource type="Script" path="res://scripts/net/server/lag_comp_recorder.gd" id="7_lagcomp"]
 [ext_resource type="Script" path="res://scripts/systems/crowd/npc_pool.gd" id="8_crowd"]
 [ext_resource type="Script" path="res://scripts/systems/crowd/crowd_director.gd" id="9_crowddir"]
+[ext_resource type="Script" path="res://scripts/systems/contract/contract_system.gd" id="10_contract"]
 
 ; Server topology. NO PRESENTATION NODES — the release server export excludes
 ; scripts/presentation/, scripts/mirrors/ and scenes/ui/ entirely, so anything
@@ -29,6 +30,12 @@ script = ExtResource("2_director")
 ; pool that was in no scene at all; this is the same mistake's other half.
 [node name="CrowdDirector" type="Node" parent="Systems"]
 script = ExtResource("9_crowddir")
+
+; SYS-CONTRACT. The Hamiltonian cycle over living players, at the `contract`
+; stage — AFTER `combat`, so the cycle is repaired in the same tick a death
+; resolves and nobody is contractless at a tick boundary. US-0050.
+[node name="ContractSystem" type="Node" parent="Systems"]
+script = ExtResource("10_contract")
 
 [node name="World" type="Node3D" parent="."]
 

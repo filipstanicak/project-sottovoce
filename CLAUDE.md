@@ -220,6 +220,38 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 *Updated 2026-08-21 (checkpoint after #134). Keep this section current — it is the first thing a fresh
 session reads, and a stale one is worse than none.*
 
+**US-0050 IS FOUR OF SIX: `SYS-CONTRACT` IS IN THE SHIPPED SERVER.** A peer that
+joins is inserted into the cycle, a peer that leaves is removed in the tick it
+leaves, and `NET-S2C-CONTRACT-ASSIGNED` goes out to the holder alone — a **wire
+slot** and a reason, because peer ids never travel.
+
+**"REPAIR IN THE SAME TICK" AND "BATCH INSIDE 0.25 s" LOOK CONTRADICTORY AND ARE
+NOT.** A **removal is not a rebuild**: deleting a node from a cycle leaves a cycle,
+so removals apply at once and cannot conflict with each other. What
+`TUN-CONTRACT-REPAIR-DEBOUNCE` governs is the **announcement** and the
+**insertions** — the operations that choose something. The graph is never behind
+what a player has been told; it is sometimes ahead, and that is the breath.
+
+**AND THE BREATH POINTED THE KILLER AT A CORPSE.** `TUN-CONTRACT-REASSIGN-DELAY`
+was built as *hold the new contract*, which left the **old** one standing for three
+seconds — a Compass aimed at the player they had just killed. A kill announces
+**twice** now: the clear at once, the name after the breath, both as one message
+kind because slot 0 is "nobody" on the wire. **Found by the one assertion that
+swept every tick rather than the settled state**, and every other test in the file
+passed straight over it.
+
+**`net.gd` WAS 392 OF ITS 400 LINES**, with seven more M4 event messages still to
+come, so the split its own comment predicted — *"the C2S doorway below could move
+the same way if this file grows again"* — happened at the **first** of them rather
+than the fifth. `EventWire` is a child of the `Net` autoload, which is at the same
+path on every peer.
+
+**TWO CRITERIA STAY UNTICKED AND BOTH ARE BLOCKED ON THINGS THAT DO NOT EXIST.**
+`open()` is Fisher–Yates against the seeded generator and **nothing calls it**,
+because there is no COUNTDOWN phase until `SYS-MATCH`; the live path is
+`report_join`. And "announced audibly and visibly" needs `Audio.play()`, a stub
+until US-0075, and `CompassVM`, which is US-0057.
+
 **M4 HAS STARTED, AND THE OWNER SIGNED OFF THE LEVEL FIRST: "it looks and feels
 great."** That is the judgement that closes three milestones of level work — the
 piazza connected, the routes re-authored, the district walled, the interior massed,
@@ -2478,7 +2510,7 @@ US-0024 measures it against clips that do not exist.
 | | |
 |---|---|
 | CI | 7 jobs. **Running again as of 2026-08-07 after a two-day outage** — run `31200490320`, all seven green. The seven commits merged during the outage were never through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | **41 arch + 100 unit + 32 integration scripts**, holding 154 + 854 + 237 tests and 239 + 22 269 + 645 assertions — the assertion count tripled at US-0049, because `test_contract_cycle_fuzz.gd` checks the invariant after every one of 10 000 events. **Seven are `pending` by design** — **six in the unit suite and one in the integration suite**, which reports that an NPC aimed into the void never gives up. The island `pending` beside it **turned green by itself** when the alley mouths were built, which is what a `pending` naming its own blocker is for. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **171.3 s** of the 180 s it is allowed, up from 87.7 s at M2 — **under 9 s of headroom left, and the next integration test has to justify itself hard against that**. `test_server_tick_budget.gd` cost 9.8 s of it and is a gate line; the one before it, the 2 s pass A/B, samples ninety ticks **twice** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **The six are**: `test_upstream_bandwidth.gd` reporting the 145 % upstream miss, `test_crowd_bandwidth.gd` the 112 % downstream projection, `test_crowd_wire_cost.gd` the 112 % it actually costs, **`test_spawn_points.gd` twice — GDD-05 §2.7 rule 6's nine unoccluded spawn pairs and rule 8's S3 4, S4 1, S5 6 of 8 seats** — and `test_clone_animation_parity.gd` the missing clip library. **Two entries this row carried are gone because their findings closed**: `test_circuit_separation.gd`'s 0.51 m circuits (re-authored, now 21.20 m) and `test_cull_radius_price.gd`'s flat curve, which asserts rather than pends. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
+| Tests | **41 arch + 103 unit + 32 integration scripts**, holding 154 + 871 + 237 tests and 239 + 23 304 + 645 assertions — the assertion count tripled at US-0049, because `test_contract_cycle_fuzz.gd` checks the invariant after every one of 10 000 events. **Seven are `pending` by design** — **six in the unit suite and one in the integration suite**, which reports that an NPC aimed into the void never gives up. The island `pending` beside it **turned green by itself** when the alley mouths were built, which is what a `pending` naming its own blocker is for. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **171.3 s** of the 180 s it is allowed, up from 87.7 s at M2 — **under 9 s of headroom left, and the next integration test has to justify itself hard against that**. `test_server_tick_budget.gd` cost 9.8 s of it and is a gate line; the one before it, the 2 s pass A/B, samples ninety ticks **twice** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **The six are**: `test_upstream_bandwidth.gd` reporting the 145 % upstream miss, `test_crowd_bandwidth.gd` the 112 % downstream projection, `test_crowd_wire_cost.gd` the 112 % it actually costs, **`test_spawn_points.gd` twice — GDD-05 §2.7 rule 6's nine unoccluded spawn pairs and rule 8's S3 4, S4 1, S5 6 of 8 seats** — and `test_clone_animation_parity.gd` the missing clip library. **Two entries this row carried are gone because their findings closed**: `test_circuit_separation.gd`'s 0.51 m circuits (re-authored, now 21.20 m) and `test_cull_radius_price.gd`'s flat curve, which asserts rather than pends. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
 | Tuning | 288 tunables across 14 resource classes; all 31 cross-field invariants assert — split across `TuningInvariants` and `TuningInvariantsTech` since the first file hit 400 lines, with one entry point still. **Eight IDs are deprecated** and recorded in TUNABLES §19 — never reused |
 | Autoloads | All eight. `Tuning` precomputes 89 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |
