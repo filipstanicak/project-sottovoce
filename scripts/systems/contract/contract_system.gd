@@ -37,16 +37,21 @@ enum Reason { START, KILL, RESPAWN, REPAIR }
 
 var cycle: ContractCycle = null
 
-## peer -> the contract that peer has actually been told about. The graph may be
-## ahead of this for up to `TUN-CONTRACT-REASSIGN-DELAY`, which is the breath.
-var _announced: Dictionary = {}
-
 ## peer -> the tick before which nothing may be announced to them.
 var _held_until: Dictionary = {}
 
 ## peer -> why their next announcement happens, so a kill does not report itself as
 ## a repair.
 var _reason: Dictionary = {}
+
+## peer -> the contract that peer has actually been told about. The graph may be
+## ahead of this for up to `TUN-CONTRACT-REASSIGN-DELAY`, which is the breath.
+##
+## **IT IS `MatchContext.announced_contracts` ITSELF**, adopted in `setup()` rather
+## than mirrored into. `SYS-DETECTION` renders from what players have been told,
+## and two dictionaries holding the same thing drift the first time somebody adds
+## a write to one of them.
+var _published: Dictionary = {}
 
 ## `[peer, killer, reason]` waiting for the debounce window to close.
 var _pending: Array = []
@@ -61,6 +66,11 @@ func stage() -> StringName:
 
 func setup(ctx: MatchContext) -> void:
 	cycle = ContractCycle.new(ctx.rng)
+	# **THE ANNOUNCED VIEW GOES ON THE CONTEXT**, because `SYS-DETECTION` renders
+	# from what players have been told rather than from what the graph holds, and a
+	# system whose answers come from another system's field cannot be asked a
+	# question in a test.
+	_published = ctx.announced_contracts
 
 
 ## Match start. **The opening deal is announced immediately** — there is nothing to
@@ -69,7 +79,7 @@ func setup(ctx: MatchContext) -> void:
 func open(peers: PackedInt32Array, ctx: MatchContext) -> void:
 	cycle.tick = ctx.tick
 	cycle.open(peers)
-	_announced.clear()
+	_published.clear()
 	_held_until.clear()
 	_reason.clear()
 	_pending.clear()
@@ -93,7 +103,7 @@ func report_death(victim: int, killer: int, ctx: MatchContext) -> void:
 	cycle.tick = ctx.tick
 	if not cycle.remove(victim):
 		return
-	_announced.erase(victim)
+	_published.erase(victim)
 	var why: int = Reason.KILL if killer != ContractCycle.NOBODY else Reason.REPAIR
 	_forget_anyone_hunting(victim, why)
 	if killer != ContractCycle.NOBODY and cycle.has(killer):
@@ -106,10 +116,10 @@ func report_death(victim: int, killer: int, ctx: MatchContext) -> void:
 ## the wire, so a clear is an ordinary `NET-S2C-CONTRACT-ASSIGNED` rather than a
 ## second message kind — and the client's Compass has one rule instead of two.
 func _forget_anyone_hunting(gone: int, why: int) -> void:
-	for other: int in _announced.keys():
-		if int(_announced[other]) != gone:
+	for other: int in _published.keys():
+		if int(_published[other]) != gone:
 			continue
-		_announced[other] = ContractCycle.NOBODY
+		_published[other] = ContractCycle.NOBODY
 		contract_issued.emit(other, ContractCycle.NOBODY, why)
 
 
@@ -149,7 +159,7 @@ func contract_of(peer: int) -> int:
 ## Who `peer` has actually been told they are hunting. **The Compass follows this
 ## one**, or `TUN-CONTRACT-REASSIGN-DELAY` would not exist as a felt thing.
 func announced_contract_of(peer: int) -> int:
-	return int(_announced.get(peer, ContractCycle.NOBODY))
+	return int(_published.get(peer, ContractCycle.NOBODY))
 
 
 ## **ONE WINDOW, RE-ARMED BY NOTHING.** A second event inside an open window joins
@@ -176,7 +186,7 @@ func _close_window(ctx: MatchContext) -> void:
 
 
 ## Tell every player whose contract has moved since they were last told, unless
-## they are inside a hold. **Nothing is announced twice**: `_announced` is the
+## they are inside a hold. **Nothing is announced twice**: `_published` is the
 ## record of what was said, not of what is true.
 func _announce_what_changed(ctx: MatchContext) -> void:
 	if _window_closes >= 0:
@@ -185,9 +195,9 @@ func _announce_what_changed(ctx: MatchContext) -> void:
 		if ctx.tick < int(_held_until.get(peer, 0)):
 			continue
 		var now := cycle.contract_of(peer)
-		if now == ContractCycle.NOBODY or now == int(_announced.get(peer, ContractCycle.NOBODY)):
+		if now == ContractCycle.NOBODY or now == int(_published.get(peer, ContractCycle.NOBODY)):
 			continue
-		_announced[peer] = now
+		_published[peer] = now
 		_held_until.erase(peer)
 		var why: int = int(_reason.get(peer, Reason.REPAIR))
 		_reason.erase(peer)

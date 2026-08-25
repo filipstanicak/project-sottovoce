@@ -261,10 +261,12 @@ func _fill_remotes(snapshot: Snapshot, peer: int) -> void:
 		var slot: int = _ctx.slots.slot_of(other)
 		if slot == SlotTable.NO_SLOT:
 			continue
-		# `render_state` is 0 (`PLAIN`) for everyone until `SYS-DETECTION` lands in
-		# M3. It is filled per observer HERE when it does — the loop is already
-		# per observer, which is the whole reason this is not a broadcast.
-		everyone.append([slot, ctx.position, ctx.yaw, ctx.state_id, 0, 0])
+		# **PER OBSERVER, WHICH IS THE WHOLE REASON THIS IS NOT A BROADCAST.** The
+		# same player at the same suspicion is `PLAIN` to four people and `HARD` to
+		# one, simultaneously — `SYS-DETECTION` decided that at the `detection`
+		# stage and the matrix carries it here. Absent means `PLAIN`.
+		var seen := _ctx.render_states.state_of(peer, other)
+		everyone.append([slot, ctx.position, ctx.yaw, ctx.state_id, 0, seen])
 
 	# **WHO EXISTS IS STATED; WHO MOVED IS SENT.** The mask is built from every
 	# visible player, the records from only those whose quantised state changed —

@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3 uid="uid://bs0ttovserverroot"]
+[gd_scene load_steps=13 format=3 uid="uid://bs0ttovserverroot"]
 
 [ext_resource type="PackedScene" path="res://scenes/map/map_vetraio_collision.tscn" id="1_map"]
 [ext_resource type="Script" path="res://scripts/server/match_director.gd" id="2_director"]
@@ -11,6 +11,7 @@
 [ext_resource type="Script" path="res://scripts/systems/crowd/crowd_director.gd" id="9_crowddir"]
 [ext_resource type="Script" path="res://scripts/systems/contract/contract_system.gd" id="10_contract"]
 [ext_resource type="Script" path="res://scripts/systems/suspicion/suspicion_system.gd" id="11_suspicion"]
+[ext_resource type="Script" path="res://scripts/systems/detection/detection_system.gd" id="12_detection"]
 
 ; Server topology. NO PRESENTATION NODES — the release server export excludes
 ; scripts/presentation/, scripts/mirrors/ and scenes/ui/ entirely, so anything
@@ -44,6 +45,13 @@ script = ExtResource("10_contract")
 ; has already re-formed. US-0052.
 [node name="SuspicionSystem" type="Node" parent="Systems"]
 script = ExtResource("11_suspicion")
+
+; SYS-DETECTION. Per-observer render state, at the `detection` stage — AFTER
+; `suspicion`, because the render state is computed from tier and a tick of lag
+; makes the silhouette disagree with the tier indicator. It also holds the only
+; line-of-sight query in the project. US-0055, US-0056.
+[node name="DetectionSystem" type="Node" parent="Systems"]
+script = ExtResource("12_detection")
 
 [node name="World" type="Node3D" parent="."]
 
