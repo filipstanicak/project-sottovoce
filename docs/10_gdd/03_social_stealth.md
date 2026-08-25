@@ -795,6 +795,39 @@ revenge, so without an anti-repeat rule the incentive and the assignment would c
 
 ---
 
+### 7.6 What US-0049 built, and the two ways the anti-repeat rule was inert
+
+**2026-08-21.** `ContractCycle` is §7.2's algorithm as a pure Core type. Four amendments, and
+two of them are defects that every assertion about a *live* cycle passed straight over.
+
+**`recent` IS A PROPERTY OF THE PLAYER AND MUST OUTLIVE THEIR DEATH.** The first version cleared
+a peer's history when it left the cycle — and the only reader of that history is the insertion
+that happens when they **come back**. §7.5's rule was therefore inert for the one case it exists
+for. Nothing failed: a cycle with no history simply never applies the filter.
+
+**AND THE OPENING DEAL IS A CONTRACT HELD.** `recent` was written only by insertion, so at the
+first respawn of a match the history was empty and the repeat could only be avoided by luck.
+Measured over forty seeds: **26 of 40 avoided it, against 40 of 40 once `open` records the deal
+it just made.** Both defects are the same shape — a rule that is *present* and never *reached*.
+
+**`assert_valid()` RETURNS A STRING RATHER THAN ASSERTING.** GDScript strips `assert()` from
+release builds, so a validity check written as an assertion is one that does not exist in the
+shipped game — which is exactly where a contract graph going wrong would cost most and be seen
+least. Empty means sound.
+
+**THE DEBOUNCED BATCH OF §7.3 LIVES IN CORE, AND ITS ORDER IS THE RULE.** `apply()` performs
+every removal before any insertion, so a respawn cannot be placed beside somebody who leaves the
+cycle in the same pass — a contract handed to a corpse. A join is the *same call* as a respawn
+with the constraints vacuous (no killer, no history), rather than the separate random insertion
+§7.2 sketches, so the two cannot drift apart.
+
+**AND THE FIXED-POINT AND ONE-CYCLE CHECKS ARE UNREACHABLE TODAY, DELIBERATELY.** With an ordered
+list, `contract(p) = p` requires p to appear twice, which the distinctness check catches first.
+They are defence for the day the representation becomes a map of edges, and the test says so
+rather than leaving an unexercised branch to read as dead code.
+
+---
+
 ## 8. The hunter system — `SYS-COMPASS`
 
 ### 8.1 What the Compass is
