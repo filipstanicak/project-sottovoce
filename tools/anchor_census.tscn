@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://tools/anchor_census.gd" id="1_census"]
+
+[node name="AnchorCensus" type="Node"]
+script = ExtResource("1_census")

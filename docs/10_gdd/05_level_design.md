@@ -394,28 +394,40 @@ respawn is always satisfiable.
 > satisfy. `test_spawn_points.gd` grades all six every run and `tools/anchor_census.gd` grades a
 > candidate change in one.
 >
-> **AND RULE 6 NOW CONSTRAINS RULE 8 HARD — MEASURED 2026-08-21, AFTER THE MASSING.**
-> `tools/anchor_census.gd` grades a candidate against rules 1, 4, 5, 6 and 8 together. Adding
-> rule 6 collapsed the legal sites for a starved spawn from **337 to 7**, and **all seven are the
-> same 4 x 4 m patch of the Loggia** around (44, 52):
+> **RELOCATION CANNOT FIX RULE 8 FOR ANY OF THE THREE: THERE ARE ZERO LEGAL SITES.** Measured
+> 2026-08-21 with `tools/anchor_census.gd` grading rules 1, 4, 5, 6 and 8 together.
 >
-> | | Legal sites | Nearest | Lands in |
+> > **RETRACTION.** This section briefly published *"7 legal sites, all in one 4 x 4 m patch of the
+> > Loggia, so at most one of the three can be relocated"*. **All seven were inside `LoggiaPier`** —
+> > the sweep walks floor *rectangles* and never asked whether a candidate was outside the building
+> > standing on it, which is also why they looked so well occluded. The number is **zero**, and the
+> > conclusion is stronger than the one it replaces.
+>
+> **AND THE BINDING RULE IS 8, NOT 6.** Within 45 m of each starved spawn there are sites that
+> satisfy rules 1, 4, 5 and 6 and fail only on seats:
+>
+> | | Sites failing on seats alone | Best seat count found | Needs |
 > |---|---|---|---|
-> | `S3` | 7 | **59.3 m** | the Loggia |
-> | `S4` | 7 | **81.8 m** | the Loggia |
-> | `S5` | 7 | **56.9 m** | the Loggia |
+> | `S3` | 5 | **4** | 8 |
+> | `S5` | 15 | **6** | 8 |
+> | `S4` | 7 | **2** | 8 |
 >
-> **THE 30 m FONDACO OPTION FOR `S3` IS DEAD, AND THAT IS THE USEFUL PART.** (36, 98) satisfies
-> rules 1, 4, 5 and 8 and puts `S2` in **clear sight at 32.2 m** and `S6` at 98.8 m. `S3` is
+> **So more interior massing does not help.** Occlusion is already available at those sites; what
+> is missing is idle anchors. The lever is **density, not mass** — which is why `S3` and `S4`
+> cannot be fixed at all without contradicting §3's low-density Fondaco, and why they stay ❌ under
+> the GDD-03 §6.3 rule 3 grace.
+>
+> **`S5` IS DIFFERENT AND IS A LEVEL-DATA DEFECT.** §2.3 gives `LOC-MERCATOPICCOLO` **5–8 NPCs/6 m**
+> and calls it "the second-safest ground — exists so the map has two poles rather than one". Its
+> only DENSE zone, `MercatoStallRow`, is **12 x 6 m inside a 30 x 30 m market**: 72 m² of 900,
+> six anchors against Piazza del Vetro's twenty. That is the same shape as US-0096's `Fondaco`
+> receiving zero anchors. Widening it is the fix for `S5`, and it moves every crowd figure, so it
+> is priced separately and is the owner's.
+>
+> **THE 30 m FONDACO OPTION FOR `S3` IS DEAD EITHER WAY.** (36, 98) is inside the
+> `PonteCortoApproaches` theatre space, and it puts `S2` in **clear sight at 32.2 m**. `S3` is
 > occluded today only because **`VicoloWestWall` stands north of it**; moving it east loses that
-> shield. A tool that graded seats alone would have offered the move and undone the pass that
-> closed rule 6.
->
-> **SO AT MOST ONE OF THE THREE CAN BE RELOCATED AT ALL.** Rule 1 requires 30 m between spawns and
-> the seven legal sites are within six metres of each other, so two of them cannot both move
-> there. Relocation cannot fix rule 8 for three spawn points; what could is **more interior
-> massing** — occlusion is what makes a site legal, and the seven exist because `LoggiaPier` casts
-> one. That is the next level pass, and it is the owner's.
+> shield.
 >
 > **THE FIX IS TO MOVE A SPAWN POINT, NOT TO FILL THE FONDACO.** §2.7 puts `S3` and `S4` in it by
 > name and §3 makes it low-density on purpose — "few NPCs, where chases go to be resolved", 3–5

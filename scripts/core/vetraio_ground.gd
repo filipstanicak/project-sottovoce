@@ -195,6 +195,17 @@ static func clear_of_obstacles(at: Vector2) -> Vector3:
 ## Found 2026-08-21 when interior massing put an idle anchor 0.1 m from
 ## `LampeIsland`'s west face, and the connectivity test seeded a floor onto the
 ## island inside that same block and reported the floor severed.
+## **PUBLIC, BECAUSE "IS THIS POINT STANDABLE" CANNOT BE ASKED VIA
+## `clear_of_obstacles`.** That one returns its **input unchanged** when it finds
+## nowhere usable within four metres — deliberately, so a bad anchor stays findable
+## rather than teleporting — which makes "already fine" and "gave up" the same
+## value. `tools/anchor_census.gd` asked it that way and recommended seven spawn
+## sites six metres inside a building, every one of them reported as clear ground.
+## Trap 3's shape in a return value.
+static func is_standable(at: Vector2) -> bool:
+	return _is_usable(at)
+
+
 static func _is_usable(at: Vector2) -> bool:
 	if not on_a_floor(at):
 		return false

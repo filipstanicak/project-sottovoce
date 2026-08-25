@@ -220,23 +220,53 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 *Updated 2026-08-21 (checkpoint after #134). Keep this section current — it is the first thing a fresh
 session reads, and a stale one is worse than none.*
 
-**AND RULE 6 CONSTRAINS RULE 8 HARD, WHICH IS WHY NO SPAWN MOVED.** Teaching
-`tools/anchor_census.gd` to grade rule 6 alongside 1, 4, 5 and 8 collapsed the
-legal sites for a starved spawn from **337 to 7**, and **all seven are the same
-4 × 4 m patch of the Loggia** around (44, 52): `S3` 59.3 m away, `S5` 56.9,
-`S4` 81.8.
+**RELOCATION CANNOT FIX RULE 8 FOR ANY OF S3, S4 OR S5: THERE ARE ZERO LEGAL
+SITES**, grading GDD-05 §2.7 rules 1, 4, 5, 6 and 8 together.
 
-**THE CHEAP 30 m FONDACO MOVE FOR S3 IS DEAD, AND THAT IS THE USEFUL PART.**
-(36, 98) satisfies rules 1, 4, 5 and 8 and puts **`S2` in clear sight at 32.2 m**
-and `S6` at 98.8 m. `S3` is occluded today only because **`VicoloWestWall` stands
-north of it**, and moving east loses that shield. A tool grading seats alone
-would have offered the move and undone the pass that closed rule 6 the day before.
+**AND THIS CORPUS BRIEFLY SAID "SEVEN", WHICH WAS WRONG.** PR #141 published
+*"7 legal sites in a 4 × 4 m patch of the Loggia, so at most one of the three can
+be relocated"*. **All seven were inside `LoggiaPier`** — the sweep walks floor
+*rectangles*, and a floor rectangle includes whatever is built on top of it, so it
+never asked whether a candidate was outside the building standing on it. That is
+also why they looked so beautifully occluded: they were inside a wall.
 
-**SO RELOCATION CANNOT FIX RULE 8 FOR THREE SPAWNS — AT MOST ONE.** Rule 1 wants
-30 m between spawns and the seven sites are within six metres of each other. What
-could fix it is **more interior massing**: occlusion is what makes a site legal,
-and those seven exist because `LoggiaPier` casts one. That is the next level pass
-and it is the owner's.
+**THE FIX FOR THAT HAD ITS OWN TRAP.** Asking
+`VetraioGround.clear_of_obstacles(p) == p` still passed, because that function
+**returns its input unchanged when it finds nowhere usable within four metres** —
+deliberately, so a bad anchor stays findable rather than teleporting. So "already
+fine" and "gave up" are the same value, and a point six metres inside a pier reads
+as clear ground. `VetraioGround.is_standable()` is public now and is the question
+to ask.
+
+**AND THE CENSUS IS A SCENE NOW, NOT A `-s` SCRIPT.** A `-s` script gets no
+autoloads, so `Tuning` does not exist and **every Core class that reads it fails to
+compile along with everything depending on it** — which silently disabled the
+ground check through `CrowdRoster`. It prints `Identifier not found: Tuning` among
+the output and reads like noise. `tools/anchor_census.tscn`:
+
+```bash
+godot --headless --path . res://tools/anchor_census.tscn
+```
+
+**THE BINDING RULE IS 8, NOT 6, SO MORE MASSING WOULD NOT HELP.** Within 45 m of
+each starved spawn there are sites satisfying rules 1, 4, 5 and 6 that fail only on
+seats — best found: **S3 4, S5 6, S4 2, against 8 needed**. The lever is **density,
+not mass**.
+
+**WHICH MAKES S5 A LEVEL-DATA DEFECT AND S3/S4 A DESIGN LIMIT.** GDD-05 §2.3 gives
+`LOC-MERCATOPICCOLO` **5–8 NPCs/6 m** and calls it "the second-safest ground — so
+the map has two poles rather than one", and its only DENSE zone is **12 × 6 m
+inside a 30 × 30 m market**: 72 m² of 900, six anchors against the Piazza's twenty.
+Same shape as US-0096's `Fondaco` getting zero. Widening it is S5's fix and it
+moves every crowd figure, so it is priced separately. S3 and S4 are in the Fondaco,
+which §3 makes low-density on purpose, and they stay ❌ behind the rule-3 grace.
+
+**AND (36, 98) WAS NEVER LEGAL FOR A SECOND REASON**: it is inside the
+`PonteCortoApproaches` theatre space. The census had been reading the zones'
+`is_theatre` flag, which finds only Piazza Secca — `PonteCortoApproaches` is in
+`VetraioLayout.THEATRES` and in `MapData.theatre_spaces` and **is not a zone at
+all**. `test_map_dead_ends.gd` has always enforced rule 5 against `theatre_spaces`,
+so that is the list the census reads now.
 
 **THE DISTRICT HAS INTERIOR MASSING NOW, AND GDD-05 §2.7 RULE 6 HOLDS FOR THE
 FIRST TIME: 9 OF 15 SPAWN PAIRS IN CLEAR SIGHT → 0 OF 15.** The rule carried a ✅

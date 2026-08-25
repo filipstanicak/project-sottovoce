@@ -1,21 +1,25 @@
 ## **HOW MANY IDLE ANCHORS EACH ZONE ACTUALLY GETS, AND WHAT EACH SPAWN CAN SEE.**
 ## GDD-05 §4.4 and §2.7, US-0096.
 ##
-##     godot --headless -s res://tools/anchor_census.gd
+##     godot --headless --path . res://tools/anchor_census.tscn
 ##
 ## US-0096 found three of six spawn points unable to hold
 ## `TUN-CROWD-CLONE-LOCAL-MIN` at any arrangement, one of them seeing no NPC at
 ## all. This prints the two tables that say why: what each zone asked for against
 ## what the grid gave it, and what each spawn point can see.
 ##
-## **IT LOADS THE TUNING PROFILE ITSELF AND MUST.** A `-s` script gets **no
-## autoloads**, so `Tuning` does not exist here and any Core class that reads it —
-## `CloneParity`, for one — fails to compile, reporting only "nonexistent function"
-## at the call site. Trap 13's family: the diagnostic that cannot see reports the
-## same thing as a healthy answer.
-extends SceneTree
+## **IT IS A SCENE AND NOT A `-s` SCRIPT, AND THAT IS NOT A STYLE CHOICE.** A `-s`
+## script gets **no autoloads**, so `Tuning` does not exist — and every Core class
+## that reads it fails to compile *along with everything that depends on it*. That
+## silently disabled this tool's ground check via `CrowdRoster`, and the tool then
+## recommended seven spawn sites **inside a building**. The failure prints
+## `Identifier not found: Tuning` among the output and reads like noise. Trap 13's
+## family: the diagnostic that cannot see reports the same thing as a healthy one.
+extends Node
 
 ## Every number this tool grades against comes from here, never from a literal.
+## Loaded rather than read from the `Tuning` autoload so the census grades the
+## **shipped default** even when a local profile is installed.
 const PROFILE := "res://data/tuning/default/profile.tres"
 
 ## GDD-05 §2.7 rule 4's 25 m. **A level-design constant, not a tunable** — it is
@@ -29,7 +33,7 @@ const SHORTLIST := 5
 var _tuning: TuningProfile = null
 
 
-func _init() -> void:
+func _ready() -> void:
 	_run.call_deferred()
 
 
@@ -39,7 +43,7 @@ func _run() -> void:
 	_report_zones(data)
 	_report_spawns(data)
 	_search_for_spawn_sites(data)
-	quit()
+	get_tree().quit()
 
 
 ## What each zone asked GDD-05 §4.4 for, against what the grid gave it.
@@ -186,6 +190,8 @@ func _sites_for(here: Vector3, others: Array[Vector3], data: MapData) -> Array:
 ## candidate against the rules while omitting the one the last pass fixed is how a
 ## level pass undoes the pass before it.
 func _legal(at: Vector3, others: Array[Vector3], data: MapData) -> bool:
+	if not _standable(at):
+		return false
 	if _in_a_theatre(at, data):  # rule 5
 		return false
 	if not _far_enough(at, others):  # rule 1
@@ -250,20 +256,35 @@ func _where(at: Vector3, data: MapData) -> String:
 	return "%s, %s" % [floor_name, ", ".join(parts)]
 
 
-## Rule 5. **The zone data, not a floor name and not the layout's theatre table.**
-## `PiazzaSecca` is a zone spanning several floors, so filtering by floor name — what
-## this tool did until 2026-08-21 — passed over the thing rule 5 is about.
+## **A SITE MUST BE GROUND SOMEBODY CAN STAND ON, WHICH THIS DID NOT ASK UNTIL
+## 2026-08-21.** The sweep walks floor **rectangles**, and a floor rectangle includes
+## whatever is built on top of it — so every candidate inside a building passed. It
+## offered seven sites in a 4 x 4 m patch of the Loggia and **all seven were inside
+## `LoggiaPier`**, which is also why they looked so beautifully occluded: they were
+## inside a wall. `VetraioGround` owns this question for the idle anchors, agent
+## clearance included, so it answers it here too.
 ##
-## **AND IT MUST BE THE SAME POINT-IN-BOX TEST THE ZONES THEMSELVES USE.** A first
-## fix asked `Rect2.has_point` against `VetraioLayout.THEATRES`, which is **exclusive
-## at the far edge**, while `MapZone.bounds` is an `AABB` and `AABB.has_point` is
-## **inclusive**. So (90, 66) — Piazza Secca's own eastern boundary — was reported
-## outside the plaza by one convention and inside it by the other, and the tool
-## offered it as `S5`'s nearest legal relocation. Two conventions for one question is
-## how an instrument disagrees with the game while looking correct.
+## **AND IT MUST BE ASKED WITH `is_standable`, NOT WITH `clear_of_obstacles`.** That
+## one returns its input unchanged when it finds nowhere usable within four metres,
+## so a point six metres inside a pier comes back identical and reads as clear
+## ground — which is precisely how the seven Loggia sites survived the first fix.
+func _standable(at: Vector3) -> bool:
+	return VetraioGround.is_standable(Vector2(at.x, at.z))
+
+
+## Rule 5. **`MapData.theatre_spaces`, which is the list the rule is enforced
+## against.** Two earlier versions of this check asked two different questions and
+## both were the wrong one: filtering a *floor* named `PiazzaSecca` missed that the
+## plaza is a zone spanning several floors, and then asking the zones' `is_theatre`
+## flag found only Piazza Secca — `PonteCortoApproaches` is in
+## `VetraioLayout.THEATRES` and in `theatre_spaces` and is **not a zone at all**.
+##
+## `test_map_dead_ends.gd` has always enforced rule 5 against `theatre_spaces`, so
+## that is the list. The gap mattered: (36, 98), the Fondaco relocation this tool
+## recommended for `S3`, is **inside `PonteCortoApproaches`**.
 func _in_a_theatre(at: Vector3, data: MapData) -> bool:
-	for zone: MapZone in data.zones:
-		if zone.is_theatre and zone.bounds.has_point(Vector3(at.x, zone.bounds.position.y, at.z)):
+	for box: AABB in data.theatre_spaces:
+		if box.has_point(Vector3(at.x, box.position.y, at.z)):
 			return true
 	return false
 
