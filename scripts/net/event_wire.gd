@@ -29,6 +29,12 @@ signal contract_assigned(contract_slot: int, reason: int)
 ## feed later disagreed with.
 signal kill_resolved(killer_slot: int, victim_slot: int, tick: int, bonus_group: int)
 
+## `NET-S2C-STUN-RESULT` arrived. CLIENT SIDE. `lockout_ticks` is how long the
+## stunned hunter is exiled from that target — **both parties are told the same
+## number**, because a punishment only one side can see is one neither can plan
+## around.
+signal stun_resolved(stunner_slot: int, target_slot: int, valid: bool, lockout_ticks: int)
+
 ## `NET-S2C-PREY-WARNING` arrived. CLIENT SIDE. **A world bearing in radians and a
 ## `Quantise.BUCKET_STEP` distance bucket, and nothing else.**
 ##
@@ -76,6 +82,33 @@ func send_kill(peer: int, killer_slot: int, victim_slot: int, tick: int, group: 
 @rpc("authority", "call_remote", "reliable", Messages.Channel.EVENT)
 func s2c_kill_result(killer_slot: int, victim_slot: int, tick: int, bonus_group: int) -> void:
 	kill_resolved.emit(killer_slot, victim_slot, tick, bonus_group)
+
+
+## `NET-S2C-STUN-RESULT`. SERVER SIDE, **to the stunner and the target only**.
+##
+## Never broadcast, for `send_kill`'s reason: a global stun feed would tell every
+## living player that a hunt had just been broken somewhere, for free.
+func send_stun(
+	peer: int, stunner_slot: int, target_slot: int, tick: int, valid: bool, lockout: int
+) -> void:
+	if not Net.is_server:
+		return
+	s2c_stun_result.rpc_id(peer, stunner_slot, target_slot, tick, valid, lockout)
+
+
+## `NET-S2C-STUN-RESULT`. CLIENT SIDE.
+##
+## **A REFUSAL CARRIES NO TARGET AT ALL.** `server_root` sends `SlotTable.NO_SLOT`
+## on every rejection, so a prey cannot press stun at a stranger and read the
+## answer to learn whether that stranger is hunting them. `valid` is the only
+## thing a failed press reports, and every refusal costs the same
+## `TUN-STUN-INVALID-STAGGER` — the indistinguishability is the rule, and
+## `StunVerdict` carries the argument for it.
+@rpc("authority", "call_remote", "reliable", Messages.Channel.EVENT)
+func s2c_stun_result(
+	stunner_slot: int, target_slot: int, _tick: int, valid: bool, lockout_ticks: int
+) -> void:
+	stun_resolved.emit(stunner_slot, target_slot, valid, lockout_ticks)
 
 
 ## `NET-S2C-PREY-WARNING`. SERVER SIDE, **to the prey alone**.

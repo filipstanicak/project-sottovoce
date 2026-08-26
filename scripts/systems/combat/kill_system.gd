@@ -36,6 +36,21 @@ signal contest_resolved(loser: int, victim: int)
 ## can read it; it holds no rule of its own.
 var contest := KillContest.new()
 
+## **`SYS-STUN`, OWNED AND TICKED HERE.** US-0061. TDD-01 §4's box 7 is a single
+## node reading *"Kill / Stun"* and `MatchDirector` permits one system per stage,
+## so the stun is a plain object this system sequences rather than a second
+## `GameSystem` — `SuspicionSystem`/`BlendSystem`'s shape, for the same reason.
+##
+## **THE ORDER IS THE RULE.** This system judges its presses first, so a hunter and
+## their prey pressing in the same tick resolve for the hunter: ADR-0013's
+## contested initiation, expressed as sequencing rather than as a comment.
+var stun := StunSystem.new()
+
+## `MatchContext`'s own, adopted in `setup()`. The stagger this system writes for
+## a contest loser and the exile `SYS-STUN` writes for a stunned hunter live in
+## one place, because both gate the same question: may this player initiate?
+var lockouts: CombatLockouts = null
+
 ## Rewinds performed since the match began. ADR-0010's compliance list allows two
 ## call sites in the whole project and this is one of them; the counter is what
 ## makes "how often" answerable rather than assumed.
@@ -61,9 +76,6 @@ var _requests: Array = []
 ## killer -> `[victim, contact_tick]` for a kill in flight.
 var _pending: Dictionary = {}
 
-## peer -> the tick they may initiate again. The contest loser's stagger.
-var _locked_until: Dictionary = {}
-
 
 func stage() -> StringName:
 	return &"combat"
@@ -71,6 +83,8 @@ func stage() -> StringName:
 
 func setup(ctx: MatchContext) -> void:
 	_ctx = ctx
+	lockouts = ctx.lockouts
+	stun.setup(ctx)
 
 
 ## Connected to `MatchDirector.input_applied` in `server_root`, the same signal
@@ -86,6 +100,13 @@ func report_input(peer: int, command: InputCommand, _dt: float) -> void:
 	_requests.append([peer, command.received_ordinal])
 
 
+## The stun's doorway, forwarded rather than wired separately in `server_root`.
+## One `input_applied` connection for the whole combat stage keeps the two systems
+## reading the same command in the same order.
+func report_stun_input(peer: int, command: InputCommand, _dt: float) -> void:
+	stun.report_input(peer, command)
+
+
 ## **THERE IS NO `report_interrupt`, AND THE ABSENCE IS THE RULE.** ADR-0013: a
 ## committed kill completes, so `SYS-STUN` has nothing to call. The method existed
 ## for one PR, was tested with no caller, and is deleted rather than left as a
@@ -96,7 +117,9 @@ func report_input(peer: int, command: InputCommand, _dt: float) -> void:
 ## animation at the contact frame, which a **third party's** kill (FATAL) breaks.
 func forget(peer: int) -> void:
 	_held.erase(peer)
-	_locked_until.erase(peer)
+	stun.forget(peer)
+	if lockouts != null:
+		lockouts.forget(peer)
 	if _pending.has(peer):
 		contest.release(int((_pending[peer] as Array)[0]))
 		_pending.erase(peer)
@@ -109,9 +132,13 @@ func forget(peer: int) -> void:
 ## **CONTACT FRAMES FIRST, THEN NEW PRESSES.** A victim who dies this tick must
 ## not be claimable by somebody else's press in the same tick, and resolving the
 ## presses first would let exactly that through for one tick.
+## **AND THE STUN RESOLVES AFTER BOTH**, which is where ADR-0013's contested
+## initiation is decided: a hunter who pressed kill this tick is already in
+## `KillAnim` by the time their prey's press is judged, and `SYS-STUN` refuses it.
 func tick(ctx: MatchContext, _dt: float) -> void:
 	_resolve_contact_frames(ctx)
 	_resolve_requests(ctx)
+	stun.tick(ctx)
 	_publish_readiness(ctx)
 
 
@@ -127,10 +154,12 @@ func _publish_readiness(ctx: MatchContext) -> void:
 
 func teardown() -> void:
 	contest.clear()
+	stun.teardown()
+	if lockouts != null:
+		lockouts.clear()
 	_held.clear()
 	_requests.clear()
 	_pending.clear()
-	_locked_until.clear()
 
 
 ## Would a press right now land? For the snapshot's `kill_ready` bit, which is
@@ -147,6 +176,8 @@ func ready_for(peer: int, ctx: MatchContext) -> bool:
 		return false
 	var target: PawnContext = ctx.pawn_contexts.get(contract)
 	if target == null or _is_dead(target):
+		return false
+	if lockouts != null and lockouts.is_exiled(peer, contract, ctx.tick):
 		return false
 	var t := Tuning.combat
 	return (
@@ -199,6 +230,12 @@ func _verdict_for(ctx: MatchContext, peer: int) -> Array:
 	if here != Vector3.INF and ctx.cinderfall.contains_at(here, at_tick):
 		return [KillVerdict.V.IN_CINDERFALL, ContractCycle.NOBODY]
 	var contract := int(ctx.announced_contracts.get(peer, ContractCycle.NOBODY))
+	# **THE EXILE IS CHECKED BEFORE THE GEOMETRY AND AFTER THE REWIND**, so a
+	# locked-out hunter is refused for the reason that is true rather than for
+	# being out of range by a centimetre. `TUN-STUN-LOCKOUT` is what makes a stun
+	# counterplay instead of a four-second delay (GDD-03 §10.2).
+	if lockouts != null and lockouts.is_exiled(peer, contract, ctx.tick):
+		return [KillVerdict.V.LOCKED_OUT, contract]
 	return KillRules.resolve(world, peer, contract, _living_others(ctx, peer), Tuning.combat)
 
 
@@ -240,12 +277,16 @@ func _living_others(ctx: MatchContext, peer: int) -> PackedInt32Array:
 ## — the press was never going to be heard, and charging for it would let a
 ## stagger compound itself.
 func _is_busy(ctx: MatchContext, peer: int) -> bool:
-	if _pending.has(peer) or ctx.tick < int(_locked_until.get(peer, -1)):
+	if _pending.has(peer):
+		return true
+	if lockouts != null and lockouts.is_staggered(peer, ctx.tick):
 		return true
 	var pawn: PawnContext = ctx.pawn_contexts.get(peer)
 	if pawn == null:
 		return true
 	if pawn.state_id == PawnStateId.KILL_ANIM or pawn.state_id == PawnStateId.STUNNED:
+		return true
+	if pawn.state_id == PawnStateId.STUN_ANIM:
 		return true
 	return _is_dead(pawn)
 
@@ -264,7 +305,8 @@ func _reject(ctx: MatchContext, peer: int, verdict: KillVerdict.V, target: int) 
 ## The contest loser. **No points, no lockout, and no suspicion** — losing a race
 ## should cost tempo and nothing else (`TUN-KILL-CONTEST-STAGGER`).
 func _stagger(ctx: MatchContext, peer: int, victim: int) -> void:
-	_locked_until[peer] = ctx.tick + maxi(Tuning.ticks(&"TUN-KILL-CONTEST-STAGGER"), 1)
+	if lockouts != null:
+		lockouts.stagger(peer, ctx.tick + maxi(Tuning.ticks(&"TUN-KILL-CONTEST-STAGGER"), 1))
 	contest_resolved.emit(peer, victim)
 
 

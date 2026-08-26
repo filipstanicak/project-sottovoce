@@ -244,7 +244,11 @@ the owner's.
 | `scripts/core/combat/rewound_world.gd` | The world as it was | **Built**, US-0035; **moved into Core** by US-0060 |
 | `scripts/systems/combat/kill_system.gd` | The sequencing and the consequences | **Built**, US-0060 |
 | `scripts/pawn/states/dead_state.gd` | The victim's state, with no exit until `SYS-SPAWN` | **Built**, US-0060 |
-| `scripts/systems/combat/stun_system.gd` | §4 | US-0061 |
+| `scripts/systems/combat/stun_system.gd` | §4's sequencing and consequences. **Not a `GameSystem`** — §4.1 | **Built**, US-0061 |
+| `scripts/core/combat/stun_verdict.gd` | Why a press did or did not land, and which refusals cost | **Built**, US-0061 |
+| `scripts/core/combat/stun_rules.gd` | Target selection, range, cone, against a `RewoundWorld` | **Built**, US-0061 |
+| `scripts/core/combat/combat_lockouts.gd` | The per-player stagger and the per-pair exile | **Built**, US-0061 |
+| `scripts/pawn/states/stun_anim_state.gd` | The stunner's 0.7 s commitment — **interruptible, unlike `KillAnim`** | **Built**, US-0061 |
 
 ---
 
@@ -272,6 +276,52 @@ before it is punished by scoring.
 On an invalid stun — a non-pursuer — the target is **not affected at all**: 0 points,
 `TUN-STUN-INVALID-STAGGER` 2.0 s (longer than the 0.7 s a valid stun costs, so flailing is
 strictly worse than doing nothing), and `TUN-STUN-INVALID-SUSPICION` +20.
+
+### 4.1 What US-0061 built, and the five places the sketch needed a decision
+
+**THE SKETCH ABOVE IS SUPERSEDED IN FOUR OF ITS SIX LINES**, and the differences are all the
+same kind: it reads state through paths that either do not exist or are the wrong authority.
+
+| The sketch | As built | Why |
+|---|---|---|
+| `ctx.suspicion.tier_of(target)` | `PawnContext.tier`, compared against a tier **derived from `TUN-STUN-MIN-TIER`** | There is no `ctx.suspicion`; the pawn owns the value (TDD-07 §2). Deriving the floor rather than writing `!= ANONYMOUS` is what keeps the gate honest if the tunable ever moves |
+| `ctx.cycle.contract_of(target) != stunner` | a reverse lookup on `ctx.announced_contracts` | **The graph is the wrong authority.** During `TUN-CONTRACT-REASSIGN-DELAY` a killer has been told nothing, so nobody may stun them for a hunt they have not been asked to start |
+| a literal `7.5` rewind radius | `StunRules.reach(t)` | Derived, so retuning the range moves the radius with it. Unlike a kill, no cinder cloud gates a stun, so there is no cloud to gather |
+| `rewound.distance(...) > stun_range` | `StunRules.in_reach`, which adds `TUN-KILL-VALIDATION-GRACE` | The grace absorbs quantisation and sub-tick timing and is **shared with the kill on purpose** — a second tunable for the same physical error is one that gets retuned alone, and the day it drifted the range advantage would quietly narrow |
+
+**`SYS-STUN` IS NOT A `GameSystem`, AND §7's INTERFACE IS AMENDED TO SAY SO.** `MatchDirector`
+permits one system per stage and TDD-01 §4's box 7 is a single node reading *"Kill / Stun"*, so
+this is a plain object `KillSystem` owns and ticks — `SuspicionSystem`/`BlendSystem`'s shape
+(TDD-07 §3.1.1). A new `stun` stage was considered and rejected for the same reason the blend
+stage was: it would amend a normative diagram six documents reference, to express an ordering
+that diagram already expresses.
+
+**THE KILL RESOLVES FIRST WITHIN A TICK, AND THAT IS WHERE ADR-0013 IS DECIDED.**
+`KillSystem.tick` judges its own presses and *then* calls the stun, so a hunter and their prey
+who press in the **same tick** resolve for the hunter. A stun aimed at a pursuer already in
+`KillAnim` returns `TARGET_COMMITTED` and **costs the prey nothing** — the press was correct and
+merely late, and charging for correct play at the last instant is the shape of weakening stun
+that never-do #13 forbids. It is an explicit verdict rather than a failed transition, because
+`KillAnimState` would decline the state change silently while the exile still armed.
+
+**EVERY REFUSAL COSTS THE SAME AND LOOKS THE SAME, WHICH IS A RULE RATHER THAN A SIMPLIFICATION.**
+`NET-S2C-STUN-RESULT` carries `valid:bool` and a target slot of **zero on every rejection**. A
+refusal that reported its reason would turn the stun button into a free identity probe: press it
+at a stranger and read whether the answer means *not your pursuer* or *your pursuer, being
+careful*. `StunVerdict.PENALISED` therefore includes `TOO_CALM` and `NO_TARGET` as well as
+`WRONG_TARGET` — §10.3's stated case is a non-pursuer, but its stated *reason* is that mashing
+must never be optimal, and a press at empty air would otherwise be free.
+
+**AND THE `stun_ready` HINT NEEDED THE TIER GATE TOO, WHICH IS AN ANONYMITY LEAK RATHER THAN A
+COSMETIC BUG.** The first version gated the hint on relationship, range and cone alone — so it
+would have lit up for an **Anonymous** pursuer standing in a crowd, saying *that one is hunting
+you* for free, with no lock and no warning. Found by a test, not by review.
+
+**THE TWO LOCKOUTS LIVE ON `MatchContext` IN ONE CLASS.** A stagger is per player and blocks
+every initiation; an exile is per **(hunter, target)** pair and blocks one kill. `SYS-STUN`
+writes both and `SYS-KILL` reads both, so `CombatLockouts` is adopted by reference rather than
+mirrored — `announced_contracts`' lesson. `KillSystem._locked_until` moved into it, which is why
+the contest stagger and the flail stagger are now the same mechanism.
 
 ---
 
@@ -407,9 +457,19 @@ class_name KillSystem extends GameSystem
 func try_initiate(ctx: MatchContext, killer: int) -> int      ## KillResult
 func resolve_contest(ctx: MatchContext, victim: int) -> int   ## winning peer
 
-class_name StunSystem extends GameSystem
-func try_stun(ctx: MatchContext, stunner: int) -> int
-func lockout_remaining_ticks(hunter: int, target: int) -> int
+## AMENDED US-0061. **NOT a GameSystem** — see §4.1: one system per stage, and
+## TDD-01 §4's box 7 is "Kill / Stun". `KillSystem.stun` is the instance.
+class_name StunSystem extends RefCounted
+func report_input(peer: int, command: InputCommand) -> void   ## edge-detected here
+func tick(ctx: MatchContext) -> void                          ## called BY KillSystem.tick
+func ready_for(peer: int, ctx: MatchContext) -> bool           ## the stun_ready bit
+static func lockout_ticks(has_second_wind: bool) -> int
+
+## The exile and the stagger, on MatchContext and read by BOTH combat systems.
+class_name CombatLockouts extends RefCounted
+func remaining(hunter: int, target: int, now: int) -> int      ## TDD-10 §7's lockout_remaining
+func is_exiled(hunter: int, target: int, now: int) -> bool
+func is_staggered(peer: int, now: int) -> bool
 ```
 
 ---
@@ -422,7 +482,8 @@ func lockout_remaining_ticks(hunter: int, target: int) -> int
 | `scripts/core/contract/contract_cycle.gd` | Core, pure — the cycle and its invariant |
 | `scripts/systems/score_system.gd` | `SYS-SCORE` |
 | `scripts/systems/kill_system.gd` | `SYS-KILL` |
-| `scripts/systems/stun_system.gd` | `SYS-STUN` |
+| `scripts/systems/combat/stun_system.gd` | `SYS-STUN` — **path corrected US-0061**, it is under `combat/` |
+| `scripts/core/combat/stun_verdict.gd` · `stun_rules.gd` · `combat_lockouts.gd` | Core, pure — the verdicts, the geometry and the two timers |
 | `scripts/systems/contract_system.gd` | `SYS-CONTRACT` |
 | `scripts/systems/match_system.gd` | `SYS-MATCH` |
 | `scripts/systems/spawn_system.gd` | `SYS-SPAWN` |
@@ -446,9 +507,12 @@ func lockout_remaining_ticks(hunter: int, target: int) -> int
 | `test_kill_facing_cone.gd` | The victim's facing is irrelevant; killing a target facing away succeeds |
 | `test_kill_contest.gd` | Earlier server tick wins; loser staggers with no points and no lockout |
 | `test_kill_blocked_by_cinderfall.gd` | Including the caster's own cloud |
-| `test_stun_range_exceeds_kill.gd` | Invariant §17.6 |
-| `test_stun_tier_gate.gd` | An Anonymous pursuer is unstunnable at any range |
-| `test_stun_invalid.gd` | 0 points, 2.0 s stagger, +20 suspicion, target unaffected |
+| `test_stun_range_exceeds_kill.gd` | **Not the two tunables** — `TuningInvariants` already compares those, and would pass over a `StunRules` reading the wrong field. It sweeps the two *rules* in centimetres and asserts no killable distance is outside stun reach. **Built**, US-0061, and it found that the band a player experiences is 2.85–3.35 m rather than §10.1's 2.5–3.0 once the shared grace is added — same width, and only because the grace *is* shared |
+| ~~`test_stun_tier_gate.gd`~~ | An Anonymous pursuer is unstunnable at any range | **Written as `test_stun_system.gd`**, swept over five ranges: one sample cannot tell a tier gate from a range gate that is tighter than the sample |
+| `test_stun_invalid.gd` | 0 points, stagger, +20 suspicion, target unaffected — **and that a careful pursuer and a stranger are indistinguishable**, which is the assertion that stops the stun button being an identity probe. **Built**, US-0061 |
+| `test_combat_lockouts.gd` | The exile binds one pair and no other hunt; both timers extend rather than shorten; a departing peer leaves nothing behind **in either direction**. **Built**, US-0061 |
+| `test_secondwind_freeze_unchanged.gd` | `PASV-SECONDWIND` shortens the exile to exactly §10.4's 8 s floor and cannot reach the freeze. **Built**, US-0061 |
+| `test_stun_reads_one_yaw.gd` | The pursuer's facing is irrelevant — **source-scanned**, because a behavioural test passes a rule that reads the yaw and happens to ignore it. **Built**, US-0061 |
 | `test_contract_cycle_fuzz.gd` | Invariant I holds across 10 000 randomised event sequences: kills, respawns, joins, disconnects, batched |
 | `test_contract_never_self.gd` | No relaxation path ever drops the self-assignment filter |
 | `test_contract_repair_same_tick.gd` | No player is contractless at any tick boundary |

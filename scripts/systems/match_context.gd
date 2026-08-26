@@ -82,6 +82,13 @@ var impulses := SuspicionImpulses.new()
 ## `announced_contracts` was moved here to avoid.
 var cinderfall := CinderfallVolumes.new()
 
+## **THE COMBAT TIMERS BOTH COMBAT SYSTEMS TOUCH.** US-0061. `SYS-STUN` writes the
+## exile and the flail stagger; `SYS-KILL` reads both — a locked-out hunter may
+## not re-initiate on the player who stunned them, and a staggered player may not
+## initiate at all. Two private dictionaries would drift the first time somebody
+## added a write to one, which is `announced_contracts`' lesson.
+var lockouts := CombatLockouts.new()
+
 ## `MapData` for the loaded map. Read-only to systems.
 var map: MapData = null
 

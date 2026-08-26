@@ -91,6 +91,11 @@ var blend_state: int = 0
 ## than no reticle.
 var kill_ready: bool = false
 
+## Would a stun press right now land? `SYS-STUN`'s, published once a tick, and it
+## rides the snapshot's own-gameplay flags byte beside `kill_ready`. The bit has
+## existed in `Snapshot` since US-0029 and had no writer until US-0061.
+var stun_ready: bool = false
+
 ## **`INPUT-BLEND` WAS PRESSED, AND NOBODY HAS SPENT IT YET.** A latch rather than
 ## a counter: `PawnInputBuffer` arms it on the press *edge* at 60 Hz and
 ## `SYS-BLEND` consumes it at 30, so it exists only to survive the step between
@@ -128,6 +133,7 @@ func reset_for_spawn(at: Vector3, facing: float) -> void:
 	active_sources = 0
 	blend_state = 0
 	kill_ready = false
+	stun_ready = false
 	blend_requested = false
 	traverse_buffer_ticks = 0
 	ability_buffer_ticks = 0

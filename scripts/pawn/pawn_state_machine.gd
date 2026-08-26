@@ -22,9 +22,9 @@ signal state_changed(from: StringName, to: StringName)
 ## by `step()` rather than crashing, because a half-registered machine during M1
 ## is a normal intermediate condition.
 ##
-## **`Dead` ARRIVED WITH `SYS-KILL` (US-0060).** What is left is `Respawning` and
-## `StunAnim` — `SYS-SPAWN` (US-0062) and `SYS-STUN` (US-0061). **`Dead` has no
-## exit until the first of those**, because the graph's only edge out of it is
+## **`Dead` ARRIVED WITH `SYS-KILL` (US-0060) AND `StunAnim` WITH `SYS-STUN`
+## (US-0061).** What is left is `Respawning` — `SYS-SPAWN`, US-0062. **`Dead` has
+## no exit until it exists**, because the graph's only edge out is
 ## `Dead -> Respawning`: a player killed today stays dead for the rest of the
 ## match, which is stated in `DeadState` rather than papered over with a timer.
 const REGISTERED: Array[GDScript] = [
@@ -38,6 +38,7 @@ const REGISTERED: Array[GDScript] = [
 	preload("res://scripts/pawn/states/drop_state.gd"),
 	preload("res://scripts/pawn/states/blended_state.gd"),
 	preload("res://scripts/pawn/states/kill_anim_state.gd"),
+	preload("res://scripts/pawn/states/stun_anim_state.gd"),
 	preload("res://scripts/pawn/states/stunned_state.gd"),
 	preload("res://scripts/pawn/states/dead_state.gd"),
 ]

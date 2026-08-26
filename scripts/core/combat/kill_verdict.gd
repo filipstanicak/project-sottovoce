@@ -32,6 +32,14 @@ enum V {
 	## initiate. **Costs nothing**: a press that the game was never going to hear
 	## must not be charged for.
 	BUSY,
+	## **`TUN-STUN-LOCKOUT`.** This killer stunned by this victim inside the last
+	## 12 s, and is exiled from them specifically — they may still hunt anybody
+	## else the cycle hands them. Added US-0061.
+	##
+	## **Costs nothing**, like `BUSY`: the exile is already the punishment, and
+	## charging suspicion on top would let a stunned hunter be pushed further
+	## Exposed by pressing a button that does nothing.
+	LOCKED_OUT,
 }
 
 ## The rejections that cost `TUN-SUSPICION-GAIN-FAILED-KILL` and play the whiff —
