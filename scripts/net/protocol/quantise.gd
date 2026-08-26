@@ -39,6 +39,18 @@ const HEIGHT_STEP := 0.05
 ## The tallest thing the height byte can carry. 255 × 5 cm.
 const HEIGHT_MAX := 12.75
 
+## Metres per step of the Compass distance bucket. NETWORK_PROTOCOL §4:
+## **"0.5 m buckets to 60 m — never an exact distance"**.
+##
+## **A WIRE QUANTISATION, NOT A GAMEPLAY CONSTANT**, which is why it sits here
+## with the centimetre and the degree rather than in `data/tuning/`. It is the
+## same kind of statement as `TUN-NET-QUANT-POS`: how finely the format carries a
+## number. What the *design* tunes is `TUN-COMPASS-RANGE-MAX` and the pulse curve
+## the client computes from this bucket — and 0.5 m is finer than
+## `CompassMath.period_for()` can express as a felt difference at any distance the
+## Compass reaches.
+const BUCKET_STEP := 0.5
+
 ## Degrees per step of the yaw byte. 360 / 256, and the reason yaw is a byte at
 ## all: at 60 m a 1.4° error moves a silhouette by 1.5 m, which sounds like a lot
 ## until you remember the silhouette is a clone you are trying to identify by its
@@ -88,6 +100,23 @@ static func height_to_u8(metres: float) -> int:
 
 static func u8_to_height(byte: int) -> float:
 	return float(clampi(byte, 0, 255)) * HEIGHT_STEP
+
+
+## Metres -> the Compass distance bucket.
+##
+## **CLAMPED TO 254, LEAVING 255 FOR "NO CONTRACT".** At `BUCKET_STEP` 0.5 m that
+## is 127 m of range against a `TUN-COMPASS-RANGE-MAX` of 60, so the ceiling is
+## never reached by a real reading on this map — and a hunter beyond the range gets
+## the slowest pulse rather than a value that decodes as *nobody*.
+static func distance_to_bucket(metres: float) -> int:
+	return clampi(int(round(metres / BUCKET_STEP)), 0, 254)
+
+
+## The bucket back to metres — **the midpoint of nothing, deliberately**. It is
+## the bucket's own value, so a client cannot recover a precision the server
+## refused to send. GDD-03 §8.5: the hunter is told *nearer*, never *how far*.
+static func bucket_to_distance(bucket: int) -> float:
+	return float(clampi(bucket, 0, 255)) * BUCKET_STEP
 
 
 ## Suspicion, 0..100, as a byte. Rounded rather than truncated — a tier boundary

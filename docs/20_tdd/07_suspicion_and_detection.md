@@ -476,6 +476,44 @@ no field to accidentally render.
    thresholds would be unlearnable; one makes the warning functionally an instruction: *turn
    around and stun*.
 
+### 4.4.1 The bearing and the pulse, as built (US-0057)
+
+`CompassMath` is pure Core; `SYS-DETECTION` makes **one reading per hunter** into
+`MatchContext.compass` at steps 9-10 of §1's pass, and `SnapshotBuilder` reads it five stages
+later. The Compass belongs to detection rather than to a stage of its own for the same reason the
+blend belongs to suspicion: it is about the observer's *contract*, which is the relationship the
+render state is already computed from, and a tick of lag would be a cone pointing at where the
+contract was.
+
+**THE CURVE REPRODUCES TUNABLES §4.2 TO 0.40 ms**, worst case across all twelve published rows,
+against US-0057's 1 ms criterion. `test_compass_curve.gd` asserts every row rather than the
+formula's shape - `pow(t, 2.2)` instead of `pow(t, 1/2.2)` is still monotone, still bounded by
+the same two tunables, and exactly backwards. Measured, the rate gradient is **58x steeper close
+in than far out** (0.4593 against 0.0079 Hz/m), which is the asymmetry §8.2 is written about.
+
+**THE BEARING IS WORLD, NOT CAMERA-RELATIVE, AND THAT IS NOT A DEVIATION FROM US-0057's THIRD
+CRITERION.** The *cone* is camera-relative; the client rotates the arc by its own yaw every
+rendered frame, because it knows that yaw exactly. A camera-relative bearing computed server-side
+would lag the mouse by the round trip on the one HUD element that must track the player's head.
+What the server owns is the **wobble**, which is gameplay: two players standing together must be
+lied to identically or they could compare notes and average the lie away.
+
+**THE DISTANCE IS A BUCKET BEFORE IT LEAVES THE SYSTEM.** `Quantise.BUCKET_STEP` 0.5 m, a *wire*
+quantisation declared in NETWORK_PROTOCOL §4 beside the centimetre and the degree rather than a
+`TUN-`: what the design tunes is `TUN-COMPASS-RANGE-MAX` and the curve the client computes from
+the bucket. Nothing downstream ever holds the exact metres, so the rule lives in the value rather
+than in whoever reads it next.
+
+**AND A MISSING READING MEANS "NO CONTRACT", NOT "DUE NORTH AT ZERO METRES".**
+`CompassBoard.NO_CONTRACT` is **255 rather than 0**, because bucket 0 is a real reading - it is
+what a hunter standing on top of their contract gets, and the one moment in a hunt where being
+wrong matters most. During `TUN-CONTRACT-REASSIGN-DELAY` a killer has no announced contract and
+therefore no Compass at all, which is what makes the breath a breath.
+
+**THE READING COSTS NO RAYCAST.** Line of sight gates the **lock** (§4.5), not the bearing: a
+Compass that stopped pointing whenever the contract stepped behind a stall would stop pointing
+for most of a hunt.
+
 ### 4.5 Compass lock progression
 
 ```gdscript
@@ -564,6 +602,8 @@ trap 14's shape, and the claim is worse than the absence because it stops anybod
 | `scripts/systems/detection/cinderfall_volumes.gd` | The only occluder that is not geometry | **Built**, US-0056 |
 | `scripts/core/detection/render_state.gd` | `RenderState` enum and the anonymity rule | **Built**, US-0055 |
 | `scripts/core/detection/render_matrix.gd` | Per-observer states for one tick | **Built**, US-0055 |
+| `scripts/core/compass/compass_math.gd` | The pulse curve and the wobbling cone (§8.2-8.3) | **Built**, US-0057 |
+| `scripts/core/compass/compass_board.gd` | One reading per hunter for one tick | **Built**, US-0057 |
 
 ---
 
@@ -600,6 +640,9 @@ trap 14's whole cost is that the claim stops anybody checking.
 | `test_warning_tier_gate.gd` | An Anonymous pursuer at 2 m fires no warning; a Noticed pursuer at 14 m does | US-0059 |
 | `test_warning_payload_empty.gd` | `NET-S2C-PREY-WARNING` has exactly one field | US-0059. The **signal**'s arity is already guarded by `test/arch/test_prey_warning_signal_arity.gd` |
 | `test_warning_thresholds_match.gd` | `TUN-COMPASS-WARN-MIN-TIER == TUN-STUN-MIN-TIER` (invariant §17.8) | US-0059 |
+| `test_compass_curve.gd` | Every row of TUNABLES §4.2 within 1 ms - measured worst case 0.40 ms | **Built**, US-0057 |
+| `test_compass_cone.gd` | The wobble is deterministic, bounded by its amplitude, and out of step between contracts | **Built**, US-0057 |
+| `test_compass_readings.gd` | One reading per hunter with an *announced* contract, bucketed, no raycast | **Built**, US-0057 |
 | `test_lock_through_crowd.gd` | A lock cannot complete through a walking group's incidental gaps | US-0058 |
 | `test_lock_decay_faster.gd` | A broken lock drains 1.4× faster than it filled | US-0058 |
 | `test_portrait_permanent.gd` | Portrait stays revealed after the 1.5 s reveal ends, and resets on reassignment | US-0058 |

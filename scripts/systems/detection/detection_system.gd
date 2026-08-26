@@ -13,6 +13,13 @@
 ## lock and `SCORE-FOCUS`, which are later stories; `has_los()` is here and ready
 ## for them, and the early-out ladder is what keeps them from being thirty.
 ##
+## **IT ALSO HOLDS THE SERVER HALF OF `SYS-COMPASS`.** TDD-07 §1's diagram makes
+## the bearing and the lock steps 9 and 10 of *this* pass, and TDD-07's own header
+## says so — the Compass is about the observer's contract, which is the same
+## relationship the render state is computed from, read one tick later would be a
+## cone pointing at where the contract was. `CompassMath` is pure and Core; what
+## happens here is one reading per hunter into `ctx.compass`.
+##
 ## **THE ONLY LINE-OF-SIGHT QUERY IN THE PROJECT.** `test_los_single_query.gd`
 ## refuses a second one anywhere under `scripts/systems/` or `scripts/net/`, so
 ## `SCORE-FOCUS`, the lock and Cinderfall occlusion cannot come to disagree about
@@ -64,7 +71,9 @@ func tick(ctx: MatchContext, _dt: float) -> void:
 	raycasts_last_tick = 0
 	pairs_considered = 0
 	ctx.render_states.clear()
+	ctx.compass.clear()
 	for observer: int in ctx.pawn_contexts.keys():
+		_read_the_compass(observer, ctx)
 		for subject: int in ctx.pawn_contexts.keys():
 			if observer == subject:
 				continue
@@ -84,6 +93,38 @@ func _resolve_pair(observer: int, subject: int, ctx: MatchContext) -> void:
 		return
 	pairs_considered += 1
 	ctx.render_states.set_state(observer, subject, RenderState.of(pawn.tier, hunts, hunted_by))
+
+
+## **ONE COMPASS READING, FOR THE CONTRACT THIS HUNTER HAS BEEN TOLD ABOUT.**
+## GDD-03 §8, US-0057.
+##
+## A hunter with no announced contract gets **no entry at all**, which the board
+## reports as `NO_CONTRACT` rather than as a bearing of zero — a Compass pointing
+## due +Z at nothing is worse than one that is plainly off, because a player would
+## follow it.
+##
+## **THE BEARING IS WORLD, NOT CAMERA-RELATIVE.** The client knows its own yaw
+## exactly and rotates the arc every rendered frame; a camera-relative bearing
+## computed here would lag the mouse by the round trip on the one HUD element that
+## has to track the player's head. What the server owns is the **wobble**, because
+## that is gameplay — two players standing together must be lied to identically or
+## they could average the lie away.
+##
+## **AND THE DISTANCE IS A BUCKET BEFORE IT LEAVES THIS FUNCTION**, so no caller
+## downstream ever holds the exact one. GDD-03 §8.5: the hunter is told *nearer*,
+## never *how far*.
+func _read_the_compass(hunter: int, ctx: MatchContext) -> void:
+	var contract := announced_contract_of(hunter, ctx)
+	if contract == ContractCycle.NOBODY:
+		return
+	var here := ctx.pawn_contexts.get(hunter) as PawnContext
+	var there := ctx.pawn_contexts.get(contract) as PawnContext
+	if here == null or there == null:
+		return
+	var t := Tuning.compass
+	var bearing := CompassMath.shown_bearing(here.position, there.position, contract, ctx.tick, t)
+	var metres := CompassMath.distance_to(here.position, there.position)
+	ctx.compass.set_reading(hunter, bearing, Quantise.distance_to_bucket(metres))
 
 
 ## Who `peer` has been **told** they are hunting.
@@ -161,3 +202,4 @@ func teardown() -> void:
 	cinderfall.clear()
 	if _ctx != null:
 		_ctx.render_states.clear()
+		_ctx.compass.clear()
