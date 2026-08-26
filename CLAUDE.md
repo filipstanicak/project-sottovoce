@@ -217,16 +217,16 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 
 ## Where the work is right now
 
-*Updated 2026-08-26 (US-0057). Keep this section current — it is the first thing a
+*Updated 2026-08-26 (US-0058). Keep this section current — it is the first thing a
 fresh session reads, and a stale one is worse than none.*
 
-## M4 IS EIGHT OF FIFTEEN, AND NOTHING IS PLAYABLE YET
+## M4 IS NINE OF FIFTEEN, AND NOTHING IS PLAYABLE YET
 
 **Built:** `SYS-CONTRACT` (US-0049, US-0050), `SYS-SUSPICION` (US-0051, US-0052),
 `SYS-BLEND`'s two crowd blends (US-0053), `SYS-DETECTION` (US-0055, US-0056),
-the Compass bearing and pulse (US-0057).
+the whole of `SYS-COMPASS`'s server half (US-0057, US-0058).
 
-**Not started:** the Compass **lock** (US-0058), the prey warning (US-0059),
+**Not started:** the prey warning (US-0059),
 `SYS-KILL` (US-0060), `SYS-STUN` (US-0061), `SYS-SPAWN` (US-0062), the gate
 (US-0063). `SYS-BLEND`'s two prop blends are US-0054.
 
@@ -242,6 +242,61 @@ US-0084, in M5. The first thing a player could *feel* is still a HUD.
 
 **AND FOUR SYSTEMS NOW TICK THAT DID NOT AT THE M3 GATE**, so US-0048's server-tick
 figure is superseded — see the re-measurement under US-0055 below.
+
+---
+
+**US-0058 IS DONE, SEVEN OF SEVEN: THE LOCK, THE REVEAL AND THE PORTRAIT.**
+Stand still, keep your contract inside a 25° cone within 20 m with a clear line
+for 1.6 s, and the arc completes: a 1.5 s silhouette, a 4 s cooldown before
+another, and **ASM-0030's portrait filled permanently for that contract**. This is
+`has_los()`'s first caller — one raycast for a hunter watching, **zero** for one
+facing away.
+
+**MY 50/50 PEEK TEST DID NOT PIN 1.4, AND FALSIFYING IT IS HOW THAT SURFACED.**
+Planting a decay rate of 1.0 left `test_peeking_never_completes...` **green**: at
+1.0 an alternating view nets exactly zero, which never reaches full either. That
+test proves `decay >= fill` and nothing more.
+
+**WHAT PINS THE NUMBER IS THE DUTY CYCLE.** At rate `r` the break-even is
+`r / (1 + r)` — **0.583 at 1.4 and 0.500 at 1.0** — so a hunter watching **55 % of
+the time** completes a lock under the weaker rule and never does under the tuned
+one. That assertion goes red against the planted rate; the drain-rate measurement
+beside it is the other half.
+
+**THE ARC HAD TO TRACK ITS OWN CONTRACT, SEPARATELY FROM THE PORTRAIT.** The first
+version inferred a reassignment from `portrait_for` alone, so a hunter who had
+half-filled an arc and never completed it **carried that half onto their next
+contract** — free progress toward identifying somebody they had stopped hunting.
+Read 0.52 against an expected 0.
+
+**AND `NOBODY` IS DELIBERATELY NOT A REASSIGNMENT.**
+`TUN-CONTRACT-REASSIGN-DELAY` points a killer at nobody for three seconds;
+clearing the portrait on that would make the breath itself destroy an
+identification earned before it.
+
+**THE CONE IS GATED ON THE HUNTER'S OWN YAW, NEVER THE COMPASS BEARING.** The
+bearing carries `TUN-COMPASS-CONE-WOBBLE`'s lie; gating the lock on it would mean
+a hunter aiming at the drifted cone fails to lock a contract standing exactly
+where they are pointing. The wobble is a *display* of imprecision, never a change
+to where anybody is.
+
+**A TEST THAT ASSERTED NOTHING WAS COUNTED RISKY RATHER THAN PASSING.**
+`test_completing_a_lock_fills_it` called a helper that returns on success and
+asserted nothing itself. GUT reports a zero-assertion test as risky — the unit
+suite's `pending` count went 7 to 8 with nothing red, which is the only signal
+there was.
+
+**AND THERE IS A PROTOCOL LEAK THAT WOULD DEFEAT ASM-0030 ENTIRELY, REPORTED
+RATHER THAN FIXED.** `NET-S2C-PLAYER-JOINED` is specified as
+`peer_id:u8, persona:u8` and `NET-S2C-CONTRACT-ASSIGNED` as `contract_peer:u8` —
+so **a client holding both can join them and read its contract's persona
+directly**, on the tick the contract is assigned, with no lock. That contradicts
+GDD-03 §8.5, NETWORK_PROTOCOL §5's own "not sent" table, and §9's checklist line
+*"No payload contains the contract's persona"*. **Neither message is implemented**
+— both are lobby work in M5/M6 — so nothing leaks today, and changing a merged
+`NET-` ID's payload is the owner's call. TDD-07 §4.5.2 carries two candidate
+fixes; the cheaper is that `PLAYER-JOINED` carries no persona at all, since a
+client learns appearance from the mesh it draws.
 
 ---
 
@@ -2872,7 +2927,7 @@ US-0024 measures it against clips that do not exist.
 | | |
 |---|---|
 | CI | 7 jobs. **Running again as of 2026-08-07 after a two-day outage** — run `31200490320`, all seven green. The seven commits merged during the outage were never through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | **45 arch + 118 unit + 32 integration scripts**, holding 174 + 1006 + 239 tests and 789 + 24 523 + 651 assertions — the assertion count tripled at US-0049, because `test_contract_cycle_fuzz.gd` checks the invariant after every one of 10 000 events. **Eight are `pending` by design** — **seven in the unit suite and one in the integration suite**, which reports that an NPC aimed into the void never gives up. The island `pending` beside it **turned green by itself** when the alley mouths were built, which is what a `pending` naming its own blocker is for. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **162-172 s** of the 180 s it is allowed, up from 87.7 s at M2 — **under 9 s of headroom left, and the next integration test has to justify itself hard against that**. `test_server_tick_budget.gd` cost 9.8 s of it and is a gate line; the one before it, the 2 s pass A/B, samples ninety ticks **twice** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **The six are**: `test_upstream_bandwidth.gd` reporting the 145 % upstream miss, `test_crowd_bandwidth.gd` the 112 % downstream projection, `test_crowd_wire_cost.gd` the 112 % it actually costs, **`test_spawn_points.gd` twice — GDD-05 §2.7 rule 6's nine unoccluded spawn pairs and rule 8's S3 4, S4 1, S5 6 of 8 seats** — and `test_clone_animation_parity.gd` the missing clip library. **Two entries this row carried are gone because their findings closed**: `test_circuit_separation.gd`'s 0.51 m circuits (re-authored, now 21.20 m) and `test_cull_radius_price.gd`'s flat curve, which asserts rather than pends. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
+| Tests | **45 arch + 121 unit + 32 integration scripts**, holding 174 + 1033 + 239 tests and 789 + 24 572 + 651 assertions — the assertion count tripled at US-0049, because `test_contract_cycle_fuzz.gd` checks the invariant after every one of 10 000 events. **Eight are `pending` by design** — **seven in the unit suite and one in the integration suite**, which reports that an NPC aimed into the void never gives up. The island `pending` beside it **turned green by itself** when the alley mouths were built, which is what a `pending` naming its own blocker is for. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **162-172 s** of the 180 s it is allowed, up from 87.7 s at M2 — **under 9 s of headroom left, and the next integration test has to justify itself hard against that**. `test_server_tick_budget.gd` cost 9.8 s of it and is a gate line; the one before it, the 2 s pass A/B, samples ninety ticks **twice** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **The six are**: `test_upstream_bandwidth.gd` reporting the 145 % upstream miss, `test_crowd_bandwidth.gd` the 112 % downstream projection, `test_crowd_wire_cost.gd` the 112 % it actually costs, **`test_spawn_points.gd` twice — GDD-05 §2.7 rule 6's nine unoccluded spawn pairs and rule 8's S3 4, S4 1, S5 6 of 8 seats** — and `test_clone_animation_parity.gd` the missing clip library. **Two entries this row carried are gone because their findings closed**: `test_circuit_separation.gd`'s 0.51 m circuits (re-authored, now 21.20 m) and `test_cull_radius_price.gd`'s flat curve, which asserts rather than pends. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
 | Tuning | 288 tunables across 14 resource classes; all 31 cross-field invariants assert — split across `TuningInvariants` and `TuningInvariantsTech` since the first file hit 400 lines, with one entry point still. **Eight IDs are deprecated** and recorded in TUNABLES §19 — never reused |
 | Autoloads | All eight. `Tuning` precomputes 89 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |
@@ -2882,6 +2937,7 @@ US-0024 measures it against clips that do not exist.
 | Traversal | **Complete.** Probes cast, all seven §7.2 cases resolve from real geometry, both forgiveness windows open, and vault, mantle, climb, drop and gap jump all perform. **Case 7 hops as of US-0093** — an impulse, not a state, scaled by the speed rung and adding nothing horizontal. **The action buffer arms on the PRESS, not the hold** — arming from the held bit spent a traverse every frame a finger stayed down |
 | Crowd | 90 bodies pre-allocated, 78 active, each with a brain and a `CrowdContext` allocated beside it. One `SpatialHash` on `MatchContext`, rebuilt at the **top** of the crowd stage so the brains and every downstream system read the same grid — 0.0561 ms, allocating nothing. `CrowdDirector` ticks them at the `crowd` stage and translates the five flags `NpcBrain.step()` deliberately does not read into `handle()` calls; `Steering` moves the bodies from the **avoidance callback**, on the physics frame, and knows nothing about states — it takes a point and a speed. Repath is FIFO and capped at three a tick. **Four processions of four walk the map's circuits** (US-0043), each with a fifth slot no NPC may take, at a pace throttled by its worst straggler. **Banded by distance** as of US-0045 — 20/45/70 m, strides 1/3/15, staggered by index — and `CrowdBands` also scales each agent's `path_max_distance` by its band's stride (US-0041's last line), which is the one path query `RepathQueue` does not stagger. **All five states are reachable** as of US-0044: a sprinting player startles the crowd once a second, a wave propagates one hop at 0.4, and a corpse gathers six onlookers who walk to it and disperse before it fades. Violence has an entry point and no caller until M4. **On the wire as of US-0030/US-0031**: `SnapshotBuilder._fill_crowd` sends each observer the NPCs within `TUN-NET-NPC-CULL-RADIUS`, positionally and never visually, at `TUN-NET-NPC-RATE-LOD-HZ` beyond `TUN-NET-NPC-RATE-LOD-RADIUS` and staggered by `(tick + index) % stride`, delta-encoded per NPC against the client's **ack**. **Drawn on a client** as of US-0045 by `NpcView`, which culls at the same radius one margin wider, treats absence as "no update" rather than "gone", and dresses nobody. **Departure is a value, not silence** — one out-of-range record — and `CrowdWire.is_farewell()` holds that rule for both `NpcView` and `SnapshotAssembler`, which must agree on it: when only the view knew it, the assembler carried one goodbye forward into every later snapshot and the view created and freed a body from it once per tick. **Clone-parity layer 4 hangs off the same 2 s pass as the formations** (US-0047): `CloneBalance` holds the clones already near a player and fetches one when a persona is short, always to a map anchor and never at the player. **The floor is decided on clones that have ARRIVED**: crediting one still walking satisfied the minimum in expectation while the player was short in fact for the eighteen seconds of the journey |
 | Blend | `SYS-BLEND` is a pure `RefCounted` the suspicion system owns and resolves at **step 1 of its pass** — not a stage, because `MatchDirector` permits one system per stage and both TDD-07 §1's diagram and TDD-01 §4.1's rationale already file blend-pocket validity under stage 4. **Pocket and group are built** (US-0053); static and concealment props are US-0054. A blend is a **condition re-validated every tick**, never a state you keep: `TUN-BLEND-POCKET-MIN-NPC` within `TUN-BLEND-POCKET-RADIUS` asked of this tick's `crowd_hash`, or a formation slot held within `TUN-BLEND-GROUP-SLOT-TOLERANCE`. Entry 0.35 s and exit 0.30 s are phases the server owns; the wire carries the **kind** only, `blend_state:u4`, five values with `NONE` at zero. **The crush runs in `HELD` alone** — entry is visibly transitioning and exit is standing up, and neither buys anonymity. A **break is not an exit**: it lands the tick the condition lapses, with no 0.30 s. `report_damage()` breaks rather than absorbs, and has no caller until `SYS-KILL`. **The slot walks and the player keeps up** — nothing here moves a pawn, because the server does not own a predicted position |
+| Compass lock | `CompassLock` is pure and holds the arc, the reveal window, the cooldown and the portrait; `SYS-DETECTION` supplies the yes-or-no its conditions come to. **`has_los()`'s first and only caller**, last in the early-out ladder — a hunter facing away spends zero raycasts, one watching spends one, against TDD-07 §4.3's budget of 2-6. The cone is gated on the hunter's **own yaw**, never the wobbled bearing. **The arc is not reset on completion**: a held view keeps a full arc and `TUN-COMPASS-REVEAL-COOLDOWN` is what stops chain-locking. **It resets on reassignment, tracked separately from the portrait** — inferring one from the other let a half-filled arc cross to the next contract. `NOBODY` is not a reassignment, or the breath would destroy an earned portrait. `PASV-COLDREAD` is an argument with no reader until a loadout exists |
 | Compass | **The server half lives in `SYS-DETECTION`**, at steps 9-10 of its pass, because the Compass is about the observer's *contract* — the same relationship the render state is computed from — and TDD-07 §1's diagram draws it there. `CompassMath` is pure Core: `period_for()` reproduces TUNABLES §4.2's twelve rows to **0.40 ms**, and the reciprocal exponent makes the rate **58x steeper close in than far out**. One reading per hunter into `ctx.compass`: a **world** bearing with `TUN-COMPASS-CONE-WOBBLE`'s drift already applied server-side, and a `Quantise.BUCKET_STEP` 0.5 m distance bucket, so nothing downstream holds the exact metres. The wobble is a sine of `(contract, tick)` — deterministic and learnable, never RNG — with its phase **mixed**, or adjacent peer ids would drift in step. **A missing reading is `NO_CONTRACT` 255, never bucket 0**, which is a real reading. `lock_fraction` and `portrait_revealed` are US-0058's and read zero; nothing draws any of it |
 | Detection | `SYS-DETECTION` ticks at the `detection` stage, **after `suspicion`**, because the render state is computed from *tier* and a tick of lag makes the silhouette disagree with the tier indicator. One pass over 30 ordered pairs, **costing zero raycasts**: GDD-03 §2.1's rule is `tier × relationship` and §2.3 draws the Exposed outline through geometry, so occlusion must not gate it. The early-out ladder drops ~70 % of pairs on the tier check alone. It reads the **announced** contract from `ctx.announced_contracts`, never the graph's, so a tint cannot arrive before the Compass does. `RenderMatrix` carries the answer to `SnapshotBuilder` four stages later and **absent means `PLAIN`**, which is the safe direction. **It also holds the only line-of-sight query in the project** — `WORLD`-masked, so NPCs and players cannot block it by construction; Cinderfall is a sphere tested against the segment; the rewound form is refused until `SYS-KILL`. Nothing calls `has_los()` yet |
 | Suspicion | `SYS-SUSPICION` ticks at the `suspicion` stage, **after `crowd`** — the boundary `SystemOrder` calls the most damaging silent failure in the game, since a stale crowd lets a player accrue *alone* suspicion inside a pocket that has re-formed. One pass over six pawns: the world is read from `ctx.crowd_hash` (never a physics query), impulses drain first and re-arm `TUN-SUSPICION-DECAY-DELAY`, then the integrator, then the tier with hysteresis. **The value lives on `PawnContext`, not in the system** — the builder reads it, so a copy here would be a second authority. `suspicion`, `tier` and `active_sources` go out in the own-gameplay block **to the owner alone**; there is no field anywhere in the format for another player's, which is the rule living in the wire rather than in a widget. `SuspicionSources.of()` is the only place the five conditions are applied and `gain_rate()` is their sum, so the HUD's source list cannot drift from the number it explains. **Nothing bumps, nothing blends and nothing witnesses**: `blend_state` is US-0053's, `has_stillness` needs a loadout, and the bump has no contact to report |
@@ -2915,6 +2971,7 @@ total=0; for f in docs/40_backlog/stories/*.md; do
 | US-0030 | `render_state` per observer | **the three culling criteria are DONE** — US-0030's cull landed once M3 gave it a crowd. `render_state` needs `SYS-DETECTION`, which is M4's |
 | US-0036 | "every netcode test runs at all four profiles" | true only of the harness's own agreement test; the rest are pure and have no wire to give a latency to |
 | US-0037 | match end below minimum players | `SYS-MATCH`'s, in M4. **The timeout criterion was ticked at the M2 gate** — a hard-killed client took the same `peer left` → `pawn freed` path across four real processes |
+| US-0056 | Focus tracking and kill validation as `has_los` consumers | **one of the three arrived**: the Compass lock calls it as of US-0058. Focus is US-0064 and kill validation is US-0060 |
 | US-0057 | the cone's half-width, camera-relative | **the server's half is done and the drawn half does not exist.** `TUN-COMPASS-CONE-HALFWIDTH` is asserted wider than the wobble, so the true bearing is always inside the arc — but nothing renders an arc, because `CompassVM` and the HUD are US-0084 in M5 |
 | US-0056 | `at_tick` rewind; the three named consumers | **all four blockers are other stories**: `RewoundWorld` is paired with the query by `SYS-KILL` (US-0060), and lock progression, Focus tracking and kill validation are US-0058, US-0064 and US-0060. The rewound form is **refused rather than faked**, because against static geometry a fake would answer correctly and be wrong about the players |
 | US-0053 | the persona-appropriate clone idle | **there are no animation clips in this project, on either rig** — M3's exit blocker. Separately, `PawnStateId.BLENDED` is still unreachable and the clip is not why: the pawn state machine is predicted, and a transition depending on how many NPCs are within 3.5 m is one the client cannot reproduce |

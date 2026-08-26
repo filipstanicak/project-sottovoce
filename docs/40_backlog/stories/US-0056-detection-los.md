@@ -40,7 +40,10 @@ occlusion can never disagree.
       alone would answer exactly as a current one and look correct while the players it is about
       sat at today's positions. `RewoundWorld` carries those; `SYS-KILL` (US-0060) pairs the two.
 - [ ] Called by lock progression, Focus tracking and kill validation.
-      **None of the three exist**: US-0058, US-0064 and US-0060.
+      **One of the three exists.** `SYS-COMPASS`'s lock calls it as of US-0058 —
+      `TUN-COMPASS-LOCK-REQUIRES-LOS` — and `test_lock_through_crowd.gd` measures the ladder:
+      zero raycasts for a hunter facing away, one for a hunter watching. Focus tracking is
+      US-0064 and kill validation is US-0060.
 
 ## Test notes
 
