@@ -52,6 +52,11 @@ func spawn(peer: int) -> bool:
 	_pawns[peer] = record
 	_ctx.pawns[peer] = pawn
 	_ctx.pawn_contexts[peer] = record["ctx"] as PawnContext
+	# The third of the parallel three, US-0060. `SYS-KILL` has to put a killer into
+	# `KillAnim` and a victim into `Dead`, and the graph that validates those edges
+	# lives on this node — reaching it with `get_node` from a system would be scene
+	# plumbing standing in for a dependency.
+	_ctx.pawn_machines[peer] = record["machine"] as PawnStateMachine
 	Log.info(
 		"pawn spawned for peer %d at %v" % [peer, (record["ctx"] as PawnContext).position], &"pawn"
 	)
@@ -93,6 +98,7 @@ func despawn(peer: int) -> void:
 	_pawns.erase(peer)
 	_ctx.pawns.erase(peer)
 	_ctx.pawn_contexts.erase(peer)
+	_ctx.pawn_machines.erase(peer)
 	Log.info("pawn freed for peer %d" % peer, &"pawn")
 	pawn_freed.emit(peer)
 

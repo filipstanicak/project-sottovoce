@@ -64,3 +64,20 @@ func apply_to(ctx: PawnContext) -> void:
 ## while the position agrees corrects itself on the next tick anyway.
 func error_against(other: PredictedState) -> float:
 	return position.distance_to(other.position)
+
+
+## **DO THE TWO AGREE ABOUT WHICH STATE THE PAWN IS IN?** A separate question
+## from `error_against`, and US-0060 is what made it load-bearing.
+##
+## Both peers run the same machine from the same commands, so in the ordinary case
+## they agree and this costs one comparison. What it catches is the case the
+## distance cannot see: the **server put the pawn somewhere the client had no way
+## to predict** — `KillAnim` on a validated kill, `Dead` at a contact frame,
+## `Stunned`, `Respawning`. All four happen to a pawn that may be standing
+## perfectly still, so the positional error is **0.000 m**, and a reconciler that
+## compared only distance would return early and never apply `own_state` at all.
+##
+## The symptom would have been "I pressed kill and my character kept walking",
+## with no error anywhere and every existing test green.
+func same_state_as(other: PredictedState) -> bool:
+	return state_id == other.state_id

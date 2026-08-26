@@ -1,4 +1,4 @@
-[gd_scene load_steps=13 format=3 uid="uid://bs0ttovserverroot"]
+[gd_scene load_steps=14 format=3 uid="uid://bs0ttovserverroot"]
 
 [ext_resource type="PackedScene" path="res://scenes/map/map_vetraio_collision.tscn" id="1_map"]
 [ext_resource type="Script" path="res://scripts/server/match_director.gd" id="2_director"]
@@ -12,6 +12,7 @@
 [ext_resource type="Script" path="res://scripts/systems/contract/contract_system.gd" id="10_contract"]
 [ext_resource type="Script" path="res://scripts/systems/suspicion/suspicion_system.gd" id="11_suspicion"]
 [ext_resource type="Script" path="res://scripts/systems/detection/detection_system.gd" id="12_detection"]
+[ext_resource type="Script" path="res://scripts/systems/combat/kill_system.gd" id="13_kill"]
 
 ; Server topology. NO PRESENTATION NODES — the release server export excludes
 ; scripts/presentation/, scripts/mirrors/ and scenes/ui/ entirely, so anything
@@ -52,6 +53,12 @@ script = ExtResource("11_suspicion")
 ; line-of-sight query in the project. US-0055, US-0056.
 [node name="DetectionSystem" type="Node" parent="Systems"]
 script = ExtResource("12_detection")
+
+; SYS-KILL. Validation against the lag-compensated world, the contest window and
+; the committed animation, at the `combat` stage — BEFORE `contract`, so the
+; cycle is repaired in the same tick a death resolves. US-0060.
+[node name="KillSystem" type="Node" parent="Systems"]
+script = ExtResource("13_kill")
 
 [node name="World" type="Node3D" parent="."]
 

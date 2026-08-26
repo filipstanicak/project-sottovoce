@@ -33,10 +33,14 @@ extends GameSystem
 ## half — the client's arrives through the snapshot, never through this.
 signal tier_changed(peer: int, tier: int, sources: int)
 
-## **THE INSTANT SOURCES.** Public so `SYS-COMBAT` and `SYS-ABILITY` can owe a
-## player points without knowing anything about integration. Nothing calls it yet
-## — see `report_npc_bump` for the one that is blocked and why.
-var impulses := SuspicionImpulses.new()
+## **THE INSTANT SOURCES.** `MatchContext`'s own queue, adopted by reference in
+## `setup()` so `SYS-COMBAT` and `SYS-ABILITY` can owe a player points without
+## knowing anything about integration — which is what `SYS-KILL` does as of
+## US-0060, for a failed kill and for a witnessed one.
+##
+## Public, and still the same object the context holds. A mirror would be two
+## queues, one of which quietly never drains.
+var impulses: SuspicionImpulses = null
 
 ## **`SYS-BLEND`, RESOLVED AT STEP 1 OF THIS PASS.** Public because `RpcRouter`
 ## has to hand it `INPUT-BLEND` and `SYS-KILL` will read its grace window.
@@ -57,7 +61,14 @@ func stage() -> StringName:
 
 
 ## One pass over the pawns. Six of them, at 30 Hz.
+## Dependencies arrive here rather than being looked up. The impulse queue is the
+## context's, adopted rather than mirrored.
+func setup(ctx: MatchContext) -> void:
+	impulses = ctx.impulses
+
+
 func tick(ctx: MatchContext, dt: float) -> void:
+	impulses = ctx.impulses
 	_release_departed(ctx)
 	# **STEP 1, BEFORE ANY GAIN IS SUMMED.** A blend re-validated after the
 	# integrator would crush a value the same tick's gain had already added to, and
@@ -103,6 +114,7 @@ func _is_in_the_world(pawn: PawnContext) -> bool:
 ## design law 3 forbids as firmly for a cost as for an ability. Making the crowd
 ## solid changes how movement feels through a dense pocket and is the owner's.
 func report_npc_bump(peer: int, ctx: MatchContext) -> bool:
+	impulses = ctx.impulses
 	return impulses.bump(peer, ctx.tick, Tuning.suspicion)
 
 
@@ -224,4 +236,5 @@ func _read_the_world(
 func teardown() -> void:
 	_states.clear()
 	_owners.clear()
-	impulses.clear()
+	if impulses != null:
+		impulses.clear()

@@ -23,6 +23,7 @@ var _fallen_reported: int = 0
 @onready var contracts: ContractSystem = $Systems/ContractSystem
 @onready var suspicion: SuspicionSystem = $Systems/SuspicionSystem
 @onready var detection: DetectionSystem = $Systems/DetectionSystem
+@onready var kills: KillSystem = $Systems/KillSystem
 
 
 func _ready() -> void:
@@ -40,13 +41,7 @@ func _ready() -> void:
 	director.ctx.phase = MatchPhase.Phase.ACTIVE
 	router.set_phase(MatchPhase.Phase.ACTIVE)
 
-	# **THE DOORWAY IS `Net` AND THE DECIDER IS THE ROUTER.** Godot addresses an
-	# RPC by node path and only the autoload shares one across peers, so the
-	# handlers live there and call `router.authorise()` first. US-0030.
-	Net.bind_router(router, director.ctx.slots)
-	router.input_received.connect(director.enqueue_input)
-	director.input_applied.connect(pawns.apply_input)
-
+	_wire_the_doorway()
 	_wire_end_of_tick()
 	director.tick_completed.connect(_log_starvation)
 
@@ -54,6 +49,19 @@ func _ready() -> void:
 	Net.peer_joined.connect(_on_peer_joined)
 	Net.peer_left.connect(_on_peer_left)
 	Log.info("server topology wired: net -> router -> director -> pawns -> snapshots", &"net")
+
+
+## **THE DOORWAY IS `Net` AND THE DECIDER IS THE ROUTER.** Godot addresses an RPC
+## by node path and only the autoload shares one across peers, so the handlers
+## live there and call `router.authorise()` first. US-0030.
+func _wire_the_doorway() -> void:
+	Net.bind_router(router, director.ctx.slots)
+	router.input_received.connect(director.enqueue_input)
+	director.input_applied.connect(pawns.apply_input)
+	# **THE SAME SIGNAL, AND `SYS-KILL` DOES ITS OWN EDGE DETECTION FROM IT.**
+	# `PawnContext.held_buttons` is rewritten inside `step()` at 60 Hz, so by the
+	# `combat` stage every press already reads as held.
+	director.input_applied.connect(kills.report_input)
 
 
 ## **THE SEED, FROM `--seed` OR THE CLOCK.** `LaunchConfig` has parsed `--seed`
@@ -150,6 +158,10 @@ func _start_the_crowd_system() -> void:
 	# document's order. The order here is only the reading order.
 	director.register(suspicion)
 	director.register(detection)
+	director.register(kills)
+	kills.setup(director.ctx)
+	kills.killed.connect(_on_killed)
+	kills.kill_rejected.connect(_on_kill_rejected)
 
 
 ## **WAIT FOR THE MAP, OR EVERY NPC LANDS AT THE ORIGIN.** A query before the
@@ -250,8 +262,64 @@ func _on_contract_issued(peer: int, contract: int, reason: int) -> void:
 ## so anything left behind is inherited by the next joiner: a stale sequence
 ## makes their input arrive in the past, a stale pawn flag authorises input for
 ## somebody else's pawn, and a stale pawn keeps simulating with nobody driving it.
+## **EVERY CONSEQUENCE OF A DEATH, IN THE TICK IT RESOLVES.** `SYS-KILL` decides
+## and announces; nothing about the crowd, the cycle or suspicion is decided in
+## it. The contract repair runs first because `SystemOrder` puts the `contract`
+## stage immediately after `combat`, and the invariant is that nobody is
+## contractless at a tick boundary.
+func _on_killed(killer: int, victim: int, at: Vector3) -> void:
+	contracts.report_death(victim, killer, director.ctx)
+	suspicion.blend.report_damage(victim, director.ctx)
+	crowd_director.register_corpse(at, director.ctx.tick, victim)
+	crowd_director.startle_at(at)
+	_charge_for_witnesses(killer, at)
+	var slots := director.ctx.slots
+	var tick := director.ctx.tick
+	for peer: int in [killer, victim]:
+		Net.events.send_kill(peer, slots.slot_of(killer), slots.slot_of(victim), tick, 0)
+
+
+## US-0052's last criterion: `TUN-SUSPICION-GAIN-WITNESSED-KILL` applies only if
+## another PLAYER had line of sight.
+##
+## **PRESENT-TENSE, NOT REWOUND.** A witness did not *act*, so there is nothing of
+## theirs to compensate for — what they see is the animation and the corpse, now —
+## and rewinding their position would charge the killer for somebody who has since
+## walked away. The victim is not a witness to their own death and the killer is
+## not a witness to their own act.
+func _charge_for_witnesses(killer: int, at: Vector3) -> void:
+	var body := DetectionSystem.sight_point(at)
+	for peer: int in director.ctx.pawn_contexts.keys():
+		if peer == killer:
+			continue
+		var pawn := director.ctx.pawn_contexts[peer] as PawnContext
+		if pawn.state_id == PawnStateId.DEAD:
+			continue
+		if not detection.has_los(DetectionSystem.sight_point(pawn.position), body):
+			continue
+		director.ctx.impulses.queue(killer, Tuning.suspicion.gain_witnessed_kill)
+		return
+
+
+## **A REJECTED KILL IS ANSWERED, BECAUSE SILENCE IS THE WORST ANSWER.** GDD-02 §9
+## failure mode 7: *players press kill in range, nothing happens, and they blame
+## the game — whatever the cause, the fix is feedback.*
+##
+## It rides `NET-S2C-KILL-RESULT` with a **victim slot of zero**, which US-0029
+## reserves to mean nobody. No new message and no new field: "your press did not
+## land" is exactly what a kill result naming no victim says, and a separate whiff
+## message would be a second way to say one thing.
+##
+## **THE ANIMATION DOES NOT EXIST.** There are no animation clips in this project
+## on either rig, so what arrives is the event and not yet the gesture.
+func _on_kill_rejected(killer: int, _verdict: int, _target: int) -> void:
+	var slots := director.ctx.slots
+	Net.events.send_kill(killer, slots.slot_of(killer), SlotTable.NO_SLOT, director.ctx.tick, 0)
+
+
 func _on_peer_left(peer: int) -> void:
 	contracts.report_disconnect(peer, director.ctx)
+	kills.forget(peer)
 	pawns.despawn(peer)
 	router.forget(peer)
 	director.forget(peer)

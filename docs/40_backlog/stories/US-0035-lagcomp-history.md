@@ -66,11 +66,16 @@ reasoned about twice and written into two comments, and was wrong in both.
       `TUN-NET-LAGCOMP-HISTORY` at the server tick rate, never written as `15` — a hardcoded
       length would let somebody widen the rewind ceiling and discover at M4 that the ring had
       quietly stopped reaching far enough.
-- [ ] **Records pawn and NPC transforms every tick.** Pawns yes, **NPCs no** — there is no crowd
-      until M3. §8.2 rewinds NPC positions because they determine LOS occlusion and blend
-      membership, and validating against a *current* crowd when the attacker acted against a past
-      one reintroduces the error lag compensation exists to remove. `LagCompRecorder._gather()` is
-      where they join. Left unticked rather than reworded.
+- [ ] **Records pawn and NPC transforms every tick.** Pawns yes, **NPCs no** — and as of
+      US-0060 the reason has changed from "there is no crowd yet" to **"nothing would read
+      them"**. §8.2 rewinds NPC positions "because they determine LOS occlusion and blend
+      membership", and both premises are false in the built game: `has_los` masks `WORLD`
+      only, so NPCs cannot occlude by construction (GDD-03 §9.2, US-0056), and a blended
+      player is killable normally (GDD-02 §3.2 rule 3). Kill validation performs no
+      line-of-sight query at all. Recording 78 NPC transforms a tick would take the ring from
+      **28.1 KB to about 130 KB** for no consumer. `LagCompRecorder._gather()` is still where
+      they would join. Left unticked rather than reworded, and the amendment is in ADR-0010
+      and TDD-04 §8.2.
 - [x] **`rewind(tick, around, radius)` returns a `RewoundWorld` for entities near a point only.**
       §8.3's optimisation: fewer than 10 entities per validation rather than 96, which is what
       decides whether lag compensation is affordable per kill.

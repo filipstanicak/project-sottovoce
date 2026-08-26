@@ -33,7 +33,13 @@ signal lock_completed(hunter: int, contract: int)
 
 ## Cinder clouds, which are the one thing that blocks sight and is not geometry.
 ## Nothing places one until `SYS-ABILITY`.
-var cinderfall := CinderfallVolumes.new()
+##
+## **`MatchContext`'s OWN LIST, ADOPTED BY REFERENCE IN `setup()`** — US-0060 gave
+## it a second reader in `SYS-KILL`, two stages later. Mirroring it would be the
+## defect `announced_contracts` was moved onto the context to avoid: two copies of
+## a volume list, one of which decides sight and the other of which decides
+## whether a kill may start.
+var cinderfall: CinderfallVolumes = null
 
 ## **THE LOCK ARC, THE REVEAL AND THE PORTRAIT.** US-0058. Pure and separable, so
 ## the progression can be exercised against any pattern of interruption without a
@@ -63,6 +69,7 @@ func stage() -> StringName:
 
 func setup(ctx: MatchContext) -> void:
 	_ctx = ctx
+	cinderfall = ctx.cinderfall
 	# **`WORLD` ONLY, AND THE MASK IS THE RULE RATHER THAN A FILTER.** NPCs, other
 	# players and corpses all sit on `PAWN`/`NPC`, so a mask of `WORLD` cannot see
 	# them however the query is written. GDD-03 §9.2: if NPCs occluded sight, a
@@ -76,6 +83,7 @@ func setup(ctx: MatchContext) -> void:
 
 ## One pass over the ordered pairs. Thirty at six players.
 func tick(ctx: MatchContext, _dt: float) -> void:
+	cinderfall = ctx.cinderfall
 	cinderfall.expire(ctx.tick)
 	raycasts_last_tick = 0
 	pairs_considered = 0
@@ -212,7 +220,7 @@ func has_los(from: Vector3, to: Vector3, at_tick: int = -1) -> bool:
 		return false
 	# **CHECKED BEFORE THE RAYCAST**, because it is arithmetic against a list that
 	# is almost always empty and the raycast is not.
-	if cinderfall.blocks(from, to):
+	if cinderfall != null and cinderfall.blocks(from, to, _now()):
 		return false
 	return _clear_of_geometry(from, to)
 
@@ -250,8 +258,15 @@ static func sight_point(at: Vector3) -> Vector3:
 	return at + Vector3(0.0, Tuning.movement.probe_height_chest, 0.0)
 
 
+## The tick the present-tense queries are asked about. Zero with no context,
+## which is what a unit test that never stood one up gets.
+func _now() -> int:
+	return 0 if _ctx == null else _ctx.tick
+
+
 func teardown() -> void:
-	cinderfall.clear()
+	if cinderfall != null:
+		cinderfall.clear()
 	lock.clear()
 	if _ctx != null:
 		_ctx.render_states.clear()
