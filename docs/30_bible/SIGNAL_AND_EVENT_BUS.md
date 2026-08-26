@@ -75,7 +75,7 @@ Both are **past tense**. The bus reports what *has happened*, never what *should
 | EVT- ID | Signal | Payload | Emitted when | Consumers |
 |---|---|---|---|---|
 | `EVT-SCORE-EVENT-APPENDED` | `score_event_appended(event: ScoreEvent)` | The immutable event | A `ScoreEvent` arrives | `ScoreFeedVM`, `ScoreMirror`, `Audio` |
-| `EVT-PREY-WARNING-TRIGGERED` | `prey_warning_triggered()` | **NONE** | Pursuer within 15 m **and** ≥ Noticed | `TierVM`, `Audio`, `CaptionOverlay` |
+| `EVT-PREY-WARNING-TRIGGERED` | `prey_warning_triggered(bearing: float, bucket: int)` | A **world** bearing in radians, wobble already applied, and a `Quantise.BUCKET_STEP` distance bucket. **Nothing that names anybody** | Pursuer within 15 m **and** ≥ Noticed | `CompassVM`, `Audio`, `CaptionOverlay` |
 | `EVT-ABILITY-STARTED` | `ability_started(peer: int, ability: StringName, origin: Vector3)` | | Any ability starts within tell radius | VFX, `Audio`, `CaptionOverlay` |
 | `EVT-ABILITY-DENIED` | `ability_denied(slot: int, reason: int)` | `DenyReason` | Own request refused | `AbilitySlotVM`, `Audio` |
 | `EVT-COMPASS-PULSED` | `compass_pulsed()` | — | Each pulse period elapses | `Audio` |
@@ -84,19 +84,32 @@ Both are **past tense**. The bus reports what *has happened*, never what *should
 | `EVT-CAPTION` | `caption(key: StringName, direction: Vector2)` | String key; zero vector = non-positional | Any audio event flagged `Cap` | `CaptionOverlay` |
 | `EVT-CONNECTION-CHANGED` | `connection_changed(state: int, reason: int)` | | Connect, disconnect, timeout | Menus |
 
-### 3.3 `EVT-PREY-WARNING-TRIGGERED` takes no parameters
+### 3.3 `EVT-PREY-WARNING-TRIGGERED` says where, and may never say who
 
-Deliberate, and the third of three layers enforcing the same rule:
+**AMENDED 2026-08-26 (ADR-0013, built US-0059).** This signal took **zero parameters** until
+then, as the middle of three layers enforcing directionlessness: the protocol carried only a
+tick, the signal had nothing to pass, and the widget's flash was non-directional. The reference
+marks a revealed pursuer with bearing and range, so `TUN-COMPASS-WARN-GIVES-DIRECTION` is `true`
+and two fields exist. The old argument — that the panicked scan of a crowd is the best moment in
+the game — is preserved in GDD-01 Law 5 rather than deleted, because the cost is real and was
+knowingly paid.
+
+**The three layers still stand; what they enforce has changed to the stronger rule:**
 
 | Layer | Enforcement |
 |---|---|
-| **Protocol** | `NET-S2C-PREY-WARNING` carries a tick and nothing else — there is no direction field to leak |
-| **Signal** | Zero parameters — there is nothing a widget *could* render |
-| **Widget** | The flash is non-directional and the sting is mono/centred |
+| **Protocol** | `NET-S2C-PREY-WARNING` carries `bearing:u8`, `bucket:u8` and **no field that names a player**. `test_warning_names_nobody.gd` checks the RPC signature, the field count and this document's sibling catalogue row |
+| **Signal** | Two parameters, neither identifying. `test_prey_warning_signal_arity.gd` refuses `persona`, `slot`, `peer`, `name`, `identity`, `colour` or `portrait` on this line |
+| **Widget** | The sting stays mono and centred with no 3D emitter — the reference's proximity cue is non-positional too, and the direction belongs to the marker |
 
-`TUN-COMPASS-WARN-GIVES-DIRECTION` is `false`, and the panicked scan of a crowd is the best
-moment in the game. A rule enforced at three layers survives refactoring; a rule enforced in one
-widget does not. `test_prey_warning_signal_arity.gd` asserts the arity.
+**The bearing is a WORLD angle.** A widget rotates it by the local yaw every rendered frame,
+which is the decision `SYS-COMPASS` made in US-0057 and for the same reason: a camera-relative
+angle computed server-side lags the mouse by the round trip, on a marker whose whole job is to
+point.
+
+**Nothing emits this signal yet.** `EventWire.prey_warned` carries the message on the client and
+`EventBus` is signals-only — no `var`, no `func`, `test_eventbus_is_stateless.gd` — so the
+bridge belongs to the first presentation node that wants it, which is US-0084's HUD.
 
 ---
 

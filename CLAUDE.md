@@ -225,15 +225,15 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 *Updated 2026-08-26 (ADR-0013, scoring re-price). Keep this section current — it is the first thing a
 fresh session reads, and a stale one is worse than none.*
 
-## M4 IS TEN OF FIFTEEN, AND NOTHING IS PLAYABLE YET
+## M4 IS ELEVEN OF FIFTEEN, AND NOTHING IS PLAYABLE YET
 
 **Built:** `SYS-CONTRACT` (US-0049, US-0050), `SYS-SUSPICION` (US-0051, US-0052),
 `SYS-BLEND`'s two crowd blends (US-0053), `SYS-DETECTION` (US-0055, US-0056),
 the whole of `SYS-COMPASS`'s server half (US-0057, US-0058), `SYS-KILL`
-(US-0060).
+(US-0060), the prey warning (US-0059).
 
-**Not started:** the prey warning (US-0059), `SYS-STUN` (US-0061), `SYS-SPAWN`
-(US-0062), the gate (US-0063). `SYS-BLEND`'s two prop blends are US-0054.
+**Not started:** `SYS-STUN` (US-0061), `SYS-SPAWN` (US-0062), the gate
+(US-0063). `SYS-BLEND`'s two prop blends are US-0054.
 
 **A PLAYER CAN NOW BE KILLED, AND STILL CANNOT PERCEIVE ANY OF IT.** The server
 validates a kill against the lag-compensated world, commits the killer for 1.4 s,
@@ -382,6 +382,65 @@ makes GDD-03 §7.4's validity proof work and is not for trading.
 stopped at ADR-0011 while ADR-0012, 0013 and 0014 existed as files and as §1 log
 lines. Trap 14's shape in a table rather than in a claim: the index a reader consults
 to find a decision did not list it.
+
+---
+
+**US-0059 IS DONE, SEVEN OF NINE: THE PREY WARNING EXISTS, AND IT IS
+DIRECTIONAL.** A pursuer inside `TUN-COMPASS-WARN-RADIUS` 15 m at Noticed or
+above puts a **world bearing and a 0.5 m distance bucket** on the prey's ring,
+re-triggering no faster than `TUN-COMPASS-WARN-COOLDOWN` 2.5 s.
+`NET-S2C-PREY-WARNING` is two fields where it was one, and it goes **to the prey
+alone**.
+
+**IT COSTS NOTHING, BECAUSE IT RIDES A PASS THAT WAS ALREADY LOOKING.**
+`_resolve_pair` already computes `hunted_by` for the render state, which is
+exactly the relationship the warning is about. A distance, a tier comparison and
+a cooldown lookup on pairs the early-out ladder has already admitted — no second
+pass, **no raycast**, `raycasts_last_tick` unmoved.
+
+**THE COOLDOWN RE-ARMS WHEN THE PURSUER CHANGES, AND NO CRITERION ASKED FOR IT.**
+`CompassLock`'s own US-0058 lesson in a second place: keyed on the prey alone, a
+repair handing them a new pursuer would leave the new one **silenced for up to
+2.5 s** — the prey's only warning, suppressed by a relationship that no longer
+exists. Bounded so alternating pursuers cannot produce a warning every tick.
+
+**THE BEARING IS WOBBLED, ON THE SAME RULE THE HUNTER'S OWN READING USES.** One
+ring, one rule — a prey whose warning arrow was exact while their hunting arrow
+drifted would learn that the instrument means two different things depending on
+which way it points. Keyed on the **pursuer**, so the lie told about one hunter
+is uncorrelated with the next. It conceals nobody: at 15 m the drift is about a
+metre of lateral error.
+
+**`Tuning.ticks()` TAKES THE `TUN-` ID, NOT THE SECONDS — TRAP 7, AND IT COST A
+WHOLE ARCH RUN.** The symptom was *"`DetectionSystem` has no ray query to
+inspect"* in a test that never mentions the Compass: the autoload's signature
+throws a **parse** error, so every dependent script fails to compile and the
+failure surfaces four files away. **Capturing the whole run to a file before
+grepping it is what named it** — the corpus carried that note from an
+unattributed integration failure and this is the first time it has paid.
+
+**AND ONE OF FOUR PLANTED DEFECTS CHANGED NOTHING, WHICH IS THE FINDING.**
+`within := true` reddened the range assertion, `_is_new_pursuer` returning false
+reddened two cooldown assertions, a `slot: int` on the RPC reddened two arch
+assertions — and **planting `>= ANONYMOUS` into the tier gate left every test
+green.** Invariant §17.8 pins `TUN-COMPASS-WARN-MIN-TIER` equal to
+`TUN-SUSPICION-TIER-NOTICED`, so no profile `Tuning.adopt()` accepts can separate
+the warn floor from `_resolve_pair`'s Anonymous early-out. The gate is **kept
+anyway**: the rung above it is an early-out *for cost*, and resting the warning's
+correctness on a performance optimisation means widening the ladder later would
+warn prey about Anonymous pursuers with nothing failing.
+
+**A THREE-PLAYER RING HAS NO STRANGERS, AND THIS TEST DID NOT KNOW THAT EITHER.**
+The first version placed a "nearby stranger" beside the prey and read one warning
+where it expected none — in a cycle of three, everybody is somebody's hunter and
+somebody's prey. Four players now, counted **per recipient** rather than in
+total. Same finding as `test_detection_system.gd`'s at US-0055, second instance.
+
+**THE TWO OPEN CRITERIA ARE BOTH SOMEBODY ELSE'S.** Client-side rotation of the
+world bearing needs `CompassVM` (US-0084, M5) — the same blocker as US-0057's
+seventh line — and the mono sting has **no call site at all**: `Audio.play()` is
+a stub until US-0075 and `EventBus` may hold no `func`, so a guard over it today
+would be vacuously green.
 
 ---
 
@@ -3158,7 +3217,7 @@ US-0024 measures it against clips that do not exist.
 | | |
 |---|---|
 | CI | 7 jobs. **Running again as of 2026-08-07 after a two-day outage** — run `31200490320`, all seven green. The seven commits merged during the outage were never through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | **46 arch + 129 unit + 32 integration scripts**, holding 180 + 1098 + 239 tests and 808 + 24 799 + 651 assertions — the assertion count tripled at US-0049, because `test_contract_cycle_fuzz.gd` checks the invariant after every one of 10 000 events. **Eight are `pending` by design** — **seven in the unit suite and one in the integration suite**, which reports that an NPC aimed into the void never gives up. The island `pending` beside it **turned green by itself** when the alley mouths were built, which is what a `pending` naming its own blocker is for. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **162-172 s** of the 180 s it is allowed, up from 87.7 s at M2 — **under 9 s of headroom left, and the next integration test has to justify itself hard against that**. `test_server_tick_budget.gd` cost 9.8 s of it and is a gate line; the one before it, the 2 s pass A/B, samples ninety ticks **twice** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **The six are**: `test_upstream_bandwidth.gd` reporting the 145 % upstream miss, `test_crowd_bandwidth.gd` the 112 % downstream projection, `test_crowd_wire_cost.gd` the 112 % it actually costs, **`test_spawn_points.gd` twice — GDD-05 §2.7 rule 6's nine unoccluded spawn pairs and rule 8's S3 4, S4 1, S5 6 of 8 seats** — and `test_clone_animation_parity.gd` the missing clip library. **Two entries this row carried are gone because their findings closed**: `test_circuit_separation.gd`'s 0.51 m circuits (re-authored, now 21.20 m) and `test_cull_radius_price.gd`'s flat curve, which asserts rather than pends. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
+| Tests | **47 arch + 131 unit + 32 integration scripts**, holding 186 + 1117 + 239 tests and 817 + 24 837 + 651 assertions — the assertion count tripled at US-0049, because `test_contract_cycle_fuzz.gd` checks the invariant after every one of 10 000 events. **Eight are `pending` by design** — **seven in the unit suite and one in the integration suite**, which reports that an NPC aimed into the void never gives up. The island `pending` beside it **turned green by itself** when the alley mouths were built, which is what a `pending` naming its own blocker is for. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **162-172 s** of the 180 s it is allowed, up from 87.7 s at M2 — **under 9 s of headroom left, and the next integration test has to justify itself hard against that**. `test_server_tick_budget.gd` cost 9.8 s of it and is a gate line; the one before it, the 2 s pass A/B, samples ninety ticks **twice** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **The six are**: `test_upstream_bandwidth.gd` reporting the 145 % upstream miss, `test_crowd_bandwidth.gd` the 112 % downstream projection, `test_crowd_wire_cost.gd` the 112 % it actually costs, **`test_spawn_points.gd` twice — GDD-05 §2.7 rule 6's nine unoccluded spawn pairs and rule 8's S3 4, S4 1, S5 6 of 8 seats** — and `test_clone_animation_parity.gd` the missing clip library. **Two entries this row carried are gone because their findings closed**: `test_circuit_separation.gd`'s 0.51 m circuits (re-authored, now 21.20 m) and `test_cull_radius_price.gd`'s flat curve, which asserts rather than pends. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
 | Tuning | 288 tunables across 14 resource classes; all 31 cross-field invariants assert. **Four scoring values were re-priced on 2026-08-26 (ADR-0013)** — `TUN-SCORE-SILENT` 100 → 200, `TUN-SCORE-PATIENT` 150 → 100, `TUN-SCORE-FOCUS` 100 → 150, `TUN-SCORE-RECKLESS` −50 → **0**, and invariant 18 rewritten from an ordering to a floor — split across `TuningInvariants` and `TuningInvariantsTech` since the first file hit 400 lines, with one entry point still. **Eight IDs are deprecated** and recorded in TUNABLES §19 — never reused |
 | Autoloads | All eight. `Tuning` precomputes 89 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |
@@ -3172,13 +3231,13 @@ US-0024 measures it against clips that do not exist.
 | Kill commits | **`KillAnimState.is_interruptible` returns false** (ADR-0013). A stun landing after the hunter has pressed kill saves nobody; the prey's counterplay is the approach, where a revealed hunter is stunnable from 3.0 m and cannot strike until 2.5. **FATAL still gets through** — a third party killing the killer — because `transition` compares priorities, which is the asymmetry `test_the_kill_commits.gd` asserts both halves of. `KillSystem.report_interrupt` is **deleted rather than left as a no-op**: a cancel entry point that silently does nothing is worse than none |
 | Compass lock | `CompassLock` is pure and holds the arc, the reveal window, the cooldown and the portrait; `SYS-DETECTION` supplies the yes-or-no its conditions come to. **`has_los()`'s first and only caller**, last in the early-out ladder — a hunter facing away spends zero raycasts, one watching spends one, against TDD-07 §4.3's budget of 2-6. The cone is gated on the hunter's **own yaw**, never the wobbled bearing. **The arc is not reset on completion**: a held view keeps a full arc and `TUN-COMPASS-REVEAL-COOLDOWN` is what stops chain-locking. **It resets on reassignment, tracked separately from the portrait** — inferring one from the other let a half-filled arc cross to the next contract. `NOBODY` is not a reassignment, or the breath would destroy an earned portrait. `PASV-COLDREAD` is an argument with no reader until a loadout exists |
 | Compass | **The server half lives in `SYS-DETECTION`**, at steps 9-10 of its pass, because the Compass is about the observer's *contract* — the same relationship the render state is computed from — and TDD-07 §1's diagram draws it there. `CompassMath` is pure Core: `period_for()` reproduces TUNABLES §4.2's twelve rows to **0.40 ms**, and the reciprocal exponent makes the rate **58x steeper close in than far out**. One reading per hunter into `ctx.compass`: a **world** bearing with `TUN-COMPASS-CONE-WOBBLE`'s drift already applied server-side, and a `Quantise.BUCKET_STEP` 0.5 m distance bucket, so nothing downstream holds the exact metres. The wobble is a sine of `(contract, tick)` — deterministic and learnable, never RNG — with its phase **mixed**, or adjacent peer ids would drift in step. **A missing reading is `NO_CONTRACT` 255, never bucket 0**, which is a real reading. `lock_fraction` and `portrait_revealed` are US-0058's and read zero; nothing draws any of it |
-| Detection | `SYS-DETECTION` ticks at the `detection` stage, **after `suspicion`**, because the render state is computed from *tier* and a tick of lag makes the silhouette disagree with the tier indicator. One pass over 30 ordered pairs, **costing zero raycasts**: GDD-03 §2.1's rule is `tier × relationship` and §2.3 draws the Exposed outline through geometry, so occlusion must not gate it. The early-out ladder drops ~70 % of pairs on the tier check alone. It reads the **announced** contract from `ctx.announced_contracts`, never the graph's, so a tint cannot arrive before the Compass does. `RenderMatrix` carries the answer to `SnapshotBuilder` four stages later and **absent means `PLAIN`**, which is the safe direction. **It also holds the only line-of-sight query in the project** — `WORLD`-masked, so NPCs and players cannot block it by construction; Cinderfall is a sphere tested against the segment; the rewound form is **still refused**, and US-0060 sharpened the reason rather than clearing it — kill validation asks no line-of-sight question at all, so there is still no caller for a past one. **`has_los()` has two callers**: the Compass lock (US-0058) and the witnessed-kill check (US-0060). `cinderfall` is `MatchContext`'s list, adopted by reference, and every liveness query takes the tick it is asked about |
+| Detection | `SYS-DETECTION` ticks at the `detection` stage, **after `suspicion`**, because the render state is computed from *tier* and a tick of lag makes the silhouette disagree with the tier indicator. One pass over 30 ordered pairs, **costing zero raycasts**: GDD-03 §2.1's rule is `tier × relationship` and §2.3 draws the Exposed outline through geometry, so occlusion must not gate it. The early-out ladder drops ~70 % of pairs on the tier check alone. It reads the **announced** contract from `ctx.announced_contracts`, never the graph's, so a tint cannot arrive before the Compass does. `RenderMatrix` carries the answer to `SnapshotBuilder` four stages later and **absent means `PLAIN`**, which is the safe direction. **It also holds the only line-of-sight query in the project** — `WORLD`-masked, so NPCs and players cannot block it by construction; Cinderfall is a sphere tested against the segment; the rewound form is **still refused**, and US-0060 sharpened the reason rather than clearing it — kill validation asks no line-of-sight question at all, so there is still no caller for a past one. **`has_los()` has two callers**: the Compass lock (US-0058) and the witnessed-kill check (US-0060). `cinderfall` is `MatchContext`'s list, adopted by reference, and every liveness query takes the tick it is asked about. **It also owns the prey warning** (US-0059): `_resolve_pair` already computes `hunted_by`, so the warning is a distance, a tier comparison and a cooldown lookup on pairs the ladder has already admitted — no second pass and no raycast. `PreyWarning` holds only the cooldown, and **a new pursuer defeats it**, or a repair would silence the prey's one warning for 2.5 s |
 | Suspicion | `SYS-SUSPICION` ticks at the `suspicion` stage, **after `crowd`** — the boundary `SystemOrder` calls the most damaging silent failure in the game, since a stale crowd lets a player accrue *alone* suspicion inside a pocket that has re-formed. One pass over six pawns: the world is read from `ctx.crowd_hash` (never a physics query), impulses drain first and re-arm `TUN-SUSPICION-DECAY-DELAY`, then the integrator, then the tier with hysteresis. **The value lives on `PawnContext`, not in the system** — the builder reads it, so a copy here would be a second authority. `suspicion`, `tier` and `active_sources` go out in the own-gameplay block **to the owner alone**; there is no field anywhere in the format for another player's, which is the rule living in the wire rather than in a widget. `SuspicionSources.of()` is the only place the five conditions are applied and `gain_rate()` is their sum, so the HUD's source list cannot drift from the number it explains. **The impulse queue is `MatchContext`'s** as of US-0060, adopted by reference rather than mirrored, because a system reaching another system's state does it through the context. It has two live callers now — a failed kill and a witnessed one. **The bump still has none**, because pawn and NPC both mask `WORLD` and there is no contact to report; `has_stillness` still needs a loadout |
 | Pawn body | `GreyboxBody`, procedural — capsule, head and a chest marker on `+Z`, measured from the collider so the two cannot drift. **`PersonaVisuals` was empty through US-0021, 0022 and 0023**: three stories of camera work built around a pawn that did not render, every suite green. Not a persona — ART_BIBLE §6.1's four constructions are US-0039's |
 | Camera | Real spring arm: 2.6 m, **pawn centred** (US-0092 — the 0.45 m offset never changed the composition, because the rig aims at the pawn's own axis; `INPUT-SHOULDER` retired with it), occlusion that pulls **in** and never sideways, `WORLD`-masked so a crowd cannot push it. The FOV ladder is bound to the **state**, never to `ctx.velocity`: the rung is a consequence of the decision, not of the physics that follows it. Crowd-scan narrows to 48° and grants nothing. **Positive pitch LOWERS the arm** — the rig looks *at* the pivot, so a raised arm looks down; it shipped inverted from US-0021 until somebody played it |
 | Input | 20 `InputMap` actions from 14 live `INPUT-` IDs — `INPUT-SHOULDER` is retired via `InputActions.DEPRECATED`, still in the corpus and bound to nothing, KBM + pad. Chain GDD-02 → `Ids` → `InputActions` → `project.godot`, guarded on every hop, both directions. **Sampled once per physics frame by `LocalPawnDriver`, the only caller** — see trap 12. The mouse is **captured** on boot; `INPUT-MENU` releases, a click takes it back. **Only a mapped gamepad holds the joypad bindings** — `PadSelection`, applied through the one `InputMap` writer, because a set of sim pedals was steering |
 
-**Forty-two criteria are deliberately unticked**, each blocked by something real — counted
+**Forty-four criteria are deliberately unticked**, each blocked by something real — counted
 from the `done` and `in-progress` stories on **2026-08-25**. It was also forty on
 2026-08-16, which is a coincidence rather than a stall: US-0055 closed seven and
 US-0052/0053/0056 opened four between them. Nine of the forty are US-0048's M3

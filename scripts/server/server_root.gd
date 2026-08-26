@@ -158,6 +158,7 @@ func _start_the_crowd_system() -> void:
 	# document's order. The order here is only the reading order.
 	director.register(suspicion)
 	director.register(detection)
+	detection.prey_warned.connect(_on_prey_warned)
 	director.register(kills)
 	kills.setup(director.ctx)
 	kills.killed.connect(_on_killed)
@@ -317,8 +318,25 @@ func _on_kill_rejected(killer: int, _verdict: int, _target: int) -> void:
 	Net.events.send_kill(killer, slots.slot_of(killer), SlotTable.NO_SLOT, director.ctx.tick, 0)
 
 
+## **THE PREY WARNING GOES TO THE PREY AND TO NOBODY ELSE.** US-0059, GDD-03 §9.1.
+##
+## The recipient list is the whole rule. Broadcasting it would tell every living
+## player that somebody, somewhere, had gone careless — which is the inference the
+## crowd is for. Sending it to the *pursuer* would tell them they had been made,
+## and a hunter who knows they have been seen is a hunter who can simply wait.
+##
+## **NO SLOT IS MAPPED HERE, WHICH IS THE DIFFERENCE FROM EVERY OTHER MESSAGE IN
+## THIS FILE.** `send_contract` and `send_kill` both translate a peer into a wire
+## slot because they name somebody. This one names nobody, so there is nothing to
+## translate — and that absence is the anonymity rule expressed as a missing line
+## of code rather than as a comment.
+func _on_prey_warned(prey: int, bearing: float, bucket: int) -> void:
+	Net.events.send_prey_warning(prey, bearing, bucket)
+
+
 func _on_peer_left(peer: int) -> void:
 	contracts.report_disconnect(peer, director.ctx)
+	detection.warning.forget(peer)
 	kills.forget(peer)
 	pawns.despawn(peer)
 	router.forget(peer)
