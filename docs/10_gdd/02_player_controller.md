@@ -282,7 +282,7 @@ requested at priority *P* may interrupt a state whose `is_interruptible()` is fa
 | **Drop** | Ledge exit above `TUN-TRAVERSE-DROP-SAFE-HEIGHT` | Landing | No (airborne) | NORMAL | none in air; `TUN-TRAVERSE-DROP-STAGGER` on hard landing |
 | **Blended** | `INPUT-BLEND` on a valid target, after `TUN-BLEND-ENTRY-TIME` 0.35 s | `INPUT-BLEND`, speed break, damage | Yes (to COMBAT+) | NORMAL | crushes to 0 over `TUN-BLEND-CRUSH-TIME` 1.2 s |
 | **KillAnim** | `INPUT-KILL` + server validation | `TUN-KILL-ANIM-DURATION` 1.4 s | **No.** Only FATAL gets through — a third party killing the killer. **Amended 2026-08-26, ADR-0013**: COMBAT no longer interrupts before the contact frame | COMBAT | none directly; `TUN-SUSPICION-GAIN-WITNESSED-KILL` may apply |
-| **StunAnim** | `INPUT-STUN` + pursuer in range and ≥ Noticed | 0.7 s | No below FATAL | COMBAT | none if valid; `TUN-STUN-INVALID-SUSPICION` +20 if not |
+| **StunAnim** | `INPUT-STUN` + pursuer in range and ≥ Noticed | 0.7 s | No below FATAL | COMBAT | none if valid; `TUN-STUN-INVALID-SUSPICION` +20 if not. **Built US-0061.** Its first version returned `true` from `is_interruptible`, reasoned from ADR-0013 being "one state wide" — this column is normative and the inference was not |
 | **Stunned** | Stunned by prey | `TUN-STUN-FREEZE` 4.0 s | No below FATAL | COMBAT | forced to `TUN-SUSPICION-MAX` |
 | **Dead** | Kill resolved against you | Corpse spawned | No | FATAL | n/a |
 

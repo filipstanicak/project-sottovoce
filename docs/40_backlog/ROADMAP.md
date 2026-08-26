@@ -588,7 +588,7 @@ Recorded here because a "Delivers" table with no state beside it reads as a prom
 | `SYS-COMPASS`: bearing, pulse curve, lock, reveal, portrait | **Done, server-side** (US-0057, US-0058). Nothing draws any of it: `CompassVM` and the HUD are US-0084, M5 |
 | The prey warning — **directional** (ADR-0013) | **Done, seven of nine** (US-0059). It rides `SYS-DETECTION`'s existing pair pass for no extra cost and no raycast. The two open criteria are the client-side rotation (US-0084's HUD) and the audio sting (`Audio.play()` is a stub until US-0075, and there is no call site to guard) |
 | `KillSystem`: validation, contest window, lag-compensated | **Done** (US-0060), eight of ten criteria. NPCs are not rewound and the contest stagger is an initiation lockout — both reported with reasons in the story |
-| `StunSystem`: tier gate, lockout, anti-spam | **Not started** (US-0061). `KillSystem.report_interrupt` is its entry point and is tested with no caller |
+| `StunSystem`: tier gate, lockout, anti-spam | **Done, ten of eleven** (US-0061). **Not a `GameSystem`** — §4's box 7 is one node reading "Kill / Stun", so `KillSystem` owns and ticks it, and the kill resolving first is where ADR-0013's contested initiation is decided. The open criterion needs `ABIL-LUNGE`, which is M5 |
 | `SpawnSystem`: constraints with a never-failing fallback | **Not started** (US-0062). **`Dead` has no exit until this exists** — the graph's only edge out is `Dead -> Respawning`, so a player killed today stays dead for the rest of the match |
 
 **A PLAYER CAN NOW BE KILLED, AND STILL CANNOT PERCEIVE ANY OF IT.** The server validates a

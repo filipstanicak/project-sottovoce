@@ -1164,6 +1164,29 @@ their action score. Sottovoce currently staggers the loser of a kill-vs-kill rac
 (`TUN-KILL-CONTEST-STAGGER`) and has no score consequence at all, because `SYS-SCORE` does not
 exist yet. That belongs to US-0064.
 
+### 10.1.2 As built, 2026-08-26 (US-0061)
+
+**THE PUBLISHED BAND IS 2.5–3.0 m; THE VALIDATED BAND IS 2.85–3.35 m.** Both the kill and the
+stun add `TUN-KILL-VALIDATION-GRACE` before comparing, so the window a player actually
+experiences is shifted outward — and its **width is identical at 0.50 m**, which is only true
+because the two rules share one grace rather than each carrying their own. §10.2's first number
+is unaffected: a hunter who has closed to kill range has still already entered stun range.
+
+**AN INVALID STUN AND A STUN AT A CAREFUL PURSUER ARE INDISTINGUISHABLE, DELIBERATELY.** §10.3
+prices flailing at a non-pursuer; the same price is charged for a press at empty air and for a
+press at your **real** pursuer while they are Anonymous. Otherwise the button becomes a free
+identity probe — press it at each stranger who comes near and read the answers apart. That
+would defeat §6's crowd in about fifteen seconds, and it is why `NET-S2C-STUN-RESULT` carries
+`valid` and a target slot of zero on every refusal.
+
+**THE `stun_ready` HINT CARRIES THE TIER GATE FOR THE SAME REASON.** A reticle that lit up for
+an Anonymous pursuer would say *that one is hunting you* without a lock, without a warning, and
+without them having made any mistake at all.
+
+**A SAME-TICK PRESS RESOLVES FOR THE HUNTER**, because the kill is judged before the stun within
+one server tick. §10.1.1's table is therefore true at its narrowest moment as well as its
+widest: the prey's window is the approach, every second of it, and not the instant.
+
 ### 10.2 The three numbers that make stun work
 
 **1. `TUN-STUN-RANGE` (3.0 m) exceeds `TUN-KILL-RANGE` (2.5 m).**

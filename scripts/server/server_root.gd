@@ -62,6 +62,7 @@ func _wire_the_doorway() -> void:
 	# `PawnContext.held_buttons` is rewritten inside `step()` at 60 Hz, so by the
 	# `combat` stage every press already reads as held.
 	director.input_applied.connect(kills.report_input)
+	director.input_applied.connect(kills.report_stun_input)
 
 
 ## **THE SEED, FROM `--seed` OR THE CLOCK.** `LaunchConfig` has parsed `--seed`
@@ -163,6 +164,8 @@ func _start_the_crowd_system() -> void:
 	kills.setup(director.ctx)
 	kills.killed.connect(_on_killed)
 	kills.kill_rejected.connect(_on_kill_rejected)
+	kills.stun.stunned.connect(_on_stunned)
+	kills.stun.stun_rejected.connect(_on_stun_rejected)
 
 
 ## **WAIT FOR THE MAP, OR EVERY NPC LANDS AT THE ORIGIN.** A query before the
@@ -332,6 +335,35 @@ func _on_kill_rejected(killer: int, _verdict: int, _target: int) -> void:
 ## of code rather than as a comment.
 func _on_prey_warned(prey: int, bearing: float, bucket: int) -> void:
 	Net.events.send_prey_warning(prey, bearing, bucket)
+
+
+## **A LANDED STUN REACHES THE TWO PLAYERS IN IT AND NOBODY ELSE.** US-0061.
+##
+## Both are told the same `lockout_ticks`: the hunter learns the length of their
+## exile and the prey learns how much time they just bought. GDD-03 §10.2 makes
+## that number the difference between counterplay and a four-second delay, so a
+## prey who could not see it would have no way to judge whether the stun was worth
+## the risk of turning round.
+func _on_stunned(stunner: int, target: int, lockout_ticks: int) -> void:
+	var slots := director.ctx.slots
+	var a := slots.slot_of(stunner)
+	var b := slots.slot_of(target)
+	var tick := director.ctx.tick
+	Net.events.send_stun(stunner, a, b, tick, true, lockout_ticks)
+	Net.events.send_stun(target, a, b, tick, true, lockout_ticks)
+
+
+## **A REFUSAL GOES TO THE STUNNER ALONE, AND NAMES NOBODY.**
+##
+## Telling the *target* that somebody tried to stun them would say "that player
+## believes you are hunting them", which is a free read on a stranger's suspicion
+## of you. And `SlotTable.NO_SLOT` rather than the peer they swung at, so the
+## answer cannot be compared across presses — every refusal looks the same, which
+## is what stops the stun button being an identity probe.
+func _on_stun_rejected(stunner: int, _verdict: int, _target: int) -> void:
+	var slots := director.ctx.slots
+	var tick := director.ctx.tick
+	Net.events.send_stun(stunner, slots.slot_of(stunner), SlotTable.NO_SLOT, tick, false, 0)
 
 
 func _on_peer_left(peer: int) -> void:
