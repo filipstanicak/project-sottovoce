@@ -61,6 +61,21 @@ var buttons: int = InputBits.NONE
 ## Zero means "I have nothing yet, send me everything".
 var acked_tick: int = 0
 
+## **WHEN THE SERVER READ THIS PACKET, RELATIVE TO EVERY OTHER PACKET.** Stamped
+## by `MatchDirector.enqueue_input`, US-0060. **Server-side only: it is never
+## serialised, never sent, and a client can never influence it.**
+##
+## It exists because `TUN-KILL-CONTEST-WINDOW` has to break a same-tick tie
+## somehow, and both obvious candidates are wrong. Iterating `ctx.pawns` is *join*
+## order, which would hand the earliest-joined player every tie for the whole
+## match; a seeded coin would make the most decisive moment in the game random.
+## Arrival order is what ADR-0010 means by "server receive order", and this is the
+## only place in the process that knows it.
+##
+## **-1 MEANS "NEVER WENT THROUGH THE QUEUE"** — a command built by hand in a test
+## — and sorts first, which is the only order such a command can have.
+var received_ordinal: int = -1
+
 # --- Views onto `buttons`. No storage of their own. ---
 
 var slow: bool:

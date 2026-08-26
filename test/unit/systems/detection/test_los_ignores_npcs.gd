@@ -15,12 +15,14 @@ extends GutTest
 const FAR := Vector3(0.0, 0.0, 20.0)
 
 var _system: DetectionSystem
+var _ctx: MatchContext
 
 
 func before_each() -> void:
 	_system = DetectionSystem.new()
 	add_child_autofree(_system)
-	_system.setup(MatchContext.new())
+	_ctx = MatchContext.new()
+	_system.setup(_ctx)
 
 
 ## A `StaticBody3D` on `layer` with a 2 m box at `at`. Layer 1 is `WORLD`, 2 is
@@ -103,9 +105,36 @@ func test_a_cinder_cloud_blocks_and_an_expired_one_does_not() -> void:
 	assert_true(await _look(), "the premise failed")
 	_system.cinderfall.add(FAR * 0.5, 0)
 	assert_false(await _look(), "a cinder cloud across the line did not block it")
-	_system.cinderfall.expire(Tuning.ticks(&"TUN-CINDERFALL-DURATION") + 1)
-	assert_eq(_system.cinderfall.count(), 0, "an expired cloud was kept")
+
+	# **A CLOUD IS ALIVE AT A TICK, NOT SIMPLY ALIVE** (US-0060). Advancing the
+	# context is what puts the query past the cloud's expiry — the volume list is
+	# consulted with a tick now, so that a rewound kill validation can ask about a
+	# cloud that has since gone out. Asking at tick 0 forever would answer "lit".
+	var duration := Tuning.ticks(&"TUN-CINDERFALL-DURATION")
+	_ctx.tick = duration + 1
+	assert_eq(_system.cinderfall.count_at(_ctx.tick), 0, "an expired cloud was still alight")
 	assert_true(await _look(), "an expired cloud still blocked")
+
+
+func test_a_burnt_out_cloud_is_kept_until_no_rewind_can_reach_it() -> void:
+	# **`expire()` LAGS THE REWIND CEILING RATHER THAN THE EXPIRY**, and that is
+	# what makes ADR-0010's rule implementable: *"one that has expired must still
+	# have blocked"* a kill validated `TUN-NET-LAGCOMP-MAX` in the past. Dropping
+	# the cloud on the tick it went out would answer that half wrongly, and there
+	# would be nothing left to ask.
+	_system.cinderfall.add(FAR * 0.5, 0)
+	var duration := Tuning.ticks(&"TUN-CINDERFALL-DURATION")
+	_system.cinderfall.expire(duration + 1)
+	assert_eq(_system.cinderfall.count(), 1, "the cloud was dropped while a rewind could reach it")
+	assert_eq(_system.cinderfall.count_at(duration + 1), 0, "it was still alight after its expiry")
+	assert_true(
+		_system.cinderfall.contains_at(FAR * 0.5, duration - 1),
+		"a rewind to before the expiry could not see it"
+	)
+
+	# And it does go eventually, or a long match would accumulate every cloud.
+	_system.cinderfall.expire(duration + RewindClamp.max_ticks())
+	assert_eq(_system.cinderfall.count(), 0, "a cloud no rewind can reach was kept forever")
 
 
 func test_a_cloud_beside_the_line_does_not_block() -> void:

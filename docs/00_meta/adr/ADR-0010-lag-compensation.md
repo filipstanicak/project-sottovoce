@@ -132,12 +132,42 @@ order is the only ordering the server can actually trust.
 
 ## Compliance
 
-- [ ] Only two call sites invoke the rewind: `KillSystem.validate()` and
+> **AMENDED 2026-08-26 (US-0060), in one place: NPCs are not rewound.** The "What is
+> rewound" table gives two reasons for rewinding them — *"because NPCs occlude line of
+> sight and determine blend membership"* — and **both are false of the game that got
+> built**. `has_los` masks `WORLD` only, so NPCs cannot occlude by construction (GDD-03
+> §9.2, US-0056); and a blended player is killable normally (GDD-02 §3.2 rule 3). Kill
+> validation performs no line-of-sight query at all — TDD-10 §3's flowchart is Cinderfall,
+> contract, range, cone, contest.
+>
+> So the rewound crowd has no consumer, and recording 78 NPC transforms a tick would take
+> the ring from a measured 28.1 KB to roughly 130 KB to be read by nothing. The decision is
+> **reported rather than taken**: re-scoping an accepted ADR is the owner's, and the two
+> candidate resolutions are (a) drop NPCs from the rewind scope and say so, or (b) add the
+> line-of-sight gate to kill validation that §3's flowchart does not have, which would give
+> the rewound crowd a reader and would also change how a kill in a crowd plays.
+>
+> **The Cinderfall half IS built.** `CinderfallVolumes` records a lit tick as well as an
+> expiry, so *"a cloud that had not yet appeared must not retroactively block, and one that
+> has expired must still have blocked"* is answerable — and `expire()` retains a burnt-out
+> cloud for `TUN-NET-LAGCOMP-MAX` past its expiry, because dropping it on the tick it went
+> out leaves nothing for the second half of that sentence to ask.
+
+- [x] Only two call sites invoke the rewind: `KillSystem.validate()` and
       `StunSystem.validate()`. A third requires an ADR amendment.
-- [ ] `rewind_ms()` clamps to `[Tuning.net.lagcomp_min_ms, Tuning.net.lagcomp_max_ms]` with
+      **One of the two exists** — `SYS-STUN` is US-0061 — and
+      `test_no_client_time_in_kill.gd` names both paths rather than counting to two, because
+      a count alone would permit any second caller.
+- [x] `rewind_ms()` clamps to `[Tuning.net.lagcomp_min_ms, Tuning.net.lagcomp_max_ms]` with
       no path that bypasses the clamp.
-- [ ] `TUN-NET-LAGCOMP-MAX <= TUN-NET-LAGCOMP-HISTORY / 2` asserted by
+      **`RewindClamp` is its own file for this line**, and the same guard asserts that
+      nothing outside it reads either bound — a second reader is a second clamp, and two
+      clamps drift the first time one of them is retuned.
+- [x] `TUN-NET-LAGCOMP-MAX <= TUN-NET-LAGCOMP-HISTORY / 2` asserted by
       `test_tuning_ranges.gd` (invariant §17.16).
+      And asserted a second way in `test_lagcomp_rewind.gd`, against the ring's own measured
+      capacity rather than against the tunables.
+
 - [ ] Contest resolution reads a server-assigned tick, never a client-supplied timestamp.
       No `InputCommand` field named `client_time` is read by `KillSystem`.
 - [ ] `test_lagcomp_rewind.gd` covers: a kill valid at 150 ms rewind and invalid at 0;

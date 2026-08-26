@@ -34,9 +34,14 @@ The server system driving the integrator, applying impulses, and replicating own
       **The rule is built and tested; nothing calls it.** `npc_server.tscn` and
       `pawn_server.tscn` both mask `WORLD` only, so a pawn and an NPC pass through each other
       and there is no contact to report. See the notes.
-- [ ] Witnessed kill applies only if another PLAYER had line of sight at initiation.
-      **Blocked twice over:** `has_los()` is `SYS-DETECTION`'s (US-0056) and there is no kill to
-      witness until `SYS-KILL` (US-0060). `SuspicionImpulses.queue()` is the entry point.
+- [x] Witnessed kill applies only if another PLAYER had line of sight at initiation.
+      **Both blockers cleared in US-0060.** `server_root._charge_for_witnesses` walks every
+      living player other than the killer at the contact frame and charges
+      `TUN-SUSPICION-GAIN-WITNESSED-KILL` once if any of them has a clear line.
+      **Present-tense, not rewound**, and that is a decision rather than an omission: a
+      witness did not *act*, so there is nothing of theirs to lag-compensate — what they see
+      is the animation and the corpse, now — and rewinding their position would charge the
+      killer for somebody who has since walked away.
 - [x] Own suspicion and tier replicate to the owning client only.
 - [x] Active source bitfield replicates, driving the HUD source list.
       The HUD itself is US-0084; the byte is on the wire and correct.
@@ -54,6 +59,12 @@ roof plus open sums to 49/s and reaches Exposed inside two seconds. A third copy
 assertion is worse than a missing one; TDD-07 §7 records where each named test actually lives.
 
 ## Notes
+
+**2026-08-26, US-0060.** `impulses` moved from `SuspicionSystem` onto `MatchContext`,
+adopted by reference rather than mirrored. That is what this story's own docstring
+predicted — *"public so `SYS-COMBAT` and `SYS-ABILITY` can owe a player points"* — and the
+way one system reaches another's state in this project is that the state is on the context.
+`SYS-KILL` is the first caller, for a failed kill and for a witnessed one.
 
 Crowd must resolve before suspicion. Computing against last tick's crowd would let a player
 accrue alone-suspicion inside a pocket that has already re-formed — the player believes they are

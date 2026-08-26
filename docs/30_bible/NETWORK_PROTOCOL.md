@@ -137,7 +137,7 @@ frame, absorbed silently by the reconciler.
 | `NET-S2C-MATCH-START` | X | Rel | once | `match_seed:u64`, `start_tick:u32`, `crowd_count:u8` |
 | `NET-S2C-SNAPSHOT` | S | Unrel | **30 Hz** | §4 |
 | `NET-S2C-CONTRACT-ASSIGNED` | E | Rel | on change | `contract_peer:u8`, `reason:u8`. **No persona, position or identity hint** |
-| `NET-S2C-KILL-RESULT` | E | Rel | on event | `killer:u8`, `victim:u8`, `tick:u32`, `bonus_group:u16`. **Sent only to killer and victim** |
+| `NET-S2C-KILL-RESULT` | E | Rel | on event | `killer:u8`, `victim:u8`, `tick:u32`, `bonus_group:u16`. **Sent only to killer and victim.** **Built US-0060.** A `victim` of **0** is the whiff: slot 0 is reserved to mean nobody (US-0029), so a kill result naming no victim already says *your press did not land* — and a separate whiff message would be a second way to say one thing. `bonus_group` is **0 until US-0064**, because nothing appends a `ScoreEvent` yet and a fabricated group id is a number the score feed would later disagree with |
 | `NET-S2C-STUN-RESULT` | E | Rel | on event | `stunner:u8`, `target:u8`, `tick:u32`, `valid:bool`, `lockout_ticks:u16` |
 | `NET-S2C-ABILITY-STARTED` | E | Rel | on event | `peer:u8`, `ability:u8`, `origin:3×f32`, `dir:3×f32`, `tick:u32`. **Broadcast to all clients in tell radius — the legibility law on the wire** |
 | `NET-S2C-ABILITY-DENIED` | E | Rel | on event | `slot:u8`, `reason:u8`. Requester only |
@@ -182,7 +182,7 @@ NET-S2C-SNAPSHOT — per client, per tick
 │   ├── cooldown_a_tick    u16
 │   ├── cooldown_b_tick    u16
 │   ├── blend_state        u4
-│   ├── kill_ready         bool     drives the crosshair — must not lie
+│   ├── kill_ready         bool     drives the crosshair — must not lie (built US-0060)
 │   └── stun_ready         bool
 ├── compass
 │   ├── bearing            u8       wobble ALREADY APPLIED server-side

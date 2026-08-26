@@ -31,6 +31,11 @@ signal corrected(error: float, replayed: bool)
 ## Cumulative, never reset: a connection-health figure, and a counter that resets
 ## hides a stall.
 var replays: int = 0
+
+## Replays caused by a **state** disagreement inside the positional threshold —
+## the server putting this pawn somewhere it could not have predicted. Counted
+## apart from `replays` because the two mean different things about a connection:
+## one is latency, the other is the server having decided something.
 var forced: int = 0
 
 ## **THE LAST COMPARISON'S RESULT, IN METRES.** How far the server's answer was
@@ -117,9 +122,17 @@ func _reconcile(snapshot: Snapshot) -> void:
 	last_error_vector = authoritative.position - predicted.position
 	last_server_grounded = authoritative.grounded
 	last_client_grounded = predicted.grounded
-	if error <= Tuning.net.reconcile_threshold:
+	# **A STATE DISAGREEMENT IS A DIVERGENCE AT ANY DISTANCE.** The threshold is a
+	# *positional* tolerance and every state the server can force — `KillAnim`,
+	# `Dead`, `Stunned`, `Respawning` — arrives at a pawn that may be standing
+	# still. Comparing distance alone returned early on all four, so `own_state`
+	# was carried in the snapshot and never applied: US-0060 is the first story
+	# that could tell, because it is the first one that forces a state.
+	if error <= Tuning.net.reconcile_threshold and authoritative.same_state_as(predicted):
 		corrected.emit(error, false)
 		return
+	if error <= Tuning.net.reconcile_threshold:
+		forced += 1
 	_snap_and_replay(authoritative)
 	corrected.emit(error, true)
 

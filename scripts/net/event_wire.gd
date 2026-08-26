@@ -21,6 +21,14 @@ extends Node
 ## hunting until a Compass lock earns it.
 signal contract_assigned(contract_slot: int, reason: int)
 
+## `NET-S2C-KILL-RESULT` arrived. CLIENT SIDE.
+##
+## `bonus_group` ties this death to the `SCORE-EVENT`s it produced, so a score
+## feed can group them under one heading. **It is zero until US-0064** — nothing
+## appends a `ScoreEvent` yet, and a fabricated group id would be a number the
+## feed later disagreed with.
+signal kill_resolved(killer_slot: int, victim_slot: int, tick: int, bonus_group: int)
+
 
 ## `NET-S2C-CONTRACT-ASSIGNED`. SERVER SIDE, **to the holder only**.
 ##
@@ -41,3 +49,21 @@ func send_contract(peer: int, contract_slot: int, reason: int) -> void:
 @rpc("authority", "call_remote", "reliable", Messages.Channel.EVENT)
 func s2c_contract_assigned(contract_slot: int, reason: int) -> void:
 	contract_assigned.emit(contract_slot, reason)
+
+
+## `NET-S2C-KILL-RESULT`. SERVER SIDE, **to the killer and the victim only**.
+##
+## **THIS IS THE MESSAGE THAT IS NOT A KILL FEED**, and the recipient list is the
+## whole of never-do #12 in one line. Broadcasting it would tell every living
+## player how the contract cycle had just shifted — for free, instantly, and to
+## people who were nowhere near it. Working out that somebody died, from a crowd
+## startling two streets away, is the inference the design is made of.
+func send_kill(peer: int, killer_slot: int, victim_slot: int, tick: int, group: int) -> void:
+	if not Net.is_server:
+		return
+	s2c_kill_result.rpc_id(peer, killer_slot, victim_slot, tick, group)
+
+
+@rpc("authority", "call_remote", "reliable", Messages.Channel.EVENT)
+func s2c_kill_result(killer_slot: int, victim_slot: int, tick: int, bonus_group: int) -> void:
+	kill_resolved.emit(killer_slot, victim_slot, tick, bonus_group)

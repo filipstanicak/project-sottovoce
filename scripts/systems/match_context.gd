@@ -46,6 +46,42 @@ var pawns: Dictionary = {}
 ## same way is a drift risk worth naming rather than one worth hiding.
 var pawn_contexts: Dictionary = {}
 
+## **peer id -> the `PawnStateMachine` that owns that pawn's transitions.**
+##
+## The third of the parallel three, added by US-0060 and for the same reason as
+## the second: `SYS-KILL` has to *put* a killer into `KillAnim` and a victim into
+## `Dead`, and a system that reached the machine with `get_node("PawnStateMachine")`
+## off `pawns[peer]` would be doing scene plumbing to express a dependency.
+##
+## **THE MACHINE IS NOT STATE.** Every state object is shared by every pawn and
+## all the mutable data lives in `PawnContext` — so this is a handle to the
+## transition *graph*, not to anything per-pawn. Written and erased in `PawnHost`
+## beside the other two, with the same key-set assertion.
+var pawn_machines: Dictionary = {}
+
+## **WHAT A PLAYER IS OWED IN INSTANT SUSPICION, NOT YET INTEGRATED.** Queued by
+## `SYS-KILL` for a failed kill and a witnessed one, drained by `SYS-SUSPICION` at
+## the top of its own pass.
+##
+## **HERE RATHER THAN ON `SuspicionSystem`** as of US-0060, for the reason its own
+## docstring predicted — *"public so `SYS-COMBAT` and `SYS-ABILITY` can owe a
+## player points"* — and the way a system reaches another system's state in this
+## project is that the state is on the context. `SuspicionSystem` adopts this one
+## by reference rather than mirroring it, so the two cannot drift.
+##
+## **AND NOT ON `PawnContext`**: that object is replayed during prediction
+## reconciliation, so a queue of gameplay impulses living there would be walked
+## once per replayed command.
+var impulses := SuspicionImpulses.new()
+
+## **THE CINDER CLOUDS.** Placed by `SYS-ABILITY` (nothing places one yet), read
+## by `SYS-DETECTION` for line of sight and by `SYS-KILL` for TDD-10 §3's first
+## gate. **On the context rather than inside detection**, because it now has two
+## readers in different stages and the second one arrived in US-0060 — a volume
+## list owned by one system and reached through it by another is the shape
+## `announced_contracts` was moved here to avoid.
+var cinderfall := CinderfallVolumes.new()
+
 ## `MapData` for the loaded map. Read-only to systems.
 var map: MapData = null
 

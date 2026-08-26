@@ -571,31 +571,36 @@ interact with them beyond collision.
 | `DetectionSystem`: per-observer render state, one LOS query | |
 | `SYS-COMPASS`: bearing, pulse curve, lock, reveal, portrait | |
 | The prey warning — **directionless** | |
-| `KillSystem`: validation, contest window, lag-compensated | |
+| `KillSystem`: validation, contest window, lag-compensated | **Done**, US-0060 |
 | `StunSystem`: tier gate, lockout, anti-spam | |
 | `SpawnSystem`: constraints with a never-failing fallback | |
 
-### 6.0 Progress, 2026-08-25 — **seven of fifteen stories, and nothing is playable yet**
+### 6.0 Progress, 2026-08-26 — **ten of fifteen stories, and nothing is playable yet**
 
 Recorded here because a "Delivers" table with no state beside it reads as a promise kept.
 
 | | State |
 |---|---|
-| `ContractCycle` + repair on kill / death / disconnect / join | **Done** (US-0049, US-0050). `open()` waits for a COUNTDOWN phase `SYS-MATCH` does not provide; the live path is `report_join` |
-| `SuspicionMath` + `SuspicionSystem`: sources, impulses, hysteresis | **Done** (US-0051, US-0052). The NPC bump has no caller — pawn and NPC both mask `WORLD`, so there is no contact to report |
-| `BlendSystem`: pockets, groups, static props, concealment props | **Half.** Pocket and group are built (US-0053); the two prop blends are US-0054 |
-| `DetectionSystem`: per-observer render state, one LOS query | **Done** (US-0055, US-0056). The rewound `has_los` is refused until `SYS-KILL`, and nothing calls the query yet |
-| `SYS-COMPASS`: bearing, pulse curve, lock, reveal, portrait | **Not started** (US-0057, US-0058) |
+| `ContractCycle` + repair on kill / death / disconnect / join | **Done** (US-0049, US-0050). `open()` waits for a COUNTDOWN phase `SYS-MATCH` does not provide; the live path is `report_join`. **`report_death` has its first caller as of US-0060** |
+| `SuspicionMath` + `SuspicionSystem`: sources, impulses, hysteresis | **Done** (US-0051, US-0052). The impulse queue has two live callers now — a failed kill and a witnessed one — and the NPC bump still has none, because pawn and NPC both mask `WORLD` and there is no contact to report |
+| `BlendSystem`: pockets, groups, static props, concealment props | **Half.** Pocket and group are built (US-0053); the two prop blends are US-0054. `report_damage` has its first caller as of US-0060 |
+| `DetectionSystem`: per-observer render state, one LOS query | **Done** (US-0055, US-0056). `has_los` has two callers — the Compass lock and the witnessed-kill check — and **the rewound form is still refused**, because kill validation turns out to ask no line-of-sight question at all |
+| `SYS-COMPASS`: bearing, pulse curve, lock, reveal, portrait | **Done, server-side** (US-0057, US-0058). Nothing draws any of it: `CompassVM` and the HUD are US-0084, M5 |
 | The prey warning — **directionless** | **Not started** (US-0059) |
-| `KillSystem`: validation, contest window, lag-compensated | **Not started** (US-0060) |
-| `StunSystem`: tier gate, lockout, anti-spam | **Not started** (US-0061) |
-| `SpawnSystem`: constraints with a never-failing fallback | **Not started** (US-0062) |
+| `KillSystem`: validation, contest window, lag-compensated | **Done** (US-0060), eight of ten criteria. NPCs are not rewound and the contest stagger is an initiation lockout — both reported with reasons in the story |
+| `StunSystem`: tier gate, lockout, anti-spam | **Not started** (US-0061). `KillSystem.report_interrupt` is its entry point and is tested with no caller |
+| `SpawnSystem`: constraints with a never-failing fallback | **Not started** (US-0062). **`Dead` has no exit until this exists** — the graph's only edge out is `Dead -> Respawning`, so a player killed today stays dead for the rest of the match |
 
-**A LIVE SERVER NOW ASSIGNS CONTRACTS, ACCRUES SUSPICION, HONOURS BLENDS AND COMPUTES WHO CAN SEE
-WHOM — AND A PLAYER CANNOT PERCEIVE ANY OF IT.** There is no HUD (US-0084, M5), no Compass, no
-kill and no score; the values reach the wire and no client draws them. **The exit criterion is
-untouched**: the game is not playable end-to-end and the first real playtest cannot happen until
-kill, stun and respawn exist.
+**A PLAYER CAN NOW BE KILLED, AND STILL CANNOT PERCEIVE ANY OF IT.** The server validates a
+kill against the lag-compensated world, commits the killer for 1.4 s, kills the victim at the
+0.9 s contact frame, repairs the cycle, spawns a corpse, startles the crowd and charges the
+witnesses — and there is **no HUD, no Compass, no reticle, no whiff animation and no score**,
+because there are no animation clips in this project on either rig and the HUD is US-0084 in
+M5. What US-0060 does change is that **the client is now told**: `own_state` reaches the
+owning pawn for the first time, which it never did before (see the story's first finding).
+
+**The exit criterion is untouched**: the game is not playable end-to-end, and the first real
+playtest cannot happen until stun and respawn exist.
 
 ### 6.1 The M4 gate — the whole project's hinge
 

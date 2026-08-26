@@ -114,6 +114,10 @@ var _last_command: Dictionary = {}
 var _dry_ticks: Dictionary = {}
 
 var _frames_per_tick: int = 2
+
+## Monotonic across the whole match, never reset per peer or per tick — a counter
+## that restarted would make two packets from different peers compare equal.
+var _arrivals: int = 0
 var _frame: int = 0
 
 
@@ -150,6 +154,12 @@ func _warn_if_the_engine_disagrees() -> void:
 ## the client's own reconciliation ring holds, which is the most input that can
 ## still be reconciled; beyond it the oldest is worthless anyway.
 func enqueue_input(peer: int, command: InputCommand) -> void:
+	# **THE ARRIVAL STAMP.** Here and nowhere else: this is the one point in the
+	# process that sees packets in the order the socket delivered them, which is
+	# what ADR-0010's contest rule means by "server receive order". Everything
+	# downstream walks dictionaries, whose order is *join* order.
+	command.received_ordinal = _arrivals
+	_arrivals += 1
 	if not _queues.has(peer):
 		_queues[peer] = []
 	var queue: Array = _queues[peer]

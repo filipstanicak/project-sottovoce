@@ -22,9 +22,11 @@ signal state_changed(from: StringName, to: StringName)
 ## by `step()` rather than crashing, because a half-registered machine during M1
 ## is a normal intermediate condition.
 ##
-## **EVERY TRAVERSAL STATE IS HERE AS OF US-0020.** What is left — `Respawning`,
-## `StunAnim`, `Dead` — belongs to `SYS-SPAWN` and `SYS-KILL` in M4, and none of
-## them is reachable from anything a player can press today.
+## **`Dead` ARRIVED WITH `SYS-KILL` (US-0060).** What is left is `Respawning` and
+## `StunAnim` — `SYS-SPAWN` (US-0062) and `SYS-STUN` (US-0061). **`Dead` has no
+## exit until the first of those**, because the graph's only edge out of it is
+## `Dead -> Respawning`: a player killed today stays dead for the rest of the
+## match, which is stated in `DeadState` rather than papered over with a timer.
 const REGISTERED: Array[GDScript] = [
 	preload("res://scripts/pawn/states/idle_state.gd"),
 	preload("res://scripts/pawn/states/blend_walk_state.gd"),
@@ -37,6 +39,7 @@ const REGISTERED: Array[GDScript] = [
 	preload("res://scripts/pawn/states/blended_state.gd"),
 	preload("res://scripts/pawn/states/kill_anim_state.gd"),
 	preload("res://scripts/pawn/states/stunned_state.gd"),
+	preload("res://scripts/pawn/states/dead_state.gd"),
 ]
 
 ## id -> PawnState. ONE INSTANCE PER STATE, shared by every pawn.

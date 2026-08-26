@@ -849,6 +849,28 @@ func rewind_ticks(peer: int) -> int:
 |---|---|---|
 | Player positions and yaw | **Yes** | The primary error source |
 | **NPC positions** | **Yes** | NPCs determine LOS occlusion and blend membership. Validating against a *current* crowd when the attacker acted against a *past* one reintroduces the error we are fixing |
+
+> **AMENDED 2026-08-26 (US-0060): NPCs ARE NOT RECORDED, AND BOTH REASONS IN THAT ROW ARE
+> FALSE OF THE BUILT GAME.**
+>
+> - **NPCs do not occlude line of sight.** `DetectionSystem.has_los` masks `WORLD` only, and
+>   every NPC, player and corpse sits on `PAWN`/`NPC` — so the query cannot see them however
+>   it is written. That is
+>   [`../10_gdd/03_social_stealth.md`](../10_gdd/03_social_stealth.md) §9.2 expressed as a
+>   collision mask: *the crowd hides you by being confusing, never by being solid.* US-0056.
+> - **Blend membership does not gate a kill.**
+>   [`../10_gdd/02_player_controller.md`](../10_gdd/02_player_controller.md) §3.2 rule 3:
+>   *"Blended yields to everything. A blended player can be killed, stunned, or
+>   Whisperbolted normally. Blend is not cover."*
+> - **And kill validation performs no line-of-sight query at all.**
+>   [`10_scoring_and_match_state.md`](10_scoring_and_match_state.md) §3's flowchart is
+>   Cinderfall, contract, range, cone, contest.
+>
+> So a rewound crowd has **no consumer**, and recording 78 NPC transforms every tick would
+> take the ring from a measured **28.1 KB to roughly 130 KB** to be read by nothing.
+> `LagCompRecorder._gather()` is still where they would join. Reported rather than built:
+> re-deciding ADR-0010's scope is the owner's, and §10's test table below still implies a
+> line-of-sight gate on kills that §3's flowchart does not have.
 | Cinderfall cloud volumes | **Yes** | A cloud that had not yet appeared must not retroactively block; one that has expired must still have blocked |
 | Blend membership | **Derived** from rewound NPC positions | Not stored historically |
 | Suspicion tier | **No** — current | Rewinding would let a player kill based on a tier the victim had already left |
@@ -890,6 +912,15 @@ action are rewound — typically fewer than 10, not 96.
 
 Two kill initiations on the same victim within `TUN-KILL-CONTEST-WINDOW` 0.4 s are resolved by
 **server receive tick**, never by any client-supplied number. (`InputCommand` no longer carries a client clock at all — those two bytes became `acked_tick` in US-0031.)
+
+**A SAME-TICK TIE BREAKS ON ARRIVAL ORDER (US-0060).** Twelve ticks is ample resolution
+for a 0.4 s window, but two initiations do land on one tick and something has to separate
+them. Iterating `ctx.pawns` is *join* order, which would hand the earliest-joined player
+every tie for the whole match; a seeded coin would make the most decisive moment in the game
+random. `MatchDirector.enqueue_input` stamps a monotonic `InputCommand.received_ordinal` —
+the one point in the process that sees packets in the order the socket delivered them. It is
+**never serialised**, so a client cannot choose its own place in a race, and
+`test_no_client_time_in_kill.gd` refuses any second writer.
 
 This is a real trade: a low-ping player wins a genuine tie. The alternative — comparing
 client-claimed timestamps — is trivially forgeable and would hand the contest window to whoever
@@ -1037,9 +1068,9 @@ func sample(entity_id: int, render_time_ms: float) -> EntityState
 | `test_npc_cull_radius.gd` | `TUN-NET-NPC-CULL-RADIUS >= TUN-COMPASS-RANGE-MAX` (invariant §17.17) |
 | `test_payload_omissions.gd` | The snapshot and `NET-S2C-CONTRACT-ASSIGNED` contain **no** persona, exact position, elevation or tier field for the contract; `NET-S2C-PREY-WARNING` has exactly one field |
 | `test_render_state_per_observer.gd` | With one player at suspicion 100, five observers receive `PLAIN` and only their hunter/prey receives `HARD` |
-| `test_lagcomp_rewind.gd` | Kill valid at 150 ms rewind, invalid at 0; invalid at 250 ms (proving the clamp); NPC-occluded LOS clear in the past; unspawned Cinderfall does not block |
-| `test_lagcomp_no_exploit.gd` | Rewound validation cannot resolve against a stale contract, stale tier, or spent cooldown |
-| `test_no_client_time_in_kill.gd` | `KillSystem` and `StunSystem` never read `InputCommand.acked_tick` — the field that replaced `client_tick`, still client-supplied and still forbidden from ordering anything |
+| `test_lagcomp_rewind.gd` | **BUILT, US-0060** — `test/unit/core/combat/`. Kill valid at 150 ms rewind, invalid at 0, invalid at 250 ms **and the counterfactual beside it**: the same unclamped request finds the victim, so the fixture can tell a clamped rewind from an unclamped one. **The two crowd clauses are not built and will not be as written**: NPCs are not recorded (see §8.2's amendment) and kill validation performs no line-of-sight query at all, so there is no past line for an NPC to be clear of. The Cinderfall clause **is** honoured, in `test_kill_system.gd` and `test_los_ignores_npcs.gd` |
+| `test_lagcomp_no_exploit.gd` | **ABSORBED into `test_lagcomp_rewind.gd`, US-0060.** The property is structural rather than behavioural: `RewoundWorld` carries ids, positions, yaws and a tick, and the test asserts that field list **exactly** — so there is nowhere for a tier, a contract or a cooldown to come back from the past. A second file would have had to invent a way to put one there in order to prove it could not |
+| `test_no_client_time_in_kill.gd` | **BUILT, US-0060** — `test/arch/`. `KillSystem` and `StunSystem` never read `InputCommand.acked_tick`; the rewind is called only from those two files **by name** rather than by a count of two; the clamp is read from `RewindClamp` and nowhere else; and `received_ordinal` has exactly one writer, in `MatchDirector.enqueue_input`, and never reaches the wire. Falsified against three planted defects |
 | `test_channel_separation.gd` | Reliable event floods do not delay snapshot delivery |
 | `test_join_leave_stable.gd` | 3 clients joining and leaving repeatedly for 5 minutes leaves the cycle valid and no orphaned entities |
 

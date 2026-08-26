@@ -244,6 +244,7 @@ func _fill_own(snapshot: Snapshot, peer: int) -> void:
 	snapshot.tier = own.tier
 	snapshot.active_sources = own.active_sources
 	snapshot.blend_state = own.blend_state
+	snapshot.kill_ready = own.kill_ready
 
 	# **THE COMPASS BLOCK, BUCKETED AND WOBBLED BEFORE IT GOT HERE** (US-0057).
 	# `SYS-DETECTION` decided both at the `detection` stage; this reads them. The

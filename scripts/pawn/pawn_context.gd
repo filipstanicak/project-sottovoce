@@ -80,6 +80,17 @@ var active_sources: int = 0
 
 var blend_state: int = 0
 
+## **A KILL PRESSED RIGHT NOW WOULD LAND.** Written by `SYS-KILL` once a tick and
+## read straight onto the wire, where GDD-06 §4 expands the reticle on it — *"only
+## when pressing kill would succeed"*.
+##
+## **SERVER-WRITTEN LIKE EVERYTHING ELSE IN THIS BLOCK, AND NEVER PREDICTED.** The
+## client could compute the geometry itself and would be wrong about the one thing
+## that decides it: whether that player is its contract. A reticle that guessed
+## would either leak the contract or contradict the server, and both are worse
+## than no reticle.
+var kill_ready: bool = false
+
 ## **`INPUT-BLEND` WAS PRESSED, AND NOBODY HAS SPENT IT YET.** A latch rather than
 ## a counter: `PawnInputBuffer` arms it on the press *edge* at 60 Hz and
 ## `SYS-BLEND` consumes it at 30, so it exists only to survive the step between
@@ -116,6 +127,7 @@ func reset_for_spawn(at: Vector3, facing: float) -> void:
 	tier = 0
 	active_sources = 0
 	blend_state = 0
+	kill_ready = false
 	blend_requested = false
 	traverse_buffer_ticks = 0
 	ability_buffer_ticks = 0

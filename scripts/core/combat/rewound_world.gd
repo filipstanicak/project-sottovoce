@@ -1,6 +1,12 @@
-## **THE WORLD AS IT WAS, AROUND ONE POINT.** TDD-04 §8.2, US-0035. SERVER ONLY.
+## **THE WORLD AS IT WAS, AROUND ONE POINT.** TDD-04 §8.2, US-0035.
 ##
-## PURE — no Node, no autoload, no lookups. What `LagCompHistory.rewind()` hands
+## PURE — no Node, no autoload, no lookups.
+##
+## **MOVED FROM `scripts/net/server/` INTO CORE BY US-0060**, when it gained its
+## first reader: `KillRules` is a pure rule and Core may not reference Net, so a
+## value type living one layer up made the rule that consumes it illegal. It was
+## always pure; it was filed beside the ring that produces it rather than beside
+## the layer that may use it. What `LagCompHistory.rewind()` hands
 ## back, and at M4 the only thing a kill or stun validation is allowed to measure
 ## against.
 ##

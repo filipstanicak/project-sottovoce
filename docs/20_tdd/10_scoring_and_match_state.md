@@ -182,6 +182,69 @@ flowchart TD
 (ADR-0010). A low-ping player wins a genuine tie; the alternative is trivially forgeable.
 `TEL-CONTEST-RESOLVED` logs both RTTs so the skew is measurable.
 
+### 3.1 What US-0060 built, and the four places the flowchart needed a decision
+
+**2026-08-26.** The diagram above is what shipped. Four things it does not say:
+
+**THE TARGET IS THE NEAREST BODY IN RANGE AND CONE, NOT THE CONTRACT.** The flowchart's
+`D` asks whether the target *is* the contract, which presumes a target chosen elsewhere.
+`KillRules.resolve()` chooses the nearest living player inside both gates and then asks
+`D` of them — so a stranger standing between you and your contract absorbs the press and
+earns `TUN-SUSPICION-GAIN-FAILED-KILL`, which is `TUN-KILL-INVALID-TARGET-PENALTY`'s own
+sentence: *you cannot safely test whether a stranger is your contract.* Nearest rather than
+first, because iteration order over peers is join order and a first-match rule would resolve
+the same geometry differently in two matches.
+
+**THE RANGE IS THREE-DIMENSIONAL AND THE CONE IS HORIZONTAL.** Two different questions:
+"can I reach you" is a distance and "am I facing you" is a bearing, and this game has no aim
+pitch to put in a cone. A horizontal reach would put the roof stratum — 3.5 m up — inside
+`TUN-KILL-RANGE` of the street below it.
+
+**THE CONTRACT READ IS THE ANNOUNCED ONE, NEVER THE GRAPH'S.** `SYS-CONTRACT` repairs the
+cycle in the tick a death resolves and holds the announcement for
+`TUN-CONTRACT-REASSIGN-DELAY`. Reading the graph would let a killer kill somebody they have
+not been told about — which does not merely break the breath, it *pays* pressing the button
+at random during it.
+
+**AND A SAME-TICK CONTEST TIE BREAKS ON ARRIVAL ORDER.** §8.4 resolves contests by server
+receive **tick**, and twelve ticks is ample resolution for a 0.4 s window — but two
+initiations do land on one tick, and the two obvious tie-breaks are both wrong. Iterating
+`ctx.pawns` is *join* order, which hands the earliest-joined player every tie for the whole
+match; a seeded coin makes the most decisive moment in the game random.
+`MatchDirector.enqueue_input` stamps a monotonic `InputCommand.received_ordinal`, because
+that is the one point in the process that sees packets in the order the socket delivered
+them. It is server-side scratch and is never serialised.
+
+### 3.2 What is NOT in the kill path, and one contradiction
+
+**THERE IS NO LINE-OF-SIGHT CHECK.** The flowchart above has none — Cinderfall, contract,
+range, cone, contest — and none was added, because adding one is a gameplay rule no
+criterion asked for. **As built, a kill through a market stall at 2.4 m is legal.**
+[`04_networking.md`](04_networking.md) §10's test table implies otherwise
+(*"NPC-occluded LOS clear in the past"*). The two disagree; resolving it is the owner's.
+
+**AND THE CONTEST LOSER'S STAGGER IS AN INITIATION LOCKOUT, NOT A MOVEMENT ONE.**
+[`../10_gdd/02_player_controller.md`](../10_gdd/02_player_controller.md) §3's normative
+diagram declares fifteen states and **none of them is a stagger**, so there is nothing to
+transition into — while three separate rules need one: `TUN-KILL-CONTEST-STAGGER`,
+`TUN-STUN-INVALID-STAGGER` and `TUN-LUNGE-WHIFF-STAGGER`. What is built matches §5's
+"losing a race should cost tempo, not the match": the loser cannot initiate for 1.5 s, takes
+no suspicion, no points and no lockout. A sixteenth state amends a normative diagram and is
+the owner's.
+
+### 3.3 File and test state
+
+| File | Holds | State |
+|---|---|---|
+| `scripts/core/combat/kill_verdict.gd` | Why a press did or did not land | **Built**, US-0060 |
+| `scripts/core/combat/kill_rules.gd` | Target selection, range, cone, against a `RewoundWorld` | **Built**, US-0060 |
+| `scripts/core/combat/kill_contest.gd` | Who was first | **Built**, US-0060 |
+| `scripts/core/combat/rewind_clamp.gd` | How far back a validation may reach | **Built**, US-0060 |
+| `scripts/core/combat/rewound_world.gd` | The world as it was | **Built**, US-0035; **moved into Core** by US-0060 |
+| `scripts/systems/combat/kill_system.gd` | The sequencing and the consequences | **Built**, US-0060 |
+| `scripts/pawn/states/dead_state.gd` | The victim's state, with no exit until `SYS-SPAWN` | **Built**, US-0060 |
+| `scripts/systems/combat/stun_system.gd` | §4 | US-0061 |
+
 ---
 
 ## 4. `SYS-STUN`

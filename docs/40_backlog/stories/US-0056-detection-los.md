@@ -36,14 +36,26 @@ occlusion can never disagree.
 - [x] NOT blocked by NPCs, other players or corpses.
       **The mask is the rule** — `WORLD` alone, and they are all on `PAWN`/`NPC`.
 - [ ] `at_tick` rewinds for kill and stun validation; otherwise current.
-      **Refused rather than faked.** Geometry does not move, so a rewound query against the world
-      alone would answer exactly as a current one and look correct while the players it is about
-      sat at today's positions. `RewoundWorld` carries those; `SYS-KILL` (US-0060) pairs the two.
+      **Still refused, and US-0060 sharpened the reason rather than clearing it.** The
+      original argument was that geometry does not move, so a rewound query would answer
+      exactly as a current one while looking correct about players who sat at today's
+      positions. What US-0060 adds is that **kill validation performs no line-of-sight query
+      at all**: TDD-10 §3's flowchart is Cinderfall, contract, range, cone, contest, and
+      nothing else. So the rewound form still has no caller — and a query with no caller that
+      answers plausibly is exactly the shape this criterion was left unticked to avoid.
+      What *did* become rewindable is the cinder-cloud half: `CinderfallVolumes` records a
+      lit tick as well as an expiry, and every liveness question now takes the tick it is
+      asked about.
 - [ ] Called by lock progression, Focus tracking and kill validation.
-      **One of the three exists.** `SYS-COMPASS`'s lock calls it as of US-0058 —
-      `TUN-COMPASS-LOCK-REQUIRES-LOS` — and `test_lock_through_crowd.gd` measures the ladder:
-      zero raycasts for a hunter facing away, one for a hunter watching. Focus tracking is
-      US-0064 and kill validation is US-0060.
+      **Two callers exist and the third is not going to be kill validation.**
+      `SYS-COMPASS`'s lock calls it as of US-0058 — `TUN-COMPASS-LOCK-REQUIRES-LOS` — and
+      `test_lock_through_crowd.gd` measures the ladder: zero raycasts for a hunter facing
+      away, one for a hunter watching. **US-0060 added the witnessed-kill check**, which asks
+      whether any living player has a clear line to a body at the contact frame.
+      **Kill validation itself never asks**: TDD-10 §3's flowchart has no line-of-sight node,
+      so as built a kill through a market stall at 2.4 m is legal. TDD-04 §10's test table
+      implies otherwise. That contradiction is reported in US-0060 and is the owner's.
+      Focus tracking is US-0064.
 
 ## Test notes
 
