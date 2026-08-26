@@ -18,8 +18,8 @@ extends RefCounted
 ## and it is the one moment in a hunt where being wrong matters most.
 const NO_CONTRACT := 255
 
-## peer -> `[bearing_radians, distance_bucket]`. Only hunters with an announced
-## contract have an entry.
+## peer -> `[bearing_radians, distance_bucket, lock_fraction, portrait_revealed]`.
+## Only hunters with an announced contract have an entry.
 var _readings: Dictionary = {}
 
 
@@ -28,7 +28,32 @@ func clear() -> void:
 
 
 func set_reading(peer: int, bearing_radians: float, bucket: int) -> void:
-	_readings[peer] = [bearing_radians, bucket]
+	_readings[peer] = [bearing_radians, bucket, 0.0, false]
+
+
+## How full this hunter's lock arc is, `[0, 1]`, and whether the contract portrait
+## has been earned. Written after the reading because the lock's conditions need
+## the bearing's own geometry — one distance, computed once.
+func set_lock(peer: int, fraction: float, portrait: bool) -> void:
+	if not _readings.has(peer):
+		return
+	var row := _readings[peer] as Array
+	row[2] = fraction
+	row[3] = portrait
+
+
+func lock_of(peer: int) -> float:
+	if not _readings.has(peer):
+		return 0.0
+	return float((_readings[peer] as Array)[2])
+
+
+## **ASM-0030.** A hunter with no reading has no portrait: the portrait is a
+## property of a contract, and they have none.
+func portrait_of(peer: int) -> bool:
+	if not _readings.has(peer):
+		return false
+	return bool((_readings[peer] as Array)[3])
 
 
 func has_reading(peer: int) -> bool:

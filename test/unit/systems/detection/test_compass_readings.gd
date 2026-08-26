@@ -137,15 +137,30 @@ func test_a_contract_who_left_leaves_no_bearing_behind() -> void:
 	assert_false(_ctx.compass.has_reading(HUNTER), "a departed contract still had a bearing")
 
 
-func test_the_reading_costs_no_raycast() -> void:
-	# Bearing and distance are arithmetic. The raycasts TDD-07 §4.3 budgets belong
-	# to the **lock**, which is US-0058's — and a Compass gated on line of sight
-	# would stop pointing whenever the contract stepped behind a stall, which is
-	# most of a hunt.
+func test_the_bearing_is_not_gated_on_line_of_sight() -> void:
+	# **A COMPASS THAT NEEDED A CLEAR LINE WOULD STOP POINTING FOR MOST OF A HUNT.**
+	# Bearing and distance are arithmetic; the raycast belongs to the **lock**
+	# (US-0058), which is gated on `TUN-COMPASS-LOCK-REQUIRES-LOS` and is a
+	# different question.
+	#
+	# This assertion used to read "the pass spends no raycast", which was true of
+	# US-0057 and stopped being true the moment the lock arrived — and it was never
+	# the property that mattered. What matters is that a wall does not switch the
+	# Compass off.
+	var wall := StaticBody3D.new()
+	var shape := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = Vector3(8.0, 8.0, 1.0)
+	shape.shape = box
+	wall.add_child(shape)
+	wall.collision_layer = 1
+	add_child_autofree(wall)
+	wall.global_position = Vector3(0.0, 0.0, 10.0)
+	await get_tree().physics_frame
 	_tell(HUNTER, PREY)
 	_resolve()
-	assert_true(_ctx.compass.has_reading(HUNTER), "nothing was read — this proves nothing")
-	assert_eq(_system.raycasts_last_tick, 0, "the Compass pass spent a raycast")
+	assert_true(_ctx.compass.has_reading(HUNTER), "a wall switched the Compass off")
+	assert_eq(_ctx.compass.lock_of(HUNTER), 0.0, "a lock filled through a wall")
 
 
 func test_a_contract_beyond_range_still_gets_a_bearing() -> void:

@@ -27,9 +27,18 @@
 class_name DetectionSystem
 extends GameSystem
 
+## A lock filled and a reveal was granted. The client's copy rides the snapshot's
+## `lock_fraction` and `portrait_revealed`, never this.
+signal lock_completed(hunter: int, contract: int)
+
 ## Cinder clouds, which are the one thing that blocks sight and is not geometry.
 ## Nothing places one until `SYS-ABILITY`.
 var cinderfall := CinderfallVolumes.new()
+
+## **THE LOCK ARC, THE REVEAL AND THE PORTRAIT.** US-0058. Pure and separable, so
+## the progression can be exercised against any pattern of interruption without a
+## district; this system supplies only the yes-or-no its conditions come to.
+var lock := CompassLock.new()
 
 ## How many raycasts the last pass spent. **Zero today**, and the number is
 ## published rather than assumed because TDD-07 §4.3 budgets 2–6 against a naive
@@ -125,6 +134,49 @@ func _read_the_compass(hunter: int, ctx: MatchContext) -> void:
 	var bearing := CompassMath.shown_bearing(here.position, there.position, contract, ctx.tick, t)
 	var metres := CompassMath.distance_to(here.position, there.position)
 	ctx.compass.set_reading(hunter, bearing, Quantise.distance_to_bucket(metres))
+	_advance_the_lock(hunter, contract, here, there, metres, ctx)
+
+
+## **CONE, RANGE, LINE OF SIGHT - CHEAPEST FIRST.** GDD-03 §8.4, TDD-07 §4.5.
+##
+## This is `has_los()`'s **first caller**. The raycast is last on purpose: the cone
+## is one angle comparison and the range is a number already computed for the
+## bearing, so a hunter looking the wrong way costs nothing. TDD-07 §4.3's 2-6
+## raycasts a tick is that ladder, and `raycasts_last_tick` is what says whether it
+## holds.
+##
+## **`PASV-COLDREAD` IS NOT READ, BECAUSE THERE IS NOWHERE TO READ IT FROM.**
+## `NET-C2S-LOADOUT` is unbuilt and `PawnContext` has no passives field - the same
+## blocker as `PASV-STILLNESS` in `SYS-SUSPICION`. `CompassLock` takes the flag as
+## an argument and is tested both ways, so the day a loadout exists this is one
+## call site rather than a rule to re-derive.
+func _advance_the_lock(
+	hunter: int,
+	contract: int,
+	here: PawnContext,
+	there: PawnContext,
+	metres: float,
+	ctx: MatchContext
+) -> void:
+	var t := Tuning.compass
+	var can_lock := metres <= t.lock_range and _within_facing_cone(here, there.position, t)
+	if can_lock and t.lock_requires_los:
+		can_lock = has_los(sight_point(here.position), sight_point(there.position))
+	if lock.advance(hunter, contract, can_lock, MatchContext.net_dt(), false):
+		lock_completed.emit(hunter, contract)
+	ctx.compass.set_lock(hunter, lock.fraction_of(hunter), lock.portrait_revealed(hunter, contract))
+
+
+## Is `at` inside the hunter's own facing cone? `TUN-COMPASS-LOCK-CONE` is the
+## **total** width, so the test is against half of it.
+##
+## **THE HUNTER'S YAW, NOT THE COMPASS BEARING.** The bearing carries
+## `TUN-COMPASS-CONE-WOBBLE`'s lie; the lock must be gated on where the player is
+## actually looking, or a hunter aiming at the drifted cone would fail to lock a
+## contract standing exactly where they are pointing.
+func _within_facing_cone(here: PawnContext, at: Vector3, t: CompassTuning) -> bool:
+	var toward := CompassMath.bearing_to(here.position, at)
+	return absf(CompassMath.angle_between(here.yaw, toward)) <= deg_to_rad(t.lock_cone) * 0.5
 
 
 ## Who `peer` has been **told** they are hunting.
@@ -200,6 +252,7 @@ static func sight_point(at: Vector3) -> Vector3:
 
 func teardown() -> void:
 	cinderfall.clear()
+	lock.clear()
 	if _ctx != null:
 		_ctx.render_states.clear()
 		_ctx.compass.clear()

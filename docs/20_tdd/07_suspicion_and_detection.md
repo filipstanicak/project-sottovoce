@@ -544,6 +544,55 @@ func _advance_lock(hunter: PawnServer, target: PawnServer, dt: float) -> void:
 walking group — the target must be genuinely, continuously visible. A shorter fill would let
 hunters lock through crowds, which would make the crowd cosmetic.
 
+### 4.5.1 As built (US-0058), and one thing the documents do not settle
+
+`CompassLock` is pure and holds the arc, the reveal window, the cooldown and the portrait;
+`SYS-DETECTION` supplies the yes-or-no its conditions come to. That split is what lets the
+progression be exercised against any pattern of interruption without standing a district up.
+
+**THIS IS `has_los()`'s FIRST CALLER**, and the raycast is last in the ladder on purpose: the
+cone is one angle comparison and the range is a number already computed for the bearing, so a
+hunter looking the wrong way costs nothing. Measured, a hunter facing away spends **zero**
+raycasts and one watching their contract spends **one**, against §4.3's budget of 2-6.
+
+**THE CONE IS GATED ON THE HUNTER'S OWN YAW, NOT ON THE COMPASS BEARING.** The bearing carries
+`TUN-COMPASS-CONE-WOBBLE`'s lie; gating the lock on it would mean a hunter aiming at the drifted
+cone fails to lock a contract standing exactly where they are pointing. The wobble is a *display*
+of imprecision, never a change to where anybody is.
+
+**THE ARC IS NOT RESET ON COMPLETION.** §4.5's sketch already implies this and it is worth
+stating: a hunter holding a clear view keeps a full arc, and what stops the target being
+permanently outlined is `TUN-COMPASS-REVEAL-COOLDOWN`, not the arc emptying. Resetting it would
+make every re-reveal cost another 1.6 s of standing still, which is a much harsher rule than
+§8.4 argues for.
+
+**AND THE ARC RESETS ON REASSIGNMENT, SEPARATELY FROM THE PORTRAIT.** `CompassLock` tracks which
+contract the *arc* belongs to as well as which one the portrait was earned for. The first version
+inferred the reassignment from the portrait alone, so a hunter who had half-filled an arc and
+never completed it carried that half onto their next contract — progress toward identifying
+somebody they had stopped hunting, for free. `NOBODY` is deliberately **not** a reassignment: the
+`TUN-CONTRACT-REASSIGN-DELAY` breath would otherwise destroy a portrait earned before it.
+
+### 4.5.2 A leak in the protocol that ASM-0030 depends on, and it is not fixed here
+
+`NET-S2C-PLAYER-JOINED` is specified as `peer_id:u8, persona:u8` and `NET-S2C-CONTRACT-ASSIGNED`
+as `contract_peer:u8` — so a client that receives both can **join them and read its contract's
+persona directly**, with no lock, on the tick the contract is assigned.
+
+That defeats ASM-0030 entirely, contradicts GDD-03 §8.5, contradicts §5's own "not sent" table,
+and contradicts NETWORK_PROTOCOL §9's checklist line *"No payload contains the contract's persona"*.
+
+**Neither message is implemented** — both are lobby work, M5/M6 — so nothing leaks today. It is
+recorded rather than fixed because changing a merged `NET-` ID's payload is the owner's call.
+The candidate fixes, in the order they seem cheapest:
+
+1. `NET-S2C-PLAYER-JOINED` carries no persona; the client learns each player's appearance from
+   the mesh it draws, which is what a human does.
+2. Personas are sent for everyone **except** the recipient's contract, which is a per-observer
+   filter of the kind `render_state` already is.
+
+Option 1 is smaller and does not add a per-observer rule to a lobby message.
+
 ---
 
 ## 5. Interfaces
@@ -604,6 +653,7 @@ trap 14's shape, and the claim is worse than the absence because it stops anybod
 | `scripts/core/detection/render_matrix.gd` | Per-observer states for one tick | **Built**, US-0055 |
 | `scripts/core/compass/compass_math.gd` | The pulse curve and the wobbling cone (§8.2-8.3) | **Built**, US-0057 |
 | `scripts/core/compass/compass_board.gd` | One reading per hunter for one tick | **Built**, US-0057 |
+| `scripts/core/compass/compass_lock.gd` | The arc, the reveal window, the cooldown and ASM-0030's portrait | **Built**, US-0058 |
 
 ---
 
@@ -643,9 +693,9 @@ trap 14's whole cost is that the claim stops anybody checking.
 | `test_compass_curve.gd` | Every row of TUNABLES §4.2 within 1 ms - measured worst case 0.40 ms | **Built**, US-0057 |
 | `test_compass_cone.gd` | The wobble is deterministic, bounded by its amplitude, and out of step between contracts | **Built**, US-0057 |
 | `test_compass_readings.gd` | One reading per hunter with an *announced* contract, bucketed, no raycast | **Built**, US-0057 |
-| `test_lock_through_crowd.gd` | A lock cannot complete through a walking group's incidental gaps | US-0058 |
-| `test_lock_decay_faster.gd` | A broken lock drains 1.4× faster than it filled | US-0058 |
-| `test_portrait_permanent.gd` | Portrait stays revealed after the 1.5 s reveal ends, and resets on reassignment | US-0058 |
+| `test_lock_through_crowd.gd` | A lock cannot complete through a walking group's incidental gaps; the cone, the range and the raycast ladder | **Built**, US-0058 |
+| `test_lock_decay_faster.gd` | A broken lock drains 1.4x faster than it filled — **and a 55 % duty cycle still never completes**, which is what pins 1.4 rather than merely "at least 1.0" | **Built**, US-0058 |
+| `test_portrait_permanent.gd` | Portrait stays revealed after the 1.5 s reveal ends, and resets on reassignment | **Built**, US-0058 |
 
 ---
 
