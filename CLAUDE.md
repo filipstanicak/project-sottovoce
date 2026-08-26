@@ -338,7 +338,50 @@ as finished work.**
 The reference lets prey break line of sight and stay hidden until a pursuit bar
 empties, at which point **the hunter loses the contract**. Here a contract ends only
 in a death, so a hunt can never be survived, only postponed — and three of the
-reference's scoring bonuses have nothing to fire on. Not started, not storied.
+reference's scoring bonuses have nothing to fire on.
+
+**IT IS STORIED NOW: ADR-0014 AND US-0097, M5.** A chase opens on exactly the
+prey-warning condition — no new trigger, which is what makes US-0059 load-bearing
+rather than cosmetic — sight of the prey **refreshes** the bar rather than
+incrementing it, and an empty bar removes the hunter from the cycle and reinserts
+them under the constraints a respawn already uses. **Structurally an escape is a
+respawn without a death**, so it reaches `ContractCycle` through the two calls
+US-0049 already fuzzed over 10 000 events.
+
+**`TUN-PURSUIT-DURATION` IS DERIVED RATHER THAN CHOSEN: 10.7 s.** It is
+`TUN-COMPASS-WARN-RADIUS` over `TUN-SPEED-BLENDWALK`, so the chase ends at the
+moment the prey **could have walked out of warning range at civilian speed** — which
+means escaping never requires running. Design law 1 and ADR-0012 expressed as a
+duration instead of asserted about one.
+
+**AND BLENDING IS NOT FREE, WHICH IS THE RULE WORTH KNOWING.** A hunter with a clear
+line to a player in a held blend cannot pick them out of the pocket — **unless they
+had unbroken sight at the instant the blend began**, in which case they watched it
+happen. So the prey's line is *break the corner first, then blend*; blending in front
+of somebody looking straight at you buys nothing. That is GDD-03 §9.2's "the crowd
+hides you by being confusing, never by being solid" applied to a new consumer.
+
+**IT COSTS NO RAYCASTS.** The sight test asks about the hunter and their own contract
+— the same ordered pair the Compass lock already queries — so the wider pursuit cone
+runs first and the lock's narrower one is a pure angle test on the same result.
+
+**AND IT IS NEW MVP SCOPE WITH THE CUT NOT YET CHOSEN.** `SCOPE_FENCE.md` IN #5 now
+names escape and the file is at 0.2.0, but the fence's rule is that new scope arrives
+naming **what is cut to pay for it**, and that half is the owner's. Recommended:
+defer `ABIL-WHISPERBOLT` to post-MVP — the most expensive of the four abilities to
+build correctly, and one of eleven optional loadout items in the reference rather
+than a core verb. **Recorded as an outstanding payment in SCOPE_FENCE §1.1**, because
+an unpaid amendment to that table is how the fence stops meaning anything.
+
+**TWO OF THE REFERENCE'S ESCAPE BONUSES CAN NEVER FIRE HERE AND THAT IS KEPT.** Its
+multi-escape bonuses need two and three simultaneous pursuers; a Hamiltonian cycle
+gives every player exactly one incoming edge. The single-pursuer guarantee is what
+makes GDD-03 §7.4's validity proof work and is not for trading.
+
+**AND THE ADR INDEX HAD BEEN THREE ROWS SHORT SINCE 2026-08-05.** DECISION_LOG §2
+stopped at ADR-0011 while ADR-0012, 0013 and 0014 existed as files and as §1 log
+lines. Trap 14's shape in a table rather than in a claim: the index a reader consults
+to find a decision did not list it.
 
 ---
 

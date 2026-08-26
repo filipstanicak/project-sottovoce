@@ -1,11 +1,11 @@
 ---
 id: DOC-SCOPE-FENCE
 title: MVP Scope Fence
-version: 0.1.0
+version: 0.2.0
 status: draft
 owner: Documentation Architect
-last_updated: 2026-08-03
-depends_on: [DOC-GLOSSARY]
+last_updated: 2026-08-26
+depends_on: [DOC-GLOSSARY, ADR-0014]
 ---
 
 # MVP Scope Fence
@@ -32,7 +32,7 @@ scored, and want to play again.
 | 2 | **One mode** | Free-for-all "Contract". No teams, no objectives beyond the contract cycle. | M4 |
 | 3 | **Four personas** | `PERSONA-VETRAIO`, `PERSONA-CANTATRICE`, `PERSONA-LUCERNA`, `PERSONA-PESATORE`. Silhouette-distinct at 40 m. | M3 |
 | 4 | **Four abilities + one passive slot** | `ABIL-CINDERFALL`, `ABIL-WHISPERBOLT`, `ABIL-SECONDFACE`, `ABIL-LUNGE`; passives `PASV-STILLNESS`, `PASV-COLDREAD`, `PASV-SECONDWIND`. Two abilities + one passive equipped, locked at match start. | M5 |
-| 5 | **The full loop** | Compass, suspicion, blending, detection, kill, stun, respawn, contract reassignment, scoring with every bonus in the table. | M4 (core) → M5 (bonuses) |
+| 5 | **The full loop** | Compass, suspicion, blending, detection, kill, stun, **escape**, respawn, contract reassignment, scoring with every bonus in the table. **Escape added 2026-08-26 by [ADR-0014](adr/ADR-0014-the-escape-verb.md)**: a hunt that can only ever end in a death is half a loop, and the enumeration above described that half for four milestones without anybody noticing. | M4 (core) → M5 (bonuses, escape) |
 | 6 | **Crowd AI** | 60–90 NPCs, 8–12 clones per persona, filler archetypes, Stroll / Idle / WalkingGroup / Startle / Gawk behaviours, ≤ 2.0 ms/frame. | M3 |
 | 7 | **8-minute match** | Lobby → 5 s countdown → 8:00 play → 30 s Final Contract → results. Score decides the winner. | M6 |
 | 8 | **Lobby** | Direct-IP join, ready-up, persona and loadout selection, player list. | M6 |
@@ -42,7 +42,19 @@ scored, and want to play again.
 | 12 | **Windows + Linux desktop** | 1080p / 60 fps minimum on the reference machine. | M6 |
 | 13 | **CI** | GitHub Actions: headless import, `gdlint`, GUT unit tests, export templates. Green on `main` at all times. | M0 |
 
-### 1.1 What "IN" does not mean
+### 1.1 One amendment is outstanding a payment
+
+**2026-08-26.** [`ADR-0014`](adr/ADR-0014-the-escape-verb.md) added the escape verb to IN #5.
+The fence's rule is that new scope arrives with an ADR *naming what is being cut to pay for
+it*, and **that half is not yet decided** — the ADR recommends deferring `ABIL-WHISPERBOLT` to
+post-MVP and prices two alternatives in [`US-0097`](../40_backlog/stories/US-0097-the-escape-verb.md).
+
+Recorded here rather than left in the ADR, because **an unpaid amendment to this table is
+exactly how the fence stops meaning anything**. Until the cut is chosen, IN #4 still reads four
+abilities and IN #5 now reads one verb wider than it did, and the two cannot both be true of
+the same M5.
+
+### 1.2 What "IN" does not mean
 
 Being in scope does not license polish. Every item above ships at the fidelity required to
 answer one question: *is the loop fun with six humans?* Art, audio and UI are held at

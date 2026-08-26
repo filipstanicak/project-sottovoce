@@ -11,8 +11,9 @@ depends_on: [TDD-01-ARCHITECTURE, TDD-03-TICK, TDD-07-SUSPICION, GDD-03-SOCIAL-S
 # TDD Chapter 10 — Scoring and Match State
 
 > **Context restated.** Project Sottovoce is decided by **score**, not kills. Twelve stackable
-> bonuses price restraint: a full patient blend kill is worth 650 against a sprinting tackle's
-> 50. Several bonuses evaluate over time windows (`SCORE-PATIENT` 10 s, `SCORE-FOCUS` 6 s,
+> bonuses price restraint: a full patient blend kill is worth 750 against a sprinting tackle's
+> 100 (**re-priced 2026-08-26, ADR-0013** — was 650 against 50, before `SCORE-RECKLESS` was
+> neutralised and the stealth ladder was moved to the reference's weights). Several bonuses evaluate over time windows (`SCORE-PATIENT` 10 s, `SCORE-FOCUS` 6 s,
 > `SCORE-LONGHUNT` 20/45 s), one depends on the player's history within the current life
 > (`SCORE-VARIETY`), and a late-match phase doubles everything. Contracts form a single directed
 > **Hamiltonian cycle**, so **a contract can only be killed by its holder** — there is no

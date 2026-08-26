@@ -79,6 +79,10 @@ Otherwise a log line is sufficient.
 | 2026-08-26 | ADR-0013 | Never-do #13 excepted once: **a committed kill is not interruptible.** Stun keeps its range advantage, tier gate, freeze and lockout; it no longer rescues a victim at the moment of commitment. Reverses GDD-02 §3.2 rule 1. |
 | 2026-08-26 | ADR-0013 | `TUN-COMPASS-WARN-GIVES-DIRECTION` false → **true**. Reverses the rejection recorded under GDD-01 Law 5, which is preserved rather than deleted. |
 | 2026-08-26 | — | The scoring table is **owed a re-pricing** and is not in ADR-0013. Moving thesis enforcement out of mechanics without moving it into scoring leaves speed neither punished nor discouraged. |
+| 2026-08-26 | — | The re-pricing is **done**: `SCORE-SILENT` 100 → 200, `SCORE-PATIENT` 150 → 100, `SCORE-FOCUS` 100 → 150, `SCORE-RECKLESS` −50 → **0**. Invariant 18 rewritten from an ordering to a floor. **It narrowed the Patient : Aggressor ratio rather than widening it** — 2.68 : 1 → 2.55 : 1 — because removing the penalty is worth more to the Aggressor than the stealth uplift is to the Patient. |
+| 2026-08-26 | ADR-0014 | **The escape verb is added to the MVP.** A hunter who alerts their prey enters a chase; sight refreshes a timer, absence drains it, and an empty timer costs the hunter the contract. Structurally a respawn without a death. |
+| 2026-08-26 | ADR-0014 | `SCOPE_FENCE.md` IN #5 amended to name escape; the document is at 0.2.0. **The cut that pays for it is NOT decided** — recommended: defer `ABIL-WHISPERBOLT` to post-MVP. Recorded as an outstanding payment in §1.1 of that file. |
+| 2026-08-26 | — | The reference's **multi-escape bonuses are refused, permanently.** They need two and three simultaneous pursuers; a Hamiltonian cycle gives every player exactly one incoming edge. The single-pursuer guarantee underwrites GDD-03 §7.4's validity proof and is not for trading. |
 
 ---
 
@@ -97,6 +101,15 @@ Otherwise a log line is sufficient.
 | [ADR-0009](adr/ADR-0009-branching-strategy.md) | Trunk-based development | Accepted | — | 2026-08-03 |
 | [ADR-0010](adr/ADR-0010-lag-compensation.md) | Lag compensation scope and clamping | Accepted | — | 2026-08-03 |
 | [ADR-0011](adr/ADR-0011-engine-version-pin-4-7-1.md) | Engine version pin — Godot 4.7.1 stable | Accepted | ADR-0001 | 2026-08-04 |
+| [ADR-0012](adr/ADR-0012-slow-is-always-available.md) | Slowing down is always available, from every locomotion state | Accepted | — | 2026-08-05 |
+| [ADR-0013](adr/ADR-0013-mechanical-fidelity.md) | Mechanical fidelity to the reference title | Accepted | — | 2026-08-26 |
+| [ADR-0014](adr/ADR-0014-the-escape-verb.md) | The escape verb — a hunt that can be survived | Accepted | — | 2026-08-26 |
+
+**Three rows were missing from this table until 2026-08-26** — ADR-0012, ADR-0013 and ADR-0014
+existed as files and as §1 log lines while this index stopped at ADR-0011. Nothing was wrong
+with the decisions; what was wrong is that the index a reader consults to find them did not
+list them, which is [trap 14](../../CLAUDE.md)'s shape in a table rather than in a claim.
+**Adding an ADR means adding a row here**, and the file list under `adr/` is the check.
 
 ### 2.1 ADR statuses
 

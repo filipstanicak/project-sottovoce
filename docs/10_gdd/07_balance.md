@@ -133,6 +133,14 @@ account** and is therefore fixed by definition rather than tuned.
 | **Variety** `SCORE-VARIETY` | +50 × n | 0.5n | n = bonus types earned for the first time in the current life | See §3.1 — this one needs its own discussion. |
 | **Reckless** `SCORE-RECKLESS` | **0** | 0 | Suspicion ≥ 70 (Exposed) at initiation | **Neutralised 2026-08-26 from −50, ADR-0013. There is now no points penalty in the game.** The reference has none either: its enforcement is that a careless kill *earns less*, never that it costs. An Exposed kill here already forfeits Silent and Patient — 300 points — and a further −50 was punishment stacked on top of an enforcement that was already doing the work. **The event still fires and is still shown, at zero**, because the feed line saying *you were seen* is the half that teaches. |
 | **Stun** `SCORE-STUN` | 100 | 1.0 | Valid stun on your pursuer | **Set exactly equal to a base kill.** This is a statement, not a calculation: successfully defending yourself is worth as much as successfully attacking. Asserted as TUNABLES invariant §17.19 so it cannot drift. |
+| **Escape** `SCORE-ESCAPE` | +100 | 1.0 | Your pursuer's chase timer emptied while you stayed unseen | **New 2026-08-26, [ADR-0014](../00_meta/adr/ADR-0014-the-escape-verb.md). Dormant until US-0097** — nothing yet computes a chase. The reference's own value, and it lands **equal to a base kill and to `SCORE-STUN`**, which is the same statement those two already make about each other: surviving a hunt is worth what ending one is. |
+| **Close Call** `SCORE-CLOSECALL` | +50 | 0.5 | …and your pursuer was still within `TUN-PURSUIT-CLOSECALL-RADIUS` when it emptied | **New 2026-08-26, ADR-0014. Dormant until US-0097.** The reference's own value. Half an escape, because escaping from under the hunter's nose is the same achievement performed under pressure rather than a different achievement. |
+
+**The last two are the only bonuses in this table that are not evaluated at a kill.** Every
+other row is folded at `INITIATION` on somebody's contract; these two fold when a chase timer
+empties, and they are paid to the player who was being hunted. TDD-10 §6's twelve-bonus fold is
+unchanged — these are a second, much smaller fold beside it, not a thirteenth and fourteenth
+case inside it.
 | **Death** | 0 | — | — | **Dying costs no points, only time.** A points penalty would make a trailing player's position unrecoverable and push them toward the safest, most passive play — the opposite of what a trailing player should do. It also protects the low-investment player persona ("Mei", [`01_vision.md`](01_vision.md) §3.3) from being driven into a hole. |
 | **Invalid stun** | 0 | — | Stunning a non-pursuer | Plus `TUN-STUN-INVALID-STAGGER` 2.0 s and `TUN-STUN-INVALID-SUSPICION` +20. |
 
@@ -397,7 +405,7 @@ last two touch the bonuses that *are* the thesis.
 | 2 | Raise `TUN-SCORE-FROMABOVE` 100 → 150 | +25 expected for Aggressor. | Pays for the roof route, which is the aggressive player's distinctive tool, without making speed safe. |
 | 3 | Reduce `TUN-STUN-LOCKOUT` 12 s → 10 s | Lowers the Aggressor's effective `T` from 86 s to ~82 s. | Softens the punishment without weakening the counter itself. **Do not go below 8 s** — see [`03_social_stealth.md`](03_social_stealth.md) §10.4. |
 | 4 | Reduce `TUN-SCORE-RECKLESS` −50 → −25 | +14 expected for Aggressor. | Now touching the thesis, mildly. |
-| 5 | Reduce `TUN-SCORE-BLENDED` 200 → 150 | −18 expected for Patient. | **Last resort.** This is the thesis priced. TUNABLES invariant §17.18 requires `BLENDED > PATIENT > SILENT`; do not invert it. |
+| 5 | Reduce `TUN-SCORE-BLENDED` 200 → 150 | −18 expected for Patient. | **Last resort.** This is the thesis priced, and it is the one value in the table the reference agrees with exactly. TUNABLES invariant §17.18 no longer constrains it — **amended 2026-08-26 to `SILENT + PATIENT >= 3 × CONTRACT`**, a floor on the stealth ladder rather than an ordering — so nothing mechanical stops this change, which is precisely why it is last. |
 
 **Explicitly not on the list:** weakening stun, adding a suspicion decay while running, or
 reducing the crowd. Each of those would trade the design's identity for a balance number.
@@ -695,7 +703,7 @@ append-only discipline.
 - [ ] A match continues down to `TUN-LOBBY-MIN-PLAYERS` and ends with results shown below it.
 - [ ] Every bonus in §3 is implemented with its exact value from `ScoringTuning`; no literals.
 - [ ] `TUN-SCORE-STUN == TUN-SCORE-CONTRACT` (TUNABLES invariant §17.19).
-- [ ] `TUN-SCORE-BLENDED > TUN-SCORE-PATIENT > TUN-SCORE-SILENT` (invariant §17.18).
+- [ ] `TUN-SCORE-SILENT + TUN-SCORE-PATIENT >= 3 × TUN-SCORE-CONTRACT` (invariant §17.18, amended 2026-08-26 by ADR-0013 from the old `BLENDED > PATIENT > SILENT` ordering).
 - [ ] Death awards and deducts zero points.
 - [ ] A kill on a non-contract player is rejected and applies `TUN-SUSPICION-GAIN-FAILED-KILL`; `test_only_contract_killable.gd` asserts no code path allows otherwise.
 - [ ] `SCORE-VARIETY` excludes itself, `SCORE-CONTRACT` and `SCORE-RECKLESS` from its count (ASM-0017).
