@@ -141,7 +141,7 @@ frame, absorbed silently by the reconciler.
 | `NET-S2C-STUN-RESULT` | E | Rel | on event | `stunner:u8`, `target:u8`, `tick:u32`, `valid:bool`, `lockout_ticks:u16` |
 | `NET-S2C-ABILITY-STARTED` | E | Rel | on event | `peer:u8`, `ability:u8`, `origin:3×f32`, `dir:3×f32`, `tick:u32`. **Broadcast to all clients in tell radius — the legibility law on the wire** |
 | `NET-S2C-ABILITY-DENIED` | E | Rel | on event | `slot:u8`, `reason:u8`. Requester only |
-| `NET-S2C-PREY-WARNING` | E | Rel | on event | **`tick:u32` only** — see §5 |
+| `NET-S2C-PREY-WARNING` | E | Rel | on event | `bearing:u8`, `bucket:u8`. **Sent to the prey alone. Built US-0059.** **Amended 2026-08-26 (ADR-0013)** from `tick:u32` only: the reference marks a revealed pursuer with direction and range, so this does too. The bearing is a **world** angle at `Quantise.YAW_STEP` — the same precision the hunter's own Compass rides at, because one ring must have one rule — with `TUN-COMPASS-CONE-WOBBLE` already applied server-side. The bucket is `Quantise.BUCKET_STEP`. **The tick is gone rather than kept**: a reliable on-event message needs no stamp for a 1.2 s flash, and a third field is the one this row exists to refuse. See §5 |
 | `NET-S2C-SCORE-EVENT` | E | Rel | on event | `event_id:u32`, `tick:u32`, `kind:u8`, `actor:u8`, `subject:u8`, `base:i16`, `mult:u8`, `group:u16` |
 | `NET-S2C-PHASE-CHANGED` | E | Rel | on change | `phase:u8`, `tick:u32`, `multiplier:u8` |
 | `NET-S2C-MATCH-END` | E | Rel | once | Full `ScoreEvent` log (~24 KB) for the results fold |
@@ -238,7 +238,7 @@ cannot be broken at all.
 | Contract's **exact position** | Deletes the search | `bearing` + `distance_bucket` only |
 | Contract's **elevation** | The Compass is 2D by design | No z component anywhere in `compass` |
 | Contract's **suspicion or tier** | You see the consequence, never the value | Not in the payload |
-| **Prey-warning direction** | The panicked scan of a crowd is the best moment in the game | `NET-S2C-PREY-WARNING` carries **only a tick — there is no field to leak** |
+| **Prey-warning IDENTITY** | A persona here collapses ~78 candidates to one, permanently and for free | `NET-S2C-PREY-WARNING` carries a bearing and a bucket and **has no field that names anybody**. `test_warning_names_nobody.gd` refuses one on the wire and in this row; `test_prey_warning_signal_arity.gd` refuses one on the event bus |
 | Other players' **suspicion values** | Anonymity | `render_state` is 2 bits, per observer |
 | Other players' **cooldowns or loadouts** | Kit-reading is a skill | Not in the payload |
 | A **global kill feed** | Would reveal how the contract cycle shifted, for free | `NET-S2C-KILL-RESULT` goes to killer and victim only |
@@ -310,7 +310,7 @@ reach, putting the cost of a bad connection on the player who has one.
 
 - [ ] Every C2S message has a non-empty authority check, and the handler calls `_authorise` first.
 - [ ] No C2S message contains an outcome field.
-- [ ] `NET-S2C-PREY-WARNING` has exactly one field.
+- [ ] `NET-S2C-PREY-WARNING` has exactly two fields, and neither names a player.
 - [ ] No payload contains the contract's persona, exact position, elevation or tier.
 - [ ] `render_state` is computed per observer.
 - [ ] `KillSystem` / `StunSystem` never read `client_tick`.

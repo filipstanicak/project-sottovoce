@@ -461,10 +461,21 @@ func _evaluate_warning(prey: PawnServer, pursuer: PawnServer, tick: int) -> bool
     return true
 ```
 
-**The payload is a tick and nothing else** ([`04_networking.md`](04_networking.md) §6.4). There
-is no direction field, no distance field, no identity field. `TUN-COMPASS-WARN-GIVES-DIRECTION`
-is `false`, and the protocol makes it *unimplementable* rather than merely disabled — there is
-no field to accidentally render.
+**AMENDED 2026-08-26 (ADR-0013, built US-0059). The payload is a bearing and a distance
+bucket.** It was a tick and nothing else, with the protocol making direction *unimplementable*
+rather than merely disabled; the reference marks a revealed pursuer with direction and range, so
+`TUN-COMPASS-WARN-GIVES-DIRECTION` is `true` and there are two fields.
+
+**What is unimplementable now is an identity**, and that is the half worth keeping: no persona,
+no wire slot, no colour. `test_warning_names_nobody.gd` refuses one on the RPC *and* in this
+document's own catalogue row; `test_prey_warning_signal_arity.gd` refuses one on the event bus.
+A persona here would collapse the crowd from seventy-eight candidates to one, permanently and
+for free, and `ASM-0030`'s Compass lock would have nothing left to earn.
+
+**The sketch above is superseded in one more way**: `prey.last_warning_tick` is not a field on
+the pawn. `PawnContext` is replayed during prediction reconciliation, so a cooldown stamped
+there would be walked once per replayed command — the same reason the impulse queue moved onto
+`MatchContext` in §2.2. It lives in `PreyWarning`, which `SYS-DETECTION` owns.
 
 **The tier gate has three consequences:**
 
@@ -475,6 +486,38 @@ no field to accidentally render.
    §17.8). "I was warned about them" and "I can stun them" are the same condition. Two
    thresholds would be unlearnable; one makes the warning functionally an instruction: *turn
    around and stun*.
+
+### 4.4.0 As built (US-0059), and one thing a falsification pass found
+
+**IT COSTS NOTHING, BECAUSE IT RIDES A PASS THAT WAS ALREADY LOOKING.** `_resolve_pair` already
+computes `hunted_by` for the render state, which is exactly the relationship the warning is
+about. The evaluation is a distance, a tier comparison and a cooldown lookup on the pairs the
+early-out ladder has already admitted — no second pass, no raycast, and `raycasts_last_tick`
+is unmoved.
+
+**THE BEARING IS WOBBLED, ON THE SAME RULE THE HUNTER'S OWN READING USES.** GDD-03 §9.1 puts
+this marker on the same Compass ring, and one ring must have one rule: a prey whose warning
+arrow was exact while their hunting arrow drifted would learn that the instrument means two
+different things depending on which way it points. The phase is keyed on the **pursuer**, so
+the lie told about one hunter is uncorrelated with the lie told about the next — US-0057's
+reason for mixing the phase rather than using an id raw. It conceals nobody and is not meant
+to: at `TUN-COMPASS-WARN-RADIUS` the wobble is about a metre of lateral error.
+
+**AND THE COOLDOWN RE-ARMS WHEN THE PURSUER CHANGES**, which no document asked for and which is
+`CompassLock`'s own lesson from US-0058 in a second place. Keyed on the prey alone, a repair
+handing them a new pursuer would leave the new one **silenced for up to
+`TUN-COMPASS-WARN-COOLDOWN`** — 2.5 s of the prey's only warning, suppressed by a relationship
+that no longer exists.
+
+**THE TIER GATE IN `_consider_warning` IS UNREACHABLE-AS-DIFFERENT, AND IT IS KEPT ANYWAY.**
+Invariant §17.8 pins `TUN-COMPASS-WARN-MIN-TIER` equal to `TUN-SUSPICION-TIER-NOTICED`, so no
+profile `Tuning.adopt()` accepts can separate "at or above the warn floor" from
+`_resolve_pair`'s Anonymous early-out. **A planted `>= ANONYMOUS` leaves every test green** —
+measured while falsifying US-0059's guards, not assumed. It is not deleted because the rung
+above is an early-out *for cost*, and resting the warning's correctness on a performance
+optimisation means widening the ladder later would start warning prey about Anonymous pursuers
+with nothing failing. `test_warning_tier_gate.gd` carries the tripwire and says what it cannot
+see.
 
 ### 4.4.1 The bearing and the pulse, as built (US-0057)
 
@@ -654,6 +697,7 @@ trap 14's shape, and the claim is worse than the absence because it stops anybod
 | `scripts/core/compass/compass_math.gd` | The pulse curve and the wobbling cone (§8.2-8.3) | **Built**, US-0057 |
 | `scripts/core/compass/compass_board.gd` | One reading per hunter for one tick | **Built**, US-0057 |
 | `scripts/core/compass/compass_lock.gd` | The arc, the reveal window, the cooldown and ASM-0030's portrait | **Built**, US-0058 |
+| `scripts/core/compass/prey_warning.gd` | The prey warning's re-trigger cooldown, and the pursuer-change that defeats it (§4.4.0) | **Built**, US-0059 |
 
 ---
 
@@ -687,9 +731,10 @@ trap 14's whole cost is that the claim stops anybody checking.
 | `test_detection_system.gd` | The pass reaches every ordered pair, reads the *announced* contract, and spends no raycast | **Built**, US-0055 |
 | `test_los_ignores_npcs.gd` | A wall of 10 NPCs between two players does not block LOS | **Built**, US-0056 |
 | `test_los_single_query.gd` | **Source scan:** nothing under `systems/`, `net/` or `server/` raycasts but `DetectionSystem` | **Built**, US-0056. The *consumers* half waits for US-0058 and US-0064 |
-| `test_warning_tier_gate.gd` | An Anonymous pursuer at 2 m fires no warning; a Noticed pursuer at 14 m does | US-0059 |
-| `test_warning_payload_empty.gd` | `NET-S2C-PREY-WARNING` has exactly one field | US-0059. The **signal**'s arity is already guarded by `test/arch/test_prey_warning_signal_arity.gd` |
-| `test_warning_thresholds_match.gd` | `TUN-COMPASS-WARN-MIN-TIER == TUN-STUN-MIN-TIER` (invariant §17.8) | US-0059 |
+| `test_warning_tier_gate.gd` | An Anonymous pursuer warns nobody at **any** of five ranges; a Noticed pursuer at 14 m warns the prey and not the pursuer; the bearing is inside the wobble; the distance is a bucket | **Built**, US-0059. **Its ring is four players**, because a three-player cycle has no strangers — the first version read one warning where it expected none, which is `test_detection_system.gd`'s US-0055 finding in a second place |
+| ~~`test_warning_payload_empty.gd`~~ | The payload is empty | **Superseded by ADR-0013.** The payload is a bearing and a bucket now; what needed asserting was that neither *names* anybody, so it was written as `test/arch/test_warning_names_nobody.gd` instead — across the RPC signature, the field count, the catalogue row and `rpc_id` versus `rpc` |
+| `test_warning_cooldown.gd` | Five seconds of a held chase produce the tuned number of stings rather than 150; a **new pursuer** defeats the cooldown; a refused warning arms nothing; a departed peer leaves nothing behind | **Built**, US-0059 |
+| `test_warning_thresholds_match.gd` | `TUN-COMPASS-WARN-MIN-TIER == TUN-STUN-MIN-TIER` (invariant §17.8) | **Never written under this name.** It is `test_prey_warning_signal_arity.gd`'s `test_the_tier_gate_is_still_what_makes_a_good_hunter_invisible`, which asserts the two thresholds and that the warn floor is above Anonymous |
 | `test_compass_curve.gd` | Every row of TUNABLES §4.2 within 1 ms - measured worst case 0.40 ms | **Built**, US-0057 |
 | `test_compass_cone.gd` | The wobble is deterministic, bounded by its amplitude, and out of step between contracts | **Built**, US-0057 |
 | `test_compass_readings.gd` | One reading per hunter with an *announced* contract, bucketed, no raycast | **Built**, US-0057 |

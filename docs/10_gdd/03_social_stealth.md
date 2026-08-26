@@ -1048,6 +1048,13 @@ The single most important piece of feedback in the game, and the prey's only war
 are.* A bearing and a distance bucket, on the same Compass ring the hunter's own reading uses,
 growing as they close.
 
+**And it drifts, exactly as the hunter's own reading drifts.** `TUN-COMPASS-CONE-WOBBLE` is
+applied to this bearing too (US-0059), keyed on the pursuer so that the lie told about one
+hunter is uncorrelated with the lie told about the next. **One ring, one rule** — a prey whose
+warning arrow was exact while their hunting arrow wandered would learn that the instrument
+means two different things depending on which way it points. At 15 m the drift is about a metre
+of lateral error, so it conceals nobody and is not meant to.
+
 **What it still does not tell you:** who they are. No persona, no name, no identity — a marker
 on a bearing. Working out which of the eleven people standing in that direction is the player
 remains the whole of the problem, and `ASM-0030`'s portrait is still the only thing that ever

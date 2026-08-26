@@ -79,16 +79,25 @@ signal tuning_reloaded
 ## EVT-SCORE-EVENT-APPENDED
 signal score_event_appended(event: RefCounted)
 
-## THE PREY WARNING. Takes ZERO parameters, deliberately.
+## THE PREY WARNING. A world bearing in radians and a Quantise.BUCKET_STEP
+## distance bucket — and nothing else, ever.
 ##
-## Directionlessness is enforced at three layers: NET-S2C-PREY-WARNING carries
-## only a tick, this signal has no parameter, and the widget's flash is
-## non-directional with a mono sting. There is nothing a widget COULD render.
+## AMENDED 2026-08-26 (ADR-0013, US-0059). This signal took zero parameters until
+## then, as the middle layer of a three-layer directionlessness rule. The
+## reference marks a revealed pursuer with bearing and range, so this does too.
+## The old argument is preserved in GDD-01 Law 5 rather than deleted, because the
+## cost it names — the panicked scan of a crowd — is real and was knowingly paid.
 ##
-## The panicked scan of a crowd is the best moment in the game, and a rule
-## enforced in one widget does not survive refactoring.
+## WHAT SURVIVES IS THE HALF THAT MATTERS MORE: it says WHERE, never WHO. A
+## persona, a slot, a name or a colour here would collapse the crowd from
+## seventy-eight candidates to one, permanently and for free, and ASM-0030's
+## Compass lock would have nothing left to earn. test_prey_warning_signal_arity.gd
+## refuses an identifying parameter on this line.
+##
+## The bearing is WORLD. A widget rotates it by the local yaw every rendered
+## frame, the same decision SYS-COMPASS made in US-0057.
 ## EVT-PREY-WARNING-TRIGGERED
-signal prey_warning_triggered
+signal prey_warning_triggered(bearing: float, bucket: int)
 
 ## Any ability started within its tell radius. This is the tell channel that
 ## reaches a victim who was not looking at the caster (design law 3).

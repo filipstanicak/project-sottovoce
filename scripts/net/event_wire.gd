@@ -29,6 +29,15 @@ signal contract_assigned(contract_slot: int, reason: int)
 ## feed later disagreed with.
 signal kill_resolved(killer_slot: int, victim_slot: int, tick: int, bonus_group: int)
 
+## `NET-S2C-PREY-WARNING` arrived. CLIENT SIDE. **A world bearing in radians and a
+## `Quantise.BUCKET_STEP` distance bucket, and nothing else.**
+##
+## The bearing is dequantised here so no consumer has to know the wire's step, and
+## it is **world** rather than camera-relative: the client rotates it by its own
+## yaw every rendered frame, because a camera-relative angle computed server-side
+## would lag the mouse by the round trip on a marker whose whole job is to point.
+signal prey_warned(bearing_radians: float, bucket: int)
+
 
 ## `NET-S2C-CONTRACT-ASSIGNED`. SERVER SIDE, **to the holder only**.
 ##
@@ -67,3 +76,28 @@ func send_kill(peer: int, killer_slot: int, victim_slot: int, tick: int, group: 
 @rpc("authority", "call_remote", "reliable", Messages.Channel.EVENT)
 func s2c_kill_result(killer_slot: int, victim_slot: int, tick: int, bonus_group: int) -> void:
 	kill_resolved.emit(killer_slot, victim_slot, tick, bonus_group)
+
+
+## `NET-S2C-PREY-WARNING`. SERVER SIDE, **to the prey alone**.
+##
+## **THE QUANTISATION IS THE WIRE'S JOB AND HAPPENS HERE**, at `Quantise.YAW_STEP`
+## — the same step the hunter's own Compass bearing rides in every snapshot. The
+## prey must not be given a *finer* bearing than the hunter is: one ring, one
+## precision, or a player would learn that the instrument means two different
+## things depending on which way it points.
+func send_prey_warning(peer: int, bearing_radians: float, bucket: int) -> void:
+	if not Net.is_server:
+		return
+	s2c_prey_warning.rpc_id(peer, Quantise.yaw_to_u8(bearing_radians), bucket)
+
+
+## `NET-S2C-PREY-WARNING`. CLIENT SIDE.
+##
+## **TWO FIELDS, AND NEITHER OF THEM NAMES ANYBODY.** GDD-03 §9.1: the warning says
+## *where*, never *who*. A persona, a wire slot or a colour here would collapse the
+## crowd from seventy-eight candidates to one, permanently and for free, and
+## `ASM-0030`'s Compass lock — the only thing in the game that earns an identity —
+## would have nothing left to earn. `test_warning_names_nobody.gd` refuses it.
+@rpc("authority", "call_remote", "reliable", Messages.Channel.EVENT)
+func s2c_prey_warning(bearing_byte: int, bucket: int) -> void:
+	prey_warned.emit(Quantise.u8_to_yaw(bearing_byte), bucket)

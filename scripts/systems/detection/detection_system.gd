@@ -31,6 +31,17 @@ extends GameSystem
 ## `lock_fraction` and `portrait_revealed`, never this.
 signal lock_completed(hunter: int, contract: int)
 
+## **THE PREY'S ONLY WARNING.** US-0059. `bearing` is a *world* angle with the
+## Compass wobble already applied and `bucket` is a `Quantise.BUCKET_STEP` step,
+## so nothing downstream of here holds an exact metre or a camera-relative angle.
+##
+## **THERE IS NOWHERE IN THIS SIGNATURE TO PUT AN IDENTITY**, which is the rule
+## rather than an omission: `test_prey_warning_signal_arity.gd` refuses one on the
+## event bus and `test_warning_names_nobody.gd` refuses one on the wire. A persona
+## here would collapse the crowd from seventy-eight candidates to one, for free,
+## and leave a Compass lock with nothing to earn.
+signal prey_warned(prey: int, bearing: float, bucket: int)
+
 ## Cinder clouds, which are the one thing that blocks sight and is not geometry.
 ## Nothing places one until `SYS-ABILITY`.
 ##
@@ -54,6 +65,15 @@ var raycasts_last_tick: int = 0
 ## Ordered pairs the ladder actually looked at, for the same reason.
 var pairs_considered: int = 0
 
+## **THE RE-TRIGGER COOLDOWN, AND ONLY THAT.** US-0059. Pure and separable for the
+## same reason `lock` is: the cooldown's one interesting property — that a new
+## pursuer re-arms it — is exercisable without a district.
+var warning := PreyWarning.new()
+
+## Warnings sent this match. Cumulative, unlike `raycasts_last_tick`, because the
+## question worth asking of it is *did recklessness ever cost anybody anything*.
+var warnings_sent: int = 0
+
 ## Rewound queries refused. **A counter rather than only a log line**, because a
 ## caller that quietly received `false` for the rest of a match would look like a
 ## world with no line of sight in it, and this is the number that says why.
@@ -61,6 +81,13 @@ var rewinds_refused: int = 0
 
 var _ctx: MatchContext
 var _query := PhysicsRayQueryParameters3D.new()
+
+## The tier a pursuer must reach to be warned about, resolved from
+## `TUN-COMPASS-WARN-MIN-TIER` once a tick rather than compared as a scalar.
+## **The tier carries hysteresis and the scalar does not**, and a warning that
+## strobed across the boundary would be the one channel the design cannot afford
+## to make unreadable.
+var _warn_tier: int = SuspicionMath.Tier.NOTICED
 
 
 func stage() -> StringName:
@@ -87,6 +114,9 @@ func tick(ctx: MatchContext, _dt: float) -> void:
 	cinderfall.expire(ctx.tick)
 	raycasts_last_tick = 0
 	pairs_considered = 0
+	_warn_tier = SuspicionMath.evaluate_tier(
+		Tuning.compass.warn_min_tier, SuspicionMath.Tier.ANONYMOUS, Tuning.suspicion
+	)
 	ctx.render_states.clear()
 	ctx.compass.clear()
 	for observer: int in ctx.pawn_contexts.keys():
@@ -110,6 +140,43 @@ func _resolve_pair(observer: int, subject: int, ctx: MatchContext) -> void:
 		return
 	pairs_considered += 1
 	ctx.render_states.set_state(observer, subject, RenderState.of(pawn.tier, hunts, hunted_by))
+	if hunted_by:
+		_consider_warning(observer, subject, pawn, ctx)
+
+
+## **THE PREY'S ONLY WARNING.** GDD-03 §9.1, US-0059. `prey` is the observer and
+## `pursuer` the player hunting them — that is `hunted_by`'s direction, and getting
+## it backwards would warn the hunter about their own victim.
+##
+## **THE TIER TEST IS EQUIVALENT TO `_resolve_pair`'s FIRST RUNG TODAY, AND IS
+## KEPT ANYWAY.** Invariant 8 pins `TUN-COMPASS-WARN-MIN-TIER` equal to
+## `TUN-SUSPICION-TIER-NOTICED`, so "at or above the warn floor" and "not
+## Anonymous" are the same condition and no profile `Tuning.adopt()` accepts can
+## separate them. **A planted `>= ANONYMOUS` here therefore changes nothing and
+## no test goes red** — measured, not assumed, while falsifying US-0059's guards.
+##
+## It is not deleted, because the rung above is an **early-out for cost**: it
+## exists to drop about seventy per cent of the pairs before anything expensive.
+## Resting the warning's correctness on a performance optimisation means that
+## widening the ladder for some future reason would start warning prey about
+## Anonymous pursuers, silently, and that is the one thing GDD-03 §9.1 says a
+## competent hunter must never trigger. Two cheap comparisons buy the decoupling.
+##
+## **AND THE RANGE IS 3D**, like `TUN-KILL-RANGE` and unlike the suspicion radius:
+## a pursuer on the roof stratum 3.5 m above is further away than their footprint
+## suggests, and the warning is about how soon they can reach you.
+func _consider_warning(prey: int, pursuer: int, them: PawnContext, ctx: MatchContext) -> void:
+	var here := ctx.pawn_contexts.get(prey) as PawnContext
+	if here == null:
+		return
+	var t := Tuning.compass
+	var metres := CompassMath.distance_to(here.position, them.position)
+	var within := metres <= t.warn_radius
+	if not warning.consider(prey, pursuer, within, them.tier >= _warn_tier, ctx.tick):
+		return
+	warnings_sent += 1
+	var bearing := CompassMath.shown_bearing(here.position, them.position, pursuer, ctx.tick, t)
+	prey_warned.emit(prey, bearing, Quantise.distance_to_bucket(metres))
 
 
 ## **ONE COMPASS READING, FOR THE CONTRACT THIS HUNTER HAS BEEN TOLD ABOUT.**
@@ -268,6 +335,7 @@ func teardown() -> void:
 	if cinderfall != null:
 		cinderfall.clear()
 	lock.clear()
+	warning.clear()
 	if _ctx != null:
 		_ctx.render_states.clear()
 		_ctx.compass.clear()
