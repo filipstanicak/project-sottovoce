@@ -76,6 +76,12 @@ var lag_comp := LagCompHistory.new()
 ## what it reads is this tick's.
 var crowd_hash := SpatialHash.new()
 
+## **ONE COMPASS READING PER HUNTER, THIS TICK.** Filled by `SYS-DETECTION` — the
+## server half of `SYS-COMPASS` lives there, because TDD-07 §1's diagram makes the
+## bearing and the lock steps 9 and 10 of the detection pass — and read by
+## `SnapshotBuilder`. A missing reading means *no contract*, never due north.
+var compass := CompassBoard.new()
+
 ## **WHAT EACH OBSERVER SEES OF EACH SUBJECT, THIS TICK.** Filled by
 ## `SYS-DETECTION` at the `detection` stage and read by `SnapshotBuilder` at the
 ## `snapshot` stage — four positions apart in `SystemOrder`, with neither knowing

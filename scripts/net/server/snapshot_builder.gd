@@ -245,6 +245,15 @@ func _fill_own(snapshot: Snapshot, peer: int) -> void:
 	snapshot.active_sources = own.active_sources
 	snapshot.blend_state = own.blend_state
 
+	# **THE COMPASS BLOCK, BUCKETED AND WOBBLED BEFORE IT GOT HERE** (US-0057).
+	# `SYS-DETECTION` decided both at the `detection` stage; this reads them. The
+	# bearing is a **world** angle the client rotates into view space itself, and
+	# the distance is a bucket, so nothing downstream can recover a precision the
+	# server refused to send. `lock_fraction` and `portrait_revealed` are US-0058's
+	# and read zero.
+	snapshot.bearing = Quantise.yaw_to_u8(_ctx.compass.bearing_of(peer))
+	snapshot.distance_bucket = _ctx.compass.bucket_of(peer)
+
 
 ## Everybody else, by **slot**. The observer is skipped rather than filtered out
 ## later: a client that received itself as a remote pawn would render a second
