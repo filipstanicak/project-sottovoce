@@ -573,9 +573,9 @@ interact with them beyond collision.
 | The prey warning — **directionless** | |
 | `KillSystem`: validation, contest window, lag-compensated | **Done**, US-0060 |
 | `StunSystem`: tier gate, lockout, anti-spam | |
-| `SpawnSystem`: constraints with a never-failing fallback | |
+| `SpawnSystem`: constraints with a never-failing fallback | **The only unbuilt system in M4.** §6.0 |
 
-### 6.0 Progress, 2026-08-26 — **ten of fifteen stories, and nothing is playable yet**
+### 6.0 Progress, 2026-08-26 — **twelve of fifteen stories, and nothing is playable yet**
 
 Recorded here because a "Delivers" table with no state beside it reads as a promise kept.
 
@@ -591,16 +591,21 @@ Recorded here because a "Delivers" table with no state beside it reads as a prom
 | `StunSystem`: tier gate, lockout, anti-spam | **Done, ten of eleven** (US-0061). **Not a `GameSystem`** — §4's box 7 is one node reading "Kill / Stun", so `KillSystem` owns and ticks it, and the kill resolving first is where ADR-0013's contested initiation is decided. The open criterion needs `ABIL-LUNGE`, which is M5 |
 | `SpawnSystem`: constraints with a never-failing fallback | **Not started** (US-0062). **`Dead` has no exit until this exists** — the graph's only edge out is `Dead -> Respawning`, so a player killed today stays dead for the rest of the match |
 
-**A PLAYER CAN NOW BE KILLED, AND STILL CANNOT PERCEIVE ANY OF IT.** The server validates a
-kill against the lag-compensated world, commits the killer for 1.4 s, kills the victim at the
-0.9 s contact frame, repairs the cycle, spawns a corpse, startles the crowd and charges the
-witnesses — and there is **no HUD, no Compass, no reticle, no whiff animation and no score**,
-because there are no animation clips in this project on either rig and the HUD is US-0084 in
-M5. What US-0060 does change is that **the client is now told**: `own_state` reaches the
-owning pawn for the first time, which it never did before (see the story's first finding).
+**THE WHOLE COMBAT EXCHANGE NOW RESOLVES ON THE SERVER, AND A PLAYER STILL CANNOT PERCEIVE
+ANY OF IT.** A kill is validated against the lag-compensated world, commits the killer for
+1.4 s, kills the victim at the 0.9 s contact frame, repairs the cycle, spawns a corpse,
+startles the crowd and charges the witnesses. A prey inside 15 m of a careless pursuer gets a
+bearing and a distance bucket. A stun freezes that pursuer for 4 s and exiles them for 12.
+**And there is no HUD, no Compass, no reticle, no marker, no whiff, no freeze animation and
+no score** — there are no animation clips in this project on either rig, and the HUD is
+US-0084 in M5. Every one of those three stories reaches the client as a state change and a
+log line.
+
+**AND `Dead` STILL HAS NO EXIT.** US-0062 is what gives it one. A player killed today stays
+dead for the rest of the match, which is stated in `DeadState` rather than papered over.
 
 **The exit criterion is untouched**: the game is not playable end-to-end, and the first real
-playtest cannot happen until stun and respawn exist.
+playtest cannot happen until respawn exists and something draws the loop.
 
 ### 6.1 The M4 gate — the whole project's hinge
 

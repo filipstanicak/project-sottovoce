@@ -51,10 +51,15 @@ The prey's counterplay: freeze the pursuer, exile them, and force them Exposed.
 - [ ] A player mid-Lunge is stunnable for the entire wind-up and dash. **Blocked: `ABIL-LUNGE`
       is M5, so there is no state to be mid-.** The way to keep this true when it arrives is for
       `_is_busy` and `_is_stunnable` never to grow a case for it, and both name the criterion.
-- [ ] **A stun does NOT interrupt a committed kill.** ADR-0013: `KillAnimState` declines every
+- [x] **A stun does NOT interrupt a committed kill.** ADR-0013: `KillAnimState` declines every
       COMBAT-priority request, so a stun landing after the hunter has pressed kill saves
-      nobody. Built in US-0060; this story must not re-open it, and `KillSystem` has no
-      `report_interrupt` to call.
+      nobody. Built in US-0060; this story did not re-open it, and `KillSystem` still has no
+      `report_interrupt` to call. **This story added the half US-0060 could not test**:
+      `test_stun_system.gd` now drives a real stun at a committed hunter, from the prey's
+      side, and asserts the kill still lands — and that the late press costs the prey
+      nothing. *Ticked at the 2026-08-26 checkpoint; the criterion was true when US-0061
+      merged and the scripted edit that ticked the other ten did not reach this one, which
+      is trap 15's family in a checklist.*
 
 ## As built, 2026-08-26 — ten of eleven
 
