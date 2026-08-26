@@ -960,19 +960,36 @@ The single most important piece of feedback in the game, and the prey's only war
 | **and** their tier is at least | `TUN-COMPASS-WARN-MIN-TIER` | Noticed (30) |
 | Flash + sting duration | `TUN-COMPASS-WARN-DURATION` | 1.2 s |
 | Re-trigger interval | `TUN-COMPASS-WARN-COOLDOWN` | 2.5 s |
-| Gives direction? | `TUN-COMPASS-WARN-GIVES-DIRECTION` | **false** |
+| Gives direction? | `TUN-COMPASS-WARN-GIVES-DIRECTION` | **true** — amended 2026-08-26, ADR-0013 |
 
-**What it tells you:** *someone is hunting you, they are close, and they are being careless.*
+**What it tells you:** *someone is hunting you, they are being careless, and this is where they
+are.* A bearing and a distance bucket, on the same Compass ring the hunter's own reading uses,
+growing as they close.
 
-**What it does not tell you:** who, where, from which direction, how close within 15 m, or
-what they intend.
+**What it still does not tell you:** who they are. No persona, no name, no identity — a marker
+on a bearing. Working out which of the eleven people standing in that direction is the player
+remains the whole of the problem, and `ASM-0030`'s portrait is still the only thing that ever
+answers it.
 
-**The three consequences of the tier gate:**
+**Amended from directionless.** The warning used to carry a tick and nothing else, enforced at
+three layers — no protocol field, no signal parameter, no positional emitter — on the argument
+that direction would convert the panicked scan of a crowd into a lookup. The reference gives
+the prey a marker with bearing and distance once the pursuer is revealed, so this now does too.
+The old argument is preserved in [`01_vision.md`](01_vision.md) Law 5 rather than deleted,
+because the cost it names is real and was knowingly paid.
+
+**The three consequences of the tier gate, which is unchanged and is now the load-bearing
+half:**
 
 1. **A competent hunter never triggers it.** An Anonymous hunter can stand at conversational
-   distance behind you indefinitely. The most dangerous approaches are silent.
+   distance behind you indefinitely, and gets no marker at all. **This is the reference's rule,
+   not a divergence from it** — its threat meter depletes only when the pursuer goes high-profile
+   *in the prey's line of sight*, and the marker appears only once it has. The panicked scan of
+   a crowd is still exactly what a good hunter leaves you with; direction is what carelessness
+   costs.
 2. **The warning's *absence* is also information** — but unreliable information, which is
    perfect. "I haven't been warned" means either nobody is near you, or someone very good is.
+   With direction added, absence is now the *more* frightening state of the two.
 3. **It is the same threshold as the stun gate** (`TUN-STUN-MIN-TIER`, invariant §17.8). "I was
    warned about them" and "I can stun them" are *the same condition*. Two different thresholds
    here would be unlearnable; one threshold means the warning is functionally an instruction:
@@ -1030,6 +1047,28 @@ hunter. Both are deliberately poor.
 | Invalid-target stagger | `TUN-STUN-INVALID-STAGGER` | 2.0 s |
 | Invalid-target suspicion | `TUN-STUN-INVALID-SUSPICION` | +20 |
 | Attempt cooldown | `TUN-STUN-COOLDOWN` | 3.0 s |
+
+### 10.1.1 What a stun does not do — amended 2026-08-26, ADR-0013
+
+**A stun cannot save a victim from a kill that has already begun.** The reference resolves a
+contested initiation **for the killer**; the stun is the prey's tool for the *approach*, not
+for the last instant.
+
+| Moment | Before | Now |
+|---|---|---|
+| Hunter closing, revealed, not yet committed | Stunnable | **Stunnable** — unchanged, and this is where the counterplay lives |
+| Hunter has pressed kill, before the 0.9 s contact frame | Stun cancels the kill | **The kill completes** |
+| Hunter has passed the contact frame | Kill completes | **The kill completes** |
+| A third party kills the hunter mid-animation | Kill is cancelled | **Unchanged** — FATAL priority still gets through |
+
+**Everything else about stun is untouched**: the range advantage over kill range, the tier
+gate, the 4 s freeze, the 12 s lockout, the score equal to a base kill, and the anti-spam
+below. Never-do #13 still forbids trading any of those away.
+
+**The scoring half is owed.** In the reference a contested initiation costs *both* players half
+their action score. Sottovoce currently staggers the loser of a kill-vs-kill race
+(`TUN-KILL-CONTEST-STAGGER`) and has no score consequence at all, because `SYS-SCORE` does not
+exist yet. That belongs to US-0064.
 
 ### 10.2 The three numbers that make stun work
 

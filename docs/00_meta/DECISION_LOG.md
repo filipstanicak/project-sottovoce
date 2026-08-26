@@ -74,6 +74,11 @@ Otherwise a log line is sufficient.
 | 2026-08-04 | ADR-0011 | Engine version pinned to **Godot 4.7.1 stable** (was 4.5). Recorded as a superseding ADR rather than an edit, because ADR-0001's own rule forbids absorbing a version change silently. |
 | 2026-08-03 | ASM-0030 | Contract portrait starts unknown and is filled permanently by completing a Compass lock — reconciles the brief's HUD element with the rule that a hunter is never told their contract's persona, and gives the lock a payoff worth its cost. |
 | 2026-08-05 | — | CI guards enumerate files through `.ci/repo_files.sh`, which falls back to `find` outside a git work tree and **fails on an empty or anchorless list**. `ip-guard` and `asset-inventory` had reported "clean" over zero of 739 files in a `git archive HEAD` extraction — the environment the checkpoint procedure uses. Rejected: making the guards merely skip outside git, which preserves the vacuous green and hides it better. TDD-12 §1.5. |
+| 2026-08-26 | ADR-0013 | **Mechanical fidelity to the reference title is the design direction.** Where a rule here diverges from the reference, the reference wins unless the owner rules otherwise. |
+| 2026-08-26 | ADR-0013 | Never-do #12 narrowed: the hit-direction ban is lifted and the prey warning is directional. "Nameplate" now means a **name** — a relationship marker on your own contract or your own revealed pursuer is permitted. |
+| 2026-08-26 | ADR-0013 | Never-do #13 excepted once: **a committed kill is not interruptible.** Stun keeps its range advantage, tier gate, freeze and lockout; it no longer rescues a victim at the moment of commitment. Reverses GDD-02 §3.2 rule 1. |
+| 2026-08-26 | ADR-0013 | `TUN-COMPASS-WARN-GIVES-DIRECTION` false → **true**. Reverses the rejection recorded under GDD-01 Law 5, which is preserved rather than deleted. |
+| 2026-08-26 | — | The scoring table is **owed a re-pricing** and is not in ADR-0013. Moving thesis enforcement out of mechanics without moving it into scoring leaves speed neither punished nor discouraged. |
 
 ---
 

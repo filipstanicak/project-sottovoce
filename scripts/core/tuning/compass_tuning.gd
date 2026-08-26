@@ -97,11 +97,13 @@ extends Resource
 ## TUN-COMPASS-WARN-COOLDOWN
 @export_range(1.5, 5.0, 0.1) var warn_cooldown: float = 2.5
 
-## The warning is directionless. You learn that you are hunted, never from where. Making it
-## directional would convert the game's best moment — the panicked scan of a crowd — into a
-## lookup.
+## The warning carries a bearing and a distance bucket. Amended 2026-08-26 (ADR-0013) from false,
+## for reference fidelity: the reference marks a revealed pursuer on the compass with direction
+## and range. It still tells you nothing about who — a marker on a bearing, never an identity —
+## and the tier gate is unchanged, so a competent hunter produces no marker at all. The
+## superseded argument is preserved in GDD-01 Law 5.
 ## TUN-COMPASS-WARN-GIVES-DIRECTION
-@export var warn_gives_direction: bool = false
+@export var warn_gives_direction: bool = true
 
 ## PASV-COLDREAD: lock arc fills 30 % faster (1.23 s instead of 1.6 s). The offensive passive.
 ## TUN-PASV-COLDREAD-MULT

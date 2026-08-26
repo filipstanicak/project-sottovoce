@@ -1,10 +1,10 @@
 ---
 id: US-0061
 title: StunSystem, lockout and anti-spam
-version: 0.1.0
+version: 0.2.0
 status: draft
 owner: Technical Director
-last_updated: 2026-08-03
+last_updated: 2026-08-26
 depends_on: [GDD-03-SOCIAL-STEALTH, TDD-10-SCORING]
 ---
 
@@ -34,6 +34,10 @@ The prey's counterplay: freeze the pursuer, exile them, and force them Exposed.
 - [ ] Target forced to maximum suspicion for the freeze duration.
 - [ ] Stunning a non-pursuer: zero points, 2.0 s self-stagger, +20 suspicion, target UNAFFECTED.
 - [ ] A player mid-Lunge is stunnable for the entire wind-up and dash.
+- [ ] **A stun does NOT interrupt a committed kill.** ADR-0013: `KillAnimState` declines every
+      COMBAT-priority request, so a stun landing after the hunter has pressed kill saves
+      nobody. Built in US-0060; this story must not re-open it, and `KillSystem` has no
+      `report_interrupt` to call.
 
 ## Test notes
 
@@ -41,6 +45,16 @@ The prey's counterplay: freeze the pursuer, exile them, and force them Exposed.
 `test_secondwind_freeze_unchanged.gd`.
 
 ## Notes
+
+**RE-AUTHORED 2026-08-26 (ADR-0013).** One criterion added and nothing removed: the stun no
+longer rescues a victim from a kill already in progress, because the reference resolves a
+contested initiation for the killer. Everything else about stun is untouched and never-do #13
+still forbids trading any of it away.
+
+**Where the counterplay lives now.** In the approach, entirely. A revealed hunter is stunnable
+from 3.0 m for the whole time they are closing, and they cannot strike until 2.5 m — so the
+prey's window is the distance between those two numbers, every second of it, rather than a
+reaction at the moment of commitment.
 
 Stun range exceeding kill range is the most important geometric relationship in the game: a
 hunter who closes to kill range has ALREADY entered stun range. Recklessness is punished by

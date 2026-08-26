@@ -165,33 +165,6 @@ func test_the_two_clocks_measuring_the_animation_agree() -> void:
 	assert_ne(net_ticks, step_ticks, "the two tick domains agree; one of them is being read wrong")
 
 
-func test_a_stun_before_the_contact_frame_saves_the_victim() -> void:
-	# `report_interrupt` is `SYS-STUN`'s entry point (US-0061) and has no caller
-	# yet. The save is real either way: the system re-checks that the killer is
-	# still in the animation, so a third party's kill takes them out of it too.
-	_two_players()
-	_press(A)
-	_advance()
-	_system.report_interrupt(A)
-	_advance(Tuning.ticks(&"TUN-KILL-CORPSE-SPAWN-DELAY") + 2)
-	assert_eq(_state(B), PawnStateId.IDLE, "the victim died after the kill was interrupted")
-	assert_eq(_system.kills_landed, 0)
-
-
-func test_a_killer_pulled_out_of_the_animation_lands_nothing() -> void:
-	# The other half, and the one with no caller needed: the pending kill is
-	# checked against the killer's actual state at the contact frame.
-	_two_players()
-	_press(A)
-	_advance()
-	var killer := _ctx.pawn_contexts[A] as PawnContext
-	(_ctx.pawn_machines[A] as PawnStateMachine).transition(
-		killer, PawnStateId.STUNNED, PawnState.PRIORITY_COMBAT
-	)
-	_advance(Tuning.ticks(&"TUN-KILL-CORPSE-SPAWN-DELAY") + 2)
-	assert_eq(_state(B), PawnStateId.IDLE, "a stunned killer still landed the blow")
-
-
 # ---------------------------------------------------------- the refusals --
 
 

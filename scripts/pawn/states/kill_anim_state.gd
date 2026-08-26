@@ -1,13 +1,19 @@
 ## KillAnim. GDD-02 §3.1 and §3.2 rule 1.
 ##
-## **A kill in progress can be stopped, but only before it lands.** Interruptible
-## by a stun until `TUN-KILL-CORPSE-SPAWN-DELAY` — 0.9 s of the 1.4 s animation.
-## After the contact frame the victim is dead and the remaining 0.5 s is
-## follow-through, so interrupting it would un-kill someone.
+## **A KILL IN PROGRESS CANNOT BE STOPPED BY THE VICTIM.** Amended 2026-08-26,
+## ADR-0013. The reference resolves a contested initiation for the **killer**, so
+## a stun landing after the hunter has committed does nothing for the prey.
 ##
-## That is what makes a last-second stun a genuine save rather than a cosmetic
-## one, and it is why the contact frame is a TUNABLE rather than an art decision:
-## the whole value of Law 5 lives in the gap between 0.9 s and 1.4 s.
+## This state therefore declines every COMBAT-priority interruption. **FATAL still
+## gets through** — `PawnStateMachine.transition` compares the requesting priority
+## against this state's own, and `PRIORITY_FATAL` exceeds `PRIORITY_COMBAT` — which
+## is the third-party kill the §3 diagram already draws as
+## `KillAnim --> Dead: killed (contested loss to a third party)`.
+##
+## **`TUN-KILL-CORPSE-SPAWN-DELAY` IS STILL A TUNABLE AND STILL MEANS THE CONTACT
+## FRAME.** It decides when the victim dies, when the corpse appears and when the
+## crowd startles. It simply no longer decides whether a stun arrived in time — so
+## the gap between 0.9 s and 1.4 s is now follow-through and nothing else.
 class_name KillAnimState
 extends PawnState
 
@@ -29,11 +35,16 @@ func camera_fov(_ctx: PawnContext) -> float:
 	return Tuning.camera.fov_stroll
 
 
-## Open until the contact frame, closed after. Compared in TICKS, never against
-## an accumulated float — this decides whether a save landed, and a value that
-## drifts between server and client decides it differently on each.
-func is_interruptible(ctx: PawnContext) -> bool:
-	return ctx.state_timer_ticks < Tuning.step_ticks(&"TUN-KILL-CORPSE-SPAWN-DELAY")
+## Never. The commitment is the mechanic, and it is now total.
+##
+## **THE TICK COMPARISON THAT USED TO LIVE HERE IS GONE, NOT RELAXED.** It read
+## `state_timer_ticks < step_ticks(TUN-KILL-CORPSE-SPAWN-DELAY)` and was the one
+## place in the pawn where a save was decided. Leaving it as an always-false
+## expression would keep a dead comparison in code that is replayed during
+## prediction reconciliation, and would leave the next reader wondering which of
+## the two rules was live.
+func is_interruptible(_ctx: PawnContext) -> bool:
+	return false
 
 
 func step(ctx: PawnContext, _input: InputCommand, _delta: float) -> StringName:
