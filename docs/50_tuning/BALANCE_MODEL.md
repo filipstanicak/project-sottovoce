@@ -181,7 +181,7 @@ Every bonus is priced as a multiple of `TUN-SCORE-CONTRACT` = 100, the unit of a
 | `SCORE-FOCUS` | +100 | **1.0×.** A single perceptual skill rather than sustained restraint, and partially subsumed by the approach a patient player makes anyway. |
 | `SCORE-FROMABOVE` | +100 | **Derived from the roof's cost.** A roof approach forfeits Silent (−100) and usually Patient (−150) = −250. +100 reduces the net penalty to −150. Deliberately *not* break-even: the roof should be a ~150-point investment in speed and position. |
 | `SCORE-BLENDED` | +200 | **2.0×, the largest.** The only bonus that cannot be earned reactively — it requires predicting where the target will be and being there first, motionless. |
-| `SCORE-LONGHUNT` | +50 / +150 | **Derived from foregone time.** A patient player earns 742 points per 104 s of cycle = **7.13 pts/s**. A 45 s hunt versus a 20 s hunt costs 25 s ≈ **178 points**. The +100 step between tiers compensates 56 % of that, making a long hunt roughly time-neutral rather than time-punished. Without this bonus, rushing would be correct even under the current structure. |
+| `SCORE-LONGHUNT` | +50 / +150 | **Derived from foregone time.** A patient player earns 815 points per 104 s of cycle = **7.84 pts/s** (re-derived 2026-08-26; was 7.13 before the ADR-0013 re-pricing). A 45 s hunt versus a 20 s hunt costs 25 s ≈ **196 points**. The +100 step between tiers compensates 51 % of that — down from 56 %, because the same step now covers a more valuable second. A long hunt stays roughly time-neutral rather than time-punished, and **the margin has narrowed**: if the step ever compensates under half, rushing becomes correct again and this row is where it will show. |
 | `SCORE-VENDETTA` | +100 | **Not model-derived** — an emotional payoff. Priced at exactly one base kill so it is noticeable but never worth *seeking*; at 200 deliberately dying to set up revenge would become viable. |
 | `SCORE-VARIETY` | +50 × n | See §4 — this value behaves differently from its stated intent. |
 | `SCORE-RECKLESS` | −50 | **−0.5×, deliberately not −1.0×.** At −100 a Reckless kill would be worth zero, making *abandoning a kill mid-approach* correct once spotted — which is worse behaviour than the behaviour being punished. −50 leaves a caught-out player a reason to finish while making the outcome clearly bad. |
@@ -205,72 +205,88 @@ Every bonus is priced as a multiple of `TUN-SCORE-CONTRACT` = 100, the unit of a
 
 ### 3.3 Expected points per kill
 
+Re-derived 2026-08-26 against the re-priced values (ADR-0013): Silent 100 → 200, Patient
+150 → 100, Focus 100 → 150, Reckless −50 → 0. **The probabilities are untouched** — only the
+values moved, so this is arithmetic, not a new model.
+
 **Patient:**
 
 ```
 Contract    1.00 × 100  = 100.0
-Silent      0.92 × 100  =  92.0
-Patient     0.85 × 150  = 127.5
-Focus       0.45 × 100  =  45.0
+Silent      0.92 × 200  = 184.0
+Patient     0.85 × 100  =  85.0
+Focus       0.45 × 150  =  67.5
 Blended     0.35 × 200  =  70.0
 FromAbove   0.05 × 100  =   5.0
 Masked      0.15 × 150  =  22.5
 LongHunt    0.45×50 + 0.40×150 = 22.5 + 60.0 = 82.5
 Vendetta    0.12 × 100  =  12.0
-Reckless    0.02 × -50  =  -1.0
+Reckless    0.02 ×   0  =   0.0
                         ---------
-subtotal                = 555.5
+subtotal                = 628.5
 
 Variety: n̄ = 0.92+0.85+0.45+0.35+0.05+0.15+0.85+0.12 = 3.74 distinct types
          3.74 × 50      = 187.0
                         ---------
-TOTAL per kill          = 742.5
+TOTAL per kill          = 815.5
 ```
 
 **Aggressor:**
 
 ```
 Contract    1.00 × 100  = 100.0
-Silent      0.08 × 100  =   8.0
-Patient     0.05 × 150  =   7.5
-Focus       0.20 × 100  =  20.0
+Silent      0.08 × 200  =  16.0
+Patient     0.05 × 100  =   5.0
+Focus       0.20 × 150  =  30.0
 Blended     0.03 × 200  =   6.0
 FromAbove   0.20 × 100  =  20.0
 Masked      0.05 × 150  =   7.5
 LongHunt    0.55×50 + 0.10×150 = 27.5 + 15.0 = 42.5
 Vendetta    0.20 × 100  =  20.0
-Reckless    0.55 × -50  = -27.5
+Reckless    0.55 ×   0  =   0.0
                         ---------
-subtotal                = 204.0
+subtotal                = 247.0
 
 Variety: n̄ = 0.08+0.05+0.20+0.03+0.20+0.05+0.65+0.20 = 1.46
          1.46 × 50      =  73.0
                         ---------
-TOTAL per kill          = 277.0
+TOTAL per kill          = 320.0
 ```
 
-**Per-kill ratio = 742.5 / 277.0 = 2.68 : 1.**
+**Per-kill ratio = 815.5 / 320.0 = 2.55 : 1 — down from 2.68 : 1.**
+
+**THE RE-PRICING NARROWED THE GAP RATHER THAN WIDENING IT.** The Patient gained 73 per kill and
+the Aggressor 43. The cause is isolable: **removing `SCORE-RECKLESS` is worth +27.5 per kill to
+the Aggressor and +1.0 to the Patient**, which consumes most of what the stealth uplift bought.
+Converging on the reference makes this game *less* punishing of aggression, because the
+reference under-pays carelessness rather than charging for it.
 
 ### 3.4 Match totals
 
 | | Patient | Opportunist | Aggressor | Defender |
 |---|---|---|---|---|
 | Kills | 4.6 | 5.6 | 5.0 | 1.5 |
-| Points / kill | 742 | 455 | 277 | 742 |
-| Kill points | 3 413 | 2 548 | 1 385 | 1 113 |
+| Points / kill | 815 | 510 | 320 | 815 |
+| Kill points | 3 751 | 2 856 | 1 600 | 1 223 |
 | Stuns | 1.2 | 0.8 | 0.4 | 6.0 |
 | Stun points | 120 | 80 | 40 | 600 |
-| **Total** | **3 533** | **2 628** | **1 425** | **1 713** |
-| Points / minute | 442 | 329 | 178 | 214 |
+| **Total** | **3 871** | **2 936** | **1 640** | **1 823** |
+| Points / minute | 484 | 367 | 205 | 228 |
 
-**Match ratio, Patient : Aggressor = 2.48 : 1.**
+**Match ratio, Patient : Aggressor = 2.36 : 1 — down from 2.48 : 1.**
+
+> **THE KILLS ROW IS STALE AND THE POINTS ROW IS NOT.** ADR-0013 also removed the stun's
+> ability to interrupt a committed kill, so §3.2's modelled 45 % stun-per-attempt rate is too
+> high and every kills-per-match figure above depends on it. The point values are re-derived
+> and correct; what they are multiplied by is not. `TEL-STUN-RATE` settles it, and nothing
+> here should be re-derived from a guess before then.
 
 ### 3.5 Win probability
 
 Kills are approximately Poisson (A14), so `σ_kills ≈ √4.6 ≈ 2.14`.
 
 ```
-σ_Patient    ≈ 742 × 2.14  ≈ 1 588
+σ_Patient    ≈ 815 × 2.14  ≈ 1 744
 σ_Aggressor  ≈ 277 × 2.24  ≈  620
 
 D = Patient − Aggressor  ~  N(2 108, √(1588² + 620²)) = N(2 108, 1 705)
@@ -359,7 +375,7 @@ The Final Contract phase must make the last 30 seconds decisive without making t
 7:30 irrelevant.
 
 At the patient rate of 7.13 pts/s, 30 seconds of normal play is worth ~214 points — noise
-against a 3 533-point total. The phase needs to be worth substantially more than that, and less
+against a 3 871-point total. The phase needs to be worth substantially more than that, and less
 than a match-winning margin.
 
 | Multiplier | One maximal final kill (900 base) | As % of a patient match total | Verdict |

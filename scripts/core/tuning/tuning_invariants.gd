@@ -276,16 +276,23 @@ static func _abilities(p: TuningProfile) -> Array[String]:
 
 static func _scoring(p: TuningProfile) -> Array[String]:
 	var e: Array[String] = []
-	# 18. THE BONUS HIERARCHY ENCODES THE DESIGN THESIS. If a tuning change
-	# inverts this, the tuning change is wrong.
-	if not (p.scoring.blended > p.scoring.patient and p.scoring.patient > p.scoring.silent):
+	# 18. THE STEALTH LADDER'S TOP RUNG PAYS AT LEAST THREE BASE KILLS.
+	#
+	# **AMENDED 2026-08-26, ADR-0013.** It used to read
+	# `blended > patient > silent`, which encoded a hierarchy the reference does
+	# not have. What the thesis needs is not an ordering between the three but a
+	# floor under the pair: with no penalty for recklessness left in the game,
+	# paying three base kills for an unseen approach is the whole of what makes
+	# patience correct. How the 300 splits between the instantaneous half and the
+	# sustained one is ours to tune; the sum is not.
+	if p.scoring.silent + p.scoring.patient < 3.0 * p.scoring.contract:
 		e.append(
 			(
 				(
-					"18. scoring must satisfy blended (%.0f) > patient (%.0f) > silent (%.0f) — "
-					+ "this ordering IS the design thesis"
+					"18. silent (%.0f) + patient (%.0f) must be >= 3x contract (%.0f) — "
+					+ "the stealth ladder is the only thing left enforcing the thesis"
 				)
-				% [p.scoring.blended, p.scoring.patient, p.scoring.silent]
+				% [p.scoring.silent, p.scoring.patient, p.scoring.contract]
 			)
 		)
 	# 19. Defence pays like offence.

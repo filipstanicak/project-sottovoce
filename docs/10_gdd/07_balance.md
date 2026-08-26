@@ -121,17 +121,17 @@ account** and is therefore fixed by definition rather than tuned.
 | Bonus | Value | × base | Condition | Derivation |
 |---|---|---|---|---|
 | **Contract Fulfilled** `SCORE-CONTRACT` | 100 | 1.0 | Any valid kill on your contract | The unit. Everything else is priced against it. |
-| **Silent** `SCORE-SILENT` | +100 | 1.0 | Suspicion ≤ 29 (Anonymous) at initiation | **Doubles the kill.** Priced at exactly one base kill because it is the difference between playing the game and not playing it — it is achieved by simply never sprinting. It is the *floor* of competence, so it is worth exactly one unit. |
-| **Patient** `SCORE-PATIENT` | +150 | 1.5 | Never exceeded `TUN-SCORE-PATIENT-SPEED` in the 10 s before initiation | Higher than Silent because Silent is a *state at one instant* while Patient is *sustained discipline over 10 seconds*. Sustained conditions are harder to hold and easier to lose accidentally, so they price higher. This is the thesis bonus. |
+| **Silent** `SCORE-SILENT` | +200 | 2.0 | Suspicion ≤ 29 (Anonymous) at initiation | **Re-priced 2026-08-26 from +100, ADR-0013.** The reference pays exactly this for exactly this condition: a hunter who was briefly conspicuous during the approach but is not conspicuous at the kill. It is no longer "the floor of competence worth one unit" — with the recklessness penalty gone, this bonus and the one below it are the *only* thing enforcing the thesis. |
+| **Patient** `SCORE-PATIENT` | +100 | 1.0 | Never exceeded `TUN-SCORE-PATIENT-SPEED` in the 10 s before initiation | **Re-priced 2026-08-26 from +150, ADR-0013, and it is now the smaller half.** The old derivation argued sustained discipline should price above an instantaneous state. The reference disagrees: it pays 200 for being unseen at the kill and 300 for having been unseen throughout, so the sustained half is worth **+100 on top**, not more than the instantaneous half. **What matters is that the pair sums to 300** — three base kills, which is invariant §17.18. |
 | **Masked** `SCORE-MASKED` | +150 | 1.5 | `ABIL-SECONDFACE` active at initiation | Set **equal to Patient** deliberately: disguise is a different route to the same virtue (being unreadable), and equal pricing says the game does not prefer one route. |
-| **Focus** `SCORE-FOCUS` | +100 | 1.0 | Unbroken LOS on the contract for `TUN-SCORE-FOCUS-WINDOW` 6 s | Pays for the hardest *perceptual* skill in the game — tracking one person in a moving crowd. Priced at 1.0 rather than 1.5 because it is a single skill rather than sustained restraint, and because it is partially subsumed by the approach a patient player makes anyway. |
+| **Focus** `SCORE-FOCUS` | +150 | 1.5 | Unbroken LOS on the contract for `TUN-SCORE-FOCUS-WINDOW` 6 s | **Re-priced 2026-08-26 from +100, ADR-0013**, to the reference's exact value. Pays for the hardest *perceptual* skill in the game — tracking one person in a moving crowd. |
 | **From Above** `SCORE-FROMABOVE` | +100 | 1.0 | Initiated from ≥ `TUN-SCORE-FROMABOVE-HEIGHT` 3 m above the target | **Derived from the roof's cost.** A roof approach forfeits Silent (−100) and usually Patient (−150) because of `TUN-SUSPICION-GAIN-ROOF` +18/s. +100 does *not* make the roof break even — it reduces the penalty from −250 to −150. That is intentional: the roof route should be a deliberate ~150-point investment in speed and position, not a free alternative. |
-| **Blended** `SCORE-BLENDED` | +200 | **2.0** | Inside a blend action within `TUN-BLEND-SCORE-GRACE` 1.0 s of initiation | **The largest bonus in the game.** Priced at 2× base because it requires the hardest thing to do: *predicting where your target will be and being there first, motionless*. It is the only bonus that cannot be earned reactively. |
+| **Blended** `SCORE-BLENDED` | +200 | **2.0** | Inside a blend action within `TUN-BLEND-SCORE-GRACE` 1.0 s of initiation | **Unchanged, and the reference pays exactly 200 for the same thing** — a kill made from a blending spot. One of the few numbers in this table that needed no re-pricing at all. It requires the hardest thing to do: *predicting where your target will be and being there first, motionless*, and it is the only bonus that cannot be earned reactively. |
 | **Long Hunt** `SCORE-LONGHUNT` | +50 / +150 | 0.5 / 1.5 | Chase > 20 s / > 45 s, measured from first Compass lock | **Derived from time cost.** At the modelled patient rate (§4) a player earns ~7.1 points/second. A 45 s hunt versus a 20 s hunt costs 25 seconds ≈ **178 points** of foregone scoring. The +100 step between tiers compensates most of that, so patience across a long hunt is roughly time-neutral rather than time-punished. Without this bonus, rushing would be correct even under the current bonus structure. |
 | **Vendetta** `SCORE-VENDETTA` | +100 | 1.0 | Killing the player who last killed you | **Not derived from the model** — it is an emotional payoff. Priced at one base kill: noticeable, but never worth *seeking*. If it were higher, dying deliberately to set up a revenge kill would become a strategy. |
 | **Poisoned** `SCORE-POISONED` | +75 | 0.75 | Delayed-kill ability | **Dormant in MVP** (ASM-0016). No MVP ability triggers it; implemented and tested, reserved for post-MVP `ABIL-NIGHTSHADE`. |
 | **Variety** `SCORE-VARIETY` | +50 × n | 0.5n | n = bonus types earned for the first time in the current life | See §3.1 — this one needs its own discussion. |
-| **Reckless** `SCORE-RECKLESS` | **−50** | −0.5 | Suspicion ≥ 70 (Exposed) at initiation | **The only penalty.** Derived as a *half* kill, not a whole one: at −100 a Reckless kill would be worth zero, which would make *abandoning a kill mid-approach* the correct play once you were spotted. That would be worse than the behaviour it punishes. −50 leaves a caught-out player with a reason to finish while making the outcome clearly bad. |
+| **Reckless** `SCORE-RECKLESS` | **0** | 0 | Suspicion ≥ 70 (Exposed) at initiation | **Neutralised 2026-08-26 from −50, ADR-0013. There is now no points penalty in the game.** The reference has none either: its enforcement is that a careless kill *earns less*, never that it costs. An Exposed kill here already forfeits Silent and Patient — 300 points — and a further −50 was punishment stacked on top of an enforcement that was already doing the work. **The event still fires and is still shown, at zero**, because the feed line saying *you were seen* is the half that teaches. |
 | **Stun** `SCORE-STUN` | 100 | 1.0 | Valid stun on your pursuer | **Set exactly equal to a base kill.** This is a statement, not a calculation: successfully defending yourself is worth as much as successfully attacking. Asserted as TUNABLES invariant §17.19 so it cannot drift. |
 | **Death** | 0 | — | — | **Dying costs no points, only time.** A points penalty would make a trailing player's position unrecoverable and push them toward the safest, most passive play — the opposite of what a trailing player should do. It also protects the low-investment player persona ("Mei", [`01_vision.md`](01_vision.md) §3.3) from being driven into a hole. |
 | **Invalid stun** | 0 | — | Stunning a non-pursuer | Plus `TUN-STUN-INVALID-STAGGER` 2.0 s and `TUN-STUN-INVALID-SUSPICION` +20. |
@@ -160,24 +160,48 @@ place to put a compounding reward, but it is not what the bonus's name or descri
 **Position taken:** leave it as specified for MVP and measure `TEL-KILLS-PER-LIFE` and
 `TEL-VARIETY-N`. If kills-per-life stays near 1.0, the honest options are (a) accept it as a
 flat uplift and rename it, or (b) change the reset from *death* to *contract*, so that *n*
-counts within a hunt rather than within a life. Option (b) restores the intended meaning
-without changing any value, and is the recommended fix if one is needed. Logged in §10.
+counts within a hunt rather than within a life.
+
+**And the reference answers this question with a third option nobody proposed** (found
+2026-08-26 in the ADR-0013 audit). It awards Variety **per match**, at thresholds — the player
+accumulates distinct bonus types across the whole match and is paid when the count reaches
+**5, 10 and 15**. That is neither per-life nor per-contract, and it is immune to the defect
+described above: at one kill per life the count still has to climb across many lives to reach a
+threshold, so it can only be earned by *actually varying your approach*.
+
+**Not adopted here, because the payout values are not documented anywhere I could source.**
+Changing the rule without them means inventing three numbers and calling them fidelity.
+Recorded as the recommended fix, ahead of options (a) and (b), for whoever prices it. Logged
+in §10.
 
 ### 3.2 Reference kill values
 
-| Kill archetype | Bonuses | Total |
-|---|---|---|
-| Sprinting tackle while Exposed | 100 − 50 | **50** |
-| Careless but not Exposed | 100 | **100** |
-| Clean walk-up | 100 + Silent 100 + Patient 150 | **350** |
-| Watched, waited, struck | + Focus 100 | **450** |
-| The full patient blend kill | + Blended 200 | **650** |
-| …with Variety (5 new types) | + 250 | **900** |
-| …in the Final Contract phase | × 2.0 | **1 800** |
+Re-derived 2026-08-26 against the re-priced table (ADR-0013).
 
-**Best-case ratio, patient blend kill to sprint tackle: 13:1.** The brief calls for 3–5×; the
-*achievable spread* is far wider, deliberately. The ratio that actually governs play is the
-**expected** one, which is modelled in §4 and lands near 2.7:1.
+| Kill archetype | Bonuses | Total | Was |
+|---|---|---|---|
+| Sprinting tackle while Exposed | 100 | **100** | 50 |
+| Careless but not Exposed | 100 | **100** | 100 |
+| Clean walk-up | 100 + Silent 200 + Patient 100 | **400** | 350 |
+| Watched, waited, struck | + Focus 150 | **550** | 450 |
+| The full patient blend kill | + Blended 200 | **750** | 650 |
+| …with Variety (5 new types) | + 250 | **1 000** | 900 |
+| …in the Final Contract phase | × 2.0 | **2 000** | 1 800 |
+
+**750 IS THE REFERENCE'S OWN WORKED EXAMPLE, ARRIVED AT INDEPENDENTLY.** Its published
+combination is kill 100 + top stealth 300 + hidden 200 + focus 150 = 750, and the row above is
+100 + (200 + 100) + 200 + 150. The two tables now agree on the number a perfect kill is worth,
+by construction on three of the four terms and by coincidence on none.
+
+**Best-case ratio, patient blend kill to sprint tackle: 7.5:1 — down from 13:1.** That is the
+direction the re-pricing moves it, and it is worth being clear about: **converging on the
+reference makes this game *less* punishing of aggression, not more.** The old 13:1 came from a
+sprint kill being worth 50 after a penalty the reference does not levy. With the penalty gone
+the sprint kill is worth a full base kill, and the spread narrows to something much closer to
+the brief's 3–5×.
+
+The ratio that actually governs play is the **expected** one, modelled in §4, which lands near
+2.5:1.
 
 ---
 
@@ -250,6 +274,23 @@ acquisition speed and then loses it again: an Exposed approach warns the prey
 (`TUN-STUN-RANGE` 3.0 m > `TUN-KILL-RANGE` 2.5 m). Modelled at a 45 % stun rate per attempt,
 each costing 4 s freeze + 12 s lockout, the Aggressor needs 1.8 attempts per kill.
 
+> **THE 45 % IS STALE AS OF 2026-08-26 AND THIS TABLE IS NOT RE-DERIVED, DELIBERATELY.**
+> ADR-0013 removed the stun's ability to interrupt a committed kill, so a prey who reacts *at
+> the moment of commitment* no longer saves themselves — the window shrank from "any time
+> before the 0.9 s contact frame" to "before the hunter presses at all", which in practice is
+> the half-metre between `TUN-STUN-RANGE` and `TUN-KILL-RANGE`.
+>
+> **The rate must fall, and I will not invent the number it falls to.** Halving it to ~25 %
+> would take the Aggressor from 1.8 attempts per kill to 1.33, drop their `T` from 86 s toward
+> ~64 s, and raise their kills per match — every figure in this table and the two below moves
+> with it. That is a chain of four guesses resting on a fifth, and a model that confident about
+> a number nobody measured is worse than a model that says it does not know.
+>
+> `TEL-STUN-RATE` is what settles it. Until a playtest produces one, **read §4.3, §4.4 and §4.5
+> as the arithmetic of the new point values against the OLD behavioural assumptions** — the
+> per-kill figures below are re-derived and correct; the kills-per-match figures they are
+> multiplied by are not.
+
 **Their `T′` is where they actually lose.** Being Exposed for much of the match means their own
 pursuer finds them in 55 s instead of 96 s, so they die 70 % more often.
 
@@ -257,35 +298,57 @@ pursuer finds them in 55 s instead of 96 s, so they die 70 % more often.
 
 Probability that each bonus fires, by archetype, and the resulting expectation:
 
+Re-derived 2026-08-26 against the re-priced values (ADR-0013). **The probabilities are
+unchanged** — only the values moved, so this is arithmetic rather than a new model.
+
 | Bonus | Value | P(fires) — Patient | Patient E | P(fires) — Aggressor | Aggressor E |
 |---|---|---|---|---|---|
 | Contract | 100 | 1.00 | 100.0 | 1.00 | 100.0 |
-| Silent | 100 | 0.92 | 92.0 | 0.08 | 8.0 |
-| Patient | 150 | 0.85 | 127.5 | 0.05 | 7.5 |
-| Focus | 100 | 0.45 | 45.0 | 0.20 | 20.0 |
+| Silent | 200 | 0.92 | 184.0 | 0.08 | 16.0 |
+| Patient | 100 | 0.85 | 85.0 | 0.05 | 5.0 |
+| Focus | 150 | 0.45 | 67.5 | 0.20 | 30.0 |
 | Blended | 200 | 0.35 | 70.0 | 0.03 | 6.0 |
 | From Above | 100 | 0.05 | 5.0 | 0.20 | 20.0 |
 | Masked | 150 | 0.15 | 22.5 | 0.05 | 7.5 |
 | Long Hunt | 50/150 | 0.45 / 0.40 | 82.5 | 0.55 / 0.10 | 42.5 |
 | Vendetta | 100 | 0.12 | 12.0 | 0.20 | 20.0 |
-| Reckless | −50 | 0.02 | −1.0 | 0.55 | −27.5 |
-| **Subtotal** | | | **555.5** | | **204.0** |
+| Reckless | 0 | 0.02 | 0.0 | 0.55 | 0.0 |
+| **Subtotal** | | | **628.5** | | **247.0** |
 | Variety | 50 × n | n̄ = 3.74 | 187.0 | n̄ = 1.46 | 73.0 |
-| **Per kill** | | | **742.5** | | **277.0** |
+| **Per kill** | | | **815.5** | | **320.0** |
 
-**Per-kill ratio, Patient : Aggressor = 2.68 : 1.**
+**Per-kill ratio, Patient : Aggressor = 2.55 : 1 — down from 2.68 : 1.**
+
+**THE RE-PRICING NARROWED THE GAP, WHICH IS THE OPPOSITE OF WHAT IT WAS EXPECTED TO DO.** The
+Patient gained 73 points per kill and the Aggressor gained 43, so the ratio fell. The reason is
+the penalty: removing `SCORE-RECKLESS` is worth **+27.5 per kill to the Aggressor** and +1.0 to
+the Patient, and that alone eats most of the stealth uplift's advantage.
+
+**Read together with the combat change, aggression got better on both axes** — it earns more
+per kill *and* its kills are harder to stop, because a stun no longer saves a committed
+victim. The reference's answer to that is a stealth ladder paying three base kills, which is
+now in place and is invariant §17.18. Whether three is enough **in this game**, which has a
+crowd of clones and a suspicion scalar the reference did not have, is a playtest question and
+is logged as such.
 
 ### 4.5 Match totals
 
 | | Patient | Opportunist | Aggressor | Defender |
 |---|---|---|---|---|
 | Kills | 4.6 | 5.6 | 5.0 | 1.5 |
-| Points per kill | 742 | 455 | 277 | 742 |
-| Kill points | 3 413 | 2 548 | 1 385 | 1 113 |
+| Points per kill | 815 | 510 | 320 | 815 |
+| Kill points | 3 751 | 2 856 | 1 600 | 1 223 |
 | Stuns | 1.2 | 0.8 | 0.4 | 6.0 |
 | Stun points | 120 | 80 | 40 | 600 |
-| **Total** | **3 533** | **2 628** | **1 425** | **1 713** |
-| **Points / minute** | **442** | **329** | **178** | **214** |
+| **Total** | **3 871** | **2 936** | **1 640** | **1 823** |
+| **Points / minute** | **484** | **367** | **205** | **228** |
+
+Re-derived 2026-08-26. **The kills and stuns columns are the stale ones** — see the note in
+§4.3 — so these totals are the new point values multiplied by old behavioural estimates. The
+Opportunist's 510 is interpolated at its previous position between the two modelled archetypes
+(38 % of the way from Aggressor to Patient), because §4.4 models only the extremes.
+
+**Patient : Aggressor on totals = 2.36 : 1**, down from 2.48 : 1.
 
 ### 4.6 The honest finding
 
@@ -457,7 +520,7 @@ punishes it**.
 | | |
 |---|---|
 | **The strategy** | Hold a fixed elevated position and use `ABIL-WHISPERBOLT` on every contract that passes below. |
-| **Punished by** | 40 s cooldown means at most 12 attempts per match and realistically 2–3 that connect. The 1.0 s wind-up **forces Exposed**, so every attempt announces the position through geometry at 60 m. Being on a roof already costs +18/s. And a Whisperbolt kill earns neither Silent nor Patient — approximately 250 points against a patient kill's 742. |
+| **Punished by** | 40 s cooldown means at most 12 attempts per match and realistically 2–3 that connect. The 1.0 s wind-up **forces Exposed**, so every attempt announces the position through geometry at 60 m. Being on a roof already costs +18/s. And a Whisperbolt kill earns neither Silent nor Patient — approximately 250 points against a patient kill's 815. |
 | **Residual risk** | Low, but this is the combination most likely to be over-strong with `PASV-COLDREAD`. Monitored by `TEL-KILLS-BY-METHOD` and `TEL-TIME-BY-STRATUM`. |
 
 ---
