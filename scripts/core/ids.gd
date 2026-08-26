@@ -37,8 +37,10 @@ const INPUT_TRAVERSE := &"INPUT-TRAVERSE"
 # --- SCORE ---------------------------------------------------------------
 ## Score event kinds. The ScoreEvent log is keyed on these.
 const SCORE_BLENDED := &"SCORE-BLENDED"
+const SCORE_CLOSECALL := &"SCORE-CLOSECALL"
 const SCORE_CONTRACT := &"SCORE-CONTRACT"
 const SCORE_DEATH := &"SCORE-DEATH"
+const SCORE_ESCAPE := &"SCORE-ESCAPE"
 const SCORE_FOCUS := &"SCORE-FOCUS"
 const SCORE_FROMABOVE := &"SCORE-FROMABOVE"
 const SCORE_LONGHUNT := &"SCORE-LONGHUNT"

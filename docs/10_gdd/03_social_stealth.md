@@ -739,6 +739,7 @@ func _best_insertion_index(player, killer) -> int:
 | **Kill** | Remove victim | n → n−1 | The killer's pursuer relationship is unchanged; the killer's *contract* becomes the victim's former contract, automatically, after `TUN-CONTRACT-REASSIGN-DELAY` (3.0 s). |
 | **Death by any means** | Same | n → n−1 | |
 | **Respawn** | Insert, constrained | n → n+1 | After `TUN-RESPAWN-DELAY` (5.0 s). |
+| **Escape** | Remove the **hunter**, reinsert under the respawn constraints | n → n | **New 2026-08-26, [ADR-0014](../00_meta/adr/ADR-0014-the-escape-verb.md).** The only event that changes this graph without anybody dying or arriving. The length is unchanged; what moves is the hunter's position. Announced after `TUN-CONTRACT-REASSIGN-DELAY`, the same breath a kill gets. See §7.7. |
 | **Disconnect** | Remove | n → n−1 | Identical handling to a death. The pursuer is not punished for their target quitting; they simply inherit the next contract. |
 | **Join mid-match** | Insert at random | n → n+1 | |
 | **Simultaneous events** | Batched | — | Multiple events within `TUN-CONTRACT-REPAIR-DEBOUNCE` (0.25 s) are applied in one pass. Without this, a double kill produces two conflicting rebuilds. |
@@ -842,6 +843,87 @@ with the constraints vacuous (no killer, no history), rather than the separate r
 list, `contract(p) = p` requires p to appear twice, which the distinctness check catches first.
 They are defence for the day the representation becomes a map of edges, and the test says so
 rather than leaving an unexercised branch to read as dead code.
+
+---
+
+### 7.7 The escape — the one event that is not a death or an arrival
+
+**Added 2026-08-26 by [ADR-0014](../00_meta/adr/ADR-0014-the-escape-verb.md).** Read that
+first; this section is the rule, not the argument for it.
+
+Until this section existed, **a contract ended in exactly one way: the prey died.** Every event
+in §7.3 was a death or an arrival, so a prey who spotted their hunter, broke the corner and
+blended perfectly could only *postpone*. In a bounded district over eight minutes, every hunt
+resolved in a kill. The reference has never worked that way, and neither does this any more.
+
+#### 7.7.1 A chase opens on the prey warning and on nothing else
+
+The condition is §9.1's, unchanged: the pursuer within `TUN-COMPASS-WARN-RADIUS` at tier at
+least `TUN-COMPASS-WARN-MIN-TIER`. **No new trigger is introduced, and that is the point** — the
+same carelessness that puts a marker on the prey's ring is now what puts the hunter's own
+contract at risk. §9.1's warning stops being feedback and becomes the opening move of a
+mechanic.
+
+#### 7.7.2 Sight refreshes, absence drains
+
+The hunter holds a bar, full at `TUN-PURSUIT-DURATION`. Sight of the prey **refreshes it to
+full**; absence drains it; empty means the contract is lost.
+
+*Refresh rather than increment.* An incrementing bar lets a hunter who glimpses their prey every
+few seconds hold a chase open forever without ever closing distance, which is the opposite of
+what a chase is for.
+
+**`TUN-PURSUIT-DURATION` is derived, not chosen**: it is `TUN-COMPASS-WARN-RADIUS` divided by
+`TUN-SPEED-BLENDWALK`, so **the chase ends at the moment the prey could have walked out of
+warning range at civilian speed**. Escaping therefore never requires running — design law 1 and
+[`ADR-0012`](../00_meta/adr/ADR-0012-slow-is-always-available.md) expressed as a duration rather
+than asserted about one.
+
+#### 7.7.3 What counts as sight, and why blending is not free
+
+Sight is `has_los()`, **and** the prey inside `TUN-PURSUIT-SIGHT-CONE` within
+`TUN-PURSUIT-SIGHT-RANGE`, **and** the prey not concealed by a blend the hunter did not watch
+them enter.
+
+That third clause is §9.2's own rule applied to a new consumer: *the crowd hides you by being
+confusing, never by being solid.* A hunter with a clear line to a player standing in a held
+blend cannot pick them out of the pocket — **unless they had unbroken sight at the instant the
+blend began**, in which case they watched it happen and the pocket conceals nothing from them.
+
+**So the prey's correct line is: break the corner first, then blend.** Blending in front of a
+hunter who is looking straight at you buys exactly nothing, which is both the reference's
+behaviour and the more interesting skill.
+
+#### 7.7.4 What the loss costs the hunter
+
+The hunter is removed from the cycle and reinserted under **the constraints a respawn already
+uses**, so an escape is structurally a respawn without a death and reaches `ContractCycle`
+through the same two calls. §7.2's `pred == killer` filter generalises without modification:
+the escapee stands in the killer's place in it, so the hunter who was just escaped cannot be
+handed the same prey again immediately.
+
+**The prey is not made safe by escaping.** Removing the hunter from position *i* means whoever
+was hunting *them* inherits the prey — the escape resets the hunt rather than ending it, and
+the prey is still somebody's contract one tick later. That is a property of the cycle rather
+than a rule anybody wrote, and it is the correct feel.
+
+#### 7.7.5 What ends a chase, and what does not
+
+A kill, either party's death, a disconnect, or the timer. **A chase does not end because the
+hunter calms down.** Once seen, a hunter must close or lose them; one who could cancel a chase
+by standing still would have alerted their prey for free, and carelessness would have no shelf
+life.
+
+#### 7.7.6 What the prey earns, and the two bonuses that cannot exist here
+
+`SCORE-ESCAPE` when the bar empties, and `SCORE-CLOSECALL` as well if the hunter was still
+within `TUN-PURSUIT-CLOSECALL-RADIUS` when it did. Both take the reference's own values.
+
+**The reference's multi-escape bonuses can never fire in this game, by construction.** They
+require two and three simultaneous pursuers; a Hamiltonian cycle gives every player exactly one
+incoming edge, so nobody here is ever hunted by two. That is a divergence we keep — the
+single-pursuer guarantee is what makes §7.4's validity proof work, and two bonuses are not
+worth trading it for.
 
 ---
 
@@ -994,6 +1076,11 @@ half:**
    warned about them" and "I can stun them" are *the same condition*. Two different thresholds
    here would be unlearnable; one threshold means the warning is functionally an instruction:
    *turn around and stun.*
+4. **It is also the threshold at which a hunter can LOSE their contract**, added 2026-08-26 by
+   [`ADR-0014`](../00_meta/adr/ADR-0014-the-escape-verb.md). The warning is what opens a chase
+   (§7.7), so the instruction in consequence 3 now has a second half: *turn around and stun, or
+   break the corner and disappear.* An Anonymous hunter triggers neither, which is why staying
+   Anonymous is worth more than any ability in the game.
 
 ### 9.2 Line of sight resolution
 

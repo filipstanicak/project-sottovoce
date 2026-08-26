@@ -47,7 +47,7 @@ gantt
 | **M2** Net | 3 clients + headless server, replicated movement, prediction & interpolation, join/leave stable | US-0025–0038 | `RISK-NETCODE`, `RISK-BANDWIDTH` |
 | **M3** Crowd | 80 NPCs with clones, blend groups, startle/gawk, ≤ 2 ms/frame | US-0039–0048 | `RISK-CROWD-PERF`, `RISK-ANONYMITY-LEAK`, `RISK-ANIM-SCOPE` |
 | **M4** The Loop | Contracts, compass, suspicion, kill, stun, respawn — **the game is playable end-to-end** | US-0049–0063 | `RISK-NOT-FUN-SOLO` |
-| **M5** Depth | 4 abilities, scoring with all bonuses, HUD, results screen, audio events | US-0064–0077 | — |
+| **M5** Depth | 4 abilities, scoring with all bonuses, **the escape verb**, HUD, results screen, audio events | US-0064–0077, US-0097 | — |
 | **M6** Playable MVP | Lobby, 8-min match flow, balance pass 1, **3 external playtests completed and logged** | US-0078–0088 | `RISK-POPULATION`, `RISK-BALANCE-UNFALSIFIABLE` |
 
 Each milestone ends with an explicit **gate story** — US-0038, US-0048, US-0063, US-0088 — so the
@@ -630,12 +630,13 @@ does not work — and finding that out at M4 costs one milestone rather than thr
 | Delivers | |
 |---|---|
 | `ScoreEvent`, `ScoreLog`, the pure fold | |
-| All twelve bonuses, evaluated at initiation | |
+| All twelve kill bonuses, evaluated at initiation — **plus `SCORE-ESCAPE` and `SCORE-CLOSECALL`, which are not** | The two escape bonuses fold when a chase timer empties, not at a kill. US-0097 |
 | `AbilitySystem` + Cinderfall, Whisperbolt, Second Face, Lunge | |
 | Three passives | |
 | The full HUD: Compass, portrait, tier, feed, abilities, timer, crosshair | |
 | Audio dispatcher, the event table, reactive music stems | |
 | Results screen with the per-bonus breakdown | |
+| **The escape verb** — pursuit timer, contract loss, `SCORE-ESCAPE`, `SCORE-CLOSECALL` | US-0097, [ADR-0014](../00_meta/adr/ADR-0014-the-escape-verb.md). **New scope**, and the cut that pays for it is not chosen yet — see SCOPE_FENCE §1.1 |
 
 ### 7.1 The M5 gate
 
@@ -644,6 +645,9 @@ does not work — and finding that out at M4 costs one milestone rather than thr
 - Every HUD state passes the 0.5 s readability test in all four palettes.
 - With ambience and music muted, **no gameplay information is lost**.
 - Playtest Q8: players can name a bonus they earned.
+- `test_contract_cycle_fuzz.gd` includes escapes in its event mix **and asserts it generated at
+  least one** — a fuzz that never reaches the new event passes over it exactly as the first
+  version passed over the anti-repeat rule (GDD-03 §7.6).
 
 ### 7.2 Why scoring lands before the HUD
 
