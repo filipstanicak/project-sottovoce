@@ -86,20 +86,20 @@ func report_input(peer: int, command: InputCommand, _dt: float) -> void:
 	_requests.append([peer, command.received_ordinal])
 
 
-## Cancel a kill in flight. `SYS-STUN`'s entry point (US-0061), and without a
-## caller until then — a save that lands before the contact frame is what makes
-## `TUN-KILL-CORPSE-SPAWN-DELAY` a tunable rather than an art decision.
-func report_interrupt(peer: int) -> void:
-	if not _pending.has(peer):
-		return
-	contest.release(int((_pending[peer] as Array)[0]))
-	_pending.erase(peer)
-
-
+## **THERE IS NO `report_interrupt`, AND THE ABSENCE IS THE RULE.** ADR-0013: a
+## committed kill completes, so `SYS-STUN` has nothing to call. The method existed
+## for one PR, was tested with no caller, and is deleted rather than left as a
+## no-op — a cancel entry point that silently does nothing is worse than none,
+## because the next reader wires a stun to it and believes the save landed.
+##
+## A killer can still fail to land: `_still_committed` checks they are in the
+## animation at the contact frame, which a **third party's** kill (FATAL) breaks.
 func forget(peer: int) -> void:
 	_held.erase(peer)
 	_locked_until.erase(peer)
-	report_interrupt(peer)
+	if _pending.has(peer):
+		contest.release(int((_pending[peer] as Array)[0]))
+		_pending.erase(peer)
 	contest.forget(peer)
 	for killer: int in _pending.keys():
 		if int((_pending[killer] as Array)[0]) == peer:
@@ -292,8 +292,11 @@ func _resolve_contact_frames(ctx: MatchContext) -> void:
 		_land(ctx, killer, victim)
 
 
-## Is the killer still in the animation they started? A third party's kill and a
-## prey's stun both take them out of it, and either is a genuine save.
+## Is the killer still in the animation they started?
+##
+## **ONLY A THIRD PARTY CAN TAKE THEM OUT OF IT** as of ADR-0013 — `KillAnimState`
+## declines every COMBAT-priority request, so a stun no longer saves the victim
+## and this is a FATAL-priority check in all but name.
 func _still_committed(ctx: MatchContext, killer: int) -> bool:
 	var pawn: PawnContext = ctx.pawn_contexts.get(killer)
 	return pawn != null and pawn.state_id == PawnStateId.KILL_ANIM

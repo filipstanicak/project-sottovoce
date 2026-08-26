@@ -272,7 +272,7 @@ design requirement, expressed as a curve.
 | `TUN-COMPASS-WARN-MIN-TIER` | 30.0 | pts | — | The tier threshold that triggers the warning. Equals `TUN-SUSPICION-TIER-NOTICED`. An **Anonymous** pursuer produces no warning at any distance — patience really does buy invisibility. |
 | `TUN-COMPASS-WARN-DURATION` | 1.2 | s | 0.8–2.0 | How long the flash and audio sting persist after the condition ends. |
 | `TUN-COMPASS-WARN-COOLDOWN` | 2.5 | s | 1.5–5.0 | Re-trigger interval, so a pursuer hovering at the tier boundary does not produce a strobe. |
-| `TUN-COMPASS-WARN-GIVES-DIRECTION` | false | bool | — | **The warning is directionless.** You learn *that* you are hunted, never *from where*. Making it directional would convert the game's best moment — the panicked scan of a crowd — into a lookup. |
+| `TUN-COMPASS-WARN-GIVES-DIRECTION` | true | bool | — | **The warning carries a bearing and a distance bucket.** Amended 2026-08-26 (ADR-0013) from `false`, for reference fidelity: the reference marks a revealed pursuer on the compass with direction and range. It still tells you nothing about *who* — a marker on a bearing, never an identity — and the tier gate is unchanged, so a competent hunter produces no marker at all. The superseded argument is preserved in GDD-01 Law 5. |
 
 ---
 

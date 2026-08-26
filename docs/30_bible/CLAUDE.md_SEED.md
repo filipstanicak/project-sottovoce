@@ -222,11 +222,16 @@ Target branch lifetime ≤ 2 days, hard ceiling 5. Squash merge. **Never push di
 10. **Never put a user-facing string in a script or scene.** It goes in `data/strings/en.csv`.
 11. **Never add an asset without a licence row** in `docs/00_meta/ASSET_LICENSES.md`, in the same
     commit.
-12. **Never add a minimap, a kill-cam, a global kill feed, player nameplates, or a hit-direction
-    indicator.** These are permanent design laws, not backlog items. Each would convert an
-    earned inference into a given fact.
+12. **Never add a minimap, a kill-cam, a global kill feed, or player nameplates.** Each would
+    convert an earned inference into a given fact. **Narrowed 2026-08-26 (ADR-0013):** the
+    hit-direction ban is lifted — the prey warning carries a bearing, as the reference's does —
+    and "nameplate" means a **name**. A *relationship* marker on your own contract or your own
+    revealed pursuer is permitted; a marker that names anybody, or that marks a player you have
+    no relationship with, is not.
 13. **Never weaken stun** to make hunting feel better. If hunters are frustrated, make the
-    *Anonymous approach* more reliable instead.
+    *Anonymous approach* more reliable instead. **One exception, decided 2026-08-26 for
+    reference fidelity (ADR-0013): a committed kill is not interruptible.** Range advantage,
+    tier gate, freeze and lockout are all untouched, and none of them may be traded away.
 14. **Never reduce crowd density to fix performance** before exhausting the LOD ladder in
     `docs/20_tdd/08_crowd_system.md` §11.3. Density is the game's substrate.
 15. **Never add an autoload.** There are eight. Adding a ninth requires an ADR.

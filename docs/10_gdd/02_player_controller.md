@@ -281,7 +281,7 @@ requested at priority *P* may interrupt a state whose `is_interruptible()` is fa
 | **Vault** | Traverse + waist probe ≤ `TUN-TRAVERSE-VAULT-MAX-HEIGHT` | 0.55 s | Yes (to COMBAT+) | NORMAL | none — a vault is a civilian act |
 | **Drop** | Ledge exit above `TUN-TRAVERSE-DROP-SAFE-HEIGHT` | Landing | No (airborne) | NORMAL | none in air; `TUN-TRAVERSE-DROP-STAGGER` on hard landing |
 | **Blended** | `INPUT-BLEND` on a valid target, after `TUN-BLEND-ENTRY-TIME` 0.35 s | `INPUT-BLEND`, speed break, damage | Yes (to COMBAT+) | NORMAL | crushes to 0 over `TUN-BLEND-CRUSH-TIME` 1.2 s |
-| **KillAnim** | `INPUT-KILL` + server validation | `TUN-KILL-ANIM-DURATION` 1.4 s | **No** below FATAL; COMBAT may interrupt *before the contact frame at 0.9 s only* | COMBAT | none directly; `TUN-SUSPICION-GAIN-WITNESSED-KILL` may apply |
+| **KillAnim** | `INPUT-KILL` + server validation | `TUN-KILL-ANIM-DURATION` 1.4 s | **No.** Only FATAL gets through — a third party killing the killer. **Amended 2026-08-26, ADR-0013**: COMBAT no longer interrupts before the contact frame | COMBAT | none directly; `TUN-SUSPICION-GAIN-WITNESSED-KILL` may apply |
 | **StunAnim** | `INPUT-STUN` + pursuer in range and ≥ Noticed | 0.7 s | No below FATAL | COMBAT | none if valid; `TUN-STUN-INVALID-SUSPICION` +20 if not |
 | **Stunned** | Stunned by prey | `TUN-STUN-FREEZE` 4.0 s | No below FATAL | COMBAT | forced to `TUN-SUSPICION-MAX` |
 | **Dead** | Kill resolved against you | Corpse spawned | No | FATAL | n/a |
@@ -295,12 +295,20 @@ requested at priority *P* may interrupt a state whose `is_interruptible()` is fa
 
 ### 3.2 The three interrupt rules that matter
 
-1. **A kill in progress can be stopped, but only before it lands.** `KillAnim` is
-   interruptible by a stun until `TUN-KILL-CORPSE-SPAWN-DELAY` (0.9 s of the 1.4 s
-   animation). After the contact frame the victim is dead and the remaining 0.5 s is
-   follow-through. This is what makes a last-second stun a genuine save rather than a
-   cosmetic one — and it is why the kill animation's contact frame is a *tunable*, not an
-   art decision.
+1. **A kill in progress cannot be stopped by the victim.** Amended 2026-08-26 (ADR-0013).
+   `KillAnim` declines every COMBAT-priority interruption, so a stun landing after the
+   killer has committed does nothing for the victim. **Only FATAL gets through** — a third
+   party killing the killer mid-animation, which the §3 diagram already draws.
+
+   This reverses the earlier rule, which let a stun cancel the kill until
+   `TUN-KILL-CORPSE-SPAWN-DELAY`. The reference resolves a contested kill **for the killer**,
+   and the prey's counterplay lives entirely in the approach: a careless hunter is stunnable
+   from further away than they can strike, for the whole time they are closing. What is gone
+   is the save at the moment of commitment.
+
+   **`TUN-KILL-CORPSE-SPAWN-DELAY` is still a tunable and still means the contact frame** —
+   it decides when the victim dies, when the corpse appears and when the crowd startles. It
+   simply no longer decides whether a stun arrived in time.
 2. **Nothing interrupts `Stunned`.** Not another stun, not a kill attempt (which simply
    succeeds), not input. Four seconds of total helplessness is the point of the mechanic
    (Law 5).

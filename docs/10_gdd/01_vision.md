@@ -124,16 +124,29 @@ matches.
 A successful stun is worth `TUN-STUN-SCORE` = 100 — *exactly* a base kill — freezes the hunter
 for 4 s, and exiles them for 12 s. Defence is a scoring strategy, not a survival tax.
 
+**The teeth are in the approach, not in the last instant.** A hunter who has been careless is
+stunnable for the whole of their approach, from further away than they can strike. What the
+prey does *not* get is a save at the moment of commitment: once a kill animation has begun it
+completes, and only a third party killing the killer ends it. Amended 2026-08-26, ADR-0013 —
+the reference resolves a contested kill for the killer, and the corresponding
+`is_interruptible` window is gone.
+
 > **Rejected: a stun that only interrupts.** The first design had stun cancel a kill attempt
 > with no lockout. Rejected in review: it made stun a 4-second delay rather than counterplay,
 > and a hunter would simply wait and re-approach. `TUN-STUN-LOCKOUT` (12 s) is what converts
-> interruption into refusal.
+> interruption into refusal. **This rejection stands and is now doing more work than before:**
+> with the last-instant save gone, the lockout is the whole of what a stun buys.
 
-> **Rejected: letting prey see their pursuer's identity when warned.** The prey warning
-> (`TUN-COMPASS-WARN-RADIUS`, 15 m) tells you *that* you are hunted, never *by whom* or *from
-> where* — `TUN-COMPASS-WARN-GIVES-DIRECTION` is `false`. Making it directional would convert
-> the best moment in the game (the panicked scan of a crowd, trying to find the one face that
-> is looking back) into a lookup.
+> **Overturned 2026-08-26 (ADR-0013): the prey warning is directional.** This law used to
+> reject it, on the argument that direction would convert the best moment in the game — the
+> panicked scan of a crowd, trying to find the one face that is looking back — into a lookup.
+> The reference gives the prey a marker carrying **bearing and distance** once the pursuer has
+> revealed themselves, so `TUN-COMPASS-WARN-GIVES-DIRECTION` is now `true`.
+>
+> The original argument is preserved rather than deleted, because it is not wrong — it is a
+> real cost, knowingly paid. What survives of it is the **gate**: an Anonymous pursuer still
+> produces no warning at all, so the panicked scan is still what a *competent* hunter leaves
+> you with. Direction is what carelessness now costs.
 
 ### Law 6 — Uncertainty is authored, not accidental
 
