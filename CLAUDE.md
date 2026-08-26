@@ -222,7 +222,7 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 
 ## Where the work is right now
 
-*Updated 2026-08-26 (ADR-0013). Keep this section current — it is the first thing a
+*Updated 2026-08-26 (ADR-0013, scoring re-price). Keep this section current — it is the first thing a
 fresh session reads, and a stale one is worse than none.*
 
 ## M4 IS TEN OF FIFTEEN, AND NOTHING IS PLAYABLE YET
@@ -250,6 +250,49 @@ killed today stays dead for the rest of the match.**
 
 **AND FOUR SYSTEMS NOW TICK THAT DID NOT AT THE M3 GATE**, so US-0048's server-tick
 figure is superseded — see the re-measurement under US-0055 below.
+
+---
+
+**THE SCORING TABLE IS RE-PRICED, AND THE RE-PRICING WENT THE OTHER WAY.** ADR-0013
+moved thesis enforcement out of mechanics; this moves it into scoring, which is where
+the reference keeps it. Four values, each matching the reference's own:
+`TUN-SCORE-SILENT` **100 → 200**, `TUN-SCORE-PATIENT` **150 → 100** (the pair now sums
+to 300, the reference's top stealth rung), `TUN-SCORE-FOCUS` **100 → 150**, and
+`TUN-SCORE-RECKLESS` **−50 → 0**. `TUN-SCORE-BLENDED` needed no change: the reference
+pays exactly 200 for the same thing.
+
+**AND A FULL PATIENT KILL IS NOW WORTH 750, WHICH IS THE REFERENCE'S OWN PUBLISHED
+EXAMPLE.** Reached by a different split of the same total — ours is
+100 + (200 + 100) + 200 + 150, theirs is 100 + 300 + 200 + 150.
+
+**THE EXPECTED RATIO FELL RATHER THAN ROSE: 2.68 : 1 → 2.55 : 1 PER KILL.** That was
+not what the re-pricing was expected to do, and the cause is isolable — **removing
+`SCORE-RECKLESS` is worth +27.5 per kill to the Aggressor and +1.0 to the Patient**,
+which eats most of the stealth uplift. **Converging on the reference makes this game
+LESS punishing of aggression, not more**, because it under-pays carelessness rather
+than charging for it. Best case fell 13:1 → **7.5:1**, much closer to the brief's
+3–5×.
+
+**READ TOGETHER WITH ADR-0013, AGGRESSION GOT BETTER ON BOTH AXES** — more per kill,
+and kills that a stun can no longer stop. The counterweight is the stealth ladder at
+three base kills, which is **invariant 18**, rewritten from `BLENDED > PATIENT >
+SILENT` (an ordering the reference does not have) to
+`SILENT + PATIENT >= 3 × CONTRACT` (a floor it does). Falsified against a halved
+ladder.
+
+**AND THE BALANCE MODEL'S KILLS-PER-MATCH FIGURES ARE STALE, DELIBERATELY LEFT SO.**
+§4.3 models a **45 % stun-per-attempt rate**, which was measured against the old rule
+where a stun could interrupt a committed kill. That window is gone, so the rate must
+fall — and re-deriving it means guessing a number, then guessing three more that
+depend on it. **The point values in §4.4/§4.5 are correct; what they are multiplied by
+is not.** `TEL-STUN-RATE` settles it and nothing should be re-derived before then.
+
+**ONE MORE THING THE AUDIT ANSWERED FOR FREE: `SCORE-VARIETY`'s OPEN QUESTION.**
+GDD-07 §3.1 has flagged since M0 that per-life Variety behaves as a flat uplift, and
+offered two fixes. **The reference uses a third nobody proposed** — per **match**, paid
+at thresholds of 5, 10 and 15 distinct bonus types. Not adopted, because the payout
+values are not documented anywhere sourceable and inventing three numbers is not
+fidelity. Recorded as the recommended fix ahead of the other two.
 
 ---
 
@@ -3073,7 +3116,7 @@ US-0024 measures it against clips that do not exist.
 |---|---|
 | CI | 7 jobs. **Running again as of 2026-08-07 after a two-day outage** — run `31200490320`, all seven green. The seven commits merged during the outage were never through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
 | Tests | **46 arch + 129 unit + 32 integration scripts**, holding 180 + 1098 + 239 tests and 808 + 24 799 + 651 assertions — the assertion count tripled at US-0049, because `test_contract_cycle_fuzz.gd` checks the invariant after every one of 10 000 events. **Eight are `pending` by design** — **seven in the unit suite and one in the integration suite**, which reports that an NPC aimed into the void never gives up. The island `pending` beside it **turned green by itself** when the alley mouths were built, which is what a `pending` naming its own blocker is for. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **162-172 s** of the 180 s it is allowed, up from 87.7 s at M2 — **under 9 s of headroom left, and the next integration test has to justify itself hard against that**. `test_server_tick_budget.gd` cost 9.8 s of it and is a gate line; the one before it, the 2 s pass A/B, samples ninety ticks **twice** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **The six are**: `test_upstream_bandwidth.gd` reporting the 145 % upstream miss, `test_crowd_bandwidth.gd` the 112 % downstream projection, `test_crowd_wire_cost.gd` the 112 % it actually costs, **`test_spawn_points.gd` twice — GDD-05 §2.7 rule 6's nine unoccluded spawn pairs and rule 8's S3 4, S4 1, S5 6 of 8 seats** — and `test_clone_animation_parity.gd` the missing clip library. **Two entries this row carried are gone because their findings closed**: `test_circuit_separation.gd`'s 0.51 m circuits (re-authored, now 21.20 m) and `test_cull_radius_price.gd`'s flat curve, which asserts rather than pends. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
-| Tuning | 288 tunables across 14 resource classes; all 31 cross-field invariants assert — split across `TuningInvariants` and `TuningInvariantsTech` since the first file hit 400 lines, with one entry point still. **Eight IDs are deprecated** and recorded in TUNABLES §19 — never reused |
+| Tuning | 288 tunables across 14 resource classes; all 31 cross-field invariants assert. **Four scoring values were re-priced on 2026-08-26 (ADR-0013)** — `TUN-SCORE-SILENT` 100 → 200, `TUN-SCORE-PATIENT` 150 → 100, `TUN-SCORE-FOCUS` 100 → 150, `TUN-SCORE-RECKLESS` −50 → **0**, and invariant 18 rewritten from an ordering to a floor — split across `TuningInvariants` and `TuningInvariantsTech` since the first file hit 400 lines, with one entry point still. **Eight IDs are deprecated** and recorded in TUNABLES §19 — never reused |
 | Autoloads | All eight. `Tuning` precomputes 89 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |
 | Boot | Branches on `--server`; 7 CLI flags parsed in pure Core; 5 export presets |

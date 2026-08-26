@@ -142,6 +142,34 @@ func test_the_lagcomp_invariant_is_live() -> void:
 	assert_true(hit, "a rewind ceiling past half the ring produced no error — 16 is inert")
 
 
+func test_the_stealth_ladder_invariant_is_live() -> void:
+	# **INVARIANT 18, AND IT IS NOW THE ONLY THING ENFORCING THE THESIS.** ADR-0013
+	# removed the stun's hard counter and neutralised `SCORE-RECKLESS`, so a careless
+	# player is no longer punished mechanically or financially — they simply earn
+	# less. How much less is this invariant: the stealth ladder's top rung must pay
+	# at least three base kills.
+	#
+	# Falsified rather than asserted from the shipped values, because a check that
+	# only ever sees a passing profile is one nobody knows the shape of.
+	var p := _profile()
+	assert_gte(
+		p.scoring.silent + p.scoring.patient,
+		3.0 * p.scoring.contract,
+		"the shipped profile already violates invariant 18"
+	)
+
+	var was := p.scoring.patient
+	p.scoring.patient = 0.0
+	var errors := TuningInvariants.check(p)
+	p.scoring.patient = was
+	var named := false
+	for line: String in errors:
+		if line.begins_with("18."):
+			named = true
+	assert_true(named, "invariant 18 did not fire on a halved stealth ladder")
+	assert_eq(TuningInvariants.check(p).size(), 0, "the profile was not restored")
+
+
 func test_the_invariant_checker_actually_fires() -> void:
 	# Guards the guard. A validate() that returned an empty array unconditionally
 	# would make every assertion above pass over nothing.

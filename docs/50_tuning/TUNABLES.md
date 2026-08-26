@@ -475,12 +475,12 @@ events timestamped within the final phase. Derivations are in
 | ID | Score event | Value | Unit | Range | Condition & rationale |
 |---|---|---|---|---|---|
 | `TUN-SCORE-CONTRACT` | `SCORE-CONTRACT` | 100 | pts | 100–100 | Any valid kill on your contract. **The unit of account** — every other value is expressed as a multiple of this, so it is fixed by definition, not tuned. |
-| `TUN-SCORE-SILENT` | `SCORE-SILENT` | +100 | pts | 75–150 | Suspicion ≤ 29 (Anonymous) at initiation. Doubles the kill. The floor of good play. |
-| `TUN-SCORE-PATIENT` | `SCORE-PATIENT` | +150 | pts | 100–200 | Never exceeded `TUN-SCORE-PATIENT-SPEED` in the 10 s before initiation. The most valuable single bonus, because it is the thesis. |
+| `TUN-SCORE-SILENT` | `SCORE-SILENT` | +200 | pts | 150–250 | Suspicion ≤ 29 (Anonymous) at initiation. **Re-priced 2026-08-26 from +100 (ADR-0013)** to the reference's own value for the same condition: a kill where the hunter was briefly conspicuous but is not conspicuous now. With `SCORE-PATIENT` it sums to **300**, which is what the reference pays for an approach that was never conspicuous at all — the two bonuses together are its top stealth rung, split across an instantaneous half and a sustained one. |
+| `TUN-SCORE-PATIENT` | `SCORE-PATIENT` | +100 | pts | 75–150 | Never exceeded `TUN-SCORE-PATIENT-SPEED` in the 10 s before initiation. **Re-priced 2026-08-26 from +150 (ADR-0013).** It is now the *smaller* half of the stealth ladder, and invariant 18 is amended to say so: the reference pays 200 for being unseen at the moment of the kill and 300 for having been unseen throughout, so the sustained half is worth **100 on top**, not more than the instantaneous half. What the pair sums to is the number that matters. |
 | `TUN-SCORE-PATIENT-WINDOW` | — | 10.0 | s | 8–15 | The lookback window for `SCORE-PATIENT`. Long enough that it cannot be gamed by decelerating at the last moment. |
 | `TUN-SCORE-PATIENT-SPEED` | — | 3.4 | m/s | 2.6–4.4 | The speed `SCORE-PATIENT` requires you never to have exceeded. **This was `TUN-SPEED-JOG` until the ladder lost that rung, and the number is deliberately unchanged** — patience means exactly what it meant before, but it is a scoring threshold now rather than a speed anything travels at. It sits above `TUN-SPEED-STROLL` and below `TUN-SPEED-RUN` (invariant §17.23), which is what makes it a real line: a patient player may drift above their cruising speed while accelerating or being shoved by a crowd, and may not run. |
 | `TUN-SCORE-MASKED` | `SCORE-MASKED` | +150 | pts | 100–200 | `ABIL-SECONDFACE` active at initiation. Equal to Patient: disguise is a *different* route to the same virtue. |
-| `TUN-SCORE-FOCUS` | `SCORE-FOCUS` | +100 | pts | 75–150 | Unbroken line of sight on the contract for the last 6 s. Pays for the hardest thing in the game: standing still and watching one person in a moving crowd. |
+| `TUN-SCORE-FOCUS` | `SCORE-FOCUS` | +150 | pts | 100–200 | **Re-priced 2026-08-26 from +100 (ADR-0013)** to the reference's exact value. | Unbroken line of sight on the contract for the last 6 s. Pays for the hardest thing in the game: standing still and watching one person in a moving crowd. |
 | `TUN-SCORE-FOCUS-WINDOW` | — | 6.0 | s | 4–10 | The required unbroken-LOS duration. |
 | `TUN-SCORE-FOCUS-BREAK-GRACE` | — | 0.4 | s | 0.2–0.8 | LOS may lapse this long (an NPC passing between you) without resetting the window. Without it the bonus is unearnable in a crowd — which is exactly where it should be earned. |
 | `TUN-SCORE-FROMABOVE` | `SCORE-FROMABOVE` | +100 | pts | 75–150 | Initiated from ≥ `TUN-SCORE-FROMABOVE-HEIGHT` above the target. Pays for the roof route, which otherwise only costs. |
@@ -493,7 +493,7 @@ events timestamped within the final phase. Derivations are in
 | `TUN-SCORE-LONGHUNT-T2` | — | 45.0 | s | 35–70 | Tier-2 threshold. Pays for the patient stalk that the whole game is about, and specifically counteracts the incentive to rush a kill before someone else's contract graph shifts. |
 | `TUN-SCORE-VENDETTA` | `SCORE-VENDETTA` | +100 | pts | 75–150 | Killing the player who last killed you. Only the most recent killer counts, and only until you die again. Emotional payoff, cheap to implement, generates stories. |
 | `TUN-SCORE-VARIETY` | `SCORE-VARIETY` | +50 × n | pts | 25–75 | `n` = bonus types earned on this kill for the **first time in the current life**. Excludes itself, `SCORE-CONTRACT` and `SCORE-RECKLESS`. Resets on death. Pays for varying your approach across a streak. (ASM-0017) |
-| `TUN-SCORE-RECKLESS` | `SCORE-RECKLESS` | −50 | pts | −100–−25 | Suspicion ≥ `TUN-SUSPICION-TIER-EXPOSED` at initiation. The only penalty. Makes a sprinting kill worth 50 points against a blended kill's 550+ — the 11× ratio the design brief demands, and then some. |
+| `TUN-SCORE-RECKLESS` | `SCORE-RECKLESS` | 0 | pts | −100–0 | Suspicion ≥ `TUN-SUSPICION-TIER-EXPOSED` at initiation. **Neutralised 2026-08-26 from −50 (ADR-0013): the reference has no penalty of any kind.** Its enforcement is that a careless kill *earns less*, never that it costs. An Exposed kill already forfeits `SCORE-SILENT` and `SCORE-PATIENT` — 300 points — so a further −50 was punishment the reference does not levy. **The event still fires and is still shown**, at zero: the score feed telling you *you were seen* is the feedback, and deleting the event would delete the lesson with the penalty. The ID is retained rather than reused (§19). |
 | `TUN-SCORE-STUN` | `SCORE-STUN` | 100 | pts | 75–150 | Equals `TUN-STUN-SCORE`. Defence pays like offence. |
 | `TUN-SCORE-STUN-INVALID` | — | 0 | pts | — | Stunning a non-pursuer. Zero, plus `TUN-STUN-INVALID-STAGGER` and `TUN-STUN-INVALID-SUSPICION`. |
 | `TUN-SCORE-DEATH-PENALTY` | — | 0 | pts | — | **Dying costs no points.** Only time. A points penalty for dying would make a losing player's position unrecoverable and would push them toward the safest, most boring play — which is the opposite of what a trailing player should do. |
@@ -502,20 +502,25 @@ events timestamped within the final phase. Derivations are in
 
 | Kill archetype | Bonuses | Total |
 |---|---|---|
-| Sprinting tackle-kill while Exposed | 100 − 50 | **50** |
+| Sprinting tackle-kill while Exposed | 100 | **100** |
 | Careless but not Exposed | 100 | **100** |
-| Clean walk-up kill | 100 + Silent 100 + Patient 150 | **350** |
-| Watched, waited, struck | 100 + Silent 100 + Patient 150 + Focus 100 | **450** |
-| The full patient blend kill | 100 + Silent 100 + Patient 150 + Focus 100 + Blended 200 | **650** |
-| …plus Variety (5 new types) | + 250 | **900** |
-| …in the Final Contract phase (2×) | | **1800** |
+| Clean walk-up kill | 100 + Silent 200 + Patient 100 | **400** |
+| Watched, waited, struck | 100 + Silent 200 + Patient 100 + Focus 150 | **550** |
+| The full patient blend kill | 100 + Silent 200 + Patient 100 + Focus 150 + Blended 200 | **750** |
+| …plus Variety (5 new types) | + 250 | **1000** |
+| …in the Final Contract phase (2×) | | **2000** |
 
-Ratio of the best patient kill to the sprint tackle: **13:1** (650 : 50), or 18:1 including
-Variety. The brief requires 3–5×; the *best-case* spread is deliberately far wider.
+Re-derived 2026-08-26 (ADR-0013). **750 is also the reference's own published worked example**
+for a perfect kill, reached by a different split of the same total.
+
+Ratio of the best patient kill to the sprint tackle: **7.5:1** (750 : 100), down from 13:1.
+The brief requires 3–5×, so the best-case spread is now much closer to it — and the direction
+is worth stating plainly: **converging on the reference made this game less punishing of
+aggression, not more**, because the old 13:1 rested on a penalty the reference does not levy.
 
 The ratio that actually governs play is the **expected** one, once bonus-fire probabilities,
-failure rates and time costs are modelled. That works out at **2.68 : 1** per kill and
-**2.5 : 1** over a full match — derived in [`BALANCE_MODEL.md`](BALANCE_MODEL.md) §3 and
+failure rates and time costs are modelled. That works out at **2.55 : 1** per kill and
+**2.36 : 1** over a full match — derived in [`BALANCE_MODEL.md`](BALANCE_MODEL.md) §3 and
 summarised in [`../10_gdd/07_balance.md`](../10_gdd/07_balance.md) §4. Note this is *stronger*
 than it sounds: carried through to win probability it puts a patient player ahead of an
 equally-skilled aggressive one in ~90 % of matches, against a ~60 % design target. That
@@ -650,7 +655,7 @@ Beyond each row's own Range, these cross-field invariants are asserted at load:
 | 15 | `TUN-KILL-ANIM-DURATION <= TUN-FEEL-MAX-COMMIT` | — |
 | 16 | `TUN-NET-LAGCOMP-MAX <= TUN-NET-LAGCOMP-HISTORY / 2` | The history buffer is never the binding constraint. |
 | 17 | `TUN-NET-NPC-CULL-RADIUS >= TUN-COMPASS-RANGE-MAX` | A culled NPC can never affect anything the client can perceive. |
-| 18 | `TUN-SCORE-BLENDED > TUN-SCORE-PATIENT > TUN-SCORE-SILENT` | The bonus hierarchy encodes the design thesis. If a tuning change inverts it, the tuning change is wrong. |
+| 18 | `TUN-SCORE-SILENT + TUN-SCORE-PATIENT >= 3 × TUN-SCORE-CONTRACT` | **Amended 2026-08-26 (ADR-0013).** It used to read `BLENDED > PATIENT > SILENT`, which encoded a hierarchy the reference does not have. What the thesis actually needs is that the stealth ladder's top rung pays **at least three base kills** — that is the reference's ratio, and it is the whole of how a game with no penalty for recklessness still makes patience correct. The split between the two halves is ours; the sum is not. |
 | 19 | `TUN-SCORE-STUN == TUN-SCORE-CONTRACT` | Defence pays like offence. |
 | 20 | `sum(TUN-PERF-*-BUDGET for client) <= TUN-PERF-FRAME-BUDGET` | The budget must actually add up. Currently 15.5 / 16.6 ms, leaving 1.1 ms of margin. |
 | 21 | `TUN-CAM-FOV-BLEND < STROLL < RUN < SPRINT` | The FOV ladder is a warning channel ([`../10_gdd/02_player_controller.md`](../10_gdd/02_player_controller.md) §4.2), and it only warns while it runs the same direction as the speed ladder it mirrors. Inverted, speed would read as calm and slowing down would read as alarm — the thesis, backwards, in the one channel that reaches the player pre-consciously. |
@@ -687,6 +692,21 @@ file, so a deprecated row would go on generating a field.
 
 The first six were retired together, when the speed ladder lost its Jog rung and `INPUT-RUN`
 stopped meaning two different things. The two camera entries went with the shoulder offset.
+
+### TUN-SCORE-RECKLESS — NEUTRALISED 2026-08-26, not removed
+
+Set to **0** by ADR-0013. It was −50: the game's only points penalty, derived as half a kill
+so that a caught-out player still had a reason to finish rather than abandon the approach.
+
+**The reference has no penalty of any kind.** It enforces the thesis entirely by paying a
+stealthy kill several times a careless one, and an Exposed kill here already forfeits
+`SCORE-SILENT` and `SCORE-PATIENT` — 300 points — which is that enforcement. A further −50 was
+punishment the reference does not levy, stacked on top of it.
+
+**The ID is retained and the event still fires**, at zero. A score feed line reading
+*Reckless* with no points attached still tells a player they were seen, which is the half of
+the bonus that was doing the teaching. The number may be restored, but the ID may never be
+reused for anything else.
 
 ### TUN-SPEED-JOG — DEPRECATED 2026-08-12, superseded by TUN-SCORE-PATIENT-SPEED
 

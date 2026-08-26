@@ -11,14 +11,21 @@ extends Resource
 ## TUN-SCORE-CONTRACT
 @export var contract: float = 100.0
 
-## Suspicion ≤ 29 (Anonymous) at initiation. Doubles the kill. The floor of good play.
+## Suspicion ≤ 29 (Anonymous) at initiation. Re-priced 2026-08-26 from +100 (ADR-0013) to the
+## reference's own value for the same condition: a kill where the hunter was briefly conspicuous
+## but is not conspicuous now. With SCORE-PATIENT it sums to 300, which is what the reference
+## pays for an approach that was never conspicuous at all — the two bonuses together are its top
+## stealth rung, split across an instantaneous half and a sustained one.
 ## TUN-SCORE-SILENT
-@export_range(75.0, 150.0, 0.1) var silent: float = 100.0
+@export_range(150.0, 250.0, 0.1) var silent: float = 200.0
 
-## Never exceeded TUN-SCORE-PATIENT-SPEED in the 10 s before initiation. The most valuable single
-## bonus, because it is the thesis.
+## Never exceeded TUN-SCORE-PATIENT-SPEED in the 10 s before initiation. Re-priced 2026-08-26
+## from +150 (ADR-0013). It is now the smaller half of the stealth ladder, and invariant 18 is
+## amended to say so: the reference pays 200 for being unseen at the moment of the kill and 300
+## for having been unseen throughout, so the sustained half is worth 100 on top, not more than
+## the instantaneous half. What the pair sums to is the number that matters.
 ## TUN-SCORE-PATIENT
-@export_range(100.0, 200.0, 0.1) var patient: float = 150.0
+@export_range(75.0, 150.0, 0.1) var patient: float = 100.0
 
 ## The lookback window for SCORE-PATIENT. Long enough that it cannot be gamed by decelerating at
 ## the last moment.
@@ -39,10 +46,9 @@ extends Resource
 ## TUN-SCORE-MASKED
 @export_range(100.0, 200.0, 0.1) var masked: float = 150.0
 
-## Unbroken line of sight on the contract for the last 6 s. Pays for the hardest thing in the
-## game: standing still and watching one person in a moving crowd.
+## Re-priced 2026-08-26 from +100 (ADR-0013) to the reference's exact value.
 ## TUN-SCORE-FOCUS
-@export_range(75.0, 150.0, 0.1) var focus: float = 100.0
+@export_range(100.0, 200.0, 0.1) var focus: float = 150.0
 
 ## The required unbroken-LOS duration.
 ## TUN-SCORE-FOCUS-WINDOW
@@ -102,11 +108,15 @@ extends Resource
 ## TUN-SCORE-VARIETY
 @export_range(25.0, 75.0, 0.1) var variety: float = 50.0
 
-## Suspicion ≥ TUN-SUSPICION-TIER-EXPOSED at initiation. The only penalty. Makes a sprinting kill
-## worth 50 points against a blended kill's 550+ — the 11× ratio the design brief demands, and
-## then some.
+## Suspicion ≥ TUN-SUSPICION-TIER-EXPOSED at initiation. Neutralised 2026-08-26 from −50
+## (ADR-0013): the reference has no penalty of any kind. Its enforcement is that a careless kill
+## earns less, never that it costs. An Exposed kill already forfeits SCORE-SILENT and SCORE-
+## PATIENT — 300 points — so a further −50 was punishment the reference does not levy. The event
+## still fires and is still shown, at zero: the score feed telling you you were seen is the
+## feedback, and deleting the event would delete the lesson with the penalty. The ID is retained
+## rather than reused (§19).
 ## TUN-SCORE-RECKLESS
-@export_range(-100.0, -25.0, 0.1) var reckless: float = -50.0
+@export_range(-100.0, 0.0, 0.1) var reckless: float = 0.0
 
 ## Equals TUN-STUN-SCORE. Defence pays like offence.
 ## TUN-SCORE-STUN
