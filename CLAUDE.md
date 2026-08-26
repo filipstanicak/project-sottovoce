@@ -3312,7 +3312,7 @@ US-0024 measures it against clips that do not exist.
 | Camera | Real spring arm: 2.6 m, **pawn centred** (US-0092 — the 0.45 m offset never changed the composition, because the rig aims at the pawn's own axis; `INPUT-SHOULDER` retired with it), occlusion that pulls **in** and never sideways, `WORLD`-masked so a crowd cannot push it. The FOV ladder is bound to the **state**, never to `ctx.velocity`: the rung is a consequence of the decision, not of the physics that follows it. Crowd-scan narrows to 48° and grants nothing. **Positive pitch LOWERS the arm** — the rig looks *at* the pivot, so a raised arm looks down; it shipped inverted from US-0021 until somebody played it |
 | Input | 20 `InputMap` actions from 14 live `INPUT-` IDs — `INPUT-SHOULDER` is retired via `InputActions.DEPRECATED`, still in the corpus and bound to nothing, KBM + pad. Chain GDD-02 → `Ids` → `InputActions` → `project.godot`, guarded on every hop, both directions. **Sampled once per physics frame by `LocalPawnDriver`, the only caller** — see trap 12. The mouse is **captured** on boot; `INPUT-MENU` releases, a click takes it back. **Only a mapped gamepad holds the joypad bindings** — `PadSelection`, applied through the one `InputMap` writer, because a set of sim pedals was steering |
 
-**Forty-six criteria are deliberately unticked**, each blocked by something real — counted
+**Forty-five criteria are deliberately unticked**, each blocked by something real — counted
 from the `done` and `in-progress` stories on **2026-08-25**. It was also forty on
 2026-08-16, which is a coincidence rather than a stall: US-0055 closed seven and
 US-0052/0053/0056 opened four between them. Nine of the forty are US-0048's M3
@@ -3339,6 +3339,8 @@ total=0; for f in docs/40_backlog/stories/*.md; do
 | US-0036 | "every netcode test runs at all four profiles" | true only of the harness's own agreement test; the rest are pure and have no wire to give a latency to |
 | US-0037 | match end below minimum players | `SYS-MATCH`'s, in M4. **The timeout criterion was ticked at the M2 gate** — a hard-killed client took the same `peer left` → `pawn freed` path across four real processes |
 | US-0056 | Focus tracking and kill validation as `has_los` consumers | **two arrived and the third is not coming as written.** The Compass lock calls it (US-0058) and so does the witnessed-kill check (US-0060). **Kill validation never asks**: TDD-10 §3's flowchart has no line-of-sight node, so a kill through a market stall at 2.4 m is legal today. TDD-04 §10's test table implies otherwise — reported, the owner's. Focus is US-0064 |
+| US-0061 | a player mid-Lunge is stunnable | **`ABIL-LUNGE` is M5, so there is no state to be mid-.** The way it stays true when the ability arrives is that `StunSystem._is_busy` and `_is_stunnable` never grow a case for it, and both name the criterion. Everything else in the story is built and falsified |
+| US-0059 | the client-side rotation; the mono sting | **the server halves are done and neither client half exists.** A world bearing needs `CompassVM` to rotate it (US-0084, M5) — US-0057's seventh line, again — and the sting has **no call site at all**: `Audio.play()` is a stub until US-0075 and `EventBus` may hold no `func`, so a guard over zero call sites would be vacuously green |
 | US-0060 | NPCs rewound; the contest loser's movement stagger | **both are reported rather than blocked.** ADR-0010's two reasons for rewinding NPCs are false of the built game, so a rewound crowd has no consumer and would cost ~100 KB of ring to be read by nothing. And GDD-02 §3's fifteen-state diagram declares no stagger state while three rules need one, so the loser gets an **initiation** lockout: no points, no lockout, no suspicion, 1.5 s in which they cannot press again |
 | US-0057 | the cone's half-width, camera-relative | **the server's half is done and the drawn half does not exist.** `TUN-COMPASS-CONE-HALFWIDTH` is asserted wider than the wobble, so the true bearing is always inside the arc — but nothing renders an arc, because `CompassVM` and the HUD are US-0084 in M5 |
 | US-0056 | `at_tick` rewind; the three named consumers | **all four blockers are other stories**: `RewoundWorld` is paired with the query by `SYS-KILL` (US-0060), and lock progression, Focus tracking and kill validation are US-0058, US-0064 and US-0060. The rewound form is **refused rather than faked**, because against static geometry a fake would answer correctly and be wrong about the players |
@@ -3364,7 +3366,7 @@ it as an unticked line; it is a missing *test*, not a missing tick.
 over a criterion that is not true makes the whole backlog unreadable as a status
 view.
 
-### Seventeen things that will cost you an hour if you do not know them
+### Eighteen things that will cost you an hour if you do not know them
 
 1. **Two things are GENERATED.** `scripts/core/ids.gd`, `scripts/core/tuning/*.gd`
    and `tuning_index.gd` come from `tools/tuning_codegen/run_all.py`; the map
@@ -3412,10 +3414,17 @@ view.
    already, removing `rendering_method` and `physics_ticks_per_second`.
    `test_project_settings_pinned.gd` now catches it; the fix is
    `git checkout project.godot`. `--headless --editor` is safe; the GUI is not.
-6. **`main` has no server-side protection** — see §1.3 of
-   `docs/20_tdd/12_build_and_ci.md`. Run `git config core.hooksPath .githooks` in
-   every fresh clone, and wait for a run to report `completed success` before
-   merging. `gh run watch` can return while a run is still queued.
+6. **`main` IS server-protected — this trap's opening line said the opposite until
+   2026-08-26 and was stale for five days.** `.github/main-ruleset.json` was applied
+   on 2026-08-21 and re-verified at this checkpoint: `gh api repos/<owner>/<repo>/rulesets`
+   returns *"main is protected"*, `active`, with all seven job **names** as required
+   contexts. §1.3 of `docs/20_tdd/12_build_and_ci.md` was right and this line was
+   not, which is the shape of every stale claim in this corpus: the *newer* section
+   below already said so and nobody read both. Still run
+   `git config core.hooksPath .githooks` in a fresh clone — the hook is the fast
+   answer, the ruleset is the real one — and wait for a run to report
+   `completed success` before merging. `gh run watch` can return while a run is
+   still queued.
    **ACTIONS WENT SILENT FOR TWO DAYS AND CAME BACK.** No runs at all between
    `31039868975` (2026-08-05T19:32Z) and `31200490320` (2026-08-07T17:03Z), on any
    trigger, with Actions reporting `enabled` throughout — most likely exhausted
@@ -3445,6 +3454,15 @@ view.
    **Both refused jobs reproduce locally.** `test` is the three suites against a
    `git archive HEAD` extraction; `export` does not build anything at all — it is
    two greps over `export_presets.cfg` — so it is one line.
+   **AND A SLOW QUEUE LOOKS EXACTLY LIKE AN OUTAGE, WHICH COST A WRONG CALL ON
+   2026-08-26.** A run took **about thirteen minutes to be scheduled** against the
+   usual near-instant; twelve polls found nothing and this session concluded the
+   pipeline would not fire and pointed at billing. The owner said *"the CI should
+   be green, check again"* — and it was, passing in 3 m 55 s. **The check that
+   distinguishes the two is the annotation, not the wait**: a refused job appears
+   and completes in the same second with zero steps, where a queued one simply has
+   not appeared. If no run has appeared at all, wait longer before concluding
+   anything; three later runs the same day appeared within 45-75 s.
 7. **A STATE THAT WRITES `ctx.position` MUST SAY SO**, by returning true from
    `PawnState.drives_position()`. Otherwise `LocalPawnDriver` runs
    `move_and_slide()` and overwrites it from the physics body — which, with the
@@ -3555,6 +3573,17 @@ view.
     so `duration` means 4 s for Cinderfall and 15 s for Second Face and no single band
     is right for both. **If you add a tunable, add its row to the `.tres` explicitly**,
     even when the value equals the script default.
+
+18. **THE LAG-COMP RING RETURNS THE *STALE* FRAME IF A TICK IS RECORDED TWICE.**
+    `LagCompHistory._frame_at` walks the ring and returns the **first** frame whose
+    tick matches. `record()` never overwrites in place — it advances `_next` — so a
+    test fixture that places a pawn, fills the ring, **moves the pawn** and fills
+    again leaves both frames present, and the rewind resolves against the **older**
+    one. Every geometry assertion in the file is then about where the pawn used to
+    be, and it reads exactly like a rule that does not work: a stun lands on a
+    stranger, a target behind you is somehow in cone. Cost an hour in US-0061.
+    **Clear the ring before refilling it** — `_settle()` in
+    `test/unit/systems/combat/test_stun_system.gd` is the pattern, and it says why.
 
 ### Local environment
 

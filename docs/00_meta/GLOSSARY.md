@@ -130,7 +130,13 @@ validity proof in [`../10_gdd/03_social_stealth.md`](../10_gdd/03_social_stealth
 
 ### Contract lockout
 A period after a successful **stun** during which the stunned hunter cannot re-initiate a
-kill on the player who stunned them. Duration `TUN-STUN-LOCKOUT`.
+kill on the player who stunned them. Duration `TUN-STUN-LOCKOUT`, reduced by
+`PASV-SECONDWIND`. **Per (hunter, target) pair, not per player** — an exiled hunter may
+still hunt anybody else the cycle hands them.
+
+**In code it is `CombatLockouts.exile()`** (US-0061), which is the shorter name for exactly
+this and for nothing else. The same class holds the **stagger**, which is the other shape:
+per player, and blocking every initiation rather than one.
 
 ### Corpse
 The body left by a **kill**, persisting for `TUN-CORPSE-LIFETIME`. Corpses attract **Gawk**
@@ -157,6 +163,15 @@ per-observer render state of every player. Never client-authoritative.
 ---
 
 ## E
+
+### Escape
+**ADR-0014, US-0097 — SPECIFIED, NOT BUILT.** The outcome in which a **pursuit** timer
+empties while the prey stays unseen: the hunter loses the **contract** and is reinserted
+into the **contract cycle** elsewhere, and the prey scores `SCORE-ESCAPE`.
+
+**Until this is built, a hunt can only end in a death.** Escape is the largest single
+divergence from the reference the 2026-08-26 audit found, and it is the one verb that lets
+a hunt be *survived* rather than postponed.
 
 ### Event bus
 **SYS-EVENTBUS.** A single autoload through which systems announce facts to the presentation
@@ -314,7 +329,18 @@ is ease-in, not linear — the last 15 m must feel categorically different from 
 
 ### Pursuer
 The player who holds you as their **contract**. Unknown to you unless they become
-**Exposed** near you, at which point your Compass warns you.
+**Noticed** or **Exposed** near you, at which point your Compass warns you — with a
+**bearing and a distance bucket** since 2026-08-26 (ADR-0013, US-0059), and never with an
+identity.
+
+### Pursuit
+**ADR-0014, US-0097 — SPECIFIED, NOT BUILT.** The state a hunt is in once the **prey
+warning** has fired. The hunter holds a timer that sight of the prey refreshes and absence
+of sight drains; if it empties, they lose the **contract** entirely and the prey scores an
+**escape**. See [`../10_gdd/03_social_stealth.md`](../10_gdd/03_social_stealth.md) §7.7.
+
+Distinct from a **chase** in the loose sense of *somebody running after somebody*: a
+pursuit is a named, timed condition with an outcome.
 
 ---
 
@@ -354,8 +380,15 @@ Broken by sprinting or being hit. Exists to reward reading the crowd.
 initiation.
 
 ### Stagger
-A brief loss of control that is *not* a **stun**: no score is awarded to anyone, no lockout
-applies. Used for losing a **contest window** and for **stun** misuse.
+A brief loss of control that is *not* a **stun**: no score is awarded to anyone, no
+**contract lockout** applies, and no suspicion is charged beyond what the action already
+cost. Used for losing a **contest window** and for **stun** misuse.
+
+**It is not a pawn state.** GDD-02 §3's normative diagram declares fifteen states and none
+of them is a stagger, while three rules need one. What is built is an **initiation
+lockout** — you may still move, and you may start nothing — held in `CombatLockouts` and
+read by both combat systems. A sixteenth state would amend a normative diagram and is the
+owner's (US-0060, US-0061).
 
 ### Startle
 An NPC behaviour: civilians near violence or a sprinting player flee for
