@@ -1,10 +1,10 @@
 ---
 id: DOC-SCOPE-FENCE
 title: MVP Scope Fence
-version: 0.2.0
+version: 0.3.0
 status: draft
 owner: Documentation Architect
-last_updated: 2026-08-26
+last_updated: 2026-08-27
 depends_on: [DOC-GLOSSARY, ADR-0014]
 ---
 
@@ -31,7 +31,7 @@ scored, and want to play again.
 | 1 | **One map** | `MAP-VETRAIO`, ~120 × 120 m playable, three vertical strata, 5 hiding spots, 4 blend circuits, 6 spawn points, 2 theatre spaces. Greybox art acceptable at ship. | M0 (blockout) → M6 (dressed) |
 | 2 | **One mode** | Free-for-all "Contract". No teams, no objectives beyond the contract cycle. | M4 |
 | 3 | **Four personas** | `PERSONA-VETRAIO`, `PERSONA-CANTATRICE`, `PERSONA-LUCERNA`, `PERSONA-PESATORE`. Silhouette-distinct at 40 m. | M3 |
-| 4 | **Four abilities + one passive slot** | `ABIL-CINDERFALL`, `ABIL-WHISPERBOLT`, `ABIL-SECONDFACE`, `ABIL-LUNGE`; passives `PASV-STILLNESS`, `PASV-COLDREAD`, `PASV-SECONDWIND`. Two abilities + one passive equipped, locked at match start. | M5 |
+| 4 | **Three abilities + one passive slot** | `ABIL-CINDERFALL`, `ABIL-SECONDFACE`, `ABIL-LUNGE`; passives `PASV-STILLNESS`, `PASV-COLDREAD`, `PASV-SECONDWIND`. Two abilities + one passive equipped, locked at match start. **`ABIL-WHISPERBOLT` was deferred to post-MVP on 2026-08-27** and is what pays for IN #5's escape verb — see OUT #18. | M5 |
 | 5 | **The full loop** | Compass, suspicion, blending, detection, kill, stun, **escape**, respawn, contract reassignment, scoring with every bonus in the table. **Escape added 2026-08-26 by [ADR-0014](adr/ADR-0014-the-escape-verb.md)**: a hunt that can only ever end in a death is half a loop, and the enumeration above described that half for four milestones without anybody noticing. | M4 (core) → M5 (bonuses, escape) |
 | 6 | **Crowd AI** | 60–90 NPCs, 8–12 clones per persona, filler archetypes, Stroll / Idle / WalkingGroup / Startle / Gawk behaviours, ≤ 2.0 ms/frame. | M3 |
 | 7 | **8-minute match** | Lobby → 5 s countdown → 8:00 play → 30 s Final Contract → results. Score decides the winner. | M6 |
@@ -42,17 +42,22 @@ scored, and want to play again.
 | 12 | **Windows + Linux desktop** | 1080p / 60 fps minimum on the reference machine. | M6 |
 | 13 | **CI** | GitHub Actions: headless import, `gdlint`, GUT unit tests, export templates. Green on `main` at all times. | M0 |
 
-### 1.1 One amendment is outstanding a payment
+### 1.1 The outstanding amendment is paid
 
-**2026-08-26.** [`ADR-0014`](adr/ADR-0014-the-escape-verb.md) added the escape verb to IN #5.
-The fence's rule is that new scope arrives with an ADR *naming what is being cut to pay for
-it*, and **that half is not yet decided** — the ADR recommends deferring `ABIL-WHISPERBOLT` to
-post-MVP and prices two alternatives in [`US-0097`](../40_backlog/stories/US-0097-the-escape-verb.md).
+**2026-08-26.** [`ADR-0014`](adr/ADR-0014-the-escape-verb.md) added the escape verb to IN #5 and
+**deferred naming what pays for it**, which left this table saying two things that could not
+both be true of the same M5. It was recorded here rather than left in the ADR, because an
+unpaid amendment to this table is exactly how the fence stops meaning anything.
 
-Recorded here rather than left in the ADR, because **an unpaid amendment to this table is
-exactly how the fence stops meaning anything**. Until the cut is chosen, IN #4 still reads four
-abilities and IN #5 now reads one verb wider than it did, and the two cannot both be true of
-the same M5.
+**PAID 2026-08-27: `ABIL-WHISPERBOLT` is deferred to post-MVP.** IN #4 reads three abilities,
+OUT #18 carries the reasons, and [`US-0068`](../40_backlog/stories/US-0068-whisperbolt.md) is
+re-milestoned rather than deleted — the ability keeps its ID, its tunables, its tells and its
+sound and animation IDs, because a deferral that deletes the design has to redesign it to come
+back. The decision is recorded in ADR-0014's *Decision, part two* and in
+[`DECISION_LOG.md`](DECISION_LOG.md) §1.
+
+**The ledger balances and this section stays**, because the next amendment will want to know
+that this one was actually collected.
 
 ### 1.2 What "IN" does not mean
 
@@ -86,6 +91,7 @@ it from memory. "Because it is not MVP" is not a reason and does not appear belo
 | 15 | **Spectator mode** | Useful for playtest observation; not required, since playtests are run in-person or over screen share at this stage. |
 | 16 | **Replays / telemetry dashboards** | Telemetry *events are logged* (see [`../10_gdd/07_balance.md`](../10_gdd/07_balance.md) §8) — the dashboard to read them is a spreadsheet until it isn't. |
 | 17 | **Localisation** | English strings, but all user-facing text goes through a string table from day one so that localisation is later a data task, not a refactor. |
+| 18 | **`ABIL-WHISPERBOLT`** (2026-08-27) | **This is the cut that pays for the escape verb** (IN #5, ADR-0014), and it was chosen on engineering cost rather than on design merit. It is the only one of the four MVP abilities that needs netcode this project does not have: a replicated moving entity, client-side interpolation for it, and hit validation at an **impact 0.55 s after the press** — where `RewindClamp` clamps to 100–200 ms of RTT at the moment of the *press*, and no rule anywhere says what a half-second-later impact resolves against. It is also the only one that costs downstream bandwidth, which sits at **105 %** of a budget missed since M2. **And it is the cheapest cut to reverse**: once `SYS-ABILITY` exists, restoring an ability is a `.tres` and a behaviour, while every `TUN-WHISPERBOLT-*`, `SFX-WHISPERBOLT-*`, `ANIM-WHISPERBOLT-*` and the `ABIL-` ID itself stay written and untouched. **Two costs, stated rather than hidden:** loadout variety halves — 2-of-4 abilities × 3 passives is 18 builds, 2-of-3 is 9 — and **nothing in the MVP can reach a player on a roof**, since Lunge is 6 m horizontal, Cinderfall is area denial and Second Face is identity. The roof stays priced by `TUN-SUSPICION-GAIN-ROOF` (+18/s, permanently Exposed) and by scoring nothing while you sit there, which is an *economic* answer where Whisperbolt was the mechanical one. Revisit if `TEL-TIME-BY-STRATUM` shows roof time rising. |
 
 ---
 

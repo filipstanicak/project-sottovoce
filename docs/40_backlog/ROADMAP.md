@@ -47,7 +47,7 @@ gantt
 | **M2** Net | 3 clients + headless server, replicated movement, prediction & interpolation, join/leave stable | US-0025–0038 | `RISK-NETCODE`, `RISK-BANDWIDTH` |
 | **M3** Crowd | 80 NPCs with clones, blend groups, startle/gawk, ≤ 2 ms/frame | US-0039–0048 | `RISK-CROWD-PERF`, `RISK-ANONYMITY-LEAK`, `RISK-ANIM-SCOPE` |
 | **M4** The Loop | Contracts, compass, suspicion, kill, stun, respawn — **the game is playable end-to-end** | US-0049–0063 | `RISK-NOT-FUN-SOLO` |
-| **M5** Depth | 4 abilities, scoring with all bonuses, **the escape verb**, HUD, results screen, audio events | US-0064–0077, US-0097 | — |
+| **M5** Depth | **3 abilities** (`ABIL-WHISPERBOLT` deferred 2026-08-27 to pay for escape — `SCOPE_FENCE.md` OUT #18), scoring with all bonuses, **the escape verb**, HUD, results screen, audio events | US-0064–0077 less US-0068, US-0097 | — |
 | **M6** Playable MVP | Lobby, 8-min match flow, balance pass 1, **3 external playtests completed and logged** | US-0078–0088 | `RISK-POPULATION`, `RISK-BALANCE-UNFALSIFIABLE` |
 
 Each milestone ends with an explicit **gate story** — US-0038, US-0048, US-0063, US-0088 — so the
@@ -633,7 +633,7 @@ does not work — and finding that out at M4 costs one milestone rather than thr
 
 ## 7. M5 — Depth
 
-**Exit:** 4 abilities, scoring with all bonuses, HUD, results screen, audio events.
+**Exit:** **3 abilities** — Cinderfall, Second Face, Lunge — scoring with all bonuses, **the escape verb**, HUD, results screen, audio events. `ABIL-WHISPERBOLT` (US-0068) was deferred to post-MVP on 2026-08-27 as the cut paying for escape; see `SCOPE_FENCE.md` OUT #18.
 
 | Delivers | |
 |---|---|
