@@ -179,6 +179,8 @@ func ready_for(peer: int, ctx: MatchContext) -> bool:
 		return false
 	if lockouts != null and lockouts.is_exiled(peer, contract, ctx.tick):
 		return false
+	if lockouts != null and lockouts.is_protected(contract, ctx.tick):
+		return false
 	var t := Tuning.combat
 	return (
 		KillRules.in_reach(here.position, target.position, t)
@@ -236,6 +238,12 @@ func _verdict_for(ctx: MatchContext, peer: int) -> Array:
 	# counterplay instead of a four-second delay (GDD-03 §10.2).
 	if lockouts != null and lockouts.is_exiled(peer, contract, ctx.tick):
 		return [KillVerdict.V.LOCKED_OUT, contract]
+	# **`TUN-RESPAWN-INVULN`, checked against the CONTRACT rather than the killer.**
+	# A player still in `Respawning` is already refused by `_living_others`; this is
+	# the second after that, when they are back in `Idle` and standing somewhere
+	# they did not choose.
+	if lockouts != null and lockouts.is_protected(contract, ctx.tick):
+		return [KillVerdict.V.TARGET_PROTECTED, contract]
 	return KillRules.resolve(world, peer, contract, _living_others(ctx, peer), Tuning.combat)
 
 

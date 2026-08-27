@@ -40,6 +40,15 @@ enum V {
 	## The stunner is mid-swing, staggered, on cooldown, stunned or dead.
 	## **Costs nothing** — a press the game was never going to hear.
 	BUSY,
+	## **`TUN-RESPAWN-INVULN`.** The pursuer came back on the map less than a second
+	## ago. Added US-0062. **Costs nothing**, like `TARGET_COMMITTED`: both are the
+	## game refusing a correct press for a reason of its own.
+	##
+	## It is very nearly unreachable — a respawn reinserts that player into the
+	## cycle, so they are almost certainly no longer this prey's pursuer, and their
+	## suspicion is zero so `TOO_CALM` would refuse them anyway. It exists so the
+	## invulnerability means the same thing to both verbs.
+	TARGET_PROTECTED,
 }
 
 ## The refusals that cost `TUN-STUN-INVALID-STAGGER` and

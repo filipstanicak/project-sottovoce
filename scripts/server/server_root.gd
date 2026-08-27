@@ -273,6 +273,11 @@ func _on_contract_issued(peer: int, contract: int, reason: int) -> void:
 ## contractless at a tick boundary.
 func _on_killed(killer: int, victim: int, at: Vector3) -> void:
 	contracts.report_death(victim, killer, director.ctx)
+	# **THE SAME SIGNAL THAT REGISTERS THE CORPSE**, two lines below, which is what
+	# makes GDD-02 §3's `Dead --> Respawning: corpse spawned` edge true rather than
+	# approximately true. `SYS-SPAWN` is `SYS-CONTRACT`'s, so the placement and the
+	# cycle insertion land in one tick.
+	contracts.spawn.report_death(victim, killer, director.ctx)
 	suspicion.blend.report_damage(victim, director.ctx)
 	crowd_director.register_corpse(at, director.ctx.tick, victim)
 	crowd_director.startle_at(at)
@@ -368,6 +373,7 @@ func _on_stun_rejected(stunner: int, _verdict: int, _target: int) -> void:
 
 func _on_peer_left(peer: int) -> void:
 	contracts.report_disconnect(peer, director.ctx)
+	contracts.spawn.forget(peer)
 	detection.warning.forget(peer)
 	kills.forget(peer)
 	pawns.despawn(peer)

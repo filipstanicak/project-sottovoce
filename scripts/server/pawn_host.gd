@@ -136,13 +136,30 @@ func pawn_count() -> int:
 	return _pawns.size()
 
 
-## Round-robin over the map's declared points. **A PLACEHOLDER, AND IT SAYS SO**
-## — `SYS-SPAWN` owns the real decision, which reads the contract cycle and the
-## crowd, and putting any part of that rule here would be a rule in the wrong
-## layer.
+## **`SpawnRules`, THE SAME RULE A RESPAWN USES** (US-0062). This was a round-robin
+## placeholder whose own docstring said so; the difference between a join and a
+## respawn is only that a joiner has no killer to stay away from, so
+## `SpawnRules.NO_KILLER` makes GDD-05 §2.7 rule 2 vacuous and leaves rule 3 doing
+## the work. One rule, so the two cannot drift apart.
+##
+## **`_next_spawn` IS THE FALLBACK'S FALLBACK.** With no map, no rng and no
+## context there is nothing to choose between, and a round-robin over nothing is
+## still the honest answer for a test harness that stood up no district.
 func _spawn_point() -> Vector3:
 	if _ctx == null or _ctx.map == null or _ctx.map.spawn_count() == 0:
 		return Vector3.ZERO
-	var index := _next_spawn % _ctx.map.spawn_count()
+	var index := SpawnRules.choose(
+		_ctx.map.spawn_points, SpawnRules.NO_KILLER, _occupied(), Tuning.contract, _ctx.rng
+	)
+	if index < 0:
+		index = _next_spawn % _ctx.map.spawn_count()
 	_next_spawn += 1
 	return _ctx.map.spawn_points[index]
+
+
+## Where everybody already on the map is standing.
+func _occupied() -> PackedVector3Array:
+	var out := PackedVector3Array()
+	for peer: int in _ctx.pawn_contexts.keys():
+		out.append((_ctx.pawn_contexts[peer] as PawnContext).position)
+	return out
