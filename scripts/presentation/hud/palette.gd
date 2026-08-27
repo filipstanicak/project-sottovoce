@@ -46,7 +46,12 @@ extends Resource
 
 ## The Exposed vignette. §4.2: the only full-screen effect in the game, and
 ## **deliberately ugly** — it is the visual language of failure.
-@export var vignette: Color = Color(0.62, 0.16, 0.12)
+##
+## **THE ALPHA IS THE WHOLE TUNING AND IT SHIPPED AT 1.0 BY OMISSION.** A colour
+## written with three channels defaults to opaque, so the first build tinted the
+## entire frame red rather than darkening its edges — *deliberately ugly* means
+## oppressive, not *the screen is broken*. **Found by looking at it.**
+@export var vignette: Color = Color(0.62, 0.16, 0.12, 0.5)
 
 
 ## The tier's colour. **Shape and word carry the same information** (§4), so this

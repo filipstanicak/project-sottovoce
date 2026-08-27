@@ -253,6 +253,39 @@ they have identified their contract. **Two criteria are blocked on things that d
 not exist**: ability slots need `SYS-ABILITY` (US-0066) and the timer needs
 `SYS-MATCH` (US-0079, M6). The third is ASM-0030's, below.
 
+**AND THEN SOMEBODY LOOKED AT IT, WHICH FOUND FOUR DEFECTS NO TEST HERE COULD.**
+`tools/hud_probe.tscn` boots the real client and captures eight scripted states —
+run it after any HUD change, windowed:
+
+```bash
+godot --path . res://tools/hud_probe.tscn
+```
+
+**THE TIER INDICATOR WAS COMPLETELY INVISIBLE.** The debug district map is on
+layer **127**, the HUD on layer 1, and its opaque panel sat exactly on the tier
+block. **The debug tool moved, not the HUD** — it is stripped from every release
+preset and UI_UX_SPEC §1 owns the placement. Same call as
+`DistrictMap.RESERVED_WIDTH`, one layer out.
+
+**THE CONE READ AS A NEEDLE, WHICH §3.1 FORBIDS IN AS MANY WORDS.** It is only 24°
+wide and the falloff was `across²`, putting four fifths of it under a quarter
+alpha. `sqrt` now. **A needle drawn from a wobbled bearing communicates the
+opposite of what the wobble means.**
+
+**AND THE VIGNETTE TINTED THE WHOLE FRAME AND DREW AS A WIREFRAME.**
+`Color(r, g, b)` defaults to **opaque**, so the alpha that is the entire tuning
+shipped at 1.0 by omission — trap 17's family, in a colour rather than a `.tres`.
+And `draw_rect(..., false, width)` strokes a line per band, so a "vignette" read
+as nested rectangles. Four per-edge gradients at 0.5 alpha now, and `REACH` 0.22 →
+0.18 because two edges at 0.22 leave only 56 % clear against §1's *centre 60 %*.
+
+**AND THE PROBE'S FIRST READING WAS WRONG, WHICH IS WORTH MORE THAN THREE OF THE
+FOUR.** It captured the cone pointing **down** for a bearing of zero, which reads
+exactly like a widget inverted by π. **The widget was right**: the cone is
+camera-relative and the scene's rig has its own yaw. The probe unhooks the camera
+before its two cone diagnostics now. **An instrument that is wrong in a plausible
+direction is worse than no instrument.**
+
 **THE CROSSHAIR CANNOT LIE BECAUSE IT CANNOT COMPUTE.** It holds two server
 booleans and is guarded against naming a distance, a range, a position or
 `KillRules`. GDD-02 §9's failure mode 7 is *"kill feels unresponsive"*, and the

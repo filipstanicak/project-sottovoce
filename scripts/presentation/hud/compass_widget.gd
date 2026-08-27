@@ -87,9 +87,16 @@ func _draw_cone(centre: Vector2) -> void:
 	for i: int in CONE_STEPS:
 		var t := (float(i) + 0.5) / float(CONE_STEPS)
 		var angle := aim + lerpf(-half, half, t)
-		# **SOFT EDGES.** Falls to zero at both rims; brightest along the aim.
+		# **SOFT EDGES, AND THE FALLOFF CURVE IS THE WHOLE DIFFERENCE BETWEEN A CONE
+		# AND A NEEDLE.** This was `across * across` and it drew a sliver: the cone is
+		# only 24° wide to begin with, and a quadratic falloff puts four fifths of
+		# that below a quarter alpha, so all a player saw was the bright core. §3.1
+		# forbids that in as many words — *"never a hard-edged needle, because the
+		# visual must communicate imprecision"* — and a needle drawn from a wobbled
+		# bearing communicates the opposite. `sqrt` keeps the edges soft and lets the
+		# full width read. **Found by looking at it, which no test here can do.**
 		var across := 1.0 - absf(t - 0.5) * 2.0
-		var alpha: float = palette.compass_cone.a * across * across * brightness
+		var alpha: float = palette.compass_cone.a * sqrt(across) * brightness
 		var colour := Palette.with_alpha(palette.compass_cone, minf(alpha, 1.0))
 		var step := (half * 2.0) / float(CONE_STEPS)
 		_draw_slice(centre, angle, step, colour)
