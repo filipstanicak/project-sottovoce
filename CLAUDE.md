@@ -246,10 +246,42 @@ snapshot lands 30 times a second and a tier changes a handful of times a match �
 and **the Compass is the deliberate exception**, because its bearing moves almost
 every tick by construction.
 
-**NEXT IS US-0073**, and three of its widgets are buildable today: the tier
-indicator, the contract portrait and the crosshair, all of whose data has been in
-the snapshot since M4. **Its ability slots and match timer are not** — there are
-no abilities until US-0066 and no match until US-0079.
+**AND US-0073 IS EIGHT OF ELEVEN: THE TIER, THE PORTRAIT, THE CROSSHAIR AND THE
+VIGNETTE.** A player can now see how visible they are and **why** — the source
+list is the half that teaches — whether a kill or a stun would land, and whether
+they have identified their contract. **Two criteria are blocked on things that do
+not exist**: ability slots need `SYS-ABILITY` (US-0066) and the timer needs
+`SYS-MATCH` (US-0079, M6). The third is ASM-0030's, below.
+
+**THE CROSSHAIR CANNOT LIE BECAUSE IT CANNOT COMPUTE.** It holds two server
+booleans and is guarded against naming a distance, a range, a position or
+`KillRules`. GDD-02 §9's failure mode 7 is *"kill feels unresponsive"*, and the
+shape it takes is a player pressing a button the HUD promised would work.
+
+**THE PORTRAIT SHOWS THAT YOU KNOW, NOT WHO, AND THAT IS ASM-0030 RATHER THAN A
+STUB.** The persona is not on the wire and must not be — a client learns its
+contract's appearance by *looking*, which is what the 1.6 s lock is charging for.
+The honest source is the mesh the client already draws (US-0046's `PersonaBody`),
+and it needs the lock to name a slot.
+
+**`Palette` DID NOT EXIST AND NEITHER DID `test_no_colour_literals.gd`.**
+UI_UX_SPEC §7 has claimed both since M0 — trap 14 in a bible section — which is
+why the Compass shipped four colour literals a day earlier. Both exist now, the
+Compass is retrofitted, and **the guard caught this story's own vignette on its
+first run**. Only the `DEFAULT` palette is authored; the three colourblind
+variants are US-0083's at M6, and they are a *data* question because this seam
+now exists.
+
+**AND AN ARCH GUARD FORBADE THE HUD FROM NAMING A TIER.**
+`test_suspicion_is_never_predicted.gd` banned any `SuspicionMath.` in client code,
+and the tier indicator has to name `Tier.EXPOSED` to compare against a tier the
+server sent. **Neither that nor `SuspicionSources.SPRINT` is arithmetic; both are
+vocabulary** — and the distinction is the guard's own, since its note on writes
+already reads *"a client may read what the snapshot gave it"*. It now tests the
+**case of the first character after the dot**: functions are `snake_case` and
+constants are not, and `gdlint` holds that in CI, so `evaluate_tier(` is still
+caught and `Tier.EXPOSED` is not. **Second guard narrowed this way in two days**,
+both by the first client that ever needed to *read* gameplay state.
 
 **THE M4 GATE WAS RUN AS WRITTEN, AND ONE OF ITS TEN CRITERIA WAS MET.** Six
 could not be run at M4 **by construction**: a playtest needs a match
@@ -3634,7 +3666,7 @@ US-0024 measures it against clips that do not exist.
 | | |
 |---|---|
 | CI | 7 jobs. **Running again as of 2026-08-07 after a two-day outage** — run `31200490320`, all seven green. The seven commits merged during the outage were never through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | **47 arch + 151 unit + 33 integration scripts**, holding 186 + 1263 + 242 tests and 837 + 27 108 + 671 assertions — the assertion count tripled at US-0049, because `test_contract_cycle_fuzz.gd` checks the invariant after every one of 10 000 events. **Nine are `pending` by design** — **eight in the unit suite and one in the integration suite**, which reports that an NPC aimed into the void never gives up. The island `pending` beside it **turned green by itself** when the alley mouths were built, which is what a `pending` naming its own blocker is for. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **183.5 s** and the 180 s it is 'allowed' is **enforced nowhere** — TEST_PLAN §3, TEST_PLAN §10 and TDD-12 §17 all assert it and no job checks it, which is the M4 gate's fourth drift finding. `test_the_m4_loop_resolves.gd` cost 13.1 s of that and is the first test ever to run M4's systems together. It was 162-172 s, up from 87.7 s at M2 — **under 9 s of headroom left, and the next integration test has to justify itself hard against that**. `test_server_tick_budget.gd` cost 9.8 s of it and is a gate line; the one before it, the 2 s pass A/B, samples ninety ticks **twice** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **The six are**: `test_upstream_bandwidth.gd` reporting the 145 % upstream miss, `test_crowd_bandwidth.gd` the 112 % downstream projection, `test_crowd_wire_cost.gd` the 112 % it actually costs, **`test_spawn_points.gd` twice — GDD-05 §2.7 rule 6's nine unoccluded spawn pairs and rule 8's S3 4, S4 1, S5 6 of 8 seats** — and `test_clone_animation_parity.gd` the missing clip library. **Two entries this row carried are gone because their findings closed**: `test_circuit_separation.gd`'s 0.51 m circuits (re-authored, now 21.20 m) and `test_cull_radius_price.gd`'s flat curve, which asserts rather than pends. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
+| Tests | **48 arch + 152 unit + 33 integration scripts**, holding 191 + 1274 + 242 tests and 806 + 27 148 + 671 assertions — the assertion count tripled at US-0049, because `test_contract_cycle_fuzz.gd` checks the invariant after every one of 10 000 events. **Nine are `pending` by design** — **eight in the unit suite and one in the integration suite**, which reports that an NPC aimed into the void never gives up. The island `pending` beside it **turned green by itself** when the alley mouths were built, which is what a `pending` naming its own blocker is for. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **183.5 s** and the 180 s it is 'allowed' is **enforced nowhere** — TEST_PLAN §3, TEST_PLAN §10 and TDD-12 §17 all assert it and no job checks it, which is the M4 gate's fourth drift finding. `test_the_m4_loop_resolves.gd` cost 13.1 s of that and is the first test ever to run M4's systems together. It was 162-172 s, up from 87.7 s at M2 — **under 9 s of headroom left, and the next integration test has to justify itself hard against that**. `test_server_tick_budget.gd` cost 9.8 s of it and is a gate line; the one before it, the 2 s pass A/B, samples ninety ticks **twice** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **The six are**: `test_upstream_bandwidth.gd` reporting the 145 % upstream miss, `test_crowd_bandwidth.gd` the 112 % downstream projection, `test_crowd_wire_cost.gd` the 112 % it actually costs, **`test_spawn_points.gd` twice — GDD-05 §2.7 rule 6's nine unoccluded spawn pairs and rule 8's S3 4, S4 1, S5 6 of 8 seats** — and `test_clone_animation_parity.gd` the missing clip library. **Two entries this row carried are gone because their findings closed**: `test_circuit_separation.gd`'s 0.51 m circuits (re-authored, now 21.20 m) and `test_cull_radius_price.gd`'s flat curve, which asserts rather than pends. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
 | Tuning | **289** tunables across 14 resource classes; all **32** cross-field invariants assert. **`TUN-SCORE-HALFSEEN` +50 was added on 2026-08-27** by the fidelity re-audit — the stealth ladder had no middle rung, so a kill at **Noticed** and one at **Exposed** scored identically; invariant 32 keeps it strictly descending and strictly positive, and the `> 0` clause is the load-bearing half because every ordering check passes over a zero. `TuningInvariantsScore` was split out when that pushed the file past 400 lines — tech is how the game is *transmitted*, score is what it *pays*, and what is left is how it *plays*, with one entry point still. **Four scoring values were re-priced on 2026-08-26 (ADR-0013)** — `TUN-SCORE-SILENT` 100 → 200, `TUN-SCORE-PATIENT` 150 → 100, `TUN-SCORE-FOCUS` 100 → 150, `TUN-SCORE-RECKLESS` −50 → **0**, and invariant 18 rewritten from an ordering to a floor — split across `TuningInvariants` and `TuningInvariantsTech` since the first file hit 400 lines, with one entry point still. **Eight IDs are deprecated** and recorded in TUNABLES §19 — never reused |
 | Autoloads | All eight. `Tuning` precomputes 89 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |

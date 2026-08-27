@@ -33,13 +33,16 @@ const DOT_RADIUS := 3.0
 
 var vm: CompassVm = null
 
-var _cone_colour := Color(0.86, 0.88, 0.90, 0.42)
-var _ring_colour := Color(0.94, 0.95, 0.96)
-var _lock_colour := Color(0.98, 0.98, 0.98, 0.85)
-var _dot_colour := Color(0.90, 0.91, 0.93, 0.75)
+## **UI_UX_SPEC §7: no widget names a colour literal.** That rule named
+## `test_no_colour_literals.gd` as its enforcement and **neither the guard nor the
+## `Palette` resource existed**, which is why this file shipped four literals in
+## US-0072. Both exist now and this reads from the palette like everything else.
+var palette: Palette = null
 
 
 func _ready() -> void:
+	if palette == null:
+		palette = Palette.fallback()
 	custom_minimum_size = Vector2(DIAMETER, DIAMETER)
 	# Centre-bottom, `MARGIN_FROM_EDGE` above the screen edge. Anchored rather than
 	# positioned, so it stays put at any resolution.
@@ -70,7 +73,7 @@ func _draw() -> void:
 	_draw_cone(centre)
 	_draw_pulse_ring(centre)
 	_draw_lock_arc(centre)
-	draw_circle(centre, DOT_RADIUS, _dot_colour)
+	draw_circle(centre, DOT_RADIUS, palette.compass_dot)
 
 
 ## A filled arc whose alpha falls off toward both edges, so the cone fades out
@@ -86,8 +89,8 @@ func _draw_cone(centre: Vector2) -> void:
 		var angle := aim + lerpf(-half, half, t)
 		# **SOFT EDGES.** Falls to zero at both rims; brightest along the aim.
 		var across := 1.0 - absf(t - 0.5) * 2.0
-		var alpha: float = _cone_colour.a * across * across * brightness
-		var colour := Color(_cone_colour.r, _cone_colour.g, _cone_colour.b, minf(alpha, 1.0))
+		var alpha: float = palette.compass_cone.a * across * across * brightness
+		var colour := Palette.with_alpha(palette.compass_cone, minf(alpha, 1.0))
 		var step := (half * 2.0) / float(CONE_STEPS)
 		_draw_slice(centre, angle, step, colour)
 
@@ -109,7 +112,7 @@ func _draw_slice(centre: Vector2, angle: float, step: float, colour: Color) -> v
 ## Scale eases out, alpha eases in — the onset is the sharp event. `CompassVm`
 ## owns both curves; this only draws what they return.
 func _draw_pulse_ring(centre: Vector2) -> void:
-	var colour := Color(_ring_colour.r, _ring_colour.g, _ring_colour.b, vm.ring_alpha())
+	var colour := Palette.with_alpha(palette.compass_ring, vm.ring_alpha())
 	draw_arc(centre, RING_RADIUS * vm.ring_scale(), 0.0, TAU, 48, colour, RING_WIDTH, true)
 
 
@@ -118,4 +121,6 @@ func _draw_lock_arc(centre: Vector2) -> void:
 	if vm.lock <= 0.0:
 		return
 	var from := -PI * 0.5
-	draw_arc(centre, LOCK_RADIUS, from, from + TAU * vm.lock, 64, _lock_colour, LOCK_WIDTH, true)
+	draw_arc(
+		centre, LOCK_RADIUS, from, from + TAU * vm.lock, 64, palette.compass_lock, LOCK_WIDTH, true
+	)

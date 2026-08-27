@@ -17,24 +17,37 @@ extends CanvasLayer
 ## wrong but not fatal, and is what a test harness with no rig gets.
 @export var camera_path: NodePath
 
+## **INJECTED INTO EVERY WIDGET** (UI_UX_SPEC §7), so swapping it swaps the whole
+## HUD. Only `DEFAULT` is authored; the three colourblind variants are US-0083's
+## at M6, and they are a data question because this seam exists.
+@export var palette: Palette = null
+
 var camera: Node3D = null
 
 var compass_vm := CompassVm.new()
 
-var _compass: CompassWidget = null
 var _bridge: HudBridge = null
+var _widgets: Array[Control] = []
 
 
 func _ready() -> void:
 	if not camera_path.is_empty():
 		camera = get_node_or_null(camera_path) as Node3D
+	if palette == null:
+		palette = Palette.fallback()
 	_bridge = HudBridge.new()
 	_bridge.name = "HudBridge"
 	add_child(_bridge)
-	_compass = CompassWidget.new()
-	_compass.name = "Compass"
-	_compass.vm = compass_vm
-	add_child(_compass)
+	var compass := CompassWidget.new()
+	compass.vm = compass_vm
+	# **THE VIGNETTE IS ADDED FIRST SO IT SITS BEHIND EVERYTHING.** It is the only
+	# full-screen effect in the game (§4.2) and it must never cover a widget the
+	# player is trying to read at the exact moment they most need to read it.
+	_add(VignetteWidget.new(), "Vignette")
+	_add(compass, "Compass")
+	_add(TierWidget.new(), "Tier")
+	_add(PortraitWidget.new(), "Portrait")
+	_add(CrosshairWidget.new(), "Crosshair")
 	EventBus.compass_updated.connect(_on_compass)
 
 
@@ -56,3 +69,13 @@ func _on_compass(bearing: float, bucket: int, lock: float) -> void:
 	compass_vm.bearing = bearing
 	compass_vm.bucket = bucket
 	compass_vm.lock = lock
+
+
+## **THE PALETTE IS SET BEFORE THE CHILD ENTERS THE TREE.** Every widget falls back
+## to `Palette.fallback()` in its own `_ready`, so setting it afterwards would let
+## the first frame draw from the default and the second from the real one.
+func _add(widget: Control, widget_name: String) -> void:
+	widget.name = widget_name
+	widget.set("palette", palette)
+	_widgets.append(widget)
+	add_child(widget)

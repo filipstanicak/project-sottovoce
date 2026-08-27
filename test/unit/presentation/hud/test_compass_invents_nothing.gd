@@ -96,10 +96,13 @@ func test_nothing_is_encoded_in_hue() -> void:
 	# carries no meaning, which is why UI_UX_SPEC §7.3 needs no colourblind-safe
 	# Compass palette — there is nothing to be blind to. The guard: every colour in
 	# the widget is a near-neutral, so none of them can be a signal.
-	var widget := CompassWidget.new()
-	add_child_autofree(widget)
-	for property: String in ["_cone_colour", "_ring_colour", "_lock_colour", "_dot_colour"]:
-		var colour: Color = widget.get(property)
+	# **ASSERTED ON THE PALETTE, NOT THE WIDGET** — as of US-0073 the widget names
+	# no colour at all (UI_UX_SPEC §7), so the four Compass entries in `Palette`
+	# are where this can still be checked. It has to hold for **every** palette
+	# `US-0083` adds, which is why it reads the fields rather than four constants.
+	var palette := Palette.fallback()
+	for property: String in ["compass_cone", "compass_ring", "compass_lock", "compass_dot"]:
+		var colour: Color = palette.get(property)
 		assert_lt(colour.s, 0.12, "%s is saturated — the Compass encodes meaning in hue" % property)
 
 
