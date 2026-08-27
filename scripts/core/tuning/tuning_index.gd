@@ -183,6 +183,7 @@ const FIELD := {
 	&"TUN-SCORE-PATIENT": ["scoring", "patient", "pts"],
 	&"TUN-SCORE-PATIENT-WINDOW": ["scoring", "patient_window", "s"],
 	&"TUN-SCORE-PATIENT-SPEED": ["scoring", "patient_speed", "m/s"],
+	&"TUN-SCORE-HALFSEEN": ["scoring", "halfseen", "pts"],
 	&"TUN-SCORE-MASKED": ["scoring", "masked", "pts"],
 	&"TUN-SCORE-FOCUS": ["scoring", "focus", "pts"],
 	&"TUN-SCORE-FOCUS-WINDOW": ["scoring", "focus_window", "s"],

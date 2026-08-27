@@ -170,6 +170,42 @@ func test_the_stealth_ladder_invariant_is_live() -> void:
 	assert_eq(TuningInvariants.check(p).size(), 0, "the profile was not restored")
 
 
+func test_the_stealth_ladder_is_a_staircase_not_a_cliff() -> void:
+	# **INVARIANT 32**, added 2026-08-27 by the fidelity re-audit. `SCORE-SILENT`
+	# paid 200 at Anonymous and `SCORE-RECKLESS` 0 at Exposed, and a kill at
+	# **Noticed** paid neither — so being glimpsed and being caught in the open
+	# scored the same. `SCORE-HALFSEEN` is the missing rung.
+	var p := _profile()
+	assert_gt(p.scoring.silent, p.scoring.halfseen, "the shipped ladder is not descending")
+	assert_gt(p.scoring.halfseen, p.scoring.reckless, "the shipped ladder is not descending")
+
+	# **THE ZERO IS THE PLANT THAT MATTERS.** It restores the cliff exactly, and
+	# every ordering clause is still satisfied by it — silent > 0 and 0 >= reckless
+	# — so an invariant written as `>=` would stay green over the defect it exists
+	# to forbid. This is the assertion that separates the two.
+	var was := p.scoring.halfseen
+	p.scoring.halfseen = 0.0
+	var zeroed := _fired(TuningInvariants.check(p), "32.")
+	p.scoring.halfseen = was
+	assert_true(
+		zeroed, "a zero rung did not fire invariant 32; the cliff is back and nothing says so"
+	)
+
+	# And the ordering half, planted the other way: a rung that outpays the one above.
+	p.scoring.halfseen = p.scoring.silent + 1.0
+	var inverted := _fired(TuningInvariants.check(p), "32.")
+	p.scoring.halfseen = was
+	assert_true(inverted, "invariant 32 did not fire on an inverted ladder")
+	assert_eq(TuningInvariants.check(p).size(), 0, "the profile was not restored")
+
+
+func _fired(errors: Array, prefix: String) -> bool:
+	for line: String in errors:
+		if line.begins_with(prefix):
+			return true
+	return false
+
+
 func test_the_invariant_checker_actually_fires() -> void:
 	# Guards the guard. A validate() that returned an empty array unconditionally
 	# would make every assertion above pass over nothing.

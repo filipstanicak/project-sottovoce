@@ -217,6 +217,13 @@ themselves, (b) nobody is hunted by two people, (c) nobody is unhunted, and (d) 
 graph has no isolated pairs trading kills. See the proof in
 [`../10_gdd/03_social_stealth.md`](../10_gdd/03_social_stealth.md) §7.4.
 
+### Halfseen
+**SCORE-HALFSEEN.** A bonus: suspicion was in the **Noticed** tier — seen, but not conspicuously —
+at the moment of kill initiation. The lowest paying rung of the stealth ladder, added 2026-08-27.
+Before it, a kill at Noticed and a kill at Exposed were worth exactly the same, so the scoring
+stopped discriminating precisely where the interesting play is. **Named rather than borrowed**
+(IP_GUARDRAILS §3.1): an original compound that says what it rewards.
+
 ### Hunter
 The role you occupy with respect to your **contract**. Every player is always simultaneously
 a hunter and **prey**.
@@ -347,8 +354,11 @@ pursuit is a named, timed condition with an outcome.
 ## R
 
 ### Reckless
-**SCORE-RECKLESS.** The only score *penalty*: killing while **Exposed**. Exists so that a
-successful sprint-kill is still a bad trade.
+**SCORE-RECKLESS.** Killing while **Exposed**. **Worth zero since 2026-08-26 (ADR-0013) — it
+is no longer a penalty and this project now has none at all.** The enforcement is that a careless
+kill *earns less*: an Exposed kill forfeits **Silent**, **Patient** and **Halfseen** and keeps only
+the base 100. The event still fires and is still shown, at zero, because the feed line saying *you
+were seen* is the half that teaches.
 
 ### Rione Vetraio
 **MAP-VETRAIO.** The Glassmakers' Quarter — the single MVP map, a district of the fictional
@@ -377,7 +387,9 @@ Broken by sprinting or being hit. Exists to reward reading the crowd.
 
 ### Silent
 **SCORE-SILENT.** A bonus: suspicion was in the **Anonymous** tier at the moment of kill
-initiation.
+initiation. It is the *middle* rung of the stealth ladder on its own and the top rung together
+with **Patient**, which is why the pair sums to 300 rather than either being worth it alone.
+
 
 ### Stagger
 A brief loss of control that is *not* a **stun**: no score is awarded to anyone, no

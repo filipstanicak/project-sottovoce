@@ -41,6 +41,19 @@ extends Resource
 ## TUN-SCORE-PATIENT-SPEED
 @export_range(2.6, 4.4, 0.1) var patient_speed: float = 3.4
 
+## Suspicion in Noticed (30–69) at initiation — seen, but not conspicuously. Added 2026-08-27 by
+## the fidelity re-audit, which found our stealth ladder was a cliff where the reference's is a
+## staircase. With SCORE-SILENT at 200 and SCORE-RECKLESS at 0, a kill taken at Noticed — the
+## commonest careless kill there is — paid the base 100 and nothing more, so being slightly seen
+## cost exactly as much as being caught in the open. The reference pays its lowest rung for this,
+## and this is that rung. The value is the weakest-sourced number in this table: the reference's
+## own is inferred at 50 from a sequel raising that bonus to 150 and giving its old 50 to the
+## rung below — treat the 50 as a shape rather than a measurement. It is also exactly half the
+## unit of account, which is the only other thing pointing at it. Invariant 32 keeps the ladder
+## monotone and strictly positive here, so the cliff cannot come back by a retune.
+## TUN-SCORE-HALFSEEN
+@export_range(25.0, 100.0, 0.1) var halfseen: float = 50.0
+
 ## ABIL-SECONDFACE active at initiation. Equal to Patient: disguise is a different route to the
 ## same virtue.
 ## TUN-SCORE-MASKED
