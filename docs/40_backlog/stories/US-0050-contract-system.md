@@ -30,7 +30,7 @@ debouncing and replication.
 - [x] Multiple events within 0.25 s are batched into one repair pass.
 - [x] New contract issued after the 3 s reassignment delay.
 - [x] NET-S2C-CONTRACT-ASSIGNED carries peer id and reason ONLY — no persona, no position. **A wire slot, not a peer id**: peer ids never travel (US-0029), and the mapping happens at the one call site in `server_root`.
-- [ ] Reassignment is announced audibly and visibly, not merely applied. **The wire carries it and nothing renders it**: `Audio.play()` is a stub until US-0075 and `CompassVM` is US-0057. Named as a failure mode by the story, so it is not rounded up.
+- [ ] Reassignment is announced audibly and visibly, not merely applied. **The wire carries it and nothing renders it**: `Audio.play()` is a stub until US-0075 and `CompassVm` is US-0057. Named as a failure mode by the story, so it is not rounded up.
 
 ## Test notes
 

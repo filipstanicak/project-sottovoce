@@ -61,9 +61,9 @@ Both are **past tense**. The bus reports what *has happened*, never what *should
 |---|---|---|---|---|
 | `EVT-SUSPICION-TIER-CHANGED` | `suspicion_tier_changed(tier: int, active_sources: int)` | tier 0–2; `active_sources` bitfield SPRINT ROOF CLIMB OPEN RUN | Own tier crosses a hysteresis boundary | `TierVM`, `Audio`, music controller |
 | `EVT-SUSPICION-VALUE-CHANGED` | `suspicion_value_changed(value: float)` | 0–100 | Own value changes by ≥ 1.0 | `TierVM` (debug overlay only — **the number is never shown in the shipping HUD**) |
-| `EVT-CONTRACT-ASSIGNED` | `contract_assigned(reason: int)` | `START` `KILL` `RESPAWN` `REPAIR` | A new contract is issued | `CompassVM`, `Audio` |
-| `EVT-CONTRACT-PORTRAIT-REVEALED` | `contract_portrait_revealed(persona: StringName)` | `PERSONA-*` | A Compass lock completes (ASM-0030) | `CompassVM` |
-| `EVT-COMPASS-UPDATED` | `compass_updated(bearing: float, distance_bucket: int, lock: float)` | bearing rad; bucket index; lock 0–1 | Every snapshot (30 Hz) | `CompassVM` |
+| `EVT-CONTRACT-ASSIGNED` | `contract_assigned(reason: int)` | `START` `KILL` `RESPAWN` `REPAIR` | A new contract is issued | `CompassVm`, `Audio` |
+| `EVT-CONTRACT-PORTRAIT-REVEALED` | `contract_portrait_revealed(persona: StringName)` | `PERSONA-*` | A Compass lock completes (ASM-0030) | `CompassVm` |
+| `EVT-COMPASS-UPDATED` | `compass_updated(bearing: float, distance_bucket: int, lock: float)` | bearing rad; bucket index; lock 0–1 | Every snapshot (30 Hz) | `CompassVm` |
 | `EVT-MATCH-PHASE-CHANGED` | `match_phase_changed(phase: int, multiplier: float)` | phase enum; 1.0 or 2.0 | Phase transition | `MatchVM`, `Audio`, music controller |
 | `EVT-ABILITY-COOLDOWN-CHANGED` | `ability_cooldown_changed(slot: int, remaining_ticks: int)` | slot 0–1 | Cooldown starts, expires, or is corrected | `AbilitySlotVM` |
 | `EVT-BLEND-STATE-CHANGED` | `blend_state_changed(blend_type: int)` | `NONE` `POCKET` `GROUP` `PROP_STATIC` `PROP_CONCEAL` | Own blend begins or ends | `TierVM`, `Audio` |
@@ -75,7 +75,7 @@ Both are **past tense**. The bus reports what *has happened*, never what *should
 | EVT- ID | Signal | Payload | Emitted when | Consumers |
 |---|---|---|---|---|
 | `EVT-SCORE-EVENT-APPENDED` | `score_event_appended(event: ScoreEvent)` | The immutable event | A `ScoreEvent` arrives | `ScoreFeedVM`, `ScoreMirror`, `Audio` |
-| `EVT-PREY-WARNING-TRIGGERED` | `prey_warning_triggered(bearing: float, bucket: int)` | A **world** bearing in radians, wobble already applied, and a `Quantise.BUCKET_STEP` distance bucket. **Nothing that names anybody** | Pursuer within 15 m **and** ≥ Noticed | `CompassVM`, `Audio`, `CaptionOverlay` |
+| `EVT-PREY-WARNING-TRIGGERED` | `prey_warning_triggered(bearing: float, bucket: int)` | A **world** bearing in radians, wobble already applied, and a `Quantise.BUCKET_STEP` distance bucket. **Nothing that names anybody** | Pursuer within 15 m **and** ≥ Noticed | `CompassVm`, `Audio`, `CaptionOverlay` |
 | `EVT-ABILITY-STARTED` | `ability_started(peer: int, ability: StringName, origin: Vector3)` | | Any ability starts within tell radius | VFX, `Audio`, `CaptionOverlay` |
 | `EVT-ABILITY-DENIED` | `ability_denied(slot: int, reason: int)` | `DenyReason` | Own request refused | `AbilitySlotVM`, `Audio` |
 | `EVT-COMPASS-PULSED` | `compass_pulsed()` | — | Each pulse period elapses | `Audio` |

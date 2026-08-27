@@ -58,7 +58,7 @@ flowchart LR
     end
     subgraph "Client — Presentation layer"
         EB[EventBus autoload]
-        VM[View models<br/>CompassVM, ScoreFeedVM,<br/>SuspicionVM, MatchVM]
+        VM[View models<br/>CompassVm, ScoreFeedVM,<br/>SuspicionVM, MatchVM]
         W[Widgets<br/>CompassWidget, ScoreFeed,<br/>TierIndicator, Timer]
     end
     SS -->|replication| RM
@@ -79,7 +79,7 @@ Rules:
    [`../../30_bible/CODING_STANDARDS.md`](../../30_bible/CODING_STANDARDS.md):
    `contract_assigned`, not `assign_contract` or `on_contract`.
 3. **View models own presentation state.** A view model may hold interpolated values,
-   animation phase, and derived formatting. `CompassVM` owns the pulse phase accumulator; the
+   animation phase, and derived formatting. `CompassVm` owns the pulse phase accumulator; the
    widget just draws the arc at the phase it is given.
 4. **Widgets are pure.** A widget's entire input is its view model. A widget with a
    `get_node` call outside its own subtree is a defect.

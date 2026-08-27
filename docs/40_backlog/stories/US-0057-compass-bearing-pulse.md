@@ -30,7 +30,7 @@ depends_on: [GDD-03-SOCIAL-STEALTH, TUN-INDEX]
 - [ ] Cone half-width 12 degrees, camera-relative.
       **The server's half is done and the drawn half does not exist.**
       `TUN-COMPASS-CONE-HALFWIDTH` is asserted wider than the wobble, so the true bearing is always
-      inside the rendered arc - but nothing renders an arc: `CompassVM` and the HUD are US-0084.
+      inside the rendered arc - but nothing renders an arc: `CompassVm` and the HUD are US-0084.
       The bearing is sent as a **world** angle the client rotates by its own yaw, because a
       camera-relative one computed server-side would lag the mouse by the round trip.
 - [x] Wobble is DETERMINISTIC from contract id and tick — not RNG.
