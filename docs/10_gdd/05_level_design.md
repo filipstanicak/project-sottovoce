@@ -4,7 +4,7 @@ title: "GDD Part 5 — Level Design"
 version: 0.1.0
 status: draft
 owner: Lead Game Designer
-last_updated: 2026-08-03
+last_updated: 2026-08-27
 depends_on: [DOC-GLOSSARY, TUN-INDEX, GDD-02-PLAYER, GDD-03-SOCIAL-STEALTH]
 ---
 
@@ -504,12 +504,41 @@ standing at any point covers at most **two** spawn points within 40 m. Worked fr
 > of the four. The conclusion stands; the table is now a sample of a measured result rather than
 > the result itself.
 >
-> **AND TWO CAMPERS STANDING ON SPAWN POINTS REDUCE IT TO ONE: `S2` + `S4`.** Nothing in this
-> analysis models that, because camping is priced against **one** player standing still. Two
-> coordinating in a free-for-all where they also hold contracts on each other is a different
-> claim, and the design has never made it. **Reported rather than fixed** — inventing a rule for
-> a two-player conspiracy before a playtest has seen one would be scope with no evidence behind
-> it. `test_spawn_anticamp.gd` prints the number every run.
+> **RETRACTION, 2026-08-27. This section published *"two campers standing on spawn points reduce
+> it to one: `S2` + `S4`"*, and that number was measured against a rule this game does not have.**
+> `test_spawn_anticamp.gd` asked `SpawnRules.clear_of_killer` — the **40 m** rule — of *both*
+> campers. `SpawnRules.candidates` applies 40 m to exactly one position, the killer's, and rule
+> 3's **12 m** to everybody else, because **at any one respawn there is exactly one killer**
+> however many players are standing still. Planting the 40 m radius back into `clear_of_everyone`
+> reproduces the retracted "1" exactly, which is how the origin of the number was confirmed.
+>
+> **THE CORRECTED ANSWER IS TWO, AND A CONSPIRACY OF ANY SIZE BUYS LESS THAN THE RETRACTION
+> SUGGESTED.** Measured over the 2 m grid, restricted to ground `VetraioGround.is_standable`
+> admits, with the masks taken from `SpawnRules` itself rather than recomputed from a radius:
+>
+> | | Measured |
+> |---|---|
+> | One killer, whole grid | **3** valid spawns, worst at (0, 58) |
+> | One killer, standable ground only | **3** — the published worst position is reachable |
+> | Killer **+ one accomplice** | **2** |
+> | A living body's reach | **at most one spawn each** |
+>
+> **ONE BODY CAN NEVER DENY TWO SPAWNS, AND THAT IS RULE 1 DOING IT RATHER THAN LUCK.** Two
+> spawns fall inside one 12 m exclusion only if they are within **24 m** of each other, and the
+> closest pair on this map is **30.86 m**. So each additional camper costs the victim exactly one
+> spawn, and it takes the whole surviving lobby standing on the remaining points to empty the set.
+>
+> **AND WHEN THE SET IS EMPTY, RULE 7 BEATS RULE 2.** With a body on **every** spawn point — the
+> worst arrangement that exists, since no lobby can deny more — the fallback still places the
+> victim **61.5 m from their killer** at worst, against the 40 m rule 2 asks for. A lobby that
+> denies every spawn has bought itself nothing.
+>
+> **SO THE ANALYSIS NEEDS NO RULE FOR COORDINATING CAMPERS, AND THE REASON IS WORTH KNOWING:
+> RULE 7 IS DOING MORE WORK THAN IT IS DOCUMENTED TO DO.** It is written as a safety valve —
+> *"a spawn system that can fail is a crash waiting for a playtest"* — and on `MAP-VETRAIO` it is
+> also the floor under the anti-camp guarantee. **That is a property of where these six points
+> are, not of the rule**, and it stops holding silently the day they move closer together, so
+> `test_spawn_anticamp.gd` asserts it rather than leaving it to be re-derived.
 
 **Worst case: three valid spawns remain**, all at least 40 m from the camper, and the camper
 does not know which one was used. Combined with `TUN-RESPAWN-INVULN` (1.0 s) and the fact that
