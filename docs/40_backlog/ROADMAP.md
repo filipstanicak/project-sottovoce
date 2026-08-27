@@ -1,10 +1,10 @@
 ---
 id: BACKLOG-ROADMAP
 title: Roadmap — M0 to M6
-version: 0.1.0
+version: 0.2.0
 status: draft
 owner: Technical Director
-last_updated: 2026-08-03
+last_updated: 2026-08-27
 depends_on: [DOC-SCOPE-FENCE, BIBLE-DOD, BIBLE-RISK-REGISTER]
 ---
 
@@ -582,7 +582,12 @@ interact with them beyond collision.
 
 ## 6. M4 — The Loop **(the critical milestone)**
 
-**Exit:** contracts, compass, suspicion, kill, stun, respawn — **the game is playable end-to-end**.
+**Exit:** contracts, compass, suspicion, kill, stun, respawn — ~~**the game is playable
+end-to-end**~~ **the loop RESOLVES end-to-end on the server. COMPLETE 2026-08-27.**
+
+> **THE ORIGINAL EXIT WORDING WAS NEVER TRUE OF M4'S STORY LIST**, and running the gate is what
+> found it — see §6.1. *Playable end-to-end* needs a match (US-0079, M6), a lobby (US-0078, M6), a
+> HUD (US-0072/0073, M5) and a score (US-0064/0074, M5); US-0049–0063 contains none of them.
 
 | Delivers | |
 |---|---|
@@ -591,12 +596,12 @@ interact with them beyond collision.
 | `BlendSystem`: pockets, groups, static props, concealment props | |
 | `DetectionSystem`: per-observer render state, one LOS query | |
 | `SYS-COMPASS`: bearing, pulse curve, lock, reveal, portrait | |
-| The prey warning — **directionless** | |
+| The prey warning — ~~**directionless**~~ **directional** (ADR-0013) | **Done, seven of nine**, US-0059 |
 | `KillSystem`: validation, contest window, lag-compensated | **Done**, US-0060 |
-| `StunSystem`: tier gate, lockout, anti-spam | |
+| `StunSystem`: tier gate, lockout, anti-spam | **Done, ten of eleven**, US-0061 |
 | `SpawnSystem`: constraints with a never-failing fallback | **Done**, US-0062. §6.0 |
 
-### 6.0 Progress, 2026-08-27 — **fourteen of fifteen stories, and nothing is playable yet**
+### 6.0 Progress, 2026-08-27 — **all fifteen stories built, the gate run and split, nothing visible to a player**
 
 Recorded here because a "Delivers" table with no state beside it reads as a promise kept.
 
@@ -626,29 +631,52 @@ log line.
 and a match that does not degrade: a player killed at any point since US-0060 stayed dead for
 the rest of it. **All fifteen pawn states now exist.**
 
-**WHAT IS LEFT IN M4 IS THE GATE.** US-0063, and nothing else.
+**NOTHING IS LEFT IN M4.** The gate is run and split ([ADR-0016](../00_meta/adr/ADR-0016-split-the-m4-gate.md)),
+US-0063 is done, and the human playtest is US-0098 at M6.
 
-**The exit criterion is untouched**: the game is not playable end-to-end, and the first real
-playtest cannot happen until respawn exists and something draws the loop.
+**The exit criterion is amended rather than met**, and the distinction matters: the game is still
+not playable end-to-end and the first real playtest still cannot happen. What changed is that the
+*criterion* no longer claims M4 delivers something M4 never contained. The blockers are named — a
+match, a lobby, a HUD, a score — and every one of them is a story in M5 or M6.
 
-### 6.1 The M4 gate — the whole project's hinge
+**START M5 AT THE HUD (US-0072/0073).** It is the cheapest unblocking available: four unticked
+criteria across M4 stories, eleven of the fourteen feel-regression rows, and Q7.
 
-Beyond the automated tests, **the first real playtest happens here**, and it answers the only
-question that matters:
+### 6.1 The M4 gate — run, and split
 
-| Check | Fails if |
-|---|---|
-| **The turn** — mean speed drops between minute 1 and minute 4 | Flat. This is the most serious possible finding |
-| Playtest Q7 "did you understand why you died?" | Below 4/5 |
-| Playtest Q12 "would you play again tonight?" | Below 70 % |
-| Q5 (best kill) rated **below** Q4 (realising you were followed) | Inverted — the emotional design is wrong |
-| `TEL-FIRST-CONTACT-OUTCOME` | Above 40 % correct identification — the crowd is not working |
+**RUN 2026-08-27. One of ten criteria met, six unrunnable at M4 by construction, and
+[ADR-0016](../00_meta/adr/ADR-0016-split-the-m4-gate.md) split it.** US-0063 is now the M4
+*technical* exit and is **done**; the human playtest is **[US-0098](stories/US-0098-first-human-playtest.md), at M6**.
+
+**The table below is US-0098's now**, kept here because it is what M4 was *supposed* to answer and
+the reader should see what moved:
+
+| Check | Fails if | Blocked at M4 by |
+|---|---|---|
+| **The turn** — mean speed drops between minute 1 and minute 4 | Flat. The most serious possible finding | **`TEL-MEAN-SPEED` has no emitter** — 28 of GDD-07 §8's 29 events do not. So the turn is *unmeasured*, not flat |
+| Playtest Q7 "did you understand why you died?" | Below 4/5 | No HUD, no marker, no feed, no clips. **It would score near zero and the number would be quoted later** |
+| Playtest Q12 "would you play again tonight?" | Below 70 % | No match to finish (US-0079, M6) |
+| Q5 rated **below** Q4 | Inverted — the emotional design is wrong | Same |
+| `TEL-FIRST-CONTACT-OUTCOME` | Above 40 % correct identification | **No emitter** |
+
+**What US-0063 asserts instead, and does:** the fifteen systems are registered in the shipped
+server; the tick is **2.16 ms of an 8.0 ms budget** with all of them live;
+`test_the_m4_loop_resolves.gd` drives press → death → repair → respawn through the real
+`MatchDirector` — the first test ever to run M4's systems together; and the telemetry gap is
+counted rather than assumed.
 
 ### 6.2 What M4 does *not* have, and why that is fine
 
 No abilities, no scoring, no HUD beyond a debug overlay, no audio. **The loop must be interesting
 without any of them.** If it needs abilities to be fun, the abilities are carrying a design that
 does not work — and finding that out at M4 costs one milestone rather than three.
+
+> **THAT SENTENCE IS NOT A LICENCE TO PLAYTEST M4, AND ADR-0016 IS WHERE THAT WAS SETTLED.** *"No
+> HUD beyond a debug overlay"* means the **polished** HUD is not required. What M4 actually has is
+> **no player-facing channel at all**: no Compass, no tier indicator, no reticle, no whiff, no
+> marker, no feed, and no animation clips on either rig. A player cannot see their own suspicion,
+> cannot see their contract's direction, and is not told they died. The twelve questions all assume
+> a channel that does not exist yet.
 
 ---
 
@@ -694,8 +722,8 @@ logged**.
 | Delivers | |
 |---|---|
 | Lobby: direct IP, ready-up, persona + loadout selection, loadout lock | |
-| The full match state machine including Final Contract | |
-| Telemetry sink; every `TEL-` event emitting | |
+| The full match state machine including Final Contract | **US-0079. ADR-0016 asks whether it belongs at M5**: M5 ships a *results screen* (US-0077) and nothing can open one without a match end, and moving it is the only single-story lever that pulls the first playtest a milestone earlier. Not decided |
+| Telemetry sink; every `TEL-` event emitting | **28 of 29 have no emitter today** (US-0080). `--record` is parsed into `LaunchConfig.record_path` and read by nothing, while `playtests/README.md` tells a facilitator to use it |
 | Debug console + one-click 3-client playtest tool | |
 | Accessibility: four palettes, captions, hold/toggle, motion reduction | |
 | Balance pass 1, driven by measurement | |

@@ -46,7 +46,7 @@ flowchart TB
 |---|---|---|---|---|
 | **Unit** | ~200 | ≤ 40 s | Every push, and before every commit | Logic errors in Core |
 | **Architecture** | ~25 | ≤ 5 s | Every push | Structural erosion |
-| **Integration** | ~40 | ≤ 180 s | Every PR | Netcode, ordering, multi-peer agreement |
+| **Integration** | ~40 | ≤ 180 s — **measured 183.5 s on 2026-08-27, and this budget is ENFORCED NOWHERE** | Every PR | Netcode, ordering, multi-peer agreement |
 | **Manual** | 2 protocols | ~45 min | Every milestone | Everything that matters and cannot be automated |
 
 ---
@@ -224,6 +224,13 @@ minute; confirm by watching.
 
 ### 7.2 The checklist
 
+> **SCORED BY WHAT IS RUNNABLE AT THE M4 GATE (2026-08-27): THREE OF FOURTEEN, AND ALL THREE WERE
+> JUDGED AT M1.** Runnable: 9 (the crowd feels alive), 11 (slowing is instant), 12 (traversal is
+> forgiving, 10/10). **Eleven are blocked, and not one of them on M4 work** — rows 1, 13 and 14 on
+> M5 scoring; 4, 5 and 6 on the M5 HUD and audio; 8 and 10 on animation clips that do not exist on
+> either rig; 2, 3 and 7 on needing a second human *and* feedback. Row 1 is **the turn**, which
+> `TEL-MEAN-SPEED` cannot measure because it has no emitter. The first full run is `US-0098`.
+
 | # | Property | Observable | Fails if |
 |---|---|---|---|
 | 1 | **The turn** | Mean speed drops minute 1 → 4 | Flat |
@@ -281,6 +288,13 @@ godot --headless -s addons/gut/gut_cmdln.gd -gdir=res://test/metrics -gexit
 - [ ] Every file in `scripts/core/` and `scripts/systems/` has a test file.
 - [ ] Unit + arch suites complete in ≤ 45 s.
 - [ ] Integration suite completes in ≤ 180 s and runs at all four latency profiles.
+      **BOTH HALVES ARE FALSE AS OF 2026-08-27 AND NEITHER IS ENFORCED.** The suite is at
+      **183.5 s** — `test_the_m4_loop_resolves.gd` cost 13.1 s and is the first test ever to run
+      M4's systems together, so the overrun bought something. **No job checks the number**: it is
+      asserted here, in §3's diagram and in TDD-12 §17, and measured by nothing, which the M4 gate
+      found as its fourth drift instance. Either enforce it or raise it. The four-profile half was
+      already known false (US-0036: only the harness's own agreement test has a wire to give a
+      latency to).
 - [ ] `test/arch/README.md` exists and explains why those tests must not be deleted.
 - [ ] The four §2.1 Core suites pass and reproduce their documented reference values exactly.
 - [ ] Metrics tests run against both greybox and art geometry.
