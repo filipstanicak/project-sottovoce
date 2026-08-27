@@ -69,6 +69,23 @@ func cone_radians() -> float:
 	return CompassMath.angle_between(camera_yaw, bearing)
 
 
+## **HOW WIDE THE ARC IS DRAWN, IN RADIANS OF HALF-WIDTH.** The second proximity
+## channel: the arc widens as the contract closes and becomes the whole ring at
+## `CompassMath.full_ring_distance`, at which point it has stopped saying *which
+## way* and says only *here, somewhere* — which is the moment the design wants the
+## player looking at faces instead of at the instrument.
+##
+## **THE SAME BUCKET THE PULSE USES**, so the two channels can never disagree, and
+## nothing here holds a distance in metres for longer than the call (§3.3).
+func cone_halfwidth() -> float:
+	if not has_contract():
+		return deg_to_rad(Tuning.compass.cone_halfwidth)
+	var degrees := CompassMath.cone_halfwidth_for(
+		Quantise.bucket_to_distance(bucket), Tuning.compass
+	)
+	return deg_to_rad(degrees)
+
+
 ## Seconds per pulse, from the authoritative bucket. `CompassMath.period_for` is
 ## Core and is asserted against TUNABLES §4.2's twelve sampled rows.
 func period() -> float:

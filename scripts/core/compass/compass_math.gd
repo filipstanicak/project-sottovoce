@@ -37,6 +37,40 @@ static func rate_for(distance: float, t: CompassTuning) -> float:
 	return 0.0 if period <= 0.0 else 1.0 / period
 
 
+## **HOW WIDE THE ARC IS DRAWN AT `distance`, IN DEGREES OF HALF-WIDTH.**
+## GDD-03 §8.3, UI_UX_SPEC §3.1.
+##
+## **THE ARC COVERS GROUND, NOT AN ANGLE.** A fixed angular cone *looks* like
+## uncertainty and is not: the ground it spans shrinks in proportion to the
+## distance. `TUN-COMPASS-CONE-HALFWIDTH` 12 degrees spans 25 m at maximum range
+## and **1.06 m at the 2.85 m a kill lands from** — narrower than two people
+## standing side by side, so it picks one. The instrument that TUNABLES describes
+## as telling you *"which part of the plaza, never which body"* would have named
+## the body, for free, at the only moment that matters. Holding the *arc* constant
+## keeps that sentence true at every distance, and it is the reference's own
+## behaviour: its arc widens as you close and fills the whole ring when the target
+## is nearly on top of you.
+##
+## The law is one over the distance, anchored at the far end so
+## `TUN-COMPASS-CONE-HALFWIDTH` keeps meaning exactly what it says — the arc's
+## half-width at `TUN-COMPASS-RANGE-MAX`, where the arc is narrowest. **No number
+## is invented**: the whole curve, including where the ring closes, follows from
+## those two tunables.
+static func cone_halfwidth_for(distance: float, t: CompassTuning) -> float:
+	if distance <= 0.0:
+		return 180.0
+	var anchored := t.cone_halfwidth * t.range_max
+	return clampf(anchored / distance, t.cone_halfwidth, 180.0)
+
+
+## The distance at which the arc becomes the whole ring. **Emergent rather than
+## chosen** — it is where `cone_halfwidth_for` reaches 180 degrees — and it is
+## invariant 33's left operand: the ring must close *before* a kill is possible,
+## so the Compass never points at the body you are about to stab.
+static func full_ring_distance(t: CompassTuning) -> float:
+	return t.cone_halfwidth * t.range_max / 180.0
+
+
 ## World bearing from `from` to `to`, in radians, matching the pawn's own yaw
 ## convention: **yaw 0 faces +Z and increases toward +X**, which is
 ## `ProbeLayout.forward`'s `Vector3(sin(yaw), 0, cos(yaw))` inverted.

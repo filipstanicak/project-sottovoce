@@ -25,6 +25,8 @@ const MARGIN_FROM_EDGE := 64.0
 const CONE_INNER := 34.0
 const CONE_OUTER := 96.0
 const CONE_STEPS := 24
+const MAX_CONE_STEPS := 144
+const SLICE_DEGREES := 2.5
 const RING_RADIUS := 30.0
 const RING_WIDTH := 2.5
 const LOCK_RADIUS := 104.0
@@ -79,27 +81,69 @@ func _draw() -> void:
 ## A filled arc whose alpha falls off toward both edges, so the cone fades out
 ## rather than ending. Drawn as radial slices because a gradient across an angle is
 ## not something `draw_*` offers directly.
+##
+## **THE WIDTH IS THE VIEW MODEL'S, NOT A TUNABLE READ HERE.** It grows as the
+## contract closes and reaches a whole ring at `CompassMath.full_ring_distance` —
+## the reference's own behaviour, and the fix for a fixed-angle arc that spanned
+## barely more than one body at kill reach. §3.1.
 func _draw_cone(centre: Vector2) -> void:
-	var half := deg_to_rad(Tuning.compass.cone_halfwidth)
-	# Screen space puts +Y down and the cone points up at a bearing of zero.
-	var aim := vm.cone_radians() - PI * 0.5
+	var half := vm.cone_halfwidth()
+	var aim := screen_angle()
 	var brightness: float = vm.cone_brightness()
-	for i: int in CONE_STEPS:
-		var t := (float(i) + 0.5) / float(CONE_STEPS)
-		var angle := aim + lerpf(-half, half, t)
-		# **SOFT EDGES, AND THE FALLOFF CURVE IS THE WHOLE DIFFERENCE BETWEEN A CONE
-		# AND A NEEDLE.** This was `across * across` and it drew a sliver: the cone is
-		# only 24° wide to begin with, and a quadratic falloff puts four fifths of
-		# that below a quarter alpha, so all a player saw was the bright core. §3.1
-		# forbids that in as many words — *"never a hard-edged needle, because the
-		# visual must communicate imprecision"* — and a needle drawn from a wobbled
-		# bearing communicates the opposite. `sqrt` keeps the edges soft and lets the
-		# full width read. **Found by looking at it, which no test here can do.**
+	var steps := _slices_for(half)
+	var step := (half * 2.0) / float(steps)
+	for i: int in steps:
+		var t := (float(i) + 0.5) / float(steps)
 		var across := 1.0 - absf(t - 0.5) * 2.0
-		var alpha: float = palette.compass_cone.a * sqrt(across) * brightness
+		var alpha: float = palette.compass_cone.a * _edge(across, half) * brightness
 		var colour := Palette.with_alpha(palette.compass_cone, minf(alpha, 1.0))
-		var step := (half * 2.0) / float(CONE_STEPS)
-		_draw_slice(centre, angle, step, colour)
+		_draw_slice(centre, aim + lerpf(-half, half, t), step, colour)
+
+
+## **WHERE ON THE DIAL THE CONE IS DRAWN, AND TWO SIGN CONVENTIONS MEET HERE.**
+##
+## `cone_radians()` is the world's: this game's yaw increases toward a turn to the
+## **left** on screen (`InputSampler` subtracts the mouse's x, and
+## `ProbeLayout.right` is `forward × up` = −X at yaw 0). A screen angle increases
+## **clockwise**, because +Y is down. So the two run opposite ways and the drawn
+## angle is the negative of the relative bearing, with a quarter turn to put zero
+## at the top of the dial.
+##
+## **IT SHIPPED WITHOUT THIS AND WITHOUT `HudRoot`'s HALF TURN, AND THE TWO ERRORS
+## PARTLY CANCELLED** — which is why it survived a review and a probe. Composed,
+## they are a front-to-back flip: a contract at either shoulder drew **correctly**
+## and one dead ahead drew at the bottom of the dial. The owner reported exactly
+## that. **A defect that is right at two of four cardinal points is worse than one
+## that is wrong at all of them**, because it looks like an instrument that works.
+##
+## **PUBLIC BECAUSE IT IS THE ANSWER WORTH TESTING.**
+## `test_the_cone_points_at_the_contract.gd` asks the widget itself rather than
+## re-deriving this line — a test that recomputed it would agree with a widget that
+## was wrong.
+func screen_angle() -> float:
+	return -vm.cone_radians() - PI * 0.5
+
+
+## **SOFT EDGES, AND THE FALLOFF FLATTENS AS THE ARC OPENS.** §3.1 forbids a
+## hard-edged needle in as many words — *"the visual must communicate
+## imprecision"* — and this was `across * across`, which put four fifths of a 24°
+## cone below a quarter alpha and drew a sliver. `sqrt` keeps the edges soft and
+## lets the full width read.
+##
+## **AND AN EDGE ONLY MEANS SOMETHING WHILE THERE IS ONE.** At a full ring every
+## direction is equally possible, so a falloff would draw the one reading that
+## carries no direction as though it still had a front and a back. The blend is the
+## width itself: pure falloff at the narrow end, uniform at 180°.
+func _edge(across: float, half: float) -> float:
+	return lerpf(sqrt(across), 1.0, clampf(half / PI, 0.0, 1.0))
+
+
+## Slices are kept to a roughly constant angular size, so a ring three times the
+## width of a cone is not drawn three times coarser. `CONE_STEPS` is the count at
+## the narrow end and the floor.
+func _slices_for(half: float) -> int:
+	var wanted := int(ceil(rad_to_deg(half * 2.0) / SLICE_DEGREES))
+	return clampi(wanted, CONE_STEPS, MAX_CONE_STEPS)
 
 
 func _draw_slice(centre: Vector2, angle: float, step: float, colour: Color) -> void:

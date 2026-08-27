@@ -157,3 +157,15 @@ func test_the_cone_is_wider_than_its_own_drift() -> void:
 		_t.cone_wobble,
 		"the wobble is wider than the cone — the arc can exclude the true bearing"
 	)
+	# **AND THE TUNABLE IS THE NARROWEST THE ARC EVER GETS**, so checking it there
+	# checks it everywhere. The arc widens as the contract closes
+	# (`test_the_cone_widens_as_you_close.gd`), which can only ever contain the
+	# drift more comfortably — but that is a property of the widening law, and a
+	# law that widened the wrong way would break this without touching either
+	# tunable.
+	for metres: float in [1.0, 5.0, 20.0, _t.range_max, _t.range_max * 2.0]:
+		assert_gt(
+			CompassMath.cone_halfwidth_for(metres, _t),
+			_t.cone_wobble,
+			"the arc is narrower than the drift at %.0f m" % metres
+		)

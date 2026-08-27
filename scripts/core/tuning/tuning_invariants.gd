@@ -1,4 +1,4 @@
-## The gameplay half of TUNABLES.md §17's 31 cross-field invariants.
+## The gameplay half of TUNABLES.md §17's 33 cross-field invariants.
 ##
 ## **SPLIT AT 31 INVARIANTS, NOT REORGANISED.** The wire and budget rules moved
 ## to `TuningInvariantsTech` when this file reached 400 lines; nothing else
@@ -235,6 +235,29 @@ static func _compass(p: TuningProfile) -> Array[String]:
 			(
 				"10. compass.lock_range (%.2f) must be < compass.range_max (%.2f)"
 				% [p.compass.lock_range, p.compass.range_max]
+			)
+		)
+	e.append_array(_cone_closes_before_the_kill(p))
+	return e
+
+
+## 33. THE ARC MUST BE A WHOLE RING BEFORE A KILL IS POSSIBLE. **The thesis as an
+## inequality**: inside kill reach the Compass has stopped saying which way, so it
+## can never point at the body you are about to stab — identifying that body is
+## what the 1.6 s lock is charging for. TUNABLES §17 carries the rest.
+static func _cone_closes_before_the_kill(p: TuningProfile) -> Array[String]:
+	var e: Array[String] = []
+	var closes := CompassMath.full_ring_distance(p.compass)
+	var reach := p.combat.kill_range + p.combat.kill_validation_grace
+	if closes <= reach:
+		e.append(
+			(
+				(
+					"33. the cone becomes a full ring at %.2f m, which is inside the "
+					+ "validated kill reach of %.2f m (kill_range %.2f + grace %.2f) — "
+					+ "the Compass would point at the one body you are about to stab"
+				)
+				% [closes, reach, p.combat.kill_range, p.combat.kill_validation_grace]
 			)
 		)
 	return e
