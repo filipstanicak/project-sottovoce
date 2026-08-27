@@ -59,6 +59,15 @@ enum V {
 	## would make a fresh respawn a trap for whoever happened to be standing at the
 	## spawn point.
 	TARGET_PROTECTED,
+	## **ADR-0015.** Solid geometry stands between the killer and the contract. A
+	## market stall is 2.0 m deep and the two lean spots derived from it are
+	## **2.80 m apart against a 2.85 m reach**, so before this gate a player leaning
+	## on a stall could be killed by a hunter leaning on the other side of it.
+	##
+	## **Costs the same as every other whiff**, unlike `TARGET_CONCEALED` beside it:
+	## a concealed contract is not there to be pressed at, where an occluded one is
+	## there and the killer swung at a wall. Added ADR-0015.
+	OUT_OF_SIGHT,
 }
 
 ## The rejections that cost `TUN-SUSPICION-GAIN-FAILED-KILL` and play the whiff —
@@ -74,6 +83,7 @@ const PENALISED: Array[V] = [
 	V.NO_TARGET,
 	V.OUT_OF_RANGE,
 	V.OUT_OF_CONE,
+	V.OUT_OF_SIGHT,
 ]
 
 

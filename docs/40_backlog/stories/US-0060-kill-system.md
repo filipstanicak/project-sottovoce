@@ -171,9 +171,19 @@ cannot enter `Dead`. `KillSystem._enter` reports the missing edge rather than as
 it: the death still resolves and the pawn keeps walking. Amending the diagram is design prose
 and is the owner's.
 
-**AND KILL VALIDATION PERFORMS NO LINE-OF-SIGHT QUERY, WHICH TWO DOCUMENTS DISAGREE ABOUT.**
-TDD-10 §3's flowchart has no such node — Cinderfall, contract, range, cone, contest, and
-that is all — while TDD-04 §10's test table implies one (*"NPC-occluded LOS clear in the
-past"*). As built, a kill through a market stall at 2.4 m is legal. Adding an LOS gate is a
-gameplay rule neither the criteria nor the flowchart asked for, so it is reported rather than
-invented.
+**AND KILL VALIDATION PERFORMED NO LINE-OF-SIGHT QUERY. SETTLED 2026-08-27 BY
+[ADR-0015](../../00_meta/adr/ADR-0015-a-kill-needs-a-clear-line.md): IT DOES NOW.**
+TDD-10 §3's flowchart had no such node — Cinderfall, contract, range, cone, contest — and this
+story reported it rather than inventing a gameplay rule no criterion asked for. That was the
+right call at the time and the measurement that settled it did not exist yet.
+
+**THE CITATION IN THIS PARAGRAPH WAS ALSO WRONG.** It attributed the opposing claim to
+*"TDD-04 §10's test table"*; §10 is an interfaces section with no test table. The phrase is an
+**unticked** acceptance criterion in `ADR-0010`, and it describes an **NPC-occluded** line —
+something TDD-07 forbids by masking `has_los` to `WORLD` alone. It was never evidence.
+
+**WHAT SETTLED IT WAS US-0054.** A market stall is 2.0 m deep and its two derived lean spots sit
+`NAV_AGENT_RADIUS` clear of each long face, so the twelve blend spots built on 2026-08-26 form
+**six pairs at 2.80 m against a 2.85 m reach** — mutually killable through the stall they hide
+behind. The stalls are the only geometry on the map thin enough; the nearest miss is the
+2.6 m Mercato west wall at 3.40 m.

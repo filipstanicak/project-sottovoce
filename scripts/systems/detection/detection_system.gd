@@ -318,6 +318,17 @@ func _clear_of_geometry(from: Vector3, to: Vector3) -> bool:
 ## make the query asymmetric — A can see B while B cannot see A — and every
 ## consumer here is a mutual relationship.
 ##
+## **BODY TO BODY, WITH BOTH POINTS LIFTED.** ADR-0015's predicate, and the form
+## every caller outside this file actually wants.
+##
+## `RewoundWorld` and `PawnContext` both hold **feet**, and a foot-to-foot ray
+## along a street hits the floor at the first slope — so a caller that forgets the
+## lift gets a world with no line of sight in it, which looks exactly like a rule
+## that works and refuses everything.
+func clear_line(from: Vector3, to: Vector3) -> bool:
+	return has_los(sight_point(from), sight_point(to))
+
+
 ## **DERIVED, NOT DECLARED.** `TUN-TRAVERSE-PROBE-HEIGHT-CHEST` is already the
 ## height this project treats as a body's forward-facing mass; a second constant
 ## for the same thing is one that gets retuned alone.

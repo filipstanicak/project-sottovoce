@@ -417,6 +417,63 @@ to find a decision did not list it.
 
 ---
 
+**ADR-0015: A KILL NEEDS A CLEAR LINE, AND US-0054 IS WHAT FORCED IT.** The
+kill-validation line-of-sight contradiction the corpus has carried since US-0060
+is settled. `KillRules` takes a sight predicate, `server_root` binds
+`detection.clear_line`, and an occluded body is **not a candidate** rather than a
+press that gets refused afterwards — the shape range and cone already have.
+
+**A MARKET STALL IS 2.0 m DEEP AND THE TWELVE LEAN SPOTS SIT 0.4 m CLEAR OF EACH
+FACE, SO THE SIX PAIRS ARE 2.80 m APART AGAINST A 2.85 m REACH.** The blend spots
+built the day before were **mutually killable through the stall they hide behind**,
+by five centimetres. That measurement is what decided a question two documents had
+been left to argue about.
+
+**THE STALLS ARE THE ONLY GEOMETRY ON THE MAP THIN ENOUGH, AND THE NEAR MISS
+MATTERS AS MUCH.** `MercatoWestWallNorth`/`-South` are **2.6 m** thick and clear
+the reach by 0.55 m — and they are the masses GDD-05 §2.7 rule 6 leans on to
+occlude `S2`-`S5`. A slightly thinner wall built to stop a *sightline* would have
+had a kill going straight through it.
+
+**AND RAW THICKNESS IS THE WRONG QUESTION, WHICH COST THE FIRST VERSION OF THE
+TEST.** A body cannot stand inside the `NAV_AGENT_RADIUS` margin the navmesh keeps,
+so the quantity is *thinnest dimension + 2 × radius*. Asked the wrong way, the
+premise test put the two Mercato walls on the killable list and went red — which is
+how the near miss got measured at all.
+
+**THE CITATION IN THAT CONTRADICTION WAS WRONG FOR TWO MILESTONES.** Three places
+attributed the opposing claim to *"TDD-04 §10's test table"*. §10 is an interfaces
+section with no test table; the phrase is an **unticked** criterion in ADR-0010, and
+it describes an **NPC-occluded** line — which TDD-07 forbids by masking `has_los` to
+`WORLD` alone. **It was never evidence either way**, and the mis-citation is what
+stopped anybody checking. Trap 14's shape in a cross-reference.
+
+**GDD-03 §9.2 LOOKS LIKE IT FORBIDS THIS GATE AND IS WHAT MAKES IT SAFE.** *"The
+crowd hides you by being confusing, never by being solid"* is about **NPCs**, and
+`has_los` masks `WORLD`, so the gate makes **walls** solid — which they already were
+for the Compass lock and the witnessed-kill check — and leaves the crowd exactly as
+non-solid as before.
+
+**`SYS-STUN` GAINS NO SIGHT GATE, DELIBERATELY.** That would be a weakening and
+never-do #13 forbids it. The asymmetry is the range advantage's — 3.35 m against
+2.85 — and it is **asserted by a test**, so adding one later is a deliberate act that
+reads the ADR first. **It is the part of this decision most likely to want
+reversing.**
+
+**AND THE CONCEALMENT RULE WAS WRITTEN TWICE.** `KillSystem._is_concealed` and an
+inline copy in `StunSystem`, both encoding GDD-03 §4.1.4. `CombatTargets` is the one
+home now — two copies of a *targeting* rule that disagreed would read as a hiding
+spot that works against one verb and not the other. The recurring find, again.
+
+**FOUR PLANTED DEFECTS, ALL RED**: an unbound predicate on the server, the selection
+filter deleted, `can_see` defaulting to refuse, and the reticle hint dropping the
+gate. The unbound default answers *nothing blocks* — which is
+`_clear_of_geometry`'s own answer with no world, so a pure test and a district agree
+— and that is a vacuous-success shape by construction, which is why the binding
+**and** the default are both asserted.
+
+---
+
 **US-0054 IS DONE, FIVE OF SIX: ALL FOUR BLEND ACTIONS ARE LIVE.** Lean on a
 market stall in an empty street and suspicion crushes with no crowd at all; climb
 into one of the five hiding spots and you are **not rendered, not killable and
@@ -751,11 +808,11 @@ TDD-10 §3's flowchart is Cinderfall, contract, range, cone, contest. So a rewou
 crowd has no consumer and would take the ring from **28.1 KB to about 130 KB** to
 be read by nothing. Reported in ADR-0010 and TDD-04 §8.2, not built.
 
-**AND THAT LEAVES A CONTRADICTION THE OWNER SHOULD SETTLE: A KILL THROUGH A
-MARKET STALL AT 2.4 m IS LEGAL.** TDD-10 §3's flowchart has no line-of-sight gate;
-TDD-04 §10's test table implies one. Adding it is a gameplay rule no criterion
-asked for, so it is reported rather than invented — and it is also the thing that
-would give the rewound crowd a reader.
+**AND THE CONTRADICTION THAT LEFT — A KILL THROUGH A MARKET STALL — IS SETTLED
+AS OF 2026-08-27 BY ADR-0015: A KILL NEEDS A CLEAR LINE.** It was reported rather
+than invented here, which was right; what settled it was a measurement that did not
+exist yet. **It does not give the rewound crowd a reader** — the query masks
+`WORLD`, so NPCs still cannot block it however many are rewound.
 
 **THE STAGGER IS AN INITIATION LOCKOUT, BECAUSE THE MACHINE DECLARES NO STAGGER
 STATE.** GDD-02 §3's normative diagram has fifteen states and none of them is one,
@@ -3468,7 +3525,7 @@ US-0024 measures it against clips that do not exist.
 | | |
 |---|---|
 | CI | 7 jobs. **Running again as of 2026-08-07 after a two-day outage** — run `31200490320`, all seven green. The seven commits merged during the outage were never through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | **47 arch + 144 unit + 32 integration scripts**, holding 186 + 1223 + 239 tests and 837 + 27 015 + 651 assertions — the assertion count tripled at US-0049, because `test_contract_cycle_fuzz.gd` checks the invariant after every one of 10 000 events. **Eight are `pending` by design** — **seven in the unit suite and one in the integration suite**, which reports that an NPC aimed into the void never gives up. The island `pending` beside it **turned green by itself** when the alley mouths were built, which is what a `pending` naming its own blocker is for. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **162-172 s** of the 180 s it is allowed, up from 87.7 s at M2 — **under 9 s of headroom left, and the next integration test has to justify itself hard against that**. `test_server_tick_budget.gd` cost 9.8 s of it and is a gate line; the one before it, the 2 s pass A/B, samples ninety ticks **twice** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **The six are**: `test_upstream_bandwidth.gd` reporting the 145 % upstream miss, `test_crowd_bandwidth.gd` the 112 % downstream projection, `test_crowd_wire_cost.gd` the 112 % it actually costs, **`test_spawn_points.gd` twice — GDD-05 §2.7 rule 6's nine unoccluded spawn pairs and rule 8's S3 4, S4 1, S5 6 of 8 seats** — and `test_clone_animation_parity.gd` the missing clip library. **Two entries this row carried are gone because their findings closed**: `test_circuit_separation.gd`'s 0.51 m circuits (re-authored, now 21.20 m) and `test_cull_radius_price.gd`'s flat curve, which asserts rather than pends. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
+| Tests | **47 arch + 147 unit + 32 integration scripts**, holding 186 + 1237 + 239 tests and 837 + 27 040 + 651 assertions — the assertion count tripled at US-0049, because `test_contract_cycle_fuzz.gd` checks the invariant after every one of 10 000 events. **Eight are `pending` by design** — **seven in the unit suite and one in the integration suite**, which reports that an NPC aimed into the void never gives up. The island `pending` beside it **turned green by itself** when the alley mouths were built, which is what a `pending` naming its own blocker is for. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **162-172 s** of the 180 s it is allowed, up from 87.7 s at M2 — **under 9 s of headroom left, and the next integration test has to justify itself hard against that**. `test_server_tick_budget.gd` cost 9.8 s of it and is a gate line; the one before it, the 2 s pass A/B, samples ninety ticks **twice** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **The six are**: `test_upstream_bandwidth.gd` reporting the 145 % upstream miss, `test_crowd_bandwidth.gd` the 112 % downstream projection, `test_crowd_wire_cost.gd` the 112 % it actually costs, **`test_spawn_points.gd` twice — GDD-05 §2.7 rule 6's nine unoccluded spawn pairs and rule 8's S3 4, S4 1, S5 6 of 8 seats** — and `test_clone_animation_parity.gd` the missing clip library. **Two entries this row carried are gone because their findings closed**: `test_circuit_separation.gd`'s 0.51 m circuits (re-authored, now 21.20 m) and `test_cull_radius_price.gd`'s flat curve, which asserts rather than pends. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
 | Tuning | 288 tunables across 14 resource classes; all 31 cross-field invariants assert. **Four scoring values were re-priced on 2026-08-26 (ADR-0013)** — `TUN-SCORE-SILENT` 100 → 200, `TUN-SCORE-PATIENT` 150 → 100, `TUN-SCORE-FOCUS` 100 → 150, `TUN-SCORE-RECKLESS` −50 → **0**, and invariant 18 rewritten from an ordering to a floor — split across `TuningInvariants` and `TuningInvariantsTech` since the first file hit 400 lines, with one entry point still. **Eight IDs are deprecated** and recorded in TUNABLES §19 — never reused |
 | Autoloads | All eight. `Tuning` precomputes 89 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |
@@ -3527,7 +3584,7 @@ total=0; for f in docs/40_backlog/stories/*.md; do
 | US-0030 | `render_state` per observer | **the three culling criteria are DONE** — US-0030's cull landed once M3 gave it a crowd. `render_state` needs `SYS-DETECTION`, which is M4's |
 | US-0036 | "every netcode test runs at all four profiles" | true only of the harness's own agreement test; the rest are pure and have no wire to give a latency to |
 | US-0037 | match end below minimum players | `SYS-MATCH`'s, in M4. **The timeout criterion was ticked at the M2 gate** — a hard-killed client took the same `peer left` → `pawn freed` path across four real processes |
-| US-0056 | Focus tracking and kill validation as `has_los` consumers | **two arrived and the third is not coming as written.** The Compass lock calls it (US-0058) and so does the witnessed-kill check (US-0060). **Kill validation never asks**: TDD-10 §3's flowchart has no line-of-sight node, so a kill through a market stall at 2.4 m is legal today. TDD-04 §10's test table implies otherwise — reported, the owner's. Focus is US-0064 |
+| US-0056 | Focus tracking as a `has_los` consumer | **three of the four arrived and only Focus is left.** The Compass lock (US-0058), the witnessed-kill check (US-0060) and — as of ADR-0015, 2026-08-27 — **kill validation itself**. Focus is US-0064's |
 | US-0054 | the occupant can see nothing while inside | **no client renders a blend at all.** The server half is done — `blend_state` reaches the occupant's own snapshot block, which is what a widget will black the screen out from — and the widget is US-0084 in M5. A guard over zero call sites would be vacuously green |
 | US-0062 | ability cooldowns reset on death | **there are no ability cooldowns.** `SYS-ABILITY` is M5 and `PawnContext` has no cooldown field, so there is nothing to reset. `reset_for_spawn` is the one call site and will honour them when they exist |
 | US-0061 | a player mid-Lunge is stunnable | **`ABIL-LUNGE` is M5, so there is no state to be mid-.** The way it stays true when the ability arrives is that `StunSystem._is_busy` and `_is_stunnable` never grow a case for it, and both name the criterion. Everything else in the story is built and falsified |

@@ -415,6 +415,18 @@ func has_los(from: Vector3, to: Vector3, at_tick: int = -1) -> bool
 
 `at_tick >= 0` rewinds for kill/stun validation (ADR-0010); otherwise the query is current.
 
+**`clear_line(from, to)` IS THE BODY-TO-BODY FORM AND IS WHAT EVERY CALLER OUTSIDE THIS FILE
+WANTS** (ADR-0015). It lifts both endpoints to `sight_point` and calls `has_los`. `RewoundWorld`
+and `PawnContext` both hold **feet**, and a foot-to-foot ray along a street hits the floor at the
+first slope — so a caller that forgets the lift gets a world with no line of sight in it, which
+looks exactly like a rule that works and refuses everything. It lives here rather than at each
+call site for that reason, and it adds **no second ray site**: `has_los` is still the only one.
+
+**KILL VALIDATION IS ITS THIRD CALLER, AS OF 2026-08-27** — the Compass lock (US-0058), the
+witnessed-kill check (US-0060) and now `SYS-KILL`'s target selection (ADR-0015). `SYS-STUN` is
+deliberately **not** a caller: a sight gate there would be a weakening, which never-do #13
+forbids.
+
 **THE REWOUND FORM IS REFUSED RATHER THAN FAKED** (US-0056). Geometry does not move, so a rewound
 query against the world alone answers exactly as a current one — and would *look* correct while
 the players it is really about sat at today's positions. `RewoundWorld` carries those and
