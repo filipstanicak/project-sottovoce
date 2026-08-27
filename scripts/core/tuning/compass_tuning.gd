@@ -25,16 +25,25 @@ extends Resource
 ## TUN-COMPASS-PULSE-EXP
 @export_range(1.6, 3.0, 0.1) var pulse_exp: float = 2.2
 
-## The rendered arc's half-width at TUN-COMPASS-RANGE-MAX, which is where the arc is narrowest.
-## It widens inward as one over the distance, so the arc the cone covers is the same length at
-## every range — 12.6 m, about a market row, and the lateral spread never falls below the ±12.75
-## m it has at 60 m — and it becomes a whole ring at HALFWIDTH × RANGE-MAX / 180 = 4.0 m. Held at
-## a fixed angle instead, the arc shrank to 1.06 m wide at the 2.85 m a kill lands from, which is
+## The rendered arc's half-width at TUN-COMPASS-RANGE-MAX, where the arc is narrowest. It widens
+## inward to a whole ring at TUN-COMPASS-CONE-FULL-RADIUS — the two ends anchor the curve between
+## them, so this value keeps meaning exactly what it says. Held at a fixed angle instead, as it
+## was until 2026-08-27, the arc shrank to 1.06 m wide at the 2.85 m a kill lands from, which is
 ## narrower than two people side by side: it would have named the body it says it never names.
-## Amended 2026-08-27 for reference fidelity, whose arc widens with proximity and fills the ring
-## when the target is nearly on top of you. (ASM-0012)
+## (ASM-0012)
 ## TUN-COMPASS-CONE-HALFWIDTH
 @export_range(8.0, 20.0, 0.1) var cone_halfwidth: float = 12.0
+
+## Where the arc becomes a whole ring and the Compass stops saying which way, saying only here,
+## somewhere. Derived, not chosen: it equals TUN-SUSPICION-OPEN-RADIUS — invariant 33 — because
+## that is already this game's answer to how big is the space you are standing in, the radius the
+## alone-check and the spatial-hash cell both use. Inside it your contract is one of the bodies
+## around you, and the instrument has nothing left to add. Added 2026-08-27 for reference
+## fidelity: "when you're looking at a complete circle, you know that your target is within
+## range" — within engagement range, not touching. The first cut derived the radius from the
+## half-width alone and closed the ring at 4.0 m, which was judged too tight at the controls.
+## TUN-COMPASS-CONE-FULL-RADIUS
+@export_range(4.0, 9.0, 0.1) var cone_full_radius: float = 6.0
 
 ## Deterministic slow drift of the cone's centre, seeded per contract so it is a stable property
 ## of this hunt rather than a per-frame lie.

@@ -46,29 +46,46 @@ static func rate_for(distance: float, t: CompassTuning) -> float:
 ## and **1.06 m at the 2.85 m a kill lands from** — narrower than two people
 ## standing side by side, so it picks one. The instrument that TUNABLES describes
 ## as telling you *"which part of the plaza, never which body"* would have named
-## the body, for free, at the only moment that matters. Holding the *arc* constant
-## keeps that sentence true at every distance, and it is the reference's own
-## behaviour: its arc widens as you close and fills the whole ring when the target
-## is nearly on top of you.
+## the body, for free, at the only moment that matters.
 ##
-## The law is one over the distance, anchored at the far end so
-## `TUN-COMPASS-CONE-HALFWIDTH` keeps meaning exactly what it says — the arc's
-## half-width at `TUN-COMPASS-RANGE-MAX`, where the arc is narrowest. **No number
-## is invented**: the whole curve, including where the ring closes, follows from
-## those two tunables.
+## **TWO ANCHORS, AND THE CURVE BETWEEN THEM IS DERIVED.** The far end is
+## `TUN-COMPASS-CONE-HALFWIDTH` at `TUN-COMPASS-RANGE-MAX`; the near end is a whole
+## ring at `TUN-COMPASS-CONE-FULL-RADIUS`, which is invariant 33's equality with
+## `TUN-SUSPICION-OPEN-RADIUS` — the radius this game already uses for *the space
+## you are standing in*. The exponent is whatever passes through both, so **no
+## third number exists to disagree with the first two**.
+##
+## **AND THE SHAPE IS THE PULSE CURVE'S OWN**: flat over the long approach, steep
+## at the end. 13 degrees at 55 m, 27 at 30, 44 at 20, 99 at 10, a full ring at 6.
+## GDD-03 §8.2's *"long, flat approach followed by a sudden sense of imminence"*,
+## said a second time in a second channel.
+##
+## **THE FIRST CUT USED ONE ANCHOR AND CLOSED THE RING AT 4.0 m**, derived from the
+## half-width alone. It was judged too tight at the controls — you had to be
+## standing on your contract — which is what the second anchor exists to fix.
 static func cone_halfwidth_for(distance: float, t: CompassTuning) -> float:
 	if distance <= 0.0:
 		return 180.0
-	var anchored := t.cone_halfwidth * t.range_max
-	return clampf(anchored / distance, t.cone_halfwidth, 180.0)
+	var full := full_ring_distance(t)
+	return clampf(180.0 * pow(full / distance, _cone_falloff(t)), t.cone_halfwidth, 180.0)
 
 
-## The distance at which the arc becomes the whole ring. **Emergent rather than
-## chosen** — it is where `cone_halfwidth_for` reaches 180 degrees — and it is
-## invariant 33's left operand: the ring must close *before* a kill is possible,
-## so the Compass never points at the body you are about to stab.
+## The distance at which the arc becomes the whole ring, and the Compass stops
+## saying *which way*. Invariant 33 pins it to `TUN-SUSPICION-OPEN-RADIUS` and
+## outside the validated kill reach.
 static func full_ring_distance(t: CompassTuning) -> float:
-	return t.cone_halfwidth * t.range_max / 180.0
+	return t.cone_full_radius
+
+
+## The exponent that carries the curve from one anchor to the other. **Computed,
+## never stored** — see the note above. Guarded rather than trusted: a profile
+## with the ring at or past maximum range has no curve to describe, and answering
+## 1.0 there degrades to the plain one-over-distance law rather than to a NaN.
+static func _cone_falloff(t: CompassTuning) -> float:
+	var span := t.cone_full_radius / maxf(t.range_max, 0.001)
+	if span <= 0.0 or span >= 1.0 or t.cone_halfwidth <= 0.0:
+		return 1.0
+	return log(t.cone_halfwidth / 180.0) / log(span)
 
 
 ## World bearing from `from` to `to`, in radians, matching the pawn's own yaw
