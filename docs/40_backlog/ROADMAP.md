@@ -46,9 +46,20 @@ gantt
 | **M1** Pawn | One player can walk / blend / run / sprint / climb / vault with camera and full state machine, locally | US-0013–0024 | — |
 | **M2** Net | 3 clients + headless server, replicated movement, prediction & interpolation, join/leave stable | US-0025–0038 | `RISK-NETCODE`, `RISK-BANDWIDTH` |
 | **M3** Crowd | 80 NPCs with clones, blend groups, startle/gawk, ≤ 2 ms/frame | US-0039–0048 | `RISK-CROWD-PERF`, `RISK-ANONYMITY-LEAK`, `RISK-ANIM-SCOPE` |
-| **M4** The Loop | Contracts, compass, suspicion, kill, stun, respawn — **the game is playable end-to-end** | US-0049–0063 | `RISK-NOT-FUN-SOLO` |
+| **M4** The Loop | Contracts, compass, suspicion, kill, stun, respawn — ~~**the game is playable end-to-end**~~ **the loop RESOLVES end-to-end on the server; no player can perceive any of it** | US-0049–0063 | `RISK-NOT-FUN-SOLO` — **not measurable until M6, see US-0063** |
 | **M5** Depth | **3 abilities** (`ABIL-WHISPERBOLT` deferred 2026-08-27 to pay for escape — `SCOPE_FENCE.md` OUT #18), scoring with all bonuses, **the escape verb**, HUD, results screen, audio events | US-0064–0077 less US-0068, US-0097 | — |
 | **M6** Playable MVP | Lobby, 8-min match flow, balance pass 1, **3 external playtests completed and logged** | US-0078–0088 | `RISK-POPULATION`, `RISK-BALANCE-UNFALSIFIABLE` |
+
+> **THE M4 ROW'S ORIGINAL WORDING WAS NEVER TRUE OF M4'S STORY LIST, AND THE M4 GATE IS WHAT
+> FOUND IT (2026-08-27).** *"Playable end-to-end"* requires a match (`SYS-MATCH`, US-0079, **M6**),
+> a lobby (US-0078, M6), a HUD (US-0072/0073, M5) and a score (US-0064/0074, M5). US-0049–0063
+> contains none of them. So **six of US-0063's ten criteria cannot be run at M4 by construction**,
+> and two more need telemetry that does not exist — 28 of GDD-07 §8's 29 events have no emitter.
+>
+> **The recommendation is to split US-0063 rather than move it**: a technical M4 exit that runs
+> today, and the human playtest beside US-0088 at M6 where the score feed its questions assume
+> actually exists. That is an ADR, because it amends a milestone exit criterion. **Nothing
+> downstream is blocked** — M5 is the work that unblocks the playtest either way.
 
 Each milestone ends with an explicit **gate story** — US-0038, US-0048, US-0063, US-0088 — so the
 exit criterion is somebody's named deliverable rather than a shared assumption.
@@ -583,10 +594,10 @@ Recorded here because a "Delivers" table with no state beside it reads as a prom
 |---|---|
 | `ContractCycle` + repair on kill / death / disconnect / join | **Done** (US-0049, US-0050). `open()` waits for a COUNTDOWN phase `SYS-MATCH` does not provide; the live path is `report_join`. **`report_death` has its first caller as of US-0060** |
 | `SuspicionMath` + `SuspicionSystem`: sources, impulses, hysteresis | **Done** (US-0051, US-0052). The impulse queue has two live callers now — a failed kill and a witnessed one — and the NPC bump still has none, because pawn and NPC both mask `WORLD` and there is no contact to report |
-| `BlendSystem`: pockets, groups, static props, concealment props | **Done, five of six** (US-0053, US-0054). All four kinds are live; the twelve lean spots are derived from the stall table rather than hand-listed. The open criterion is *the occupant can see nothing*, which needs a client that renders a blend at all — US-0084, M5 |
+| `BlendSystem`: pockets, groups, static props, concealment props | **Done, five of six** (US-0053, US-0054). All four kinds are live; the twelve lean spots are derived from the stall table rather than hand-listed. The open criterion is *the occupant can see nothing*, which needs a client that renders a blend at all — US-0073, M5 |
 | `DetectionSystem`: per-observer render state, one LOS query | **Done** (US-0055, US-0056). `has_los` has two callers — the Compass lock and the witnessed-kill check — and **the rewound form is still refused**, because kill validation turns out to ask no line-of-sight question at all |
-| `SYS-COMPASS`: bearing, pulse curve, lock, reveal, portrait | **Done, server-side** (US-0057, US-0058). Nothing draws any of it: `CompassVM` and the HUD are US-0084, M5 |
-| The prey warning — **directional** (ADR-0013) | **Done, seven of nine** (US-0059). It rides `SYS-DETECTION`'s existing pair pass for no extra cost and no raycast. The two open criteria are the client-side rotation (US-0084's HUD) and the audio sting (`Audio.play()` is a stub until US-0075, and there is no call site to guard) |
+| `SYS-COMPASS`: bearing, pulse curve, lock, reveal, portrait | **Done, server-side** (US-0057, US-0058). Nothing draws any of it: `CompassVM` and the HUD are US-0072/0073, M5 |
+| The prey warning — **directional** (ADR-0013) | **Done, seven of nine** (US-0059). It rides `SYS-DETECTION`'s existing pair pass for no extra cost and no raycast. The two open criteria are the client-side rotation (US-0072's Compass widget) and the audio sting (`Audio.play()` is a stub until US-0075, and there is no call site to guard) |
 | `KillSystem`: validation, contest window, lag-compensated | **Done** (US-0060), eight of ten criteria. NPCs are not rewound and the contest stagger is an initiation lockout — both reported with reasons in the story |
 | `StunSystem`: tier gate, lockout, anti-spam | **Done, ten of eleven** (US-0061). **Not a `GameSystem`** — §4's box 7 is one node reading "Kill / Stun", so `KillSystem` owns and ticks it, and the kill resolving first is where ADR-0013's contested initiation is decided. The open criterion needs `ABIL-LUNGE`, which is M5 |
 | `SpawnSystem`: constraints with a never-failing fallback | **Done, seven of eight** (US-0062). **`Dead` has an exit and all fifteen pawn states now exist.** Not a `GameSystem` — §4's diagram has no spawn box and stage 8 is *"repair cycle after deaths"*, so `SYS-CONTRACT` owns it and ticks it first. The open criterion resets ability cooldowns, and there are none until M5 |
@@ -598,7 +609,7 @@ startles the crowd and charges the witnesses. A prey inside 15 m of a careless p
 bearing and a distance bucket. A stun freezes that pursuer for 4 s and exiles them for 12.
 **And there is no HUD, no Compass, no reticle, no marker, no whiff, no freeze animation and
 no score** — there are no animation clips in this project on either rig, and the HUD is
-US-0084 in M5. Every one of those three stories reaches the client as a state change and a
+US-0072/0073/0074 in M5. Every one of those three stories reaches the client as a state change and a
 log line.
 
 **AND `Dead` HAS AN EXIT AS OF US-0062**, which was the last thing standing between the loop

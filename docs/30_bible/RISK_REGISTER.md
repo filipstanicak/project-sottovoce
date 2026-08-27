@@ -1,10 +1,10 @@
 ---
 id: BIBLE-RISK-REGISTER
 title: Risk Register
-version: 0.1.0
+version: 0.2.0
 status: draft
 owner: Technical Director
-last_updated: 2026-08-03
+last_updated: 2026-08-27
 depends_on: [ADR-0001, ADR-0002, ADR-0007, BIBLE-PERF-BUDGET, BIBLE-DOD, GDD-08-FUTURE]
 ---
 
@@ -22,15 +22,15 @@ depends_on: [ADR-0001, ADR-0002, ADR-0007, BIBLE-PERF-BUDGET, BIBLE-DOD, GDD-08-
 | ID | Risk | Prob | Impact | Exposure | First measurable |
 |---|---|---|---|---|---|
 | `RISK-POPULATION` | Nobody can assemble a lobby | **High** | **High** | **Critical** | M6 |
-| `RISK-CROWD-PERF` | 90 NPCs do not fit 2.0 ms | **Medium** | **High** | **High** | M3 — **re-scored at the gate: the SERVER half is measured and comfortable; the CLIENT half, which is where the 0.10 ms margin lives, has never been measured and cannot be** |
+| `RISK-CROWD-PERF` | 90 NPCs do not fit 2.0 ms | **Medium** | **High** | **High** | M3 — **re-scored at the gate: the SERVER half is measured and comfortable; the CLIENT half, which is where the 0.10 ms margin lives, has never been measured and cannot be.** Re-measured at the M4 gate with **all fifteen M4 systems live: 2.16 ms mean, 2.27 p95, 2.6-2.9 p99 against a budget of 8.0**, reproducible over three runs. Unchanged — the client is still the unmeasured half |
 | `RISK-NETCODE` | Prediction/reconciliation instability | Medium | Medium | Medium | M2 — **re-scored down at the gate** |
-| `RISK-AGENT-DRIFT` | Docs and code diverge | **High** | Medium | **High** | Continuous |
-| `RISK-NOT-FUN-SOLO` | The loop needs 6 humans to be fun | Medium | **High** | **High** | M4 |
+| `RISK-AGENT-DRIFT` | Docs and code diverge | **High** | Medium | **High** | Continuous — **the M4 gate found four live instances in one afternoon**: `US-0084` cited as "the HUD" in **twelve places** when it is *Accessibility*, M6; the kill-LOS contradiction mis-cited to a section with no test table (ADR-0015); `--record` parsed with **no reader** while the playtest runbook tells a facilitator to use it; and **28 of 29** documented telemetry events with no emitter. The score is confirmed rather than raised, and it is the highest-frequency risk in this table |
+| `RISK-NOT-FUN-SOLO` | The loop needs 6 humans to be fun | Medium | **High** | **High** | ~~M4~~ → **M6 — re-scored at the M4 gate: NOT measurable at M4, and the reason is structural.** Its trigger is a playtest question, and a playtest needs a match (`SYS-MATCH`, US-0079, **M6**), a HUD (US-0072/0073, M5) and a score (US-0064, M5). The risk is unchanged; **the date we find out moved two milestones later** |
 | `RISK-ANIM-SCOPE` | Clone parity doubles animation cost | **High** | Medium | **High** | M3 — **re-scored UP at the gate: zero clips exist on either rig, and three stories are blocked behind that** |
 | `RISK-BALANCE-UNFALSIFIABLE` | Too few playtests to settle the model | **High** | Low | Medium | M6 |
 | `RISK-ART-SCOPE` | Art exceeds a small team's capacity | Medium | Medium | Medium | M6 |
 | `RISK-ANONYMITY-LEAK` | A silent discriminator ships | **Medium** | **High** | **High** | M3 — **re-scored UP at the gate: a live instance is in the map data, not hypothetical** |
-| `RISK-BANDWIDTH` | Upstream/downstream budgets missed | **High** | **Medium** | **High** | M3 — **re-scored UP again at the M3 gate: DOWNSTREAM is 112 %, measured. Upstream is 145 %** |
+| `RISK-BANDWIDTH` | Upstream/downstream budgets missed | **High** | **Medium** | **High** | M3 — **re-scored UP again at the M3 gate: DOWNSTREAM is 112 %, measured. Upstream is 145 %.** Downstream fell to **105 %** at US-0049 when `MercatoStallRow` was resized — the first movement since M2, bought by a level-data fix rather than by netcode. **Still missed, and nothing in M4 moved it again** |
 | `RISK-IP` | A franchise term or asset reaches a public build | Low | **High** | Medium | Continuous |
 | `RISK-SCOPE-CREEP` | The fence erodes | Medium | Medium | Medium | Continuous |
 
@@ -209,6 +209,30 @@ information properties are analysed at every count
 **Response.** If 4-player is materially worse, the honest options are to make 4 the design centre
 (the single biggest population lever available — [`../10_gdd/08_liveops_and_future.md`](../10_gdd/08_liveops_and_future.md)
 §9.2) or to accept a 6-player-only game and treat population as existential.
+
+> **RE-SCORED AT THE M4 GATE, 2026-08-27: THIS RISK IS NOT MEASURABLE AT M4, AND THE REASON IS
+> STRUCTURAL RATHER THAN A MISSING FEATURE.**
+>
+> US-0063 exists to measure it, and its trigger above is *"playtest question 12 below 70 % at 4
+> players while passing at 6"*. A playtest needs three things M4 does not contain and was never
+> scheduled to contain:
+>
+> | Needed | Story | Milestone |
+> |---|---|---|
+> | A match with a start, an 8:00 clock, a Final Contract and an end | `SYS-MATCH`, US-0079 | **M6** |
+> | A HUD — Compass, tier, portrait, crosshair | US-0072 / US-0073 | M5 |
+> | A score, so Q7 *"did you understand why you died"* can be answered | US-0064, US-0074 | M5 |
+> | `TEL-MEAN-SPEED` and `TEL-FIRST-CONTACT-OUTCOME` | US-0080 | **M6** |
+>
+> **Probability and impact are unchanged — there is no new evidence about fun either way.** What
+> changed is the date: **first measurable moves M4 → M6**, and a risk that is discovered two
+> milestones later than planned is a worse risk at the same score. It is the M4 gate's most
+> important finding and it is recorded here rather than in a story, because the story is the
+> thing that could not run.
+>
+> **The mitigation is unchanged and is now the thing to protect**: 4-player scaling stays
+> *designed* rather than degraded, and the cycle's information properties stay analysed at every
+> count. That analysis is the only evidence available until M6.
 
 ---
 

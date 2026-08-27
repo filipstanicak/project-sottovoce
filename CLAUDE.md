@@ -225,7 +225,75 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 *Updated 2026-08-26 (ADR-0013, scoring re-price). Keep this section current — it is the first thing a
 fresh session reads, and a stale one is worse than none.*
 
-## M4 IS FOURTEEN OF FIFTEEN, AND NOTHING IS PLAYABLE YET
+## M4'S FIFTEEN STORIES ARE BUILT AND THE GATE CANNOT BE RUN
+
+**THE M4 GATE IS RUN AND ITS FINDING IS ABOUT ITSELF: ONE OF TEN CRITERIA IS MET,
+AND SIX CANNOT BE RUN AT M4 BY CONSTRUCTION.** US-0063 scores a *playtest*, and a
+playtest needs a **match** (`SYS-MATCH`, US-0079, **M6**), a **lobby** (US-0078,
+M6), a **HUD** (US-0072/0073, M5) and a **score** (US-0064/0074, M5). ROADMAP §1's
+M4 row reads *"the game is playable end-to-end"* and M4's own story list contains
+none of those four. **The gate did not fail — it was unrunnable when it was
+written**, and nobody had checked, because a gate is the one story only read at
+the end.
+
+**Q7 IS THE SHARPEST VERSION OF THAT.** *"Did you understand why you died"* is
+TEST_PLAN §6.2's single most important question, and the honest expected answer
+today is **no** — a kill is a state change and a log line. Running it now would
+measure M5's absence and file it as a legibility failure.
+
+**THE RECOMMENDATION IS TO SPLIT THE GATE RATHER THAN MOVE IT**: a technical M4
+exit that can run today, and the human playtest beside US-0088 at M6, where the
+score feed its questions assume actually exists. That is an ADR, and it amends a
+milestone exit criterion, so it is the owner's.
+
+**THE SERVER TICK IS RE-MEASURED WITH ALL FIFTEEN M4 SYSTEMS LIVE: 2.16 ms MEAN,
+2.27 p95, 2.6-2.9 p99, AGAINST A BUDGET OF 8.0.** Reproducible over three
+consecutive runs (2.151 / 2.171 / 2.175). **27 % of budget** with contract, spawn,
+suspicion, blend, detection, compass, the prey warning, kill and stun all
+registered — against 2.43 mean published at US-0055 with four systems, which was a
+different day on the same machine and is not worth reading as an improvement. One
+run reported a 6.000 ms max against 3.056 and 2.722 after it; recorded as an
+outlier rather than explained.
+
+**AND 28 OF 29 DOCUMENTED TELEMETRY EVENTS HAVE NO EMITTER.** GDD-07 §8 is a
+29-event catalogue and exactly one call reaches `TelemetrySink.append` —
+`TEL-DEGENERATE-CYCLE`. **`test_telemetry_catalogue.gd` is that count and it did
+not exist**, which is this gate's `test_crowd_bandwidth.gd`: an instrument the
+gate depends on that nobody had checked was there. `TelemetrySink`'s own docstring
+has warned since M0 — *"a sink that appears late is a sink whose call sites were
+never written."* **THE TURN reads `TEL-MEAN-SPEED` and the identification
+criterion reads `TEL-FIRST-CONTACT-OUTCOME`; neither can be scored**, so the turn
+is **unmeasured rather than absent** and this gate is evidence for neither.
+
+**AND `--record` IS PARSED INTO `LaunchConfig.record_path` AND READ BY NOTHING.**
+`playtests/README.md` tells a facilitator to *"attach the telemetry export
+(`--record`)"* — a runbook documenting a flag that does nothing, which would have
+been discovered with six people in the room. Trap 14 outside a test table.
+
+**AND `US-0084` WAS CITED AS "THE HUD" IN TWELVE PLACES ACROSS THREE DOCUMENTS.**
+It is *Accessibility — input and motion*, **M6**. The HUD is **US-0072** (Compass
+widget), **US-0073** (tier, portrait, crosshair) and **US-0074** (score feed), all
+**M5**. Every blocked client-side criterion in this corpus — US-0054's, US-0057's,
+US-0059's — pointed at the wrong story in the wrong milestone. Corrected; the two
+surviving references are genuinely about motion reduction and are right.
+
+**THE FEEL-REGRESSION CHECKLIST IS 11 OF 14 BLOCKED, AND NOT ONE OF THEM ON M4
+WORK.** Runnable today: the crowd feels alive, slowing is instant, traversal is
+forgiving — and the last two were judged at M1. Row 1 is THE TURN, so the turn is
+asked twice by this gate and has no instrument either time.
+
+**THE RISK REGISTER IS RE-SCORED, WHICH IS THE ONE CRITERION THAT PASSED.**
+`RISK-NOT-FUN-SOLO`'s first-measurable moves **M4 → M6**: probability and impact
+are unchanged because there is no new evidence about fun either way, and **a risk
+discovered two milestones later than planned is a worse risk at the same score.**
+`RISK-AGENT-DRIFT` is confirmed with four live instances found in one afternoon;
+`RISK-CROWD-PERF` re-measured; `RISK-BANDWIDTH` updated to the 105 % downstream
+figure. **The tag is not pushed — that is the owner's, and it should follow the
+split rather than precede it.**
+
+---
+
+## THE FIFTEEN STORIES, AND WHAT THEY DO NOT ADD UP TO
 
 **Built:** `SYS-CONTRACT` (US-0049, US-0050), `SYS-SUSPICION` (US-0051, US-0052),
 `SYS-BLEND`'s two crowd blends (US-0053), `SYS-DETECTION` (US-0055, US-0056),
@@ -233,12 +301,13 @@ the whole of `SYS-COMPASS`'s server half (US-0057, US-0058), `SYS-KILL`
 (US-0060), the prey warning (US-0059), `SYS-STUN` (US-0061), `SYS-SPAWN`
 (US-0062), `SYS-BLEND`'s two prop blends (US-0054).
 
-**Not started:** the gate (US-0063), and nothing else.
+**The gate (US-0063) is RUN and `in-progress`**, one criterion of ten met. Nothing in
+M4 is unstarted.
 
 **A PLAYER CAN NOW BE KILLED, AND STILL CANNOT PERCEIVE ANY OF IT.** The server
 validates a kill against the lag-compensated world, commits the killer for 1.4 s,
 kills the victim at the 0.9 s contact frame, repairs the cycle, spawns a corpse,
-startles the crowd and charges the witnesses. **There is no HUD (US-0084, M5), no
+startles the crowd and charges the witnesses. **There is no HUD (US-0072/0073, M5), no
 Compass, no reticle, no whiff animation, no score and no match end**, and there
 are **no animation clips in this project on either rig** — so a kill is a state
 change and a log line. **Do not read the sections below as progress toward
@@ -530,7 +599,7 @@ reproduces byte-identical apart from the new field.
 
 **THE ONE OPEN CRITERION IS *the occupant can see nothing*.** No client renders a
 blend at all; the server half is done and `blend_state` reaches the occupant's own
-snapshot block, which is what a widget will black the screen out from (US-0084).
+snapshot block, which is what a widget will black the screen out from (US-0073).
 
 ---
 
@@ -745,7 +814,7 @@ somebody's prey. Four players now, counted **per recipient** rather than in
 total. Same finding as `test_detection_system.gd`'s at US-0055, second instance.
 
 **THE TWO OPEN CRITERIA ARE BOTH SOMEBODY ELSE'S.** Client-side rotation of the
-world bearing needs `CompassVM` (US-0084, M5) — the same blocker as US-0057's
+world bearing needs `CompassVM` (US-0072, M5) — the same blocker as US-0057's
 seventh line — and the mono sting has **no call site at all**: `Audio.play()` is
 a stub until US-0075 and `EventBus` may hold no `func`, so a guard over it today
 would be vacuously green.
@@ -3525,7 +3594,7 @@ US-0024 measures it against clips that do not exist.
 | | |
 |---|---|
 | CI | 7 jobs. **Running again as of 2026-08-07 after a two-day outage** — run `31200490320`, all seven green. The seven commits merged during the outage were never through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | **47 arch + 147 unit + 32 integration scripts**, holding 186 + 1237 + 239 tests and 837 + 27 040 + 651 assertions — the assertion count tripled at US-0049, because `test_contract_cycle_fuzz.gd` checks the invariant after every one of 10 000 events. **Eight are `pending` by design** — **seven in the unit suite and one in the integration suite**, which reports that an NPC aimed into the void never gives up. The island `pending` beside it **turned green by itself** when the alley mouths were built, which is what a `pending` naming its own blocker is for. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **162-172 s** of the 180 s it is allowed, up from 87.7 s at M2 — **under 9 s of headroom left, and the next integration test has to justify itself hard against that**. `test_server_tick_budget.gd` cost 9.8 s of it and is a gate line; the one before it, the 2 s pass A/B, samples ninety ticks **twice** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **The six are**: `test_upstream_bandwidth.gd` reporting the 145 % upstream miss, `test_crowd_bandwidth.gd` the 112 % downstream projection, `test_crowd_wire_cost.gd` the 112 % it actually costs, **`test_spawn_points.gd` twice — GDD-05 §2.7 rule 6's nine unoccluded spawn pairs and rule 8's S3 4, S4 1, S5 6 of 8 seats** — and `test_clone_animation_parity.gd` the missing clip library. **Two entries this row carried are gone because their findings closed**: `test_circuit_separation.gd`'s 0.51 m circuits (re-authored, now 21.20 m) and `test_cull_radius_price.gd`'s flat curve, which asserts rather than pends. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
+| Tests | **47 arch + 148 unit + 32 integration scripts**, holding 186 + 1241 + 239 tests and 837 + 27 045 + 651 assertions — the assertion count tripled at US-0049, because `test_contract_cycle_fuzz.gd` checks the invariant after every one of 10 000 events. **Nine are `pending` by design** — **eight in the unit suite and one in the integration suite**, which reports that an NPC aimed into the void never gives up. The island `pending` beside it **turned green by itself** when the alley mouths were built, which is what a `pending` naming its own blocker is for. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **162-172 s** of the 180 s it is allowed, up from 87.7 s at M2 — **under 9 s of headroom left, and the next integration test has to justify itself hard against that**. `test_server_tick_budget.gd` cost 9.8 s of it and is a gate line; the one before it, the 2 s pass A/B, samples ninety ticks **twice** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **The six are**: `test_upstream_bandwidth.gd` reporting the 145 % upstream miss, `test_crowd_bandwidth.gd` the 112 % downstream projection, `test_crowd_wire_cost.gd` the 112 % it actually costs, **`test_spawn_points.gd` twice — GDD-05 §2.7 rule 6's nine unoccluded spawn pairs and rule 8's S3 4, S4 1, S5 6 of 8 seats** — and `test_clone_animation_parity.gd` the missing clip library. **Two entries this row carried are gone because their findings closed**: `test_circuit_separation.gd`'s 0.51 m circuits (re-authored, now 21.20 m) and `test_cull_radius_price.gd`'s flat curve, which asserts rather than pends. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
 | Tuning | 288 tunables across 14 resource classes; all 31 cross-field invariants assert. **Four scoring values were re-priced on 2026-08-26 (ADR-0013)** — `TUN-SCORE-SILENT` 100 → 200, `TUN-SCORE-PATIENT` 150 → 100, `TUN-SCORE-FOCUS` 100 → 150, `TUN-SCORE-RECKLESS` −50 → **0**, and invariant 18 rewritten from an ordering to a floor — split across `TuningInvariants` and `TuningInvariantsTech` since the first file hit 400 lines, with one entry point still. **Eight IDs are deprecated** and recorded in TUNABLES §19 — never reused |
 | Autoloads | All eight. `Tuning` precomputes 89 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |
@@ -3558,11 +3627,13 @@ it comes from: its occupant leaves `present_slots` entirely and both combat syst
 | Camera | Real spring arm: 2.6 m, **pawn centred** (US-0092 — the 0.45 m offset never changed the composition, because the rig aims at the pawn's own axis; `INPUT-SHOULDER` retired with it), occlusion that pulls **in** and never sideways, `WORLD`-masked so a crowd cannot push it. The FOV ladder is bound to the **state**, never to `ctx.velocity`: the rung is a consequence of the decision, not of the physics that follows it. Crowd-scan narrows to 48° and grants nothing. **Positive pitch LOWERS the arm** — the rig looks *at* the pivot, so a raised arm looks down; it shipped inverted from US-0021 until somebody played it |
 | Input | 20 `InputMap` actions from 14 live `INPUT-` IDs — `INPUT-SHOULDER` is retired via `InputActions.DEPRECATED`, still in the corpus and bound to nothing, KBM + pad. Chain GDD-02 → `Ids` → `InputActions` → `project.godot`, guarded on every hop, both directions. **Sampled once per physics frame by `LocalPawnDriver`, the only caller** — see trap 12. The mouse is **captured** on boot; `INPUT-MENU` releases, a click takes it back. **Only a mapped gamepad holds the joypad bindings** — `PadSelection`, applied through the one `InputMap` writer, because a set of sim pedals was steering |
 
-**Forty-seven criteria are deliberately unticked**, each blocked by something real — counted
-from the `done` and `in-progress` stories on **2026-08-25**. It was also forty on
-2026-08-16, which is a coincidence rather than a stall: US-0055 closed seven and
-US-0052/0053/0056 opened four between them. Nine of the forty are US-0048's M3
-gate lines, which count because a story with work in it is not a draft. A prose
+**Fifty-six criteria are deliberately unticked**, each blocked by something real — counted
+from the `done` and `in-progress` stories on **2026-08-27**. It was 47 the day
+before, and **the whole jump is US-0063**: running the M4 gate moved it from
+`draft` to `in-progress`, so its nine unmet lines began counting. Nine more are
+US-0048's M3 gate lines, for the same reason — a story with work in it is not a
+draft. **Eighteen of the fifty-six are therefore gate lines**, which is worth
+knowing before reading the number as a backlog of defects. A prose
 count of these has drifted four times, so they are a table — and the story files
 are the source of truth, not this. Regenerate the count rather than editing it:
 
@@ -3576,7 +3647,7 @@ total=0; for f in docs/40_backlog/stories/*.md; do
 |---|---|---|
 | US-0002/3/4/5 | four "required check on `main`" lines | branch protection needs GitHub Pro on a private repo. TDD-12 §1.3 |
 | US-0019 | root motion for hand and foot placement | there are no animation clips |
-| US-0022 | motion-reduction's compensating indicator | the FOV **lock** is done and tested; the persistent speed indicator belongs to the HUD, US-0084 |
+| US-0022 | motion-reduction's compensating indicator | the FOV **lock** is done and tested; the persistent speed indicator is motion reduction's compensating channel, US-0084 (M6) |
 | US-0023 | ambience ducked, footsteps sharpened | `Audio.play()` is an empty stub until US-0075 |
 | US-0024 | input→animation measured; ≤ 80 ms with prediction | no clips. **The prediction half is now measured** — 33.3 ms at every latency profile — but the chain is still three stages of five, so the number is a lower bound. The feel-gate checklist is DONE (2026-08-13) |
 | US-0025 | ping/pong RTT proven over a real wire | the client half needs two processes. `RttTable` is unit-tested and the server half reads ENet directly |
@@ -3585,18 +3656,19 @@ total=0; for f in docs/40_backlog/stories/*.md; do
 | US-0036 | "every netcode test runs at all four profiles" | true only of the harness's own agreement test; the rest are pure and have no wire to give a latency to |
 | US-0037 | match end below minimum players | `SYS-MATCH`'s, in M4. **The timeout criterion was ticked at the M2 gate** — a hard-killed client took the same `peer left` → `pawn freed` path across four real processes |
 | US-0056 | Focus tracking as a `has_los` consumer | **three of the four arrived and only Focus is left.** The Compass lock (US-0058), the witnessed-kill check (US-0060) and — as of ADR-0015, 2026-08-27 — **kill validation itself**. Focus is US-0064's |
-| US-0054 | the occupant can see nothing while inside | **no client renders a blend at all.** The server half is done — `blend_state` reaches the occupant's own snapshot block, which is what a widget will black the screen out from — and the widget is US-0084 in M5. A guard over zero call sites would be vacuously green |
+| US-0054 | the occupant can see nothing while inside | **no client renders a blend at all.** The server half is done — `blend_state` reaches the occupant's own snapshot block, which is what a widget will black the screen out from — and the widget is US-0073 in M5. A guard over zero call sites would be vacuously green |
 | US-0062 | ability cooldowns reset on death | **there are no ability cooldowns.** `SYS-ABILITY` is M5 and `PawnContext` has no cooldown field, so there is nothing to reset. `reset_for_spawn` is the one call site and will honour them when they exist |
 | US-0061 | a player mid-Lunge is stunnable | **`ABIL-LUNGE` is M5, so there is no state to be mid-.** The way it stays true when the ability arrives is that `StunSystem._is_busy` and `_is_stunnable` never grow a case for it, and both name the criterion. Everything else in the story is built and falsified |
-| US-0059 | the client-side rotation; the mono sting | **the server halves are done and neither client half exists.** A world bearing needs `CompassVM` to rotate it (US-0084, M5) — US-0057's seventh line, again — and the sting has **no call site at all**: `Audio.play()` is a stub until US-0075 and `EventBus` may hold no `func`, so a guard over zero call sites would be vacuously green |
+| US-0059 | the client-side rotation; the mono sting | **the server halves are done and neither client half exists.** A world bearing needs `CompassVM` to rotate it (US-0072, M5) — US-0057's seventh line, again — and the sting has **no call site at all**: `Audio.play()` is a stub until US-0075 and `EventBus` may hold no `func`, so a guard over zero call sites would be vacuously green |
 | US-0060 | NPCs rewound; the contest loser's movement stagger | **both are reported rather than blocked.** ADR-0010's two reasons for rewinding NPCs are false of the built game, so a rewound crowd has no consumer and would cost ~100 KB of ring to be read by nothing. And GDD-02 §3's fifteen-state diagram declares no stagger state while three rules need one, so the loser gets an **initiation** lockout: no points, no lockout, no suspicion, 1.5 s in which they cannot press again |
-| US-0057 | the cone's half-width, camera-relative | **the server's half is done and the drawn half does not exist.** `TUN-COMPASS-CONE-HALFWIDTH` is asserted wider than the wobble, so the true bearing is always inside the arc — but nothing renders an arc, because `CompassVM` and the HUD are US-0084 in M5 |
+| US-0057 | the cone's half-width, camera-relative | **the server's half is done and the drawn half does not exist.** `TUN-COMPASS-CONE-HALFWIDTH` is asserted wider than the wobble, so the true bearing is always inside the arc — but nothing renders an arc, because `CompassVM` and the HUD are US-0072/0073 in M5 |
 | US-0056 | `at_tick` rewind; the three named consumers | **all four blockers are other stories**: `RewoundWorld` is paired with the query by `SYS-KILL` (US-0060), and lock progression, Focus tracking and kill validation are US-0058, US-0064 and US-0060. The rewound form is **refused rather than faked**, because against static geometry a fake would answer correctly and be wrong about the players |
 | US-0053 | the persona-appropriate clone idle | **there are no animation clips in this project, on either rig** — M3's exit blocker. Separately, `PawnStateId.BLENDED` is still unreachable and the clip is not why: the pawn state machine is predicted, and a transition depending on how many NPCs are within 3.5 m is one the client cannot reproduce |
 | US-0052 | the NPC bump has no contact to report | **the witnessed-kill criterion is TICKED as of US-0060** — both its blockers cleared, and `server_root._charge_for_witnesses` charges the killer once if any living player has a clear line to the body at the contact frame, **present-tense rather than rewound**, because a witness did not act. What stays unticked is nothing here; the **NPC-bump criterion IS ticked on the rule** — the debounce is built and falsified both ways — while nothing calls it, because both pawn and NPC mask `WORLD` only |
 | US-0047 | "always had 2 within 25 m"; "does not read as following" — **and rule 3's scoping is not what ticks the first one** | **"Always" is not achievable and the reason is a walk**: a fetched clone crosses 25 m in ~18 s, so a player who loses one is short for that walk. Supply is not the constraint — 4.27 clones of each persona on average against a floor of 2. **47 of 11 544 readings under the floor after the grace, 0.41 %**, never below 1, and of the short pairs the pass saw, most already had a clone coming and the rest were dispatched: the rule never ignores a breach, and that is what is asserted. The second criterion's readable half needs a client that has ever rendered a clone |
 | US-0046 | layers 2 and 3, footstep parity, the idle cycler | **there are no animation clips in this project, on either rig.** Layer 2's declaration half asserts and its library half reports; layer 3's check exists with no call site because a call site needs an `AnimationTree`; footsteps need `Audio.play()`, a stub until US-0075. ANIMATION_SPEC §8 costs the parity set at 14 × 4 personas × 2 rigs |
 | US-0045 | the three client-LOD lines | **US-0046.** `NpcView` exists now and draws the crowd; what is missing is the **mesh and the `AnimationTree`**, so animation LOD, the silhouette-fairness check and mesh LOD still have nothing to band. There are no animation clips on either rig |
+| US-0063 | nine of the ten M4 gate lines | **the gate is RUN and six of them cannot be run at M4 by construction** — a playtest needs a match (`SYS-MATCH`, US-0079, **M6**), a lobby (US-0078, M6), a HUD (US-0072/0073, M5) and a score (US-0064/0074, M5). Two more need telemetry that does not exist: **28 of 29 GDD-07 §8 events have no emitter**, so THE TURN is *unmeasured rather than absent*. The one met is the risk re-score. **Recommendation: split the gate**, technical exit at M4 and the human playtest beside US-0088 at M6 |
 | US-0048 | six of the ten M3 gate lines | **the gate is RUN.** Four are met — `test_crowd_perf.gd`, `test_clone_local_min.gd`, the risk re-score, and **server tick p99 at 2.15 ms of 8.0**, measured here by booting the real `server_root.tscn`. Of the six left, `test_crowd_bandwidth.gd` is a **measured miss** at 112 % and not a blocked line; the rest wait on clone meshes on the wire, animation clips, and an owner at a windowed client. **The tag is the owner's call** |
 | US-0044 | startle waves read directionally **to a human observer** | needs rendered clones and an owner at a windowed client. **NPC meshes are US-0046.** The mechanical half is measured — 13 of 13 startled NPCs sent away from the violence — and the criterion is not rounded up on it |
 | US-0043 | the circuits' declared periods; the 8 m circuit separation | **both are the level's, not the code's.** The routes are 150–237 m, so 55–75 s implies 2.6–3.2 m/s; and CIRC-A and CIRC-B share the z=45 spine, passing within **0.51 m** against a rule of 8 m — geometry, so no re-timing fixes it. Re-authoring four routes against six competing rules is the owner's |

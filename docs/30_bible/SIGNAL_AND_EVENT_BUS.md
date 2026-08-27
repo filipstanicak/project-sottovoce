@@ -109,7 +109,7 @@ point.
 
 **Nothing emits this signal yet.** `EventWire.prey_warned` carries the message on the client and
 `EventBus` is signals-only — no `var`, no `func`, `test_eventbus_is_stateless.gd` — so the
-bridge belongs to the first presentation node that wants it, which is US-0084's HUD.
+bridge belongs to the first presentation node that wants it, which is US-0073's HUD.
 
 ---
 
