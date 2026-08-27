@@ -106,19 +106,19 @@ func update(_delta: float) -> void:
 
 | View model | Owns | Fed by |
 |---|---|---|
-| `CompassVM` | **Pulse phase accumulator**, smoothed bearing, lock fill, portrait reveal flag | Snapshot → `ContractMirror` |
+| `CompassVm` | **Pulse phase accumulator**, smoothed bearing, lock fill, portrait reveal flag | Snapshot → `ContractMirror` |
 | `TierVM` | Current tier, transition lerp, active-source list | `EVT-SUSPICION-TIER-CHANGED` |
 | `ScoreFeedVM` | Line queue with per-line lifetimes and stagger | `EVT-SCORE-EVENT-APPENDED` |
 | `MatchVM` | Phase, locally-interpolated clock, multiplier flag | `EVT-MATCH-PHASE-CHANGED` + snapshot |
 | `AbilitySlotVM` | Cooldown fractions, ready flags | Snapshot |
 
-### 2.2 `CompassVM` — the important one
+### 2.2 `CompassVm` — the important one
 
 The Compass is the game's central instrument, and its correctness requirements are unusual for a
 UI component.
 
 ```gdscript
-class_name CompassVM
+class_name CompassVm
 extends ViewModel
 
 var bearing_rad: float          ## smoothed toward the authoritative value
@@ -139,7 +139,7 @@ func update(delta: float) -> void:
     changed.emit()
 ```
 
-**Three things `CompassVM` must never do**, each corresponding to a rule the protocol already
+**Three things `CompassVm` must never do**, each corresponding to a rule the protocol already
 enforces ([`04_networking.md`](04_networking.md) §6.4) — belt and braces, because the protocol
 protects against leaks and this protects against *invention*:
 
@@ -196,8 +196,8 @@ checked without a running match.
 
 | Widget | View model | Draws |
 |---|---|---|
-| `CompassWidget` | `CompassVM` | Cone arc, pulse ring, lock arc |
-| `ContractPortrait` | `CompassVM` | Unknown silhouette, or the revealed persona (ASM-0030) |
+| `CompassWidget` | `CompassVm` | Cone arc, pulse ring, lock arc |
+| `ContractPortrait` | `CompassVm` | Unknown silhouette, or the revealed persona (ASM-0030) |
 | `TierIndicator` | `TierVM` | Shape + colour + word, plus the active-source list |
 | `ScoreFeed` | `ScoreFeedVM` | Up to `TUN-UI-SCOREFEED-MAX-LINES` 4 lines |
 | `AbilitySlots` | `AbilitySlotVM` | Two icons, radial sweeps, key labels |
@@ -337,8 +337,8 @@ func replace(screen: PackedScene) -> void
 | `test_eventbus_signals_documented.gd` | Every signal has a row in `SIGNAL_AND_EVENT_BUS.md` with a matching arity |
 | `test_widgets_have_view_models.gd` | Every `Widget` in `client_root.tscn` has a non-null `vm` after `_ready` |
 | `test_compass_vm.gd` | Pulse period matches the TUNABLES §4.2 sampled table at **every listed distance**, within 1 ms |
-| `test_compass_no_wobble_clientside.gd` | `CompassVM` applies no wobble of its own |
-| `test_compass_no_position.gd` | `CompassVM` has no field holding a world position |
+| `test_compass_no_wobble_clientside.gd` | `CompassVm` applies no wobble of its own |
+| `test_compass_no_position.gd` | `CompassVm` has no field holding a world position |
 | `test_prey_warning_signal_arity.gd` | `prey_warning_triggered` takes **zero** parameters |
 | `test_scorefeed_stagger.gd` | Four bonuses from one kill appear 0.12 s apart, penalties visually distinct |
 | `test_scorefeed_cap.gd` | Never more than `TUN-UI-SCOREFEED-MAX-LINES` simultaneous lines |

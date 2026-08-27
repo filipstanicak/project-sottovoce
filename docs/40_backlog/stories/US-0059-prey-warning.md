@@ -48,7 +48,7 @@ leaves a competent hunter invisible.
       frame — the same decision `SYS-COMPASS` made in US-0057, and for the same reason: a
       camera-relative bearing computed server-side lags the mouse by the round trip.
       **The server half is done and asserted; nothing rotates anything, because there is no
-      widget.** `CompassVM` and the HUD are US-0084, M5 — the same blocker as US-0057's
+      widget.** `CompassVm` and the HUD are US-0084, M5 — the same blocker as US-0057's
       seventh criterion.
 - [x] The distance is a `Quantise.BUCKET_STEP` bucket, so nothing downstream holds exact
       metres.

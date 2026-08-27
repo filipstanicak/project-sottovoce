@@ -39,10 +39,19 @@ const FORBIDDEN_CALLS: Array[String] = [
 
 ## Writes to the mirrored fields. A client may *read* what the snapshot gave it;
 ## assigning is the estimate this guard exists to refuse.
+## **THE TRAILING SPACE IS LOAD-BEARING.** Without it `.tier =` is a substring of
+## `.tier ==`, so the guard fires on a client *comparing* a mirrored field — which
+## is exactly what a HUD does, and which is reading rather than deciding. Found by
+## `HudBridge` in US-0072, where the offending line was
+## `if snapshot.tier == _tier`.
+##
+## **THIS NARROWS THE MATCH WITHOUT WEAKENING THE RULE.** `gdformat` guarantees the
+## space after an assignment `=` and CI checks the formatting, so every real write
+## still matches; what stops matching is a comparison, which was never the target.
 const FORBIDDEN_WRITES: Array[String] = [
-	".suspicion =",
-	".tier =",
-	".active_sources =",
+	".suspicion = ",
+	".tier = ",
+	".active_sources = ",
 ]
 
 ## `PredictedState`'s whole field list. The omissions are the design.

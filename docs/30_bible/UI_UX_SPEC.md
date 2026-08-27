@@ -375,7 +375,7 @@ can choose without having used it.
 - [ ] All text ≥ 15 px at reference, ≥ 7:1 contrast, on a plate or outlined.
 - [ ] All numerals tabular.
 - [ ] The Compass renders a **cone**, never a needle, and shows no numeric distance.
-- [ ] `CompassVM` holds no world position and applies no wobble.
+- [ ] `CompassVm` holds no world position and applies no wobble.
 - [ ] Pulse period matches the TUNABLES §4.2 table at every listed distance within 1 ms.
 - [ ] The tier indicator encodes shape **and** colour **and** word.
 - [ ] The active-source list appears whenever any source contributes.

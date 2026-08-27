@@ -215,7 +215,7 @@ question answerable by looking at which scene the node is in.
     │   └── MatchMirror                  phase, time remaining, multiplier
     └── Presentation
         ├── CameraRig                    SYS-CAMERA — spring arm, FOV by speed state
-        ├── ViewModels                   CompassVM, TierVM, ScoreFeedVM, MatchVM, PortraitVM
+        ├── ViewModels                   CompassVm, TierVM, ScoreFeedVM, MatchVM, PortraitVM
         ├── HUD                          SYS-HUD
         │   ├── CompassWidget
         │   ├── ContractPortrait

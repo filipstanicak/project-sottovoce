@@ -399,7 +399,7 @@ sequenceDiagram
 | `Tuning` itself | Duration→tick table |
 | Crowd steering | Its cached values (§4.3) |
 | `CameraRig` | FOV ladder |
-| `CompassVM` | Pulse curve constants |
+| `CompassVm` | Pulse curve constants |
 | `CrowdDirector` | Target crowd count, LOD band radii |
 | `SnapshotBuilder` | Cull radius, quantisation steps |
 
