@@ -29,11 +29,23 @@ const CLIENT_ROOTS: Array[String] = [
 ]
 
 ## The pure integrator and the bitfield. **Server-side arithmetic**: a client that
-## called either would be computing a value the server owns.
+## called any of them would be computing a value the server owns.
+##
+## **A CALL IS FORBIDDEN; A CONSTANT IS NOT**, and the distinction is this guard's
+## own — its note on `FORBIDDEN_WRITES` below already says *"a client may read what
+## the snapshot gave it"*. The HUD has to name `SuspicionMath.Tier.EXPOSED` to
+## compare against a tier the server sent, and `SuspicionSources.SPRINT` to decode
+## a bitfield the server sent. Neither is arithmetic; both are vocabulary.
+##
+## **THE TEST IS THE CASE OF THE FIRST CHARACTER AFTER THE DOT.** GDScript
+## functions here are `snake_case` and constants and enums are not, and `gdlint`
+## enforces that on every file in CI — so `SuspicionMath.evaluate_tier(` is caught
+## and `SuspicionMath.Tier.EXPOSED` is not, without this list having to enumerate
+## function names it would then fall behind on.
 const FORBIDDEN_CALLS: Array[String] = [
 	"SuspicionMath.",
 	"SuspicionSources.",
-	"SuspicionState.new(",
+	"SuspicionState.",
 	"SuspicionImpulses.",
 ]
 
@@ -84,12 +96,40 @@ func test_the_scan_reaches_client_code_at_all() -> void:
 
 
 func test_no_client_file_computes_a_suspicion_value() -> void:
+	var violations: PackedStringArray = []
 	for path: String in _client_files():
-		for needle: String in FORBIDDEN_CALLS:
-			assert_false(
-				SourceScanner.code_contains(path, needle),
-				"%s calls %s — suspicion is the server's (never-do #3)" % [path, needle]
-			)
+		for row: Array in SourceScanner.code_lines(path):
+			for needle: String in FORBIDDEN_CALLS:
+				var at := str(row[1]).find(needle)
+				if at >= 0 and _is_a_call(str(row[1]), at + needle.length()):
+					violations.append("%s:%d %s" % [path, int(row[0]), str(row[1]).strip_edges()])
+	assert_eq(
+		violations.size(),
+		0,
+		"a client computes suspicion — it is the server's (never-do #3):" + _listed(violations)
+	)
+
+
+func _listed(violations: PackedStringArray) -> String:
+	return " | ".join(violations)
+
+
+## Is what follows the dot a **function** rather than a constant? Functions are
+## `snake_case` here and constants are not, and `gdlint` holds that on every file.
+func _is_a_call(line: String, at: int) -> bool:
+	if at >= line.length():
+		return false
+	var c := line[at]
+	return c == c.to_lower() and c != c.to_upper()
+
+
+func test_a_call_is_told_from_a_constant() -> void:
+	# **THE GUARD'S OWN COUNTERFACTUAL.** Without it the narrowing above could
+	# reduce to "nothing is ever forbidden" and every assertion would still pass.
+	assert_true(_is_a_call("SuspicionMath.evaluate_tier(v, t)", 15), "a call reads as a constant")
+	assert_true(_is_a_call("SuspicionSources.of(state)", 17), "a call reads as a constant")
+	assert_false(_is_a_call("SuspicionMath.Tier.EXPOSED", 14), "an enum reads as a call")
+	assert_false(_is_a_call("SuspicionSources.SPRINT", 17), "a constant reads as a call")
 
 
 func test_no_client_file_assigns_a_mirrored_gameplay_field() -> void:

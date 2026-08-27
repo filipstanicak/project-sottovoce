@@ -5,6 +5,11 @@ ui.score.label,Score
 ui.tier.anonymous,Anonymous
 ui.tier.noticed,Noticed
 ui.tier.exposed,Exposed
+ui.source.sprinting,sprinting
+ui.source.running,running
+ui.source.climbing,climbing
+ui.source.rooftop,on a roof
+ui.source.alone,alone
 ui.prompt.kill,Kill
 ui.prompt.stun,Stun
 ui.slot.empty,Empty
