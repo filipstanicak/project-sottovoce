@@ -27,7 +27,7 @@ static func check(p: TuningProfile) -> Array[String]:
 	e.append_array(_compass(p))
 	e.append_array(_abilities(p))
 	e.append_array(TuningInvariantsTech.check(p))
-	e.append_array(_scoring(p))
+	e.append_array(TuningInvariantsScore.check(p))
 	e.append_array(_traversal_reach(p))
 	return e
 
@@ -274,39 +274,6 @@ static func _abilities(p: TuningProfile) -> Array[String]:
 	return e
 
 
-static func _scoring(p: TuningProfile) -> Array[String]:
-	var e: Array[String] = []
-	# 18. THE STEALTH LADDER'S TOP RUNG PAYS AT LEAST THREE BASE KILLS.
-	#
-	# **AMENDED 2026-08-26, ADR-0013.** It used to read
-	# `blended > patient > silent`, which encoded a hierarchy the reference does
-	# not have. What the thesis needs is not an ordering between the three but a
-	# floor under the pair: with no penalty for recklessness left in the game,
-	# paying three base kills for an unseen approach is the whole of what makes
-	# patience correct. How the 300 splits between the instantaneous half and the
-	# sustained one is ours to tune; the sum is not.
-	if p.scoring.silent + p.scoring.patient < 3.0 * p.scoring.contract:
-		e.append(
-			(
-				(
-					"18. silent (%.0f) + patient (%.0f) must be >= 3x contract (%.0f) — "
-					+ "the stealth ladder is the only thing left enforcing the thesis"
-				)
-				% [p.scoring.silent, p.scoring.patient, p.scoring.contract]
-			)
-		)
-	# 19. Defence pays like offence.
-	if not is_equal_approx(p.scoring.stun, p.scoring.contract):
-		e.append(
-			(
-				"19. scoring.stun (%.0f) must EQUAL scoring.contract (%.0f)"
-				% [p.scoring.stun, p.scoring.contract]
-			)
-		)
-	e.append_array(_patience(p))
-	return e
-
-
 ## 24, 25. **ANYTHING YOU CAN CLIMB UP, YOU CAN FALL DOWN.** A probe shallower
 ## than the tallest single climb cannot measure the drop back down it, and an
 ## unmeasured drop is one the planner must refuse rather than guess at — it used
@@ -342,22 +309,6 @@ static func _traversal_reach(p: TuningProfile) -> Array[String]:
 				% [p.crowd.idle_duration_min, p.crowd.idle_duration_max]
 			)
 		)
-	return e
-
-
-## 23. PATIENCE MUST BE A LINE YOU CAN CROSS. At or below stroll it is
-## unearnable — a player at their cruising speed has already lost it — and at or
-## above run it is unlosable without committing, which is the one thing it exists
-## to price. It inherited 3.4 m/s from the deprecated Jog rung, which is why the
-## threshold outlived the state.
-static func _patience(p: TuningProfile) -> Array[String]:
-	var e: Array[String] = []
-	var low := p.movement.stroll
-	var high := p.movement.run
-	var speed := p.scoring.patient_speed
-	if not (low < speed and speed < high):
-		var text := "23. scoring.patient_speed (%.2f) must sit strictly between "
-		e.append((text + "stroll (%.2f) and run (%.2f)") % [speed, low, high])
 	return e
 
 ## 20. The client frame budget must actually add up.
