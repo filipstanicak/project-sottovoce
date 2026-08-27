@@ -225,15 +225,15 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 *Updated 2026-08-26 (ADR-0013, scoring re-price). Keep this section current — it is the first thing a
 fresh session reads, and a stale one is worse than none.*
 
-## M4 IS TWELVE OF FIFTEEN, AND NOTHING IS PLAYABLE YET
+## M4 IS THIRTEEN OF FIFTEEN, AND NOTHING IS PLAYABLE YET
 
 **Built:** `SYS-CONTRACT` (US-0049, US-0050), `SYS-SUSPICION` (US-0051, US-0052),
 `SYS-BLEND`'s two crowd blends (US-0053), `SYS-DETECTION` (US-0055, US-0056),
 the whole of `SYS-COMPASS`'s server half (US-0057, US-0058), `SYS-KILL`
-(US-0060), the prey warning (US-0059), `SYS-STUN` (US-0061).
+(US-0060), the prey warning (US-0059), `SYS-STUN` (US-0061), `SYS-SPAWN`
+(US-0062).
 
-**Not started:** `SYS-SPAWN` (US-0062), the gate (US-0063). `SYS-BLEND`'s two
-prop blends are US-0054.
+**Not started:** the gate (US-0063). `SYS-BLEND`'s two prop blends are US-0054.
 
 **A PLAYER CAN NOW BE KILLED, AND STILL CANNOT PERCEIVE ANY OF IT.** The server
 validates a kill against the lag-compensated world, commits the killer for 1.4 s,
@@ -244,9 +244,9 @@ are **no animation clips in this project on either rig** — so a kill is a stat
 change and a log line. **Do not read the sections below as progress toward
 something visible.**
 
-**AND `Dead` HAS NO EXIT.** The graph's only edge out of it is
-`Dead -> Respawning`, and `Respawning` is `SYS-SPAWN`'s (US-0062). **A player
-killed today stays dead for the rest of the match.**
+**AND `Dead` HAS AN EXIT AS OF US-0062**, which is the last thing that stood
+between the loop and a match that degrades as it runs. **All fifteen pawn states
+now exist.**
 
 **AND FOUR SYSTEMS NOW TICK THAT DID NOT AT THE M3 GATE**, so US-0048's server-tick
 figure is superseded — see the re-measurement under US-0055 below.
@@ -382,6 +382,67 @@ makes GDD-03 §7.4's validity proof work and is not for trading.
 stopped at ADR-0011 while ADR-0012, 0013 and 0014 existed as files and as §1 log
 lines. Trap 14's shape in a table rather than in a claim: the index a reader consults
 to find a decision did not list it.
+
+---
+
+**US-0062 IS DONE, SEVEN OF EIGHT: `SYS-SPAWN` EXISTS, AND `Dead` FINALLY LEADS
+SOMEWHERE.** Five seconds after a death the victim is placed on a declared spawn
+point at least 40 m from their killer and 12 m from everybody alive, comes back
+at `TUN-RESPAWN-SUSPICION`, is untargetable for `TUN-RESPAWN-INVULN` 1 s, and is
+reinserted into the cycle **in the same tick as the placement**.
+
+**IT IS NOT A `GameSystem`, FOR THE THIRD TIME AND FOR A THIRD REASON.** TDD-01
+§4's diagram has **no spawn box at all**, and its stage 8 is *"Contract — repair
+cycle after deaths"*. A respawn is a repair after a death, so `ContractSystem`
+owns and ticks it — and ticks it **first**, so nobody ever stands on the map
+holding no contract.
+
+**BOTH RESPAWN EDGES ARE COMPLETIONS, NOT INTERRUPTIONS — TRAP 8, AND IT COST THE
+FIRST RUN.** `Dead` and `Respawning` are both FATAL and both decline every
+interruption, so an interrupting request at FATAL priority is refused by
+`priority <= current.interrupt_priority()` and **the pawn stays dead forever** —
+the exact symptom this story exists to fix, reproduced by the fix for it.
+`transition()`'s `interrupting` flag is what `step()` already passes false for,
+because *a state asking to leave is completion*. **The server holds these two
+clocks** because the position a respawn lands at is chosen from the live lobby at
+the moment the timer expires, and a client cannot know it.
+
+**THE POINT IS CHOSEN WHEN THE TIMER EXPIRES, NEVER WHEN THE PLAYER DIED.** Five
+seconds is long enough for the whole lobby to move, and a point chosen at the
+contact frame would satisfy the 12 m rule against a world that no longer exists.
+
+**AND THE FALLBACK IS DETERMINISTIC, WHICH IS THE OPPOSITE OF THE SKETCH.** TDD-10
+§6 writes `candidates.pick_random(ctx.rng)` — not a Godot signature, and
+`Array.pick_random()` draws from the **global** RNG, which is never-do #8. The
+legal set is picked from with `rng.randi_range`; the *fallback* draws nothing at
+all, because it runs at the worst moment in a match and the least bad answer is a
+property of the world rather than a draw.
+
+**`TUN-RESPAWN-SUSPICION` HAD NO READER AND NOW HAS ONE.**
+`PawnContext.reset_for_spawn` writes a literal `0.0` that **agrees** with the
+tunable without reading it, so retuning it would have changed nothing anywhere.
+Trap 17's family: a value that is correct by coincidence.
+
+**AND THE ANTI-CAMP ANALYSIS IS CONFIRMED WHILE ITS EVIDENCE IS RETIRED.** GDD-05
+§2.7 concludes *"worst case: three valid spawns remain"* from **four hand-picked
+positions**. Swept over **3 721 on a 2 m grid** the answer is the same — 3 — and
+the worst position is **(0, 58)**, the map's western edge, which is none of the
+four.
+
+**TWO CAMPERS ON SPAWN POINTS REDUCE IT TO ONE (`S2` + `S4`), AND NOTHING MODELS
+THAT.** Reported rather than ruled on: the analysis prices camping against *one*
+player standing still, and two coordinating in a free-for-all where they also
+hold contracts on each other is a claim the design has never made.
+
+**AND THE ANTI-CAMP TEST COULD NOT SEE ITS OWN RULE BEING DELETED.** Planting
+`clear_of_killer` to always return true left the whole file **green** — every
+assertion in it is *"at least three remain"*, which a rule that excludes nothing
+satisfies perfectly. It opens with a counterfactual now, and that plant reddens
+it.
+
+**`PawnHost`'s ROUND-ROBIN PLACEHOLDER IS GONE.** A join and a respawn go through
+the same `SpawnRules.choose`, differing only in that a joiner has no killer to
+stay away from, so the two cannot drift apart.
 
 ---
 
@@ -3291,18 +3352,19 @@ US-0024 measures it against clips that do not exist.
 | | |
 |---|---|
 | CI | 7 jobs. **Running again as of 2026-08-07 after a two-day outage** — run `31200490320`, all seven green. The seven commits merged during the outage were never through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | **47 arch + 137 unit + 32 integration scripts**, holding 186 + 1162 + 239 tests and 827 + 24 944 + 651 assertions — the assertion count tripled at US-0049, because `test_contract_cycle_fuzz.gd` checks the invariant after every one of 10 000 events. **Eight are `pending` by design** — **seven in the unit suite and one in the integration suite**, which reports that an NPC aimed into the void never gives up. The island `pending` beside it **turned green by itself** when the alley mouths were built, which is what a `pending` naming its own blocker is for. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **162-172 s** of the 180 s it is allowed, up from 87.7 s at M2 — **under 9 s of headroom left, and the next integration test has to justify itself hard against that**. `test_server_tick_budget.gd` cost 9.8 s of it and is a gate line; the one before it, the 2 s pass A/B, samples ninety ticks **twice** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **The six are**: `test_upstream_bandwidth.gd` reporting the 145 % upstream miss, `test_crowd_bandwidth.gd` the 112 % downstream projection, `test_crowd_wire_cost.gd` the 112 % it actually costs, **`test_spawn_points.gd` twice — GDD-05 §2.7 rule 6's nine unoccluded spawn pairs and rule 8's S3 4, S4 1, S5 6 of 8 seats** — and `test_clone_animation_parity.gd` the missing clip library. **Two entries this row carried are gone because their findings closed**: `test_circuit_separation.gd`'s 0.51 m circuits (re-authored, now 21.20 m) and `test_cull_radius_price.gd`'s flat curve, which asserts rather than pends. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
+| Tests | **47 arch + 140 unit + 32 integration scripts**, holding 186 + 1187 + 239 tests and 827 + 25 104 + 651 assertions — the assertion count tripled at US-0049, because `test_contract_cycle_fuzz.gd` checks the invariant after every one of 10 000 events. **Eight are `pending` by design** — **seven in the unit suite and one in the integration suite**, which reports that an NPC aimed into the void never gives up. The island `pending` beside it **turned green by itself** when the alley mouths were built, which is what a `pending` naming its own blocker is for. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **162-172 s** of the 180 s it is allowed, up from 87.7 s at M2 — **under 9 s of headroom left, and the next integration test has to justify itself hard against that**. `test_server_tick_budget.gd` cost 9.8 s of it and is a gate line; the one before it, the 2 s pass A/B, samples ninety ticks **twice** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **The six are**: `test_upstream_bandwidth.gd` reporting the 145 % upstream miss, `test_crowd_bandwidth.gd` the 112 % downstream projection, `test_crowd_wire_cost.gd` the 112 % it actually costs, **`test_spawn_points.gd` twice — GDD-05 §2.7 rule 6's nine unoccluded spawn pairs and rule 8's S3 4, S4 1, S5 6 of 8 seats** — and `test_clone_animation_parity.gd` the missing clip library. **Two entries this row carried are gone because their findings closed**: `test_circuit_separation.gd`'s 0.51 m circuits (re-authored, now 21.20 m) and `test_cull_radius_price.gd`'s flat curve, which asserts rather than pends. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
 | Tuning | 288 tunables across 14 resource classes; all 31 cross-field invariants assert. **Four scoring values were re-priced on 2026-08-26 (ADR-0013)** — `TUN-SCORE-SILENT` 100 → 200, `TUN-SCORE-PATIENT` 150 → 100, `TUN-SCORE-FOCUS` 100 → 150, `TUN-SCORE-RECKLESS` −50 → **0**, and invariant 18 rewritten from an ordering to a floor — split across `TuningInvariants` and `TuningInvariantsTech` since the first file hit 400 lines, with one entry point still. **Eight IDs are deprecated** and recorded in TUNABLES §19 — never reused |
 | Autoloads | All eight. `Tuning` precomputes 89 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |
 | Boot | Branches on `--server`; 7 CLI flags parsed in pure Core; 5 export presets |
 | Map | `MAP-VETRAIO` greybox, 120 × 120 m. Client loads 28 meshes, server loads none. **The street surface is exactly `STREET_Y`** — floors used to straddle their declared height, putting every walkable top 0.1 m high, which made the 0.9 m stalls unvaultable and three spawn points float over nothing. **Lit as of US-0091** — one key light and a sky, because nothing in the project had ever created either and the district rendered near-black. **The navmesh is baked at build time and committed** (US-0041): **255 polygons across 12 floors and 14 blocks**, with a derived `H_VAULT` parapet on every floor edge that borders a drop, and it sits **0.400 m above the street**, which is why steering applies gravity rather than trusting the snap |
-| Pawn | 14 states declared — **the Jog rung was removed in US-0090** and `Jog` is a retired ID absent from `ALL`. Transition edges asserted against the normative diagram. **Thirteen implemented**: five locomotion + `Vault`, `Climb`, `Drop`, `KillAnim`, `StunAnim`, `Stunned`, `Blended`, `Dead`. **Only `Respawning` is left**, US-0062. **`Dead` has no exit** — the only edge out is `Dead -> Respawning`, so a killed player stays dead for the rest of the match. **And two states cannot die at all**: the diagram has no `Drop -> Dead` and no `StunAnim -> Dead`, which `KillSystem._enter` reports rather than asserting past |
+| Pawn | 14 states declared — **the Jog rung was removed in US-0090** and `Jog` is a retired ID absent from `ALL`. Transition edges asserted against the normative diagram. **All fourteen implemented as of US-0062**: five locomotion + `Vault`, `Climb`, `Drop`, `KillAnim`, `StunAnim`, `Stunned`, `Blended`, `Dead`, `Respawning`. **`Dead` has an exit at last.** **Two states still cannot die at all**: the diagram has no `Drop -> Dead` and no `StunAnim -> Dead`, which `KillSystem._enter` reports rather than asserting past |
 | Traversal | **Complete.** Probes cast, all seven §7.2 cases resolve from real geometry, both forgiveness windows open, and vault, mantle, climb, drop and gap jump all perform. **Case 7 hops as of US-0093** — an impulse, not a state, scaled by the speed rung and adding nothing horizontal. **The action buffer arms on the PRESS, not the hold** — arming from the held bit spent a traverse every frame a finger stayed down |
 | Crowd | 90 bodies pre-allocated, 78 active, each with a brain and a `CrowdContext` allocated beside it. One `SpatialHash` on `MatchContext`, rebuilt at the **top** of the crowd stage so the brains and every downstream system read the same grid — 0.0561 ms, allocating nothing. `CrowdDirector` ticks them at the `crowd` stage and translates the five flags `NpcBrain.step()` deliberately does not read into `handle()` calls; `Steering` moves the bodies from the **avoidance callback**, on the physics frame, and knows nothing about states — it takes a point and a speed. Repath is FIFO and capped at three a tick. **Four processions of four walk the map's circuits** (US-0043), each with a fifth slot no NPC may take, at a pace throttled by its worst straggler. **Banded by distance** as of US-0045 — 20/45/70 m, strides 1/3/15, staggered by index — and `CrowdBands` also scales each agent's `path_max_distance` by its band's stride (US-0041's last line), which is the one path query `RepathQueue` does not stagger. **All five states are reachable** as of US-0044: a sprinting player startles the crowd once a second, a wave propagates one hop at 0.4, and a corpse gathers six onlookers who walk to it and disperse before it fades. Violence has an entry point and no caller until M4. **On the wire as of US-0030/US-0031**: `SnapshotBuilder._fill_crowd` sends each observer the NPCs within `TUN-NET-NPC-CULL-RADIUS`, positionally and never visually, at `TUN-NET-NPC-RATE-LOD-HZ` beyond `TUN-NET-NPC-RATE-LOD-RADIUS` and staggered by `(tick + index) % stride`, delta-encoded per NPC against the client's **ack**. **Drawn on a client** as of US-0045 by `NpcView`, which culls at the same radius one margin wider, treats absence as "no update" rather than "gone", and dresses nobody. **Departure is a value, not silence** — one out-of-range record — and `CrowdWire.is_farewell()` holds that rule for both `NpcView` and `SnapshotAssembler`, which must agree on it: when only the view knew it, the assembler carried one goodbye forward into every later snapshot and the view created and freed a body from it once per tick. **Clone-parity layer 4 hangs off the same 2 s pass as the formations** (US-0047): `CloneBalance` holds the clones already near a player and fetches one when a persona is short, always to a map anchor and never at the player. **The floor is decided on clones that have ARRIVED**: crediting one still walking satisfied the minimum in expectation while the player was short in fact for the eighteen seconds of the journey |
 | Blend | `SYS-BLEND` is a pure `RefCounted` the suspicion system owns and resolves at **step 1 of its pass** — not a stage, because `MatchDirector` permits one system per stage and both TDD-07 §1's diagram and TDD-01 §4.1's rationale already file blend-pocket validity under stage 4. **Pocket and group are built** (US-0053); static and concealment props are US-0054. A blend is a **condition re-validated every tick**, never a state you keep: `TUN-BLEND-POCKET-MIN-NPC` within `TUN-BLEND-POCKET-RADIUS` asked of this tick's `crowd_hash`, or a formation slot held within `TUN-BLEND-GROUP-SLOT-TOLERANCE`. Entry 0.35 s and exit 0.30 s are phases the server owns; the wire carries the **kind** only, `blend_state:u4`, five values with `NONE` at zero. **The crush runs in `HELD` alone** — entry is visibly transitioning and exit is standing up, and neither buys anonymity. A **break is not an exit**: it lands the tick the condition lapses, with no 0.30 s. `report_damage()` breaks rather than absorbs, and has no caller until `SYS-KILL`. **The slot walks and the player keeps up** — nothing here moves a pawn, because the server does not own a predicted position |
 | Kill | `SYS-KILL` ticks at the `combat` stage, **before `contract`**, so the cycle is repaired in the tick a death resolves. The decisions are pure and separable — `KillRules` (target, range, cone), `KillContest` (who was first), `RewindClamp` (how far back) — and the system holds the sequencing and the consequences. **Range is 3D and the cone is horizontal**: a horizontal reach would put the roof stratum inside kill range of the street. It reads the **announced** contract, so a press during the reassign breath is a rejection rather than a free kill. **Contact frames resolve before new presses**, or a victim dying this tick could still be claimed. **A press is edge-detected in this system's own map**, never from `PawnContext.held_buttons`, which `step()` rewrites at 60 Hz. Consequences leave through `killed`, wired in `server_root`: contract repair, blend break, corpse, startle, witnesses, `NET-S2C-KILL-RESULT` to the two involved. **A rejection is answered with a victim slot of zero** — silence is the worst answer a kill can give |
 | Stun | `SYS-STUN` is **not a `GameSystem`** — TDD-01 §4's box 7 is one node reading "Kill / Stun", so `KillSystem` owns it and ticks it, `SuspicionSystem`/`BlendSystem`'s shape. **The kill is judged first within the tick**, which is where ADR-0013's contested initiation is decided rather than in a comment. Target is the stunner's own pursuer by reverse lookup on the **announced** contracts. `StunRules` is pure geometry and reads **one yaw**, the stunner's; it shares `TUN-KILL-VALIDATION-GRACE` with the kill, so the two reaches shift together. A stun at a hunter already in `KillAnim` is `TARGET_COMMITTED` and **costs nothing**. **Every other refusal costs the same and looks the same**, because a refusal that reported its reason would be a free identity probe. `stun_ready` carries the tier gate for that same reason |
+| Spawn | `SYS-SPAWN` is **not a `GameSystem`** — TDD-01 §4's diagram has no spawn box and stage 8 is *"repair cycle after deaths"*, so `ContractSystem` owns it and **ticks it first**: the placement and the cycle insertion land in one tick. `SpawnRules` is pure — 40 m from the killer, 12 m from **every** living player, and a fallback that draws nothing at all because it runs at the worst moment in a match. **The point is chosen when the timer expires**, never at the contact frame. `TUN-RESPAWN-INVULN` is a third `CombatLockouts` shape: it shields a *target* where the stagger and the exile restrain an *initiator*, and both combat systems answer `TARGET_PROTECTED` at **no cost to the presser**. **Both respawn edges are completions rather than interruptions** — trap 8 |
 | Kill commits | **`KillAnimState.is_interruptible` returns false** (ADR-0013). A stun landing after the hunter has pressed kill saves nobody; the prey's counterplay is the approach, where a revealed hunter is stunnable from 3.0 m and cannot strike until 2.5. **FATAL still gets through** — a third party killing the killer — because `transition` compares priorities, which is the asymmetry `test_the_kill_commits.gd` asserts both halves of. `KillSystem.report_interrupt` is **deleted rather than left as a no-op**: a cancel entry point that silently does nothing is worse than none |
 | Compass lock | `CompassLock` is pure and holds the arc, the reveal window, the cooldown and the portrait; `SYS-DETECTION` supplies the yes-or-no its conditions come to. **`has_los()`'s first and only caller**, last in the early-out ladder — a hunter facing away spends zero raycasts, one watching spends one, against TDD-07 §4.3's budget of 2-6. The cone is gated on the hunter's **own yaw**, never the wobbled bearing. **The arc is not reset on completion**: a held view keeps a full arc and `TUN-COMPASS-REVEAL-COOLDOWN` is what stops chain-locking. **It resets on reassignment, tracked separately from the portrait** — inferring one from the other let a half-filled arc cross to the next contract. `NOBODY` is not a reassignment, or the breath would destroy an earned portrait. `PASV-COLDREAD` is an argument with no reader until a loadout exists |
 | Compass | **The server half lives in `SYS-DETECTION`**, at steps 9-10 of its pass, because the Compass is about the observer's *contract* — the same relationship the render state is computed from — and TDD-07 §1's diagram draws it there. `CompassMath` is pure Core: `period_for()` reproduces TUNABLES §4.2's twelve rows to **0.40 ms**, and the reciprocal exponent makes the rate **58x steeper close in than far out**. One reading per hunter into `ctx.compass`: a **world** bearing with `TUN-COMPASS-CONE-WOBBLE`'s drift already applied server-side, and a `Quantise.BUCKET_STEP` 0.5 m distance bucket, so nothing downstream holds the exact metres. The wobble is a sine of `(contract, tick)` — deterministic and learnable, never RNG — with its phase **mixed**, or adjacent peer ids would drift in step. **A missing reading is `NO_CONTRACT` 255, never bucket 0**, which is a real reading. `lock_fraction` and `portrait_revealed` are US-0058's and read zero; nothing draws any of it |
@@ -3312,7 +3374,7 @@ US-0024 measures it against clips that do not exist.
 | Camera | Real spring arm: 2.6 m, **pawn centred** (US-0092 — the 0.45 m offset never changed the composition, because the rig aims at the pawn's own axis; `INPUT-SHOULDER` retired with it), occlusion that pulls **in** and never sideways, `WORLD`-masked so a crowd cannot push it. The FOV ladder is bound to the **state**, never to `ctx.velocity`: the rung is a consequence of the decision, not of the physics that follows it. Crowd-scan narrows to 48° and grants nothing. **Positive pitch LOWERS the arm** — the rig looks *at* the pivot, so a raised arm looks down; it shipped inverted from US-0021 until somebody played it |
 | Input | 20 `InputMap` actions from 14 live `INPUT-` IDs — `INPUT-SHOULDER` is retired via `InputActions.DEPRECATED`, still in the corpus and bound to nothing, KBM + pad. Chain GDD-02 → `Ids` → `InputActions` → `project.godot`, guarded on every hop, both directions. **Sampled once per physics frame by `LocalPawnDriver`, the only caller** — see trap 12. The mouse is **captured** on boot; `INPUT-MENU` releases, a click takes it back. **Only a mapped gamepad holds the joypad bindings** — `PadSelection`, applied through the one `InputMap` writer, because a set of sim pedals was steering |
 
-**Forty-five criteria are deliberately unticked**, each blocked by something real — counted
+**Forty-six criteria are deliberately unticked**, each blocked by something real — counted
 from the `done` and `in-progress` stories on **2026-08-25**. It was also forty on
 2026-08-16, which is a coincidence rather than a stall: US-0055 closed seven and
 US-0052/0053/0056 opened four between them. Nine of the forty are US-0048's M3
@@ -3339,6 +3401,7 @@ total=0; for f in docs/40_backlog/stories/*.md; do
 | US-0036 | "every netcode test runs at all four profiles" | true only of the harness's own agreement test; the rest are pure and have no wire to give a latency to |
 | US-0037 | match end below minimum players | `SYS-MATCH`'s, in M4. **The timeout criterion was ticked at the M2 gate** — a hard-killed client took the same `peer left` → `pawn freed` path across four real processes |
 | US-0056 | Focus tracking and kill validation as `has_los` consumers | **two arrived and the third is not coming as written.** The Compass lock calls it (US-0058) and so does the witnessed-kill check (US-0060). **Kill validation never asks**: TDD-10 §3's flowchart has no line-of-sight node, so a kill through a market stall at 2.4 m is legal today. TDD-04 §10's test table implies otherwise — reported, the owner's. Focus is US-0064 |
+| US-0062 | ability cooldowns reset on death | **there are no ability cooldowns.** `SYS-ABILITY` is M5 and `PawnContext` has no cooldown field, so there is nothing to reset. `reset_for_spawn` is the one call site and will honour them when they exist |
 | US-0061 | a player mid-Lunge is stunnable | **`ABIL-LUNGE` is M5, so there is no state to be mid-.** The way it stays true when the ability arrives is that `StunSystem._is_busy` and `_is_stunnable` never grow a case for it, and both name the criterion. Everything else in the story is built and falsified |
 | US-0059 | the client-side rotation; the mono sting | **the server halves are done and neither client half exists.** A world bearing needs `CompassVM` to rotate it (US-0084, M5) — US-0057's seventh line, again — and the sting has **no call site at all**: `Audio.play()` is a stub until US-0075 and `EventBus` may hold no `func`, so a guard over zero call sites would be vacuously green |
 | US-0060 | NPCs rewound; the contest loser's movement stagger | **both are reported rather than blocked.** ADR-0010's two reasons for rewinding NPCs are false of the built game, so a rewound crowd has no consumer and would cost ~100 KB of ring to be read by nothing. And GDD-02 §3's fifteen-state diagram declares no stagger state while three rules need one, so the loser gets an **initiation** lockout: no points, no lockout, no suspicion, 1.5 s in which they cannot press again |

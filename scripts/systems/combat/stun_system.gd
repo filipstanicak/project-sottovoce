@@ -139,6 +139,8 @@ func ready_for(peer: int, ctx: MatchContext) -> bool:
 	var them: PawnContext = ctx.pawn_contexts.get(pursuer)
 	if them == null or not _is_stunnable(them):
 		return false
+	if lockouts != null and lockouts.is_protected(pursuer, ctx.tick):
+		return false
 	# **THE TIER GATE BELONGS HERE TOO, AND LEAVING IT OUT IS AN ANONYMITY LEAK
 	# RATHER THAN A COSMETIC BUG.** `stun_ready` is drawn on the prey's own screen;
 	# lit for an Anonymous pursuer standing in a crowd it would say *that one is
@@ -181,6 +183,9 @@ func _verdict_for(ctx: MatchContext, peer: int) -> Array:
 	var them: PawnContext = ctx.pawn_contexts.get(pursuer)
 	if them != null and them.state_id == PawnStateId.KILL_ANIM:
 		return [StunVerdict.V.TARGET_COMMITTED, pursuer]
+	if lockouts != null and pursuer != ContractCycle.NOBODY:
+		if lockouts.is_protected(pursuer, ctx.tick):
+			return [StunVerdict.V.TARGET_PROTECTED, pursuer]
 	if them != null and them.tier < _floor_tier():
 		return [StunVerdict.V.TOO_CALM, pursuer]
 	var at_tick := RewindClamp.tick_for(ctx.tick, Net.rtt_ms(peer))

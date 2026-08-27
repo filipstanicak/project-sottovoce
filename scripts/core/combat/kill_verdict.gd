@@ -40,6 +40,14 @@ enum V {
 	## charging suspicion on top would let a stunned hunter be pushed further
 	## Exposed by pressing a button that does nothing.
 	LOCKED_OUT,
+	## **`TUN-RESPAWN-INVULN`.** The contract came back on the map less than a
+	## second ago. Added US-0062.
+	##
+	## **Costs nothing.** The killer did everything right and the game said no for
+	## a reason that is about the victim, not about them — charging suspicion here
+	## would make a fresh respawn a trap for whoever happened to be standing at the
+	## spawn point.
+	TARGET_PROTECTED,
 }
 
 ## The rejections that cost `TUN-SUSPICION-GAIN-FAILED-KILL` and play the whiff —

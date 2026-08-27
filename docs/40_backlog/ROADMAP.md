@@ -573,9 +573,9 @@ interact with them beyond collision.
 | The prey warning — **directionless** | |
 | `KillSystem`: validation, contest window, lag-compensated | **Done**, US-0060 |
 | `StunSystem`: tier gate, lockout, anti-spam | |
-| `SpawnSystem`: constraints with a never-failing fallback | **The only unbuilt system in M4.** §6.0 |
+| `SpawnSystem`: constraints with a never-failing fallback | **Done**, US-0062. §6.0 |
 
-### 6.0 Progress, 2026-08-26 — **twelve of fifteen stories, and nothing is playable yet**
+### 6.0 Progress, 2026-08-26 — **thirteen of fifteen stories, and nothing is playable yet**
 
 Recorded here because a "Delivers" table with no state beside it reads as a promise kept.
 
@@ -589,7 +589,7 @@ Recorded here because a "Delivers" table with no state beside it reads as a prom
 | The prey warning — **directional** (ADR-0013) | **Done, seven of nine** (US-0059). It rides `SYS-DETECTION`'s existing pair pass for no extra cost and no raycast. The two open criteria are the client-side rotation (US-0084's HUD) and the audio sting (`Audio.play()` is a stub until US-0075, and there is no call site to guard) |
 | `KillSystem`: validation, contest window, lag-compensated | **Done** (US-0060), eight of ten criteria. NPCs are not rewound and the contest stagger is an initiation lockout — both reported with reasons in the story |
 | `StunSystem`: tier gate, lockout, anti-spam | **Done, ten of eleven** (US-0061). **Not a `GameSystem`** — §4's box 7 is one node reading "Kill / Stun", so `KillSystem` owns and ticks it, and the kill resolving first is where ADR-0013's contested initiation is decided. The open criterion needs `ABIL-LUNGE`, which is M5 |
-| `SpawnSystem`: constraints with a never-failing fallback | **Not started** (US-0062). **`Dead` has no exit until this exists** — the graph's only edge out is `Dead -> Respawning`, so a player killed today stays dead for the rest of the match |
+| `SpawnSystem`: constraints with a never-failing fallback | **Done, seven of eight** (US-0062). **`Dead` has an exit and all fifteen pawn states now exist.** Not a `GameSystem` — §4's diagram has no spawn box and stage 8 is *"repair cycle after deaths"*, so `SYS-CONTRACT` owns it and ticks it first. The open criterion resets ability cooldowns, and there are none until M5 |
 
 **THE WHOLE COMBAT EXCHANGE NOW RESOLVES ON THE SERVER, AND A PLAYER STILL CANNOT PERCEIVE
 ANY OF IT.** A kill is validated against the lag-compensated world, commits the killer for
@@ -601,8 +601,11 @@ no score** — there are no animation clips in this project on either rig, and t
 US-0084 in M5. Every one of those three stories reaches the client as a state change and a
 log line.
 
-**AND `Dead` STILL HAS NO EXIT.** US-0062 is what gives it one. A player killed today stays
-dead for the rest of the match, which is stated in `DeadState` rather than papered over.
+**AND `Dead` HAS AN EXIT AS OF US-0062**, which was the last thing standing between the loop
+and a match that does not degrade: a player killed at any point since US-0060 stayed dead for
+the rest of it. **All fifteen pawn states now exist.**
+
+**WHAT IS LEFT IN M4 IS THE GATE AND TWO PROP BLENDS.** US-0063 and US-0054.
 
 **The exit criterion is untouched**: the game is not playable end-to-end, and the first real
 playtest cannot happen until respawn exists and something draws the loop.

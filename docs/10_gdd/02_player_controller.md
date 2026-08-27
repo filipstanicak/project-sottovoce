@@ -271,7 +271,7 @@ requested at priority *P* may interrupt a state whose `is_interruptible()` is fa
 
 | State | Entry condition | Exit condition | Interruptible? | Priority | Suspicion contribution |
 |---|---|---|---|---|---|
-| **Respawning** | Death resolved | `TUN-RESPAWN-DELAY` 5.0 s | No | FATAL | n/a (set to 0 on exit) |
+| **Respawning** | Death resolved | `TUN-RESPAWN-DELAY` 5.0 s | No | FATAL | n/a (set to `TUN-RESPAWN-SUSPICION` on exit). **Built US-0062**, and it is what finally gave `Dead` an exit. **Both of its edges are completions rather than interruptions**: it and `Dead` are FATAL and decline every interruption, so an interrupting request at FATAL priority is refused and the pawn stays dead forever — trap 8, reproduced by the fix for it |
 | **Idle** | No move input, grounded | Any move input | Yes | NORMAL | decay |
 | **BlendWalk** | Move + `INPUT-SLOW` | Input change | Yes | NORMAL | decay |
 | **Stroll** | Move, no modifier | Input change | Yes | NORMAL | decay |

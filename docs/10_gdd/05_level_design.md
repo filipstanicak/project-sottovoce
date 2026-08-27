@@ -497,6 +497,20 @@ standing at any point covers at most **two** spawn points within 40 m. Worked fr
 | Fondaco (south) | S3, S4 | 2 | **4** |
 | Campanile base | S5, S6 | 2 | **4** |
 
+> **SWEPT AND CONFIRMED 2026-08-26 (US-0062), AND THE EVIDENCE ABOVE WAS THIN.** The four rows
+> are hand-picked positions, and four samples cannot establish a worst case over a 120 x 120 m
+> district. `test_spawn_anticamp.gd` sweeps **3 721 positions on a 2 m grid**: the answer is the
+> same — **3** — and the worst position is **(0, 58)**, the map's western edge, which is none
+> of the four. The conclusion stands; the table is now a sample of a measured result rather than
+> the result itself.
+>
+> **AND TWO CAMPERS STANDING ON SPAWN POINTS REDUCE IT TO ONE: `S2` + `S4`.** Nothing in this
+> analysis models that, because camping is priced against **one** player standing still. Two
+> coordinating in a free-for-all where they also hold contracts on each other is a different
+> claim, and the design has never made it. **Reported rather than fixed** — inventing a rule for
+> a two-player conspiracy before a playtest has seen one would be scope with no evidence behind
+> it. `test_spawn_anticamp.gd` prints the number every run.
+
 **Worst case: three valid spawns remain**, all at least 40 m from the camper, and the camper
 does not know which one was used. Combined with `TUN-RESPAWN-INVULN` (1.0 s) and the fact that
 camping means standing still in one place while your own pursuer hunts you, spawn camping is

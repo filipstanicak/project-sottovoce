@@ -426,6 +426,44 @@ func choose_spawn(ctx: MatchContext, player: int, killer: int) -> SpawnPoint:
     return candidates.pick_random(ctx.rng)
 ```
 
+### 6.1 What US-0062 built, and the four places the sketch needed a decision
+
+**`SYS-SPAWN` IS NOT A `GameSystem` EITHER.** TDD-01 §4's diagram has **no spawn box at all**
+and its stage 8 is *"Contract — repair cycle after deaths"*; a respawn is a repair after a
+death, so `ContractSystem` owns and ticks it — `KillSystem`/`StunSystem`'s shape, for the third
+time. **And it ticks first**, so the placement and the cycle insertion land in one tick and
+nobody ever stands on the map holding no contract.
+
+**THE SKETCH RETURNS A `SpawnPoint` AND THERE IS NO SUCH TYPE.** `MapData.spawn_points` is an
+`Array[Vector3]`, so `SpawnRules.choose` returns an **index** into it. An index rather than a
+position because the caller wants both — the point to stand on and, for `fallbacks`, which one
+was chosen.
+
+**`pick_random(ctx.rng)` IS NOT A GODOT SIGNATURE.** `Array.pick_random()` takes no argument
+and draws from the **global** RNG, which is never-do #8 and non-deterministic: two servers
+replaying one seed would place the same death differently. It is `rng.randi_range` over the
+legal set.
+
+**AND THE FALLBACK IS DETERMINISTIC WITH NO RANDOMNESS AT ALL.** It runs when the lobby is
+packed tightly enough to veto every point, and the least bad answer is a property of the world
+rather than a draw — a random pick would make the worst moment in a match the one place a seed
+cannot reproduce. With no killer (a join) it maximises clearance from the nearest living player
+instead, which is the same question asked of a lobby rather than of one person.
+
+**`TUN-RESPAWN-DELAY` IS THE `Respawning` STATE AND `TUN-RESPAWN-INVULN` IS NOT.** GDD-02
+§3.1's row gives `Respawning` an exit condition of the delay and a FATAL priority, so the
+invulnerability is a separate, shorter window that begins **after** it — held in
+`CombatLockouts` as a third shape, because both combat systems read it and neither reads pawn
+states for permission. `KillVerdict` and `StunVerdict` each gained `TARGET_PROTECTED`, and it
+**costs the presser nothing**.
+
+**BOTH RESPAWN EDGES ARE COMPLETIONS RATHER THAN INTERRUPTIONS.** `Dead` and `Respawning` are
+both FATAL and both decline every interruption, so an interrupting request at FATAL priority is
+refused and the pawn stays dead forever. `PawnStateMachine.transition`'s `interrupting` flag is
+what `step()` already passes false for, because *a state asking to leave is completion*; the
+server holds these two clocks because the position a respawn lands at is chosen from the live
+lobby at the moment the timer expires, and a client cannot know it (never-do #3).
+
 ---
 
 ## 7. Results
@@ -486,7 +524,9 @@ func is_staggered(peer: int, now: int) -> bool
 | `scripts/core/combat/stun_verdict.gd` · `stun_rules.gd` · `combat_lockouts.gd` | Core, pure — the verdicts, the geometry and the two timers |
 | `scripts/systems/contract_system.gd` | `SYS-CONTRACT` |
 | `scripts/systems/match_system.gd` | `SYS-MATCH` |
-| `scripts/systems/spawn_system.gd` | `SYS-SPAWN` |
+| `scripts/systems/spawn/spawn_system.gd` | `SYS-SPAWN` — **path corrected US-0062**, it is under `spawn/`. Not a `GameSystem`; see §6.1 |
+| `scripts/core/spawn/spawn_rules.gd` | Core, pure — the two constraints and the never-failing fallback |
+| `scripts/pawn/states/respawning_state.gd` | The five seconds, and the exit `Dead` never had |
 | `scripts/mirrors/score_mirror.gd` | Client-side fold |
 
 ---
@@ -517,8 +557,8 @@ func is_staggered(peer: int, now: int) -> bool
 | `test_contract_never_self.gd` | No relaxation path ever drops the self-assignment filter |
 | `test_contract_repair_same_tick.gd` | No player is contractless at any tick boundary |
 | `test_contract_degenerate.gd` | n = 2 raises `TEL-DEGENERATE-CYCLE`; n = 1 issues no contract without erroring |
-| `test_spawn_constraints.gd` | 40 m from killer, 12 m from any player, fallback never fails |
-| `test_spawn_anticamp.gd` | From any camping position ≥ 3 spawns remain valid (GDD-05 §2.7) |
+| `test_spawn_constraints.gd` | 40 m from killer, 12 m from any player, fallback never fails **and is deterministic**, and the pick is seeded. **Built**, US-0062 |
+| `test_spawn_anticamp.gd` | From any camping position ≥ 3 spawns remain valid (GDD-05 §2.7). **Built**, US-0062, swept over **3 721 positions on a 2 m grid** rather than §2.7's four hand-picked ones: the answer is the same, 3, and the worst position is (0, 58), which is none of them. **It opens with a counterfactual** — measured, a `clear_of_killer` that always returns true leaves the whole file green |
 | `test_death_zero_points.gd` | Dying appends a `SCORE-DEATH` marker worth 0 |
 | `test_refold_historical.gd` | An archived log re-folds under alternative `ScoringTuning`, enabling the BALANCE_MODEL §8 procedure |
 

@@ -1,9 +1,10 @@
 ## **THE TWO COMBAT TIMERS THAT OUTLIVE THE ACTION THAT SET THEM.** GDD-03 §10,
 ## TDD-10 §3-4, US-0060 and US-0061. PURE Core.
 ##
-## Two different shapes, deliberately in one class because both are read by
-## `SYS-KILL` *and* written by `SYS-STUN`, and a system reaching another system's
-## private dictionary is the drift `MatchContext` exists to prevent:
+## Three different shapes, deliberately in one class because every one of them is
+## read by a combat system and written by a different one, and a system reaching
+## another system's private dictionary is the drift `MatchContext` exists to
+## prevent:
 ##
 ## - **A stagger is per player and blocks every initiation.** The contest loser's
 ##   `TUN-KILL-CONTEST-STAGGER` and the flailer's `TUN-STUN-INVALID-STAGGER` are
@@ -13,6 +14,11 @@
 ##   `TUN-STUN-LOCKOUT` is what makes a stun counterplay rather than a four-second
 ##   delay: the hunter is forbidden from re-initiating **on that specific target**,
 ##   and is free to hunt anybody else the cycle hands them.
+## - **A protection is per player and blocks everything aimed AT them.**
+##   `TUN-RESPAWN-INVULN`, written by `SYS-SPAWN` (US-0062). The other two restrain
+##   an *initiator*; this one shields a *target*, which is why it is a third shape
+##   rather than a stagger with the sign flipped. It begins when the player leaves
+##   `Respawning`, because until then both combat systems already refuse them.
 ##
 ## **NEITHER IS A STATE, AND GDD-02 §3's DIAGRAM IS WHY.** That diagram declares
 ## fifteen states and none of them is a stagger, while three rules need one
@@ -32,6 +38,9 @@ var _stagger: Dictionary = {}
 
 ## hunter -> { target -> the tick before which they may not kill that target }.
 var _exile: Dictionary = {}
+
+## peer -> the tick before which nothing may be aimed at them.
+var _protected: Dictionary = {}
 
 
 ## Block every initiation by `peer` until `until_tick`.
@@ -81,13 +90,33 @@ func remaining(hunter: int, target: int, now: int) -> int:
 func forget(peer: int) -> void:
 	_stagger.erase(peer)
 	_exile.erase(peer)
+	_protected.erase(peer)
 	for hunter: int in _exile.keys():
 		(_exile[hunter] as Dictionary).erase(peer)
+
+
+## Shield `peer` from every kill and stun until `until_tick`. `TUN-RESPAWN-INVULN`.
+##
+## **Long enough to orient and no longer.** The tunable's own note: *"long enough
+## to be abusable would be worse than none"* — a player who could act during it
+## would have a free window to initiate from, which is the opposite of what
+## briefly protecting them is for.
+func protect(peer: int, until_tick: int) -> void:
+	_protected[peer] = maxi(until_tick, int(_protected.get(peer, -1)))
+
+
+func is_protected(peer: int, now: int) -> bool:
+	return now < int(_protected.get(peer, -1))
+
+
+func protection_remaining(peer: int, now: int) -> int:
+	return maxi(int(_protected.get(peer, -1)) - now, 0)
 
 
 func clear() -> void:
 	_stagger.clear()
 	_exile.clear()
+	_protected.clear()
 
 
 ## How many pairs are currently exiled at `now`. For tests and for a readout.

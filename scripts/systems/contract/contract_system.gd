@@ -37,6 +37,16 @@ enum Reason { START, KILL, RESPAWN, REPAIR }
 
 var cycle: ContractCycle = null
 
+## **`SYS-SPAWN`, OWNED AND TICKED HERE.** US-0062. TDD-01 §4's diagram has no
+## spawn box at all and its stage 8 is *"Contract — repair cycle after deaths"*;
+## a respawn is a repair after a death, so this is a plain object rather than a
+## second `GameSystem` — `KillSystem`/`StunSystem`'s shape.
+##
+## **IT TICKS FIRST**, so a player whose timer expires is placed and reinserted in
+## the same tick, and there is never a tick in which somebody stands on the map
+## holding no contract.
+var spawn := SpawnSystem.new()
+
 ## peer -> the tick before which nothing may be announced to them.
 var _held_until: Dictionary = {}
 
@@ -53,6 +63,12 @@ var _reason: Dictionary = {}
 ## a write to one of them.
 var _published: Dictionary = {}
 
+## Held for `_on_respawned`, which is a signal handler and therefore takes no
+## context of its own. Nothing else in this system reads it — every other entry
+## point is handed the context by its caller, which is what keeps the system
+## askable in a test.
+var _ctx: MatchContext = null
+
 ## `[peer, killer, reason]` waiting for the debounce window to close.
 var _pending: Array = []
 
@@ -65,6 +81,24 @@ func stage() -> StringName:
 
 
 func setup(ctx: MatchContext) -> void:
+	spawn.setup(ctx)
+	# **CONNECTED HERE RATHER THAN IN `server_root`**, because the insertion must
+	# happen inside this system's own tick to land in the same tick as the
+	# placement. A wiring in the root would run whenever the signal happened to be
+	# emitted, which is the same tick today and would stop being so the first time
+	# anything moved.
+	if not spawn.respawned.is_connected(_on_respawned):
+		spawn.respawned.connect(_on_respawned)
+	_setup_rest(ctx)
+
+
+func _on_respawned(peer: int, _at: Vector3, killer: int) -> void:
+	if _ctx != null:
+		report_respawn(peer, killer, _ctx)
+
+
+func _setup_rest(ctx: MatchContext) -> void:
+	_ctx = ctx
 	cycle = ContractCycle.new(ctx.rng)
 	# **THE ANNOUNCED VIEW GOES ON THE CONTEXT**, because `SYS-DETECTION` renders
 	# from what players have been told rather than from what the graph holds, and a
@@ -144,6 +178,7 @@ func report_join(peer: int, ctx: MatchContext) -> void:
 
 ## Close the debounce window if it is due, then tell whoever the graph has moved.
 func tick(ctx: MatchContext, _dt: float) -> void:
+	spawn.tick(ctx)
 	cycle.tick = ctx.tick
 	if _window_closes >= 0 and ctx.tick >= _window_closes:
 		_close_window(ctx)
