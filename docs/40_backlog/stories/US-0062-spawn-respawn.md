@@ -1,10 +1,10 @@
 ---
 id: US-0062
 title: SpawnSystem and respawn
-version: 1.0.0
+version: 1.1.0
 status: done
 owner: Technical Director
-last_updated: 2026-08-26
+last_updated: 2026-08-27
 depends_on: [GDD-05-LEVEL, TDD-10-SCORING]
 ---
 
@@ -82,18 +82,23 @@ everything right and the game said no for a reason about the victim.
 3 721 on a 2 m grid the answer is the same — 3 — but the worst position is **(0, 58)**, the
 map's western edge, which is none of the four.
 
-**TWO CAMPERS STANDING ON SPAWN POINTS REDUCE IT TO ONE (`S2` + `S4`), AND NOTHING MODELS
-THAT.** Reported rather than asserted at a threshold: the analysis prices camping against one
-player standing still, and two coordinating in a free-for-all where they are also hunting each
-other is a different claim the design has never made. Worth knowing before a playtest, not
-worth inventing a rule for.
+**RETRACTED 2026-08-27: THIS STORY PUBLISHED "TWO CAMPERS STANDING ON SPAWN POINTS REDUCE IT
+TO ONE (`S2` + `S4`)", AND IT WAS MEASURED AGAINST A RULE THE GAME DOES NOT HAVE.** The test
+asked `clear_of_killer` — **40 m** — of both campers, where `SpawnRules.candidates` applies
+40 m to the killer alone and rule 3's **12 m** to everybody else. Planting the 40 m radius into
+`clear_of_everyone` reproduces the retracted "1" exactly.
+
+**CORRECTED: A KILLER AND AN ACCOMPLICE LEAVE TWO**, one body denies at most one spawn (rule
+1's 30.86 m against 2 x 12 m), and with a body on **every** spawn point the rule 7 fallback
+still places the victim **61.5 m from their killer** — better than the 40 m rule 2 asks for.
+**No rule for coordinating campers is needed.** GDD-05 §2.7 carries the full table.
 
 ## Test notes
 
 | File | Asserts |
 |---|---|
 | `test/unit/core/spawn/test_spawn_constraints.gd` | Both constraints, together and apart; that the fallback picks the furthest point and is deterministic; that `NO_KILLER` is `INF` rather than the origin, which is a real place on this map; and that the pick is seeded and reproducible |
-| `test/unit/core/map/test_spawn_anticamp.gd` | The 3 721-position sweep, §2.7's own four rows, and the two-camper case. **It opens with a counterfactual**, because every assertion in it is of the form *"at least three remain"* — which a rule that excludes nothing satisfies perfectly |
+| `test/unit/core/map/test_spawn_anticamp.gd` | The 3 721-position sweep, the same sweep restricted to standable ground, §2.7's own four rows, the conspiracy case and the fallback's clearance. **It opens with a counterfactual**, because every assertion in it is of the form *"at least three remain"* — which a rule that excludes nothing satisfies perfectly. **Its masks are taken from `SpawnRules` rather than recomputed from a radius**, which is what the retraction below cost |
 | `test/unit/systems/spawn/test_spawn_system.gd` | The lifecycle: `Dead` leads somewhere, the delay is counted in net ticks, the point is chosen at expiry rather than at death, suspicion comes back through the tunable, and the cycle is repaired in the tick of the placement |
 
 **Falsified against four planted defects.** `clear_of_killer` always true reddened the killer
@@ -105,6 +110,13 @@ reddened the invulnerability.
 `test_spawn_anticamp.gd` entirely green.** That file is about the *map*, and it would not have
 noticed the rule was gone. Its counterfactual was added because of that measurement, and it
 goes red against the same plant now.
+
+**AND THREE MORE ON 2026-08-27, WITH THE RETRACTION ABOVE.** A 40 m `clear_of_everyone`
+reddens the second-camper test and drops the conspiracy figure to the retracted 1; an inverted
+`_fallback` reddens the clearance test at 0.0 m; and `TUN-RESPAWN-MIN-DIST-FROM-ANY-PLAYER`
+raised to 18.0 — past half the closest spawn separation — reddens the one-body rule. **The
+first of those is what a modelled sweep could not have told anybody**: before the masks came
+from `SpawnRules`, that plant left the conspiracy figure reading 2 with nothing red.
 
 ## Notes
 

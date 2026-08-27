@@ -489,10 +489,34 @@ positions**. Swept over **3 721 on a 2 m grid** the answer is the same — 3 —
 the worst position is **(0, 58)**, the map's western edge, which is none of the
 four.
 
-**TWO CAMPERS ON SPAWN POINTS REDUCE IT TO ONE (`S2` + `S4`), AND NOTHING MODELS
-THAT.** Reported rather than ruled on: the analysis prices camping against *one*
-player standing still, and two coordinating in a free-for-all where they also
-hold contracts on each other is a claim the design has never made.
+**AND THE "TWO CAMPERS REDUCE IT TO ONE" FINDING THIS FILE PUBLISHED ON 2026-08-26
+IS RETRACTED: THE ANSWER IS TWO, AND IT WAS MEASURED AGAINST A RULE THIS GAME DOES
+NOT HAVE.** `test_spawn_anticamp.gd` asked `clear_of_killer` — the **40 m** rule —
+of *both* campers. `SpawnRules.candidates` applies 40 m to exactly one position,
+the killer's, and rule 3's **12 m** to everybody else, because **at any one
+respawn there is exactly one killer** however many players stand still. Planting
+the 40 m radius back into `clear_of_everyone` reproduces the retracted "1"
+exactly, which is how the origin was confirmed rather than guessed.
+
+**AND THE SWEEP WAS MODELLING THE RULE INSTEAD OF CALLING IT, WHICH IS WHY NOTHING
+CAUGHT IT.** The masks came from a radius passed in as an argument, so the
+conspiracy figure was a measurement of the rule I believed in. It asks
+`SpawnRules` now, and all three planted defects redden — including the tunable,
+raised past half the spawn separation.
+
+**ONE BODY CAN NEVER DENY TWO SPAWNS, AND RULE 1 IS WHAT DOES IT.** Two spawns fall
+inside one 12 m exclusion only if they are within **24 m**, and the closest pair is
+**30.86 m**. So each extra camper costs exactly one spawn and it takes the whole
+surviving lobby to empty the set.
+
+**AND WHEN IT IS EMPTY, RULE 7 BEATS RULE 2: 61.5 m.** With a body on *every* spawn
+point — the worst arrangement that exists — the fallback still places the victim
+61.5 m from their killer against the 40 m rule 2 asks for. **A conspiracy buys
+nothing, so the analysis needs no rule for one.** What it does need is for somebody
+to know that **rule 7 is doing more work than it is documented to do**: it is
+written as a safety valve and is also the floor under the anti-camp guarantee, and
+that is a property of where these six points are rather than of the rule. Asserted
+now, so moving a spawn point reddens it instead of quietly costing it.
 
 **AND THE ANTI-CAMP TEST COULD NOT SEE ITS OWN RULE BEING DELETED.** Planting
 `clear_of_killer` to always return true left the whole file **green** — every
@@ -3412,7 +3436,7 @@ US-0024 measures it against clips that do not exist.
 | | |
 |---|---|
 | CI | 7 jobs. **Running again as of 2026-08-07 after a two-day outage** — run `31200490320`, all seven green. The seven commits merged during the outage were never through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | **47 arch + 144 unit + 32 integration scripts**, holding 186 + 1219 + 239 tests and 837 + 25 176 + 651 assertions — the assertion count tripled at US-0049, because `test_contract_cycle_fuzz.gd` checks the invariant after every one of 10 000 events. **Eight are `pending` by design** — **seven in the unit suite and one in the integration suite**, which reports that an NPC aimed into the void never gives up. The island `pending` beside it **turned green by itself** when the alley mouths were built, which is what a `pending` naming its own blocker is for. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **162-172 s** of the 180 s it is allowed, up from 87.7 s at M2 — **under 9 s of headroom left, and the next integration test has to justify itself hard against that**. `test_server_tick_budget.gd` cost 9.8 s of it and is a gate line; the one before it, the 2 s pass A/B, samples ninety ticks **twice** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **The six are**: `test_upstream_bandwidth.gd` reporting the 145 % upstream miss, `test_crowd_bandwidth.gd` the 112 % downstream projection, `test_crowd_wire_cost.gd` the 112 % it actually costs, **`test_spawn_points.gd` twice — GDD-05 §2.7 rule 6's nine unoccluded spawn pairs and rule 8's S3 4, S4 1, S5 6 of 8 seats** — and `test_clone_animation_parity.gd` the missing clip library. **Two entries this row carried are gone because their findings closed**: `test_circuit_separation.gd`'s 0.51 m circuits (re-authored, now 21.20 m) and `test_cull_radius_price.gd`'s flat curve, which asserts rather than pends. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
+| Tests | **47 arch + 144 unit + 32 integration scripts**, holding 186 + 1223 + 239 tests and 837 + 27 015 + 651 assertions — the assertion count tripled at US-0049, because `test_contract_cycle_fuzz.gd` checks the invariant after every one of 10 000 events. **Eight are `pending` by design** — **seven in the unit suite and one in the integration suite**, which reports that an NPC aimed into the void never gives up. The island `pending` beside it **turned green by itself** when the alley mouths were built, which is what a `pending` naming its own blocker is for. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **162-172 s** of the 180 s it is allowed, up from 87.7 s at M2 — **under 9 s of headroom left, and the next integration test has to justify itself hard against that**. `test_server_tick_budget.gd` cost 9.8 s of it and is a gate line; the one before it, the 2 s pass A/B, samples ninety ticks **twice** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **The six are**: `test_upstream_bandwidth.gd` reporting the 145 % upstream miss, `test_crowd_bandwidth.gd` the 112 % downstream projection, `test_crowd_wire_cost.gd` the 112 % it actually costs, **`test_spawn_points.gd` twice — GDD-05 §2.7 rule 6's nine unoccluded spawn pairs and rule 8's S3 4, S4 1, S5 6 of 8 seats** — and `test_clone_animation_parity.gd` the missing clip library. **Two entries this row carried are gone because their findings closed**: `test_circuit_separation.gd`'s 0.51 m circuits (re-authored, now 21.20 m) and `test_cull_radius_price.gd`'s flat curve, which asserts rather than pends. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
 | Tuning | 288 tunables across 14 resource classes; all 31 cross-field invariants assert. **Four scoring values were re-priced on 2026-08-26 (ADR-0013)** — `TUN-SCORE-SILENT` 100 → 200, `TUN-SCORE-PATIENT` 150 → 100, `TUN-SCORE-FOCUS` 100 → 150, `TUN-SCORE-RECKLESS` −50 → **0**, and invariant 18 rewritten from an ordering to a floor — split across `TuningInvariants` and `TuningInvariantsTech` since the first file hit 400 lines, with one entry point still. **Eight IDs are deprecated** and recorded in TUNABLES §19 — never reused |
 | Autoloads | All eight. `Tuning` precomputes 89 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |
