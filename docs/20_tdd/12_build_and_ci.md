@@ -621,7 +621,7 @@ so they are noticed if they grow:
 |---|---|---|
 | Cold headless import | ≤ 90 s | Runs on every push; above ~2 min it stops being a fast gate |
 | Unit + arch suites | ≤ 45 s | Must be fast enough to run before every commit, or it will not be |
-| Integration suite | ≤ 180 s | Runs on PR only |
+| Integration suite | ≤ 180 s — **at 183.5 s as of 2026-08-27, and nothing enforces this row** | Runs on PR only |
 | Full CI, cached | ≤ 6 min | Above ~10 min, people stop waiting and start merging optimistically |
 | Debug console overhead (debug builds) | ≤ 0.05 ms/frame | Must not distort the profiling it exists to support |
 

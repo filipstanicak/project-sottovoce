@@ -222,74 +222,98 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 
 ## Where the work is right now
 
-*Updated 2026-08-26 (ADR-0013, scoring re-price). Keep this section current — it is the first thing a
+*Updated 2026-08-27 (ADR-0016, the M4 gate). Keep this section current — it is the first thing a
 fresh session reads, and a stale one is worse than none.*
 
-## M4'S FIFTEEN STORIES ARE BUILT AND THE GATE CANNOT BE RUN
+## M4 IS COMPLETE. NOTHING IN IT IS VISIBLE TO A PLAYER. M5 IS NEXT.
 
-**THE M4 GATE IS RUN AND ITS FINDING IS ABOUT ITSELF: ONE OF TEN CRITERIA IS MET,
-AND SIX CANNOT BE RUN AT M4 BY CONSTRUCTION.** US-0063 scores a *playtest*, and a
-playtest needs a **match** (`SYS-MATCH`, US-0079, **M6**), a **lobby** (US-0078,
-M6), a **HUD** (US-0072/0073, M5) and a **score** (US-0064/0074, M5). ROADMAP §1's
-M4 row reads *"the game is playable end-to-end"* and M4's own story list contains
-none of those four. **The gate did not fail — it was unrunnable when it was
-written**, and nobody had checked, because a gate is the one story only read at
-the end.
+**All fifteen stories are built and the gate is run and split.** The whole loop
+resolves on the server — contracts, suspicion, all four blends, detection, the
+Compass's server half, the prey warning, kill, stun, spawn — and a player can
+perceive **none of it**. There is no HUD, no Compass, no reticle, no marker, no
+score, no match, no animation clips on either rig. **A kill is a state change and
+a log line.**
 
-**Q7 IS THE SHARPEST VERSION OF THAT.** *"Did you understand why you died"* is
-TEST_PLAN §6.2's single most important question, and the honest expected answer
-today is **no** — a kill is a state change and a log line. Running it now would
-measure M5's absence and file it as a legibility failure.
+**START M5 AT THE HUD (US-0072/0073).** It is the single cheapest unblocking in
+the project: it closes four unticked criteria across M4 stories (US-0054's,
+US-0057's, US-0059's ×2), eleven of the fourteen feel-regression rows, and Q7 —
+the question the whole playtest turns on. Everything else in M5 is additive; this
+is the thing that makes what already exists perceivable.
 
-**THE RECOMMENDATION IS TO SPLIT THE GATE RATHER THAN MOVE IT**: a technical M4
-exit that can run today, and the human playtest beside US-0088 at M6, where the
-score feed its questions assume actually exists. That is an ADR, and it amends a
-milestone exit criterion, so it is the owner's.
+**THE M4 GATE WAS RUN AS WRITTEN, AND ONE OF ITS TEN CRITERIA WAS MET.** Six
+could not be run at M4 **by construction**: a playtest needs a match
+(`SYS-MATCH`, US-0079, **M6**), a lobby (US-0078, M6), a HUD (US-0072/0073, M5)
+and a score (US-0064/0074, M5), and M4's own story list contains none of them.
+ROADMAP's M4 row read *"the game is playable end-to-end"* and was never true of
+that list. **The gate did not fail — it was unrunnable when it was written**, and
+nobody had checked, because a gate is the one story only read at the end.
 
-**THE SERVER TICK IS RE-MEASURED WITH ALL FIFTEEN M4 SYSTEMS LIVE: 2.16 ms MEAN,
-2.27 p95, 2.6-2.9 p99, AGAINST A BUDGET OF 8.0.** Reproducible over three
-consecutive runs (2.151 / 2.171 / 2.175). **27 % of budget** with contract, spawn,
-suspicion, blend, detection, compass, the prey warning, kill and stun all
-registered — against 2.43 mean published at US-0055 with four systems, which was a
-different day on the same machine and is not worth reading as an improvement. One
-run reported a 6.000 ms max against 3.056 and 2.722 after it; recorded as an
-outlier rather than explained.
+**ADR-0016 SPLIT IT.** US-0063 is the M4 technical exit and is **done**; the human
+playtest is **US-0098, at M6**. **Running it now was rejected as worse than not
+running it**: Q7 — *"did you understand why you died"* — would score near zero
+against a build that does not tell a player they died, and a number that low gets
+quoted later as a legibility failure of a design that has no legibility layer yet.
+The tag `m4-the-loop` is **not pushed**; it is the owner's and should follow the
+split.
+
+**`test_the_m4_loop_resolves.gd` IS THE FIRST TEST EVER TO RUN M4'S SYSTEMS
+TOGETHER.** Every one of them was proven against its own fixture and
+`test_the_loop_closes.gd` is M2's — it proves the *transport*. This drives one
+contract from a press to a respawn through the real `MatchDirector` with the crowd
+live, and asserts the ordering rather than any system's return value.
+
+**AND IT FOUND THAT `PawnStateId.DEAD` IS NEVER OBSERVABLE FROM OUTSIDE A TICK.**
+GDD-02 §3.1 gives `Respawning` the entry *"death resolved"* and the exit
+*"`TUN-RESPAWN-DELAY` 5.0 s"*, and §3's diagram draws `Dead --> Respawning: corpse
+spawned` — the corpse spawns **at** the contact frame, so `SYS-KILL` sets `Dead` at
+`combat` and `SYS-SPAWN` moves it on at `contract`, one stage later, in the same
+tick. **The code is correct and my first version of the test was wrong**, reading
+`Respawning` where it expected `Dead` and looking exactly like a rule that does not
+work. It asks `CombatTargets.is_dead` now. **Anything client-side that keys a death
+screen on `Dead` will never fire** — know this before US-0073.
+
+**THE SERVER TICK WITH ALL FIFTEEN SYSTEMS LIVE: 2.16 ms MEAN, 2.27 p95, 2.6-2.9
+p99, AGAINST A BUDGET OF 8.0.** Reproducible over three runs (2.151/2.171/2.175).
+**27 % of budget.** One run reported a 6.000 ms max against 3.056 and 2.722 after
+it — recorded as an outlier rather than explained.
 
 **AND 28 OF 29 DOCUMENTED TELEMETRY EVENTS HAVE NO EMITTER.** GDD-07 §8 is a
-29-event catalogue and exactly one call reaches `TelemetrySink.append` —
-`TEL-DEGENERATE-CYCLE`. **`test_telemetry_catalogue.gd` is that count and it did
-not exist**, which is this gate's `test_crowd_bandwidth.gd`: an instrument the
-gate depends on that nobody had checked was there. `TelemetrySink`'s own docstring
-has warned since M0 — *"a sink that appears late is a sink whose call sites were
-never written."* **THE TURN reads `TEL-MEAN-SPEED` and the identification
-criterion reads `TEL-FIRST-CONTACT-OUTCOME`; neither can be scored**, so the turn
-is **unmeasured rather than absent** and this gate is evidence for neither.
+29-event catalogue and exactly one call reaches `TelemetrySink.append`.
+`test_telemetry_catalogue.gd` is that count and **it did not exist** — the M4
+gate's `test_crowd_bandwidth.gd`. So **THE TURN is unmeasured rather than absent**
+and the gate is evidence for neither. `TelemetrySink`'s own docstring warned in
+M0: *"a sink that appears late is a sink whose call sites were never written."*
 
-**AND `--record` IS PARSED INTO `LaunchConfig.record_path` AND READ BY NOTHING.**
-`playtests/README.md` tells a facilitator to *"attach the telemetry export
-(`--record`)"* — a runbook documenting a flag that does nothing, which would have
-been discovered with six people in the room. Trap 14 outside a test table.
+**AND `--record` IS PARSED INTO `LaunchConfig.record_path` AND READ BY NOTHING**,
+while `playtests/README.md` tells a facilitator to attach the export it produces.
+**AND `US-0084` WAS CITED AS "THE HUD" IN TWELVE PLACES** — it is *Accessibility*,
+**M6**; the HUD is US-0072/0073/0074, **M5**. Both corrected. **AND THE 180 s
+INTEGRATION BUDGET IS ASSERTED IN THREE DOCUMENTS AND ENFORCED NOWHERE** — the
+suite is at **183.5 s** now. Four drift findings in one afternoon, which is why
+`RISK-AGENT-DRIFT` is the highest-frequency risk in the register.
 
-**AND `US-0084` WAS CITED AS "THE HUD" IN TWELVE PLACES ACROSS THREE DOCUMENTS.**
-It is *Accessibility — input and motion*, **M6**. The HUD is **US-0072** (Compass
-widget), **US-0073** (tier, portrait, crosshair) and **US-0074** (score feed), all
-**M5**. Every blocked client-side criterion in this corpus — US-0054's, US-0057's,
-US-0059's — pointed at the wrong story in the wrong milestone. Corrected; the two
-surviving references are genuinely about motion reduction and are right.
+**`RISK-NOT-FUN-SOLO` IS FIRST MEASURABLE AT M6, TWO MILESTONES LATER THAN
+PLANNED.** Probability and impact unchanged — no new evidence about fun either way
+— and a risk found two milestones late is a worse risk at the same score.
 
-**THE FEEL-REGRESSION CHECKLIST IS 11 OF 14 BLOCKED, AND NOT ONE OF THEM ON M4
-WORK.** Runnable today: the crowd feels alive, slowing is instant, traversal is
-forgiving — and the last two were judged at M1. Row 1 is THE TURN, so the turn is
-asked twice by this gate and has no instrument either time.
+---
 
-**THE RISK REGISTER IS RE-SCORED, WHICH IS THE ONE CRITERION THAT PASSED.**
-`RISK-NOT-FUN-SOLO`'s first-measurable moves **M4 → M6**: probability and impact
-are unchanged because there is no new evidence about fun either way, and **a risk
-discovered two milestones later than planned is a worse risk at the same score.**
-`RISK-AGENT-DRIFT` is confirmed with four live instances found in one afternoon;
-`RISK-CROWD-PERF` re-measured; `RISK-BANDWIDTH` updated to the 105 % downstream
-figure. **The tag is not pushed — that is the owner's, and it should follow the
-split rather than precede it.**
+## FIVE THINGS WAIT ON THE OWNER, AND NONE BLOCKS M5
+
+1. **Move `SYS-MATCH` (US-0079) M6 → M5?** The only single-story lever that pulls
+   the first playtest a milestone earlier. M5 already ships a **results screen**
+   (US-0077), which nothing can open without a match end — so the ordering is
+   questionable on its own terms. US-0079's stated dependency on the lobby is
+   worth re-examining rather than assumed. Priced in ADR-0016; **my
+   recommendation is to move it.**
+2. **The 180 s integration budget**: enforce it or raise it. It is at 183.5 s.
+3. **A sixteenth pawn state for the three staggers.** GDD-02 §3's normative
+   diagram declares fifteen and three rules need one.
+4. **`NET-S2C-PLAYER-JOINED`'s persona field.** Joined with
+   `NET-S2C-CONTRACT-ASSIGNED` a client can read its contract's persona with no
+   lock, defeating ASM-0030. Neither message is implemented, so nothing leaks
+   today.
+5. **The tag `m4-the-loop`.**
 
 ---
 
@@ -301,8 +325,9 @@ the whole of `SYS-COMPASS`'s server half (US-0057, US-0058), `SYS-KILL`
 (US-0060), the prey warning (US-0059), `SYS-STUN` (US-0061), `SYS-SPAWN`
 (US-0062), `SYS-BLEND`'s two prop blends (US-0054).
 
-**The gate (US-0063) is RUN and `in-progress`**, one criterion of ten met. Nothing in
-M4 is unstarted.
+**The gate (US-0063) is RUN, SPLIT and `done`** — six of its ten criteria were
+unrunnable at M4 by construction, so ADR-0016 made it the technical exit and moved
+the human playtest to US-0098 at M6. **Nothing in M4 is unstarted or open.**
 
 **A PLAYER CAN NOW BE KILLED, AND STILL CANNOT PERCEIVE ANY OF IT.** The server
 validates a kill against the lag-compensated world, commits the killer for 1.4 s,
@@ -316,6 +341,10 @@ something visible.**
 **AND `Dead` HAS AN EXIT AS OF US-0062**, which is the last thing that stood
 between the loop and a match that degrades as it runs. **All fifteen pawn states
 now exist.**
+
+**AND `Dead` IS NEVER OBSERVABLE FROM OUTSIDE A TICK**, which the M4 gate's loop
+test found: it and `Respawning` are entered in the same tick, one stage apart. Ask
+`CombatTargets.is_dead`, never the state id.
 
 **AND FOUR SYSTEMS NOW TICK THAT DID NOT AT THE M3 GATE**, so US-0048's server-tick
 figure is superseded — see the re-measurement under US-0055 below.

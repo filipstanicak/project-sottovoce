@@ -4,7 +4,7 @@ title: Detection — the single line-of-sight query
 version: 0.2.0
 status: in-progress
 owner: Technical Director
-last_updated: 2026-08-25
+last_updated: 2026-08-27
 depends_on: [GDD-03-SOCIAL-STEALTH, TDD-07-SUSPICION]
 ---
 
