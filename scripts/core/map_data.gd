@@ -34,6 +34,15 @@ extends Resource
 ## The five concealment props. TUN-BLEND-PROP-CAPACITY = 1 each.
 @export var blend_props: Array[Vector3] = []
 
+## Bench and stall-lean positions — the static prop blend, GDD-03 §4.1.3.
+##
+## **DERIVED FROM THE STALL TABLE, NEVER HAND-LISTED** (US-0054). Two lean spots
+## per market stall, one on each long side, which is where a person actually
+## stands to lean on a 0.9 m counter. Hand-listing them is the transcription that
+## produced four unwalkable procession routes; a stall added later gets its lean
+## spots without anybody remembering to add them.
+@export var static_props: Array[Vector3] = []
+
 ## Stages where a chase is visible to an uninvolved third party. GDD-05 §5.
 @export var theatre_spaces: Array[AABB] = []
 

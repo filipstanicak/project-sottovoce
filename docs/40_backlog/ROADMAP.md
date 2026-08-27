@@ -575,7 +575,7 @@ interact with them beyond collision.
 | `StunSystem`: tier gate, lockout, anti-spam | |
 | `SpawnSystem`: constraints with a never-failing fallback | **Done**, US-0062. §6.0 |
 
-### 6.0 Progress, 2026-08-26 — **thirteen of fifteen stories, and nothing is playable yet**
+### 6.0 Progress, 2026-08-27 — **fourteen of fifteen stories, and nothing is playable yet**
 
 Recorded here because a "Delivers" table with no state beside it reads as a promise kept.
 
@@ -583,7 +583,7 @@ Recorded here because a "Delivers" table with no state beside it reads as a prom
 |---|---|
 | `ContractCycle` + repair on kill / death / disconnect / join | **Done** (US-0049, US-0050). `open()` waits for a COUNTDOWN phase `SYS-MATCH` does not provide; the live path is `report_join`. **`report_death` has its first caller as of US-0060** |
 | `SuspicionMath` + `SuspicionSystem`: sources, impulses, hysteresis | **Done** (US-0051, US-0052). The impulse queue has two live callers now — a failed kill and a witnessed one — and the NPC bump still has none, because pawn and NPC both mask `WORLD` and there is no contact to report |
-| `BlendSystem`: pockets, groups, static props, concealment props | **Half.** Pocket and group are built (US-0053); the two prop blends are US-0054. `report_damage` has its first caller as of US-0060 |
+| `BlendSystem`: pockets, groups, static props, concealment props | **Done, five of six** (US-0053, US-0054). All four kinds are live; the twelve lean spots are derived from the stall table rather than hand-listed. The open criterion is *the occupant can see nothing*, which needs a client that renders a blend at all — US-0084, M5 |
 | `DetectionSystem`: per-observer render state, one LOS query | **Done** (US-0055, US-0056). `has_los` has two callers — the Compass lock and the witnessed-kill check — and **the rewound form is still refused**, because kill validation turns out to ask no line-of-sight question at all |
 | `SYS-COMPASS`: bearing, pulse curve, lock, reveal, portrait | **Done, server-side** (US-0057, US-0058). Nothing draws any of it: `CompassVM` and the HUD are US-0084, M5 |
 | The prey warning — **directional** (ADR-0013) | **Done, seven of nine** (US-0059). It rides `SYS-DETECTION`'s existing pair pass for no extra cost and no raycast. The two open criteria are the client-side rotation (US-0084's HUD) and the audio sting (`Audio.play()` is a stub until US-0075, and there is no call site to guard) |
@@ -605,7 +605,7 @@ log line.
 and a match that does not degrade: a player killed at any point since US-0060 stayed dead for
 the rest of it. **All fifteen pawn states now exist.**
 
-**WHAT IS LEFT IN M4 IS THE GATE AND TWO PROP BLENDS.** US-0063 and US-0054.
+**WHAT IS LEFT IN M4 IS THE GATE.** US-0063, and nothing else.
 
 **The exit criterion is untouched**: the game is not playable end-to-end, and the first real
 playtest cannot happen until respawn exists and something draws the loop.

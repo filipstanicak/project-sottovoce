@@ -103,6 +103,47 @@ static func parapets() -> Array:
 	return out
 
 
+## **THE STATIC PROP BLEND'S POSITIONS, DERIVED FROM THE STALL TABLE.** GDD-03
+## §4.1.3, US-0054. Two per stall — one on each long side, at the midpoint,
+## standing `NAV_AGENT_RADIUS` clear of the counter, which is where a person is
+## when they are leaning on a 0.9 m one.
+##
+## **SIX STALLS GIVE TWELVE, AND GDD-03 §4.2 SAYS "~12 props".** The number
+## follows from the market rather than being asserted about it, so adding a stall
+## adds two lean spots and the comparison table follows the map.
+##
+## **HAND-LISTING THEM WAS THE OTHER OPTION AND THIS PROJECT HAS ALREADY PAID FOR
+## IT.** Four procession routes were transcribed from prose and every one ran
+## through masonry; the parapets above exist for the same reason. A derived list
+## cannot disagree with the geometry it is derived from.
+##
+## **AND `is_standable` IS THE WRONG QUESTION TO ASK OF A LEAN SPOT, WHICH COST
+## SIX OF THE TWELVE.** That predicate erodes every stall by `NAV_AGENT_RADIUS`
+## because an *agent* cannot path into contact with a counter — but a player
+## leaning on one is in contact by definition, and their centre sits exactly on
+## the eroded boundary. `Rect2.has_point` **includes** the minimum face and
+## excludes the maximum, so the north side of every stall was rejected and the
+## south side of every stall was accepted: **6 of 12, split by a convention rather
+## than by geometry.** Same hazard as the `AABB`/`Rect2` disagreement that made an
+## illegal spawn site look legal (GDD-05 §2.7).
+##
+## So the test here is the one a lean spot actually needs: on a floor, not inside
+## a building mass, and not inside the stall itself. Returns `[name, x, z]` rows.
+static func stall_lean_points() -> Array:
+	var out: Array = []
+	for s: Array in VetraioLayout.STALLS:
+		var x := float(s[1]) + float(s[3]) * 0.5
+		var sides := {
+			"LeanN": float(s[2]) - VetraioLayout.NAV_AGENT_RADIUS,
+			"LeanS": float(s[2]) + float(s[4]) + VetraioLayout.NAV_AGENT_RADIUS,
+		}
+		for suffix: String in sides:
+			var at := Vector2(x, float(sides[suffix]))
+			if on_a_floor(at) and block_at(at) == "" and stall_at(at) == "":
+				out.append(["%s%s" % [str(s[0]), suffix], at.x, at.y])
+	return out
+
+
 ## One side of one floor, as however many runs of unsupported edge it has. `side` is
 ## the outward direction in x/z, so `UP` is the low-z edge.
 static func _edge(who: String, r: Rect2, side: Vector2) -> Array:

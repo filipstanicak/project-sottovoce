@@ -19,17 +19,37 @@
 ## in the tick it drops — not on the next director pass, not when the player next
 ## moves.
 ##
-## **BLEND PROTECTS ANONYMITY, NEVER THE BODY.** There is no method here that
-## refuses anything: `report_damage()` *breaks* the blend rather than absorbing
-## the damage, and a blended pawn is killed and stunned exactly like any other.
-## A blend that also protected the body would make patience free instead of merely
-## strongest, which is design law 4 read backwards.
+## **BLEND PROTECTS ANONYMITY, NEVER THE BODY — WITH ONE STATED EXCEPTION.**
+## `report_damage()` *breaks* the blend rather than absorbing the damage, and a
+## blended pawn is killed and stunned exactly like any other. A blend that also
+## protected the body would make patience free instead of merely strongest, which
+## is design law 4 read backwards.
+##
+## **THE EXCEPTION IS THE CONCEALMENT PROP, AND GDD-03 §4.1.4 IS WHERE IT COMES
+## FROM**, not from this file: *"cannot be broken from outside; a player inside
+## cannot be killed"*. It is priced with total blindness and a fixed, learnable
+## location, and it is enforced by `SYS-KILL` and `SYS-STUN` reading
+## `PawnContext.blend_state` rather than by anything here refusing — the same
+## direction every other rule in this file runs.
 class_name BlendSystem
 extends RefCounted
 
 ## `EVT-BLEND-STATE-CHANGED`'s server half. `kind` is a `BlendKind.Kind`; the
 ## client's copy arrives in the snapshot, never through this.
 signal blend_changed(peer: int, kind: int)
+
+## A press did not take, and **why**. US-0054's third criterion: *"refused with
+## distinct feedback, not silence"*. `why` is a `BlendRefusal.Why`.
+##
+## **UNLIKE A REJECTED KILL, THE REASON IS SAFE TO SEND.** A prop's occupancy is
+## not a secret — it is level geometry with somebody in it — so telling a player
+## *"there is already somebody in there"* costs nothing and withholding it costs a
+## moment of confusion with a hunter behind them.
+signal blend_refused(peer: int, why: int)
+
+## **WHO IS INSIDE WHICH CONCEALMENT PROP.** US-0054. Server-owned, never
+## mirrored, and public so the wiring and the tests can read it.
+var props := PropOccupancy.new()
 
 ## peer -> `BlendRecord`.
 var _records: Dictionary = {}
@@ -57,17 +77,71 @@ func request(peer: int, ctx: MatchContext) -> int:
 		return BlendKind.Kind.NONE
 	var pawn := ctx.pawn_contexts.get(peer) as PawnContext
 	if pawn == null:
+		_refuse(peer, BlendRefusal.Why.BUSY)
 		return BlendKind.Kind.NONE
+	var taken := _take_something(peer, pawn, ctx)
+	if taken != BlendKind.Kind.NONE:
+		_announce(peer, record)
+	return taken
+
+
+## **THE MOST SPECIFIC THING YOU ARE STANDING AT WINS, BECAUSE YOU HAD TO GO
+## THERE.** GDD-03 §4.1 gives no ordering and one is needed, because a hay cart in
+## a market is inside a crowd pocket and beside a stall counter at the same time.
+##
+## Five exact spots, then twelve exact spots, then a formation you must be 2.5 m
+## of, then *anywhere at all with four NPCs*. A press at a concealment prop that
+## silently took the pocket instead would spend a walk the player made
+## deliberately, and they would not find out until a hunter looked at them.
+func _take_something(peer: int, pawn: PawnContext, ctx: MatchContext) -> int:
+	var record := record_for(peer)
+	var conceal := _nearest_prop(pawn.position, ctx.map.blend_props if ctx.map != null else [])
+	if conceal >= 0:
+		var why := props.may_enter(peer, conceal, ctx.tick)
+		if why != BlendRefusal.Why.TAKEN:
+			_refuse(peer, why)
+			return BlendKind.Kind.NONE
+		if props.claim(peer, conceal, ctx.tick):
+			record.enter(BlendKind.Kind.PROP_CONCEAL, conceal)
+			return BlendKind.Kind.PROP_CONCEAL
+	if _nearest_prop(pawn.position, ctx.map.static_props if ctx.map != null else []) >= 0:
+		record.enter(BlendKind.Kind.PROP_STATIC, -1)
+		return BlendKind.Kind.PROP_STATIC
 	var group := _joinable_group(pawn.position, ctx)
 	if group >= 0 and ctx.formations.claim(peer, group):
 		record.enter(BlendKind.Kind.GROUP, group)
-		_announce(peer, record)
 		return BlendKind.Kind.GROUP
 	if _pocket_holds(pawn.position, ctx):
 		record.enter(BlendKind.Kind.POCKET, -1)
-		_announce(peer, record)
 		return BlendKind.Kind.POCKET
+	_refuse(peer, BlendRefusal.Why.NOTHING_HERE)
 	return BlendKind.Kind.NONE
+
+
+## The nearest prop within reach, or -1.
+##
+## **THE REACH IS `TUN-BLEND-GROUP-JOIN-RADIUS`, ADOPTED RATHER THAN INVENTED.**
+## GDD-03 §4.1.3 and §4.1.4 both say only *"at the prop"* and no tunable carries a
+## prop radius — so rather than write a new gameplay constant (never-do #1), the
+## one number the game already means by *"close enough to claim this blend"* is
+## reused. **If a playtest wants them different, `TUN-BLEND-PROP-RADIUS` is a
+## `TUN-` addition and therefore the owner's**; the derivation is recorded here so
+## nobody has to guess which it was.
+static func _nearest_prop(at: Vector3, points: Array) -> int:
+	var reach := Tuning.suspicion.blend_group_join_radius
+	var best := -1
+	var best_distance := INF
+	for i: int in points.size():
+		var to: Vector3 = points[i]
+		var away := Vector2(at.x - to.x, at.z - to.z).length()
+		if away <= reach and away < best_distance:
+			best_distance = away
+			best = i
+	return best
+
+
+func _refuse(peer: int, why: BlendRefusal.Why) -> void:
+	blend_refused.emit(peer, why)
 
 
 ## Damage or a stun landed. **Breaks, and does not absorb** — `TUN-BLEND-BREAK-ON-
@@ -85,6 +159,10 @@ func report_damage(peer: int, ctx: MatchContext) -> void:
 func forget(peer: int, ctx: MatchContext) -> void:
 	if ctx.formations != null:
 		ctx.formations.release(peer)
+	# **THE PROP ESPECIALLY.** A hiding spot left claimed by a peer that
+	# disconnected is one nobody can ever enter again — a hiding spot that silently
+	# vanishes from the map for the rest of the match.
+	props.forget(peer)
 	_records.erase(peer)
 
 
@@ -155,12 +233,46 @@ func _broken_by(peer: int, pawn: PawnContext, record: BlendRecord, ctx: MatchCon
 	# break, because the two arm the grace differently.
 	if record.phase == BlendRecord.Phase.LEAVING:
 		return false
+	return _condition_lapsed(peer, pawn, record, ctx)
+
+
+## The per-kind half, split out because the guard clauses above and the four kinds
+## here together exceed the six returns a function may have — and the split is the
+## honest one: everything above ends *any* blend, everything here ends *this* one.
+##
+## **A CONCEALMENT PROP HAS NO ENTRY, AND THE ABSENCE IS THE RULE.** GDD-03
+## §4.1.4: *"cannot be broken from outside"*. The only way out is the player
+## pressing blend again, which `request()` turns into an exit.
+func _condition_lapsed(
+	peer: int, pawn: PawnContext, record: BlendRecord, ctx: MatchContext
+) -> bool:
 	match record.kind:
 		BlendKind.Kind.POCKET:
 			return not _pocket_holds(pawn.position, ctx)
 		BlendKind.Kind.GROUP:
 			return not _slot_holds(peer, pawn, ctx)
+		BlendKind.Kind.PROP_STATIC:
+			return _moving_at_all(pawn)
 	return false
+
+
+## **"ANY MOVEMENT INPUT BREAKS THEM"** — GDD-03 §4.1.3, and it is a stricter
+## rule than the `TUN-BLEND-BREAK-ON-SPEED` every other blend uses: you may drift
+## inside a crowd pocket, and you may not shift on a bench.
+##
+## **THE THRESHOLD IS `TUN-PASV-STILLNESS-SPEED-CEILING`, ADOPTED RATHER THAN
+## INVENTED.** `PawnContext` carries no move vector — only the velocity the
+## substep produced — so "any movement input" is read as "moving at all", and the
+## game already owns a number for that: the speed below which `PASV-STILLNESS`
+## considers a player stationary. A second constant for the same question is one
+## that gets retuned alone.
+##
+## Horizontal, for `SYS-SUSPICION`'s reason: a grounded body carries a downward
+## velocity from its floor snap, and a bench that broke on sitting still would be
+## no bench at all.
+static func _moving_at_all(pawn: PawnContext) -> bool:
+	var speed := Vector2(pawn.velocity.x, pawn.velocity.z).length()
+	return speed > Tuning.suspicion.stillness_speed_ceiling
 
 
 ## `TUN-BLEND-POCKET-MIN-NPC` within `TUN-BLEND-POCKET-RADIUS`, asked of the grid
@@ -226,6 +338,12 @@ func _finish(peer: int, record: BlendRecord, ctx: MatchContext) -> void:
 func _release(peer: int, record: BlendRecord, ctx: MatchContext) -> void:
 	if record.kind == BlendKind.Kind.GROUP and ctx.formations != null:
 		ctx.formations.release(peer)
+	# **`TUN-BLEND-PROP-EXIT-VULN` IS ARMED BY LEAVING, INCLUDING BY BREAKING.**
+	# The window exists to stop door-flickering to dodge a kill, and a break is the
+	# faster way out of the two — arming it only on a deliberate exit would leave
+	# the exploit open through the door it is easier to reach.
+	if record.kind == BlendKind.Kind.PROP_CONCEAL:
+		props.release(peer, ctx.tick)
 	record.clear()
 
 

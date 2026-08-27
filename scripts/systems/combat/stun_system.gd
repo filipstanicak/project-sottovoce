@@ -137,22 +137,28 @@ func ready_for(peer: int, ctx: MatchContext) -> bool:
 	if pursuer == ContractCycle.NOBODY:
 		return false
 	var them: PawnContext = ctx.pawn_contexts.get(pursuer)
-	if them == null or not _is_stunnable(them):
-		return false
-	if lockouts != null and lockouts.is_protected(pursuer, ctx.tick):
-		return false
-	# **THE TIER GATE BELONGS HERE TOO, AND LEAVING IT OUT IS AN ANONYMITY LEAK
-	# RATHER THAN A COSMETIC BUG.** `stun_ready` is drawn on the prey's own screen;
-	# lit for an Anonymous pursuer standing in a crowd it would say *that one is
-	# hunting you*, for free, with no lock and no warning — the exact identity the
-	# whole game withholds. Found by `test_stun_system.gd`, not by review.
-	if them.tier < _floor_tier() or them.state_id == PawnStateId.KILL_ANIM:
+	if them == null or not _is_a_target(them, pursuer, ctx):
 		return false
 	var t := Tuning.combat
 	return (
 		StunRules.in_reach(here.position, them.position, t)
 		and StunRules.within_cone(here.position, here.yaw, them.position, t)
 	)
+
+
+## Everything about the *pursuer* that decides whether the hint may light.
+##
+## **THE TIER GATE BELONGS HERE, AND LEAVING IT OUT WAS AN ANONYMITY LEAK RATHER
+## THAN A COSMETIC BUG.** `stun_ready` is drawn on the prey's own screen; lit for
+## an Anonymous pursuer standing in a crowd it would say *that one is hunting
+## you*, for free, with no lock and no warning — the exact identity the whole game
+## withholds. Found by `test_stun_system.gd`, not by review.
+func _is_a_target(them: PawnContext, pursuer: int, ctx: MatchContext) -> bool:
+	if not _is_stunnable(them) or them.state_id == PawnStateId.KILL_ANIM:
+		return false
+	if them.tier < _floor_tier() or them.blend_state == BlendKind.Kind.PROP_CONCEAL:
+		return false
+	return lockouts == null or not lockouts.is_protected(pursuer, ctx.tick)
 
 
 func _publish_readiness(ctx: MatchContext) -> void:
@@ -183,6 +189,8 @@ func _verdict_for(ctx: MatchContext, peer: int) -> Array:
 	var them: PawnContext = ctx.pawn_contexts.get(pursuer)
 	if them != null and them.state_id == PawnStateId.KILL_ANIM:
 		return [StunVerdict.V.TARGET_COMMITTED, pursuer]
+	if them != null and them.blend_state == BlendKind.Kind.PROP_CONCEAL:
+		return [StunVerdict.V.TARGET_CONCEALED, pursuer]
 	if lockouts != null and pursuer != ContractCycle.NOBODY:
 		if lockouts.is_protected(pursuer, ctx.tick):
 			return [StunVerdict.V.TARGET_PROTECTED, pursuer]

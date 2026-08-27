@@ -274,6 +274,17 @@ func _fill_remotes(snapshot: Snapshot, peer: int) -> void:
 		var slot: int = _ctx.slots.slot_of(other)
 		if slot == SlotTable.NO_SLOT:
 			continue
+		# **"NOT RENDERED AT ALL"** — GDD-03 §4.1.4, US-0054. A player inside a
+		# concealment prop leaves `present_slots` entirely, which is the one thing
+		# absence in this format still means: `RemotePawns` frees the body. Omitting
+		# only the *record* would leave them drawn at their last position, which is a
+		# worse lie than not drawing them.
+		#
+		# **They rejoin in full when they step out**, because dropping out of
+		# `everyone` also drops them from the baseline `delta.remember` keeps — the
+		# same shape as the crowd's farewell.
+		if ctx.blend_state == BlendKind.Kind.PROP_CONCEAL:
+			continue
 		# **PER OBSERVER, WHICH IS THE WHOLE REASON THIS IS NOT A BROADCAST.** The
 		# same player at the same suspicion is `PLAIN` to four people and `HARD` to
 		# one, simultaneously — `SYS-DETECTION` decided that at the `detection`

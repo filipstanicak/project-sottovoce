@@ -158,6 +158,7 @@ func _start_the_crowd_system() -> void:
 	# this line's position: a system registered backwards still ticks in the
 	# document's order. The order here is only the reading order.
 	director.register(suspicion)
+	suspicion.blend.blend_refused.connect(_on_blend_refused)
 	director.register(detection)
 	detection.prey_warned.connect(_on_prey_warned)
 	director.register(kills)
@@ -369,6 +370,14 @@ func _on_stun_rejected(stunner: int, _verdict: int, _target: int) -> void:
 	var slots := director.ctx.slots
 	var tick := director.ctx.tick
 	Net.events.send_stun(stunner, slots.slot_of(stunner), SlotTable.NO_SLOT, tick, false, 0)
+
+
+## **US-0054's THIRD CRITERION, ON THE WIRE.** *"Refused with distinct feedback,
+## not silence"* — `NET-C2S-BLEND-REQUEST` had no answer of any kind until now, so
+## a press at an occupied hay cart and a press at an empty street produced exactly
+## the same nothing.
+func _on_blend_refused(peer: int, why: int) -> void:
+	Net.events.send_blend_denied(peer, why)
 
 
 func _on_peer_left(peer: int) -> void:

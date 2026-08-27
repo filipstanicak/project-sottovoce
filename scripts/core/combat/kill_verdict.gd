@@ -40,6 +40,17 @@ enum V {
 	## charging suspicion on top would let a stunned hunter be pushed further
 	## Exposed by pressing a button that does nothing.
 	LOCKED_OUT,
+	## **GDD-03 §4.1.4.** The contract is inside a concealment prop, and *"a player
+	## inside cannot be killed"*. Added US-0054.
+	##
+	## **This is the one exception to "blend protects anonymity, never the body"**,
+	## and it is stated in the GDD rather than inferred here. It is priced with
+	## total blindness and a fixed, learnable location — the prop is perfect and
+	## the walk to it never is.
+	##
+	## **Costs nothing**, like `BUSY`: the killer pressed at somebody who is not
+	## there to be pressed at.
+	TARGET_CONCEALED,
 	## **`TUN-RESPAWN-INVULN`.** The contract came back on the map less than a
 	## second ago. Added US-0062.
 	##

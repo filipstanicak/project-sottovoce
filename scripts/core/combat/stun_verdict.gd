@@ -40,6 +40,13 @@ enum V {
 	## The stunner is mid-swing, staggered, on cooldown, stunned or dead.
 	## **Costs nothing** — a press the game was never going to hear.
 	BUSY,
+	## **GDD-03 §4.1.4.** The pursuer is inside a concealment prop and cannot be
+	## touched. Added US-0054. **Costs nothing**, like `TARGET_COMMITTED`.
+	##
+	## Nearly unreachable in practice: a hunter inside a hay cart can see nothing
+	## and is not hunting anybody, so a prey with a stunnable pursuer is a prey
+	## whose pursuer came out.
+	TARGET_CONCEALED,
 	## **`TUN-RESPAWN-INVULN`.** The pursuer came back on the map less than a second
 	## ago. Added US-0062. **Costs nothing**, like `TARGET_COMMITTED`: both are the
 	## game refusing a correct press for a reason of its own.
