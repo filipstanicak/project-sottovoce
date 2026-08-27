@@ -1002,7 +1002,8 @@ change is**, and it is the single most carefully-tuned curve in the game.
 | Property | Value | Effect |
 |---|---|---|
 | Half-width **at maximum range** | `TUN-COMPASS-CONE-HALFWIDTH` 12° | The narrowest the arc ever is. ±12.6 m of lateral ambiguity at 60 m — about a market row, containing 8–14 figures in a dense zone. |
-| Half-width closer in | `HALFWIDTH × RANGE-MAX / distance`, capped at 180° | **The arc covers ground, not an angle.** It widens as you close, so the arc stays 12.6 m long and the lateral ambiguity never falls below the ±12.75 m it has at 60 m, and it becomes a **whole ring at 4.0 m** — at which point it has stopped saying *which way* and says only *here, somewhere*. |
+| Whole ring at | `TUN-COMPASS-CONE-FULL-RADIUS` 6.0 m | **Derived, not chosen: it equals `TUN-SUSPICION-OPEN-RADIUS`** — the radius this game already uses for the space you are standing in. Inside it your contract is one of the bodies around you and the instrument has nothing left to add. |
+| Half-width between them | `180° × (FULL-RADIUS / d) ^ p`, `p` derived | **The arc covers ground, not an angle**, and the curve is the pulse curve's shape: 13° at 55 m, 27° at 30, 44° at 20, 99° at 10. It opens **4.8° over the first fifteen metres of the approach and 138.8° over the last**. |
 | Wobble amplitude | `TUN-COMPASS-CONE-WOBBLE` 4° | Deterministic, **seeded per contract**. |
 | Wobble period | `TUN-COMPASS-CONE-WOBBLE-PERIOD` 3.1 s | Non-integer so it never visibly syncs with the pulse. |
 | Update rate | `TUN-COMPASS-UPDATE-RATE` 30 Hz | Equals the server tick. The Compass never contains information newer than the simulation. |
@@ -1012,8 +1013,13 @@ cone *appears* to model uncertainty and does not: the ground it covers shrinks i
 the distance, so at the 2.85 m a kill lands from a 12° arc spans **1.06 m** — narrower than two
 people standing side by side. The instrument this section describes as telling you *which part of
 the plaza, never which body* would have named the body, for free, at exactly the moment the 1.6 s
-lock exists to charge for. Holding the *arc* constant keeps that sentence true everywhere, and
-invariant 33 pins the ring closed before a kill is possible.
+lock exists to charge for.
+
+**The two anchors are the whole specification and the curve between them is derived**, so no third
+number can be set to something the first two contradict. **The first cut had only one anchor** — it
+held the arc at a constant length of ground, which closed the ring at 4.0 m, and at the controls
+that meant standing on your contract before the instrument let go. The near anchor is what fixed
+it, and invariant 33 is what stops it being a number somebody chose.
 
 **And it is the reference's own behaviour**, which is where the shape came from rather than from
 this argument: its compass arc expands as the target nears and fills the whole ring when they are

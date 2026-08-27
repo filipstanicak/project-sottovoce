@@ -88,6 +88,7 @@ const FIELD := {
 	&"TUN-COMPASS-PULSE-MIN": ["compass", "pulse_min", "s"],
 	&"TUN-COMPASS-PULSE-EXP": ["compass", "pulse_exp", "×"],
 	&"TUN-COMPASS-CONE-HALFWIDTH": ["compass", "cone_halfwidth", "deg"],
+	&"TUN-COMPASS-CONE-FULL-RADIUS": ["compass", "cone_full_radius", "m"],
 	&"TUN-COMPASS-CONE-WOBBLE": ["compass", "cone_wobble", "deg"],
 	&"TUN-COMPASS-CONE-WOBBLE-PERIOD": ["compass", "cone_wobble_period", "s"],
 	&"TUN-COMPASS-UPDATE-RATE": ["compass", "update_rate", "Hz"],

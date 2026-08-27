@@ -1,10 +1,11 @@
 ## **THE ARC COVERS GROUND, NOT DEGREES.** GDD-03 §8.4, UI_UX_SPEC §3.1,
 ## invariant 33.
 ##
-## `TUN-COMPASS-CONE-HALFWIDTH` is the half-width **at maximum range**, and the arc
-## widens inward from there so the patch of ground it covers stays the same size.
-## Close enough, it is the whole ring: the instrument has stopped saying *which
-## way* and says only *here, somewhere*.
+## `TUN-COMPASS-CONE-HALFWIDTH` is the half-width **at maximum range** and
+## `TUN-COMPASS-CONE-FULL-RADIUS` is where the arc becomes a **whole ring**; the
+## curve between those two anchors is derived, so no third number can disagree
+## with them. Inside the ring the instrument has stopped saying *which way* and
+## says only *here, somewhere*.
 ##
 ## **A FIXED ANGLE WOULD CONTRADICT THE TUNABLE'S OWN DESCRIPTION.** TUNABLES §4
 ## says the cone tells you *"which part of the plaza, never which body"*. At a
@@ -41,17 +42,6 @@ func _reach(metres: float) -> float:
 	return metres * tan(deg_to_rad(half))
 
 
-func test_the_tuned_half_width_is_the_one_at_maximum_range() -> void:
-	# The anchor. Everything else is this value times range over distance, so if
-	# this is wrong the whole curve is in the wrong place.
-	assert_almost_eq(
-		CompassMath.cone_halfwidth_for(_t.range_max, _t),
-		_t.cone_halfwidth,
-		0.001,
-		"the arc is not TUN-COMPASS-CONE-HALFWIDTH at TUN-COMPASS-RANGE-MAX"
-	)
-
-
 func test_it_never_narrows_past_the_tunable() -> void:
 	# Beyond maximum range the pulse is clamped and the arc must be too, or a
 	# contract across the map would draw a needle — the one thing §3.1 forbids by
@@ -79,22 +69,42 @@ func test_it_widens_every_step_of_the_way_in() -> void:
 	assert_almost_eq(previous, 180.0, 0.001, "the arc never reached a full ring on the way in")
 
 
-func test_the_arc_length_is_the_constant() -> void:
-	# **THE LAW ITSELF: one over the distance, so the arc *length* is invariant.**
-	# The lateral spread — the metres either side of the bearing — is `d·tan(half)`
-	# and grows slightly faster than that as the arc opens, which is the next test.
-	var expected := _t.range_max * deg_to_rad(_t.cone_halfwidth)
-	assert_gt(expected, 5.0, "the arc at maximum range is metres of nothing — this proves nothing")
-	var closes := CompassMath.full_ring_distance(_t)
-	var metres := _t.range_max
-	while metres > closes + 1.0:
-		assert_almost_eq(
-			metres * deg_to_rad(CompassMath.cone_halfwidth_for(metres, _t)),
-			expected,
-			0.001,
-			"the arc length changed at %.1f m" % metres
-		)
-		metres -= 0.5
+func test_it_hits_both_anchors_exactly() -> void:
+	# **THE TWO ENDS ARE THE WHOLE SPECIFICATION.** The exponent between them is
+	# computed to pass through both, so if either end is off the derivation is
+	# broken rather than the value merely retuned.
+	assert_almost_eq(
+		CompassMath.cone_halfwidth_for(_t.range_max, _t),
+		_t.cone_halfwidth,
+		0.01,
+		"the arc is not TUN-COMPASS-CONE-HALFWIDTH at TUN-COMPASS-RANGE-MAX"
+	)
+	assert_almost_eq(
+		CompassMath.cone_halfwidth_for(CompassMath.full_ring_distance(_t), _t),
+		180.0,
+		0.01,
+		"the arc is not a whole ring at TUN-COMPASS-CONE-FULL-RADIUS"
+	)
+
+
+func test_the_approach_is_flat_and_the_arrival_is_steep() -> void:
+	# **THE SHAPE ASSERTION, AND THE ONE A WRONG EXPONENT SLIPS PAST WITHOUT.**
+	# Every other test here is satisfied by any monotone curve through the two
+	# anchors, including a straight line — which would be 96 degrees at half range
+	# and would delete the directional reading over most of the approach.
+	# `test_compass_curve.gd` makes the same argument about the pulse, and this is
+	# GDD-03 §8.2's sentence said a second time in a second channel.
+	var full := CompassMath.full_ring_distance(_t)
+	var far := (
+		CompassMath.cone_halfwidth_for(_t.range_max - 15.0, _t)
+		- CompassMath.cone_halfwidth_for(_t.range_max, _t)
+	)
+	var near := (
+		CompassMath.cone_halfwidth_for(full, _t) - CompassMath.cone_halfwidth_for(full + 15.0, _t)
+	)
+	gut.p("the arc opens %.1f deg over the first 15 m and %.1f over the last" % [far, near])
+	assert_gt(far, 0.0, "the arc does not open at all over the first fifteen metres")
+	assert_gt(near, far * 4.0, "the arc opens as fast far away as it does close in")
 
 
 func test_the_ground_it_covers_never_shrinks_as_you_close() -> void:
@@ -147,9 +157,23 @@ func test_a_fixed_cone_would_point_at_one_body() -> void:
 	)
 
 
+func test_the_ring_closes_at_the_space_you_are_standing_in() -> void:
+	# **INVARIANT 33's FIRST CLAUSE, AND WHERE THE 6.0 m COMES FROM.** The Compass
+	# stops pointing exactly when the game already considers your contract to be in
+	# your own surroundings — the radius the alone-check and the spatial-hash cell
+	# both use. Derived rather than chosen, which is why it is asserted rather than
+	# written down.
+	assert_almost_eq(
+		CompassMath.full_ring_distance(_t),
+		Tuning.suspicion.open_radius,
+		0.001,
+		"the ring radius is no longer TUN-SUSPICION-OPEN-RADIUS, so it is now a chosen number"
+	)
+
+
 func test_the_ring_closes_before_a_kill_is_possible() -> void:
-	# Invariant 33's property, asserted where a reader looks for it. Inside kill
-	# reach the arc says only "here, somewhere" — never which of the bodies in
+	# Invariant 33's second clause, asserted where a reader looks for it. Inside
+	# kill reach the arc says only "here, somewhere" — never which of the bodies in
 	# front of you.
 	var closes := CompassMath.full_ring_distance(_t)
 	var reach: float = Tuning.combat.kill_range + Tuning.combat.kill_validation_grace

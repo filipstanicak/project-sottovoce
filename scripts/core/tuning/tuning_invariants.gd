@@ -237,25 +237,38 @@ static func _compass(p: TuningProfile) -> Array[String]:
 				% [p.compass.lock_range, p.compass.range_max]
 			)
 		)
-	e.append_array(_cone_closes_before_the_kill(p))
+	e.append_array(_cone_closes_in_time(p))
 	return e
 
 
-## 33. THE ARC MUST BE A WHOLE RING BEFORE A KILL IS POSSIBLE. **The thesis as an
-## inequality**: inside kill reach the Compass has stopped saying which way, so it
-## can never point at the body you are about to stab — identifying that body is
-## what the 1.6 s lock is charging for. TUNABLES §17 carries the rest.
-static func _cone_closes_before_the_kill(p: TuningProfile) -> Array[String]:
+## 33. THE ARC MUST BE A WHOLE RING BEFORE IT COULD NAME A BODY. Two clauses.
+## The equality is where 6.0 m comes from — the Compass stops pointing exactly
+## when the game already considers your contract to be in the space you are
+## standing in. The inequality is the thesis, and is **implied by the equality at
+## the shipped ranges**; it is kept because that margin is 0.2 m across two
+## independently tunable bands. TUNABLES §17 carries the rest.
+static func _cone_closes_in_time(p: TuningProfile) -> Array[String]:
 	var e: Array[String] = []
 	var closes := CompassMath.full_ring_distance(p.compass)
+	if not is_equal_approx(closes, p.suspicion.open_radius):
+		e.append(
+			(
+				(
+					"33. compass.cone_full_radius (%.2f) must EQUAL suspicion.open_radius "
+					+ "(%.2f) — the ring closes when the contract is inside the space you "
+					+ "are standing in, and that radius is already decided"
+				)
+				% [closes, p.suspicion.open_radius]
+			)
+		)
 	var reach := p.combat.kill_range + p.combat.kill_validation_grace
 	if closes <= reach:
 		e.append(
 			(
 				(
-					"33. the cone becomes a full ring at %.2f m, which is inside the "
-					+ "validated kill reach of %.2f m (kill_range %.2f + grace %.2f) — "
-					+ "the Compass would point at the one body you are about to stab"
+					"33. the arc becomes a full ring at %.2f m, inside the validated kill "
+					+ "reach of %.2f m (kill_range %.2f + grace %.2f) — the Compass would "
+					+ "point at the one body you are about to stab"
 				)
 				% [closes, reach, p.combat.kill_range, p.combat.kill_validation_grace]
 			)
