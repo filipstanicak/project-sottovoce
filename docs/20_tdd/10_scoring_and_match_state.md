@@ -169,7 +169,9 @@ flowchart TD
     E -->|No| Z2
     E -->|Yes| F{"Within TUN-KILL-FACING-CONE 60 deg?<br/>victim facing is IRRELEVANT"}
     F -->|No| Z2
-    F -->|Yes| G{"Contested within<br/>TUN-KILL-CONTEST-WINDOW 0.4 s?"}
+    F -->|Yes| S{"Clear line to the target?<br/>ADR-0015 — WORLD mask only,<br/>so NPCs never block"}
+    S -->|No| Z2
+    S -->|Yes| G{"Contested within<br/>TUN-KILL-CONTEST-WINDOW 0.4 s?"}
     G -->|"Yes, later server tick"| Z3["Stagger 1.5 s — no points, no lockout"]
     G -->|No / earlier| H["Enter KillAnim (42 ticks)"]
     H --> I["Contact frame at tick 27<br/>TUN-KILL-CORPSE-SPAWN-DELAY"]
@@ -218,11 +220,33 @@ them. It is server-side scratch and is never serialised.
 
 ### 3.2 What is NOT in the kill path, and one contradiction
 
-**THERE IS NO LINE-OF-SIGHT CHECK.** The flowchart above has none — Cinderfall, contract,
-range, cone, contest — and none was added, because adding one is a gameplay rule no
-criterion asked for. **As built, a kill through a market stall at 2.4 m is legal.**
-[`04_networking.md`](04_networking.md) §10's test table implies otherwise
-(*"NPC-occluded LOS clear in the past"*). The two disagree; resolving it is the owner's.
+**THERE WAS NO LINE-OF-SIGHT CHECK, AND AS OF 2026-08-27 THERE IS ONE.** US-0060 shipped
+without it — the flowchart had none, and adding one was a gameplay rule no criterion asked for,
+so it was reported instead of invented. **The `S` node above is
+[ADR-0015](../00_meta/adr/ADR-0015-a-kill-needs-a-clear-line.md)**, and this section's original
+report follows so the reasoning is not lost.
+
+**THE CITATION IN THAT REPORT WAS WRONG, TWICE OVER.** It attributed the opposing claim to
+*"[`04_networking.md`](04_networking.md) §10's test table"*; §10 is an interfaces section and
+holds no test table. The phrase is an **unticked** acceptance criterion in `ADR-0010`, and it
+describes an **NPC-occluded** line — which
+[`07_suspicion_and_detection.md`](07_suspicion_and_detection.md) forbids by masking `has_los` to
+`WORLD` alone. It was never evidence for a gate.
+
+**WHAT SETTLED IT WAS A MEASUREMENT US-0054 CREATED.** A market stall is 2.0 m deep and its two
+derived lean spots sit `NAV_AGENT_RADIUS` clear of each long face, so **the twelve blend spots
+form six pairs at 2.80 m against a 2.85 m reach** — mutually killable through the stall they are
+hiding behind. The stalls are the only geometry on `MAP-VETRAIO` thin enough for it; the nearest
+miss is the 2.6 m Mercato west wall at 3.40 m, which is one of the masses GDD-05 §2.7 rule 6
+leans on to occlude a spawn pair.
+
+**SIGHT FILTERS TARGET SELECTION RATHER THAN GATING THE RESULT**, which is the shape range and
+cone already have — so a stranger standing in the open still absorbs the press and still earns
+`TUN-KILL-INVALID-TARGET-PENALTY`. **`SYS-STUN` gains no such gate**, because that would be a
+weakening and never-do #13 forbids it; the asymmetry is the range advantage's, and it is
+asserted so that reversing it is deliberate.
+
+*The original report, kept:* **As built, a kill through a market stall at 2.4 m is legal.**
 
 **AND THE CONTEST LOSER'S STAGGER IS AN INITIATION LOCKOUT, NOT A MOVEMENT ONE.**
 [`../10_gdd/02_player_controller.md`](../10_gdd/02_player_controller.md) §3's normative

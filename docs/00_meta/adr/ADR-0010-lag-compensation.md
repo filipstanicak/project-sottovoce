@@ -171,8 +171,15 @@ order is the only ordering the server can actually trust.
 - [ ] Contest resolution reads a server-assigned tick, never a client-supplied timestamp.
       No `InputCommand` field named `client_time` is read by `KillSystem`.
 - [ ] `test_lagcomp_rewind.gd` covers: a kill valid at 150 ms rewind and invalid at 0;
-      a kill invalid at 250 ms rewind (proving the clamp); an NPC-occluded LOS that was clear
-      in the past; a Cinderfall cloud that had not yet spawned failing to block.
+      a kill invalid at 250 ms rewind (proving the clamp); ~~an NPC-occluded LOS that was clear
+      in the past~~; a Cinderfall cloud that had not yet spawned failing to block.
+      **THE STRUCK CLAUSE DESCRIBES A RULE THIS DESIGN FORBIDS, AND IT WAS CITED FOR TWO
+      MILESTONES AS IF IT WERE EVIDENCE.** TDD-07 masks `has_los` to `WORLD` alone, so an
+      **NPC-occluded** line cannot exist — *"the crowd must hide you by being confusing, never by
+      being solid"*. US-0060 and TDD-10 §3.2 both read this line as arguing for a line-of-sight
+      gate on kill validation, and both mis-cited it as *"TDD-04 §10's test table"*.
+      [ADR-0015](ADR-0015-a-kill-needs-a-clear-line.md) settles the question on its merits and
+      records that this criterion was never an argument either way.
 - [ ] `test_lagcomp_no_exploit.gd` asserts that a rewound validation cannot resolve against a
       stale contract, a stale tier, or a cooldown that has since been spent.
 

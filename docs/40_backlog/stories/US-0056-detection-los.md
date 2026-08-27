@@ -47,15 +47,20 @@ occlusion can never disagree.
       lit tick as well as an expiry, and every liveness question now takes the tick it is
       asked about.
 - [ ] Called by lock progression, Focus tracking and kill validation.
-      **Two callers exist and the third is not going to be kill validation.**
+      **Three of the four callers exist; only Focus is outstanding, and it is US-0064's.**
       `SYS-COMPASS`'s lock calls it as of US-0058 — `TUN-COMPASS-LOCK-REQUIRES-LOS` — and
       `test_lock_through_crowd.gd` measures the ladder: zero raycasts for a hunter facing
       away, one for a hunter watching. **US-0060 added the witnessed-kill check**, which asks
       whether any living player has a clear line to a body at the contact frame.
-      **Kill validation itself never asks**: TDD-10 §3's flowchart has no line-of-sight node,
-      so as built a kill through a market stall at 2.4 m is legal. TDD-04 §10's test table
-      implies otherwise. That contradiction is reported in US-0060 and is the owner's.
-      Focus tracking is US-0064.
+      **AND KILL VALIDATION ASKS AS OF 2026-08-27** ([ADR-0015](../../00_meta/adr/ADR-0015-a-kill-needs-a-clear-line.md)),
+      which is what this line has been waiting for. It arrives as a `Callable` bound by
+      `server_root`, because `KillRules` is pure Core and may not reach a system, and it is a
+      **target-selection filter** rather than a gate after the fact. The decision was forced by
+      a measurement: a market stall is 2.0 m deep and US-0054's two lean spots sit
+      `NAV_AGENT_RADIUS` clear of each face, so **the twelve blend spots form six pairs at
+      2.80 m against a 2.85 m reach** — mutually killable through the stall they are hiding
+      behind. `DetectionSystem.clear_line()` is the body-to-body form and lifts both endpoints,
+      since `RewoundWorld` holds feet. **Focus tracking is US-0064 and is the one still open.**
 
 ## Test notes
 

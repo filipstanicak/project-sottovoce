@@ -57,13 +57,41 @@ static func in_reach(from: Vector3, at: Vector3, t: CombatTuning) -> bool:
 	return from.distance_to(at) <= reach(t)
 
 
+## **A CLEAR LINE, WHEN THE CALLER CAN ANSWER ONE.** `sees` takes two world
+## points and answers whether solid geometry stands between them.
+##
+## **IT IS A CALLABLE BECAUSE THIS FILE MAY NOT REACH THE QUERY.** `has_los` is
+## `SYS-DETECTION`'s and is the project's single ray site; Core may not reference
+## Systems, and copying the query would make a second one. So the rule states the
+## requirement and the system supplies the answer.
+##
+## **UNBOUND IT ANSWERS *nothing blocks*, WHICH IS NOT A SPECIAL CASE**: it is
+## exactly what `DetectionSystem._clear_of_geometry` answers in a context with no
+## world. A unit test that stood up no district gets the same answer either way.
+static func can_see(sees: Callable, from: Vector3, to: Vector3) -> bool:
+	if not sees.is_valid():
+		return true
+	return bool(sees.call(from, to))
+
+
 ## **THE VERDICT.** `contract` is the killer's *announced* contract, or
 ## `ContractCycle.NOBODY`; `others` is every other living player's peer id.
 ##
 ## Returns `[verdict, target_peer]`. The target is the peer the whiff was aimed
 ## at — `ContractCycle.NOBODY` when the press found nobody at all.
+##
+## **SIGHT IS A TARGET-SELECTION FILTER, NOT A GATE AFTER THE FACT** (ADR-0015),
+## which is the same shape range and cone already have. An occluded contract is
+## simply not a candidate, so a stranger standing in the open still absorbs the
+## press — and no refusal reports occlusion to the presser, which would otherwise
+## make the kill button a probe for *where a wall is relative to your contract*.
 static func resolve(
-	world: RewoundWorld, killer: int, contract: int, others: PackedInt32Array, t: CombatTuning
+	world: RewoundWorld,
+	killer: int,
+	contract: int,
+	others: PackedInt32Array,
+	t: CombatTuning,
+	sees := Callable()
 ) -> Array:
 	var here := world.position_of(killer)
 	if here == Vector3.INF:
@@ -72,9 +100,9 @@ static func resolve(
 		# is the one that charges nothing.
 		return [KillVerdict.V.BUSY, ContractCycle.NOBODY]
 	var yaw := world.yaw_of(killer)
-	var target := _nearest_in_reach(world, here, yaw, others, t)
+	var target := _nearest_in_reach(world, here, yaw, others, t, sees)
 	if target == ContractCycle.NOBODY:
-		return [_why_no_target(world, here, yaw, contract, t), ContractCycle.NOBODY]
+		return [_why_no_target(world, here, yaw, contract, t, sees), ContractCycle.NOBODY]
 	if contract == ContractCycle.NOBODY:
 		return [KillVerdict.V.NO_CONTRACT, target]
 	if target != contract:
@@ -88,7 +116,12 @@ static func resolve(
 ## first match would hand a player standing between you and your contract the
 ## right to absorb the press only when they happened to join earlier.
 static func _nearest_in_reach(
-	world: RewoundWorld, here: Vector3, yaw: float, others: PackedInt32Array, t: CombatTuning
+	world: RewoundWorld,
+	here: Vector3,
+	yaw: float,
+	others: PackedInt32Array,
+	t: CombatTuning,
+	sees: Callable
 ) -> int:
 	var best := ContractCycle.NOBODY
 	var best_distance := INF
@@ -97,6 +130,8 @@ static func _nearest_in_reach(
 		if at == Vector3.INF:
 			continue
 		if not in_reach(here, at, t) or not within_cone(here, yaw, at, t):
+			continue
+		if not can_see(sees, here, at):
 			continue
 		var distance := CompassMath.distance_to(here, at)
 		if distance < best_distance:
@@ -110,7 +145,7 @@ static func _nearest_in_reach(
 ## kill at an empty street" are different mistakes and the whiff is the only
 ## feedback either one gets.
 static func _why_no_target(
-	world: RewoundWorld, here: Vector3, yaw: float, contract: int, t: CombatTuning
+	world: RewoundWorld, here: Vector3, yaw: float, contract: int, t: CombatTuning, sees: Callable
 ) -> KillVerdict.V:
 	if contract == ContractCycle.NOBODY:
 		return KillVerdict.V.NO_CONTRACT
@@ -121,4 +156,6 @@ static func _why_no_target(
 		return KillVerdict.V.OUT_OF_RANGE
 	if not within_cone(here, yaw, at, t):
 		return KillVerdict.V.OUT_OF_CONE
+	if not can_see(sees, here, at):
+		return KillVerdict.V.OUT_OF_SIGHT
 	return KillVerdict.V.NO_TARGET

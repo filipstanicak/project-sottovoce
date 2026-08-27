@@ -163,6 +163,9 @@ func _start_the_crowd_system() -> void:
 	detection.prey_warned.connect(_on_prey_warned)
 	director.register(kills)
 	kills.setup(director.ctx)
+	# **ADR-0015: A KILL NEEDS A CLEAR LINE.** Bound rather than reached for —
+	# `KillRules` is pure Core and `has_los` is `SYS-DETECTION`'s single ray site.
+	kills.sight = detection.clear_line
 	kills.killed.connect(_on_killed)
 	kills.kill_rejected.connect(_on_kill_rejected)
 	kills.stun.stunned.connect(_on_stunned)
@@ -298,14 +301,13 @@ func _on_killed(killer: int, victim: int, at: Vector3) -> void:
 ## walked away. The victim is not a witness to their own death and the killer is
 ## not a witness to their own act.
 func _charge_for_witnesses(killer: int, at: Vector3) -> void:
-	var body := DetectionSystem.sight_point(at)
 	for peer: int in director.ctx.pawn_contexts.keys():
 		if peer == killer:
 			continue
 		var pawn := director.ctx.pawn_contexts[peer] as PawnContext
 		if pawn.state_id == PawnStateId.DEAD:
 			continue
-		if not detection.has_los(DetectionSystem.sight_point(pawn.position), body):
+		if not detection.clear_line(pawn.position, at):
 			continue
 		director.ctx.impulses.queue(killer, Tuning.suspicion.gain_witnessed_kill)
 		return

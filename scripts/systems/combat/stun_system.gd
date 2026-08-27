@@ -189,7 +189,7 @@ func _verdict_for(ctx: MatchContext, peer: int) -> Array:
 	var them: PawnContext = ctx.pawn_contexts.get(pursuer)
 	if them != null and them.state_id == PawnStateId.KILL_ANIM:
 		return [StunVerdict.V.TARGET_COMMITTED, pursuer]
-	if them != null and them.blend_state == BlendKind.Kind.PROP_CONCEAL:
+	if CombatTargets.is_concealed(them):
 		return [StunVerdict.V.TARGET_CONCEALED, pursuer]
 	if lockouts != null and pursuer != ContractCycle.NOBODY:
 		if lockouts.is_protected(pursuer, ctx.tick):

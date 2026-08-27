@@ -51,6 +51,15 @@ var stun := StunSystem.new()
 ## one place, because both gate the same question: may this player initiate?
 var lockouts: CombatLockouts = null
 
+## **THE LINE-OF-SIGHT PREDICATE, BOUND BY `server_root` (ADR-0015).** Injected
+## because neither end may reach the other: `KillRules` is pure Core and `has_los`
+## is `SYS-DETECTION`'s single ray site, so a copy would be a second one. The
+## binding **lifts both points to `DetectionSystem.sight_point`** — a foot-to-foot
+## ray hits the floor. Unbound it answers *nothing blocks*, which is
+## `_clear_of_geometry`'s own answer with no world;
+## `test_sight_is_wired_into_the_kill.gd` is what stops that shipping.
+var sight: Callable = Callable()
+
 ## Rewinds performed since the match began. ADR-0010 allows two call sites in the
 ## whole project; the counter makes "how often" answerable rather than assumed.
 var rewinds: int = 0
@@ -173,18 +182,21 @@ func ready_for(peer: int, ctx: MatchContext) -> bool:
 	if here == null or contract == ContractCycle.NOBODY or _is_busy(ctx, peer):
 		return false
 	var target: PawnContext = ctx.pawn_contexts.get(contract)
-	if target == null or _is_dead(target):
+	if target == null or CombatTargets.is_dead(target):
 		return false
 	if lockouts != null and lockouts.is_exiled(peer, contract, ctx.tick):
 		return false
 	if lockouts != null and lockouts.is_protected(contract, ctx.tick):
 		return false
-	if _is_concealed(ctx, contract):
+	if CombatTargets.is_concealed(target):
 		return false
 	var t := Tuning.combat
 	return (
 		KillRules.in_reach(here.position, target.position, t)
 		and KillRules.within_cone(here.position, here.yaw, target.position, t)
+		# **THE HINT CARRIES THE SIGHT GATE TOO**, or the reticle would promise a
+		# kill through a stall that the press refuses — `stun_ready`'s lesson.
+		and KillRules.can_see(sight, here.position, target.position)
 	)
 
 
@@ -244,9 +256,9 @@ func _verdict_for(ctx: MatchContext, peer: int) -> Array:
 	# they did not choose.
 	if lockouts != null and lockouts.is_protected(contract, ctx.tick):
 		return [KillVerdict.V.TARGET_PROTECTED, contract]
-	if _is_concealed(ctx, contract):
+	if CombatTargets.is_concealed(ctx.pawn_contexts.get(contract)):
 		return [KillVerdict.V.TARGET_CONCEALED, contract]
-	return KillRules.resolve(world, peer, contract, _living_others(ctx, peer), Tuning.combat)
+	return KillRules.resolve(world, peer, contract, _living_others(ctx, peer), Tuning.combat, sight)
 
 
 ## **ONE OF THE TWO PLACES IN THIS PROJECT THAT REWINDS**, ADR-0010's compliance
@@ -277,7 +289,7 @@ func _living_others(ctx: MatchContext, peer: int) -> PackedInt32Array:
 	for other: int in ctx.pawn_contexts.keys():
 		if other == peer:
 			continue
-		if _is_dead(ctx.pawn_contexts[other] as PawnContext):
+		if CombatTargets.is_dead(ctx.pawn_contexts[other] as PawnContext):
 			continue
 		out.append(other)
 	return out
@@ -298,19 +310,7 @@ func _is_busy(ctx: MatchContext, peer: int) -> bool:
 		return true
 	if pawn.state_id == PawnStateId.STUN_ANIM:
 		return true
-	return _is_dead(pawn)
-
-
-## GDD-03 §4.1.4's *"a player inside cannot be killed"* — the one exception to
-## *blend protects anonymity, never the body*. **Read off the pawn**, whose
-## `blend_state` was written three stages earlier in this same tick.
-static func _is_concealed(ctx: MatchContext, peer: int) -> bool:
-	var pawn: PawnContext = ctx.pawn_contexts.get(peer)
-	return pawn != null and pawn.blend_state == BlendKind.Kind.PROP_CONCEAL
-
-
-static func _is_dead(pawn: PawnContext) -> bool:
-	return pawn.state_id == PawnStateId.DEAD or pawn.state_id == PawnStateId.RESPAWNING
+	return CombatTargets.is_dead(pawn)
 
 
 func _reject(ctx: MatchContext, peer: int, verdict: KillVerdict.V, target: int) -> void:
@@ -364,7 +364,7 @@ func _still_committed(ctx: MatchContext, killer: int) -> bool:
 
 func _land(ctx: MatchContext, killer: int, victim: int) -> void:
 	var pawn: PawnContext = ctx.pawn_contexts.get(victim)
-	if pawn == null or _is_dead(pawn):
+	if pawn == null or CombatTargets.is_dead(pawn):
 		return
 	var at := pawn.position
 	_enter(ctx, victim, PawnStateId.DEAD, PawnState.PRIORITY_FATAL)
