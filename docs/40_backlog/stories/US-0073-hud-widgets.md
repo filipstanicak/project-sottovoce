@@ -112,6 +112,25 @@ the list having to enumerate function names it would then fall behind on. **It h
 counterfactual**, because a narrowing that reduced to *"nothing is ever forbidden"* would leave
 every assertion in that file passing.
 
+## And then somebody looked at it (2026-08-27)
+
+`tools/hud_probe.tscn` boots the real client and captures the HUD in eight scripted states.
+**Four defects, none of which any test in this repository could have caught**, which is the same
+thing the inverted camera, the unlit district and the swapped A/D each proved.
+
+| Found by looking | |
+|---|---|
+| **The tier indicator was completely invisible** | The debug district map is on layer **127**, the HUD on layer 1, and its opaque panel sat exactly on the tier block. Every capture showed the corner as debug output and nothing else. **The debug tool moved, not the HUD** — it is stripped from every release preset and §1 owns the placement. Same call as `DistrictMap.RESERVED_WIDTH`, one layer out. |
+| **The cone read as a needle** | §3.1 forbids that in as many words. The cone is only 24° wide and the falloff was `across²`, which puts four fifths of it under a quarter alpha — all a player saw was the bright core. `sqrt` keeps the edges soft and lets the full width read. **A needle drawn from a wobbled bearing communicates the opposite of what the wobble means.** |
+| **The vignette tinted the entire frame red** | Two causes. `Color(r, g, b)` defaults to **opaque**, so the alpha that is the whole tuning shipped at 1.0 by omission; and `REACH` 0.22 on two edges leaves only 56 % clear, so the *"centre 60 %"* criterion was ticked against a number that missed it. Now 0.5 and 0.18. |
+| **It drew as concentric rectangle outlines** | `draw_rect(..., false, width)` strokes a visible line per band, so the vignette read as a nested wireframe. *Deliberately ugly* means oppressive, not *looks like a rendering fault*. Four per-edge gradients now. |
+
+**AND THE PROBE'S FIRST READING WAS WRONG, WHICH IS WORTH MORE THAN THREE OF THE FOUR.** It
+captured the cone pointing **down** for a bearing of zero and that reads exactly like a widget
+inverted by π. The widget was right: **the cone is camera-relative**, and the client scene's rig
+has its own yaw. The probe unhooks the camera before the two cone diagnostics now, and says why.
+An instrument that is wrong in a plausible direction is worse than no instrument.
+
 ## Falsified
 
 Five planted defects, all red: two tiers sharing a word, a source bit losing its word, a portrait

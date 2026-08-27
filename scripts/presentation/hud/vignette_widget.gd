@@ -19,7 +19,10 @@ extends Control
 ## How far in from each edge the darkness reaches, as a fraction of the shorter
 ## screen dimension. A frame rather than a wash: the centre 60 % stays clear
 ## (§1), because the player is looking there.
-const REACH := 0.22
+## **0.18 RATHER THAN 0.22, SO THE CENTRE 60 % STAYS CLEAR.** §1 reserves it for
+## the crosshair alone, and two edges at 0.22 leave only 56 % between them — the
+## criterion was ticked against a number that missed it by four points.
+const REACH := 0.18
 const BANDS := 14
 
 var palette: Palette = null
@@ -58,21 +61,36 @@ func alpha() -> float:
 	return _alpha
 
 
-## Concentric inset frames, each a little more transparent than the last. Cheap,
-## needs no shader, and the falloff is what stops it reading as a black border.
+## Four edge gradients, one per side, each fading inward to nothing.
+##
+## **IT WAS CONCENTRIC `draw_rect` OUTLINES AND IT LOOKED LIKE A WIREFRAME.** Each
+## stroke landed as a visible line, so the "vignette" read as a stack of nested
+## rectangles — §4.2 wants the screen edge going *dark*, and "deliberately ugly"
+## means oppressive rather than *looks like a rendering fault*. **Found by looking
+## at it.** A gradient per edge is still shader-free and actually fades.
 func _draw() -> void:
 	if _alpha <= 0.001:
 		return
 	var reach := minf(size.x, size.y) * REACH
-	for i: int in BANDS:
-		var t := float(i) / float(BANDS)
-		var inset := reach * t
-		var band := Palette.with_alpha(
-			palette.vignette, palette.vignette.a * _alpha * (1.0 - t) * 0.16
-		)
-		draw_rect(
-			Rect2(Vector2(inset, inset), size - Vector2(inset, inset) * 2.0),
-			band,
-			false,
-			reach / float(BANDS) + 1.0
-		)
+	var peak := palette.vignette.a * _alpha
+	var solid := Palette.with_alpha(palette.vignette, peak)
+	var clear := Palette.with_alpha(palette.vignette, 0.0)
+	_edge(Rect2(0.0, 0.0, size.x, reach), solid, clear, true)
+	_edge(Rect2(0.0, size.y - reach, size.x, reach), clear, solid, true)
+	_edge(Rect2(0.0, 0.0, reach, size.y), solid, clear, false)
+	_edge(Rect2(size.x - reach, 0.0, reach, size.y), clear, solid, false)
+
+
+## One edge, as a two-triangle strip with per-vertex colour — the cheapest real
+## gradient Godot's 2D API offers without a shader or a texture.
+func _edge(area: Rect2, from: Color, to: Color, vertical: bool) -> void:
+	var a := area.position
+	var b := area.position + Vector2(area.size.x, 0.0)
+	var c := area.end
+	var d := area.position + Vector2(0.0, area.size.y)
+	var colours: PackedColorArray = (
+		PackedColorArray([from, from, to, to])
+		if vertical
+		else PackedColorArray([from, to, to, from])
+	)
+	draw_polygon(PackedVector2Array([a, b, c, d]), colours)

@@ -31,7 +31,15 @@ const RESERVED_WIDTH := 292.0
 ## Pixels on a side. Large enough to tell a 2.6 m mouth from a wall at 120 m across.
 const SIZE := 260.0
 
-const MARGIN := Vector2(16.0, 16.0)
+## **THE TOP EDGE CLEARS THE SHIPPING HUD'S TIER BLOCK.** This overlay is on layer
+## 127 and the HUD is on layer 1, so it draws straight over it — and its panel is
+## opaque, so before US-0073 was looked at it hid the tier indicator, the word and
+## the source list completely. **The debug tool moves, not the HUD**: this is
+## stripped from every release preset and the HUD's placement is UI_UX_SPEC §1's.
+## Same call as `RESERVED_WIDTH` above, one layer out.
+const HUD_TIER_BLOCK := 116.0
+
+const MARGIN := Vector2(16.0, HUD_TIER_BLOCK)
 
 ## How saturated the world tint is. Enough to read a floor apart at distance,
 ## light enough that the greybox still looks like a greybox.
