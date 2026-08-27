@@ -1,10 +1,10 @@
 ---
 id: GDD-04-ABILITIES
 title: "GDD Part 4 — Abilities, Passives and Loadouts"
-version: 0.1.0
+version: 0.2.0
 status: draft
 owner: Lead Game Designer
-last_updated: 2026-08-03
+last_updated: 2026-08-27
 depends_on: [DOC-GLOSSARY, TUN-INDEX, GDD-01-VISION, GDD-03-SOCIAL-STEALTH]
 ---
 
@@ -68,7 +68,23 @@ ability specification with a blank field is not ready to implement.
 
 ---
 
-## 3. The four MVP abilities
+## 3. The MVP abilities
+
+> **`ABIL-WHISPERBOLT` WAS DEFERRED TO POST-MVP ON 2026-08-27, SO THE MVP SET IS THREE:
+> Cinderfall, Second Face and Lunge.** It is the cut that pays for the escape verb
+> (`ADR-0014`, `SCOPE_FENCE.md` IN #5 and OUT #18), chosen on engineering cost rather than
+> design merit — it is the only one of the four needing a replicated moving entity and hit
+> validation at an impact half a second after the press, which `RewindClamp` has no rule for.
+>
+> **§3.2 below is kept in full and unchanged, and so is every number behind it.** A deferral
+> that deletes the design has to redesign it to come back; this one is a `.tres` and a
+> behaviour once `SYS-ABILITY` exists. `US-0068` carries the deferral, §8 lists it beside the
+> post-MVP candidates, and the pair analysis in §7 is a superset that stays valid.
+>
+> **What it costs is recorded in OUT #18**: loadout variety halves, and **nothing in the MVP
+> can reach a player on a roof** — which is the job §3.2 gives this ability. The roof stratum
+> stays priced by `TUN-SUSPICION-GAIN-ROOF` (+18/s, permanently Exposed) and by scoring nothing
+> while you sit there. Revisit if `TEL-TIME-BY-STRATUM` shows roof time rising.
 
 ### 3.1 **Cinderfall** — `ABIL-CINDERFALL`
 
@@ -92,7 +108,10 @@ wearing an ability's clothes.
 
 ---
 
-### 3.2 **Whisperbolt** — `ABIL-WHISPERBOLT`
+### 3.2 **Whisperbolt** — `ABIL-WHISPERBOLT` — **DEFERRED TO POST-MVP (2026-08-27)**
+
+*Specified in full and kept unchanged. Not in the MVP loadout; see the banner at the top of
+§3 and `SCOPE_FENCE.md` OUT #18.*
 
 | Field | Specification |
 |---|---|
@@ -155,6 +174,9 @@ abilities reward map and crowd knowledge, which is what this game is about.
 
 ### 3.5 The four in comparison
 
+*Kept at four. Whisperbolt's column is what the MVP is doing without, and it is the row-by-row
+record of what returns when the deferral is lifted.*
+
 | | Cinderfall | Whisperbolt | Second Face | Lunge |
 |---|---|---|---|---|
 | **Role** | Escape | Reach | Concealment | Commitment |
@@ -167,7 +189,8 @@ abilities reward map and crowd knowledge, which is what this game is about.
 | **Enables bonus** | — | — | `SCORE-MASKED` +150 | — |
 | **Countered by** | Waiting at the edge | Breaking LOS, or closing to 3 m | Watching for the morph | Stun |
 
-**Note the pattern:** three of four abilities cost anonymity, and the one that does not
+**Note the pattern:** three of four abilities cost anonymity — **two of the three MVP
+abilities, after the Whisperbolt deferral** — and the one that does not
 (Second Face) costs a full minute. **There is no cheap ability.** This is deliberate: an
 ability that is free to use becomes part of the baseline moveset, and the baseline moveset in
 this game is *walking slowly*.
@@ -398,6 +421,7 @@ mid-milestone. Adding any of these requires an ADR per [`../00_meta/SCOPE_FENCE.
 
 | Name | One-line pitch | Fills the hole | Risk |
 |---|---|---|---|
+| **Whisperbolt** *(deferred, not a new idea)* | Already specified in §3.2 and fully tuned. | Reach — **the roof stratum has no mechanical answer without it**. | None design-side; the cost is netcode. **First in the queue when the deferral lifts**, ahead of everything below, because it is the only row here that is already designed, tuned, ID'd and storied (`US-0068`). |
 | **Nightshade** | A contact poison: your contract dies 6 s after you touch them in passing. | The delayed kill. **Activates the dormant `SCORE-POISONED` bonus** (ASM-0016), which is already implemented and tested. | Tell is very hard: a kill with a 6 s delay is a kill with no perceivable cause. Would need the victim to receive an unmistakable "you have been poisoned" state. |
 | **Lantern Call** | Summon a walking group to reroute toward your position over ~8 s. | Mobile cover on demand — makes crowd manipulation an active verb rather than a passive resource. | Powerful and quiet. Would need the reroute itself to be a visible tell. |
 | **Chalk Mark** | Mark a location; you are alerted if any *player* passes within 5 m of it. | Area denial for the defensive player. Gives prey a proactive tool, which the current set lacks. | May encourage corner-parking, which is an audited degenerate strategy. |
@@ -406,7 +430,9 @@ mid-milestone. Adding any of these requires an ADR per [`../00_meta/SCOPE_FENCE.
 | **Long Sight** | Extend `TUN-COMPASS-LOCK-RANGE` from 20 m to 32 m for 8 s. | Identification at range without a kill tool attached. | Least interesting of the set; probably a passive rather than an ability. |
 | **Quiet Step** | Reduce footstep audio radius by 60 % for 12 s. | Attacks the one unblockable channel (§11 channel 17 of Part 3). | **Dangerous.** Footstep audio is the floor of the information economy; an ability that removes it is an ability that removes the floor. Would need a compensating visual tell. |
 
-**Ranking for post-MVP consideration:** Nightshade first (the scoring already exists), then
+**Ranking for post-MVP consideration:** **`ABIL-WHISPERBOLT` first and separately** — it is a
+restoration rather than a new design, and the roof stratum is unanswered until it lands. Then
+of the genuinely new ones: Nightshade first (the scoring already exists), then
 False Coin (deepest interaction with the crowd), then Chalk Mark. Quiet Step last, and
 possibly never.
 

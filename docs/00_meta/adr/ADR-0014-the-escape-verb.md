@@ -1,10 +1,10 @@
 ---
 id: ADR-0014
 title: The escape verb — a hunt that can be survived
-version: 1.0.0
+version: 1.1.0
 status: accepted
 owner: Lead Game Designer
-last_updated: 2026-08-26
+last_updated: 2026-08-27
 depends_on: [ADR-0013, DOC-SCOPE-FENCE, GDD-03-SOCIAL-STEALTH]
 supersedes: none
 ---
@@ -72,13 +72,63 @@ looks: `ContractCycle.remove()` and the constrained insertion are built, proven 
 (US-0049), the reassign breath is built (US-0050), and the line-of-sight query the timer needs
 is the one the Compass lock already spends on the same ordered pair.
 
-**What is cut to pay for it is left to the owner and is the one open decision in this ADR.**
+**What is cut to pay for it was left open here and was decided on 2026-08-27: `ABIL-WHISPERBOLT`.** See *Decision, part two*, below.
 Three candidates are priced in the story, `US-0097`. The recommendation is to defer
 `ABIL-WHISPERBOLT` from M5 to post-MVP: it is the most expensive of the four MVP abilities to
 build correctly — a projectile, a trajectory, two tell channels and a lag-compensated hit —
 and the reference's own equivalent is one of eleven optional loadout items rather than a core
 verb. Cutting it takes MVP from four abilities to three and buys back an entire half of the
 loop.
+
+## Decision, part two — what pays for it (2026-08-27)
+
+**`ABIL-WHISPERBOLT` is deferred to post-MVP.** `SCOPE_FENCE.md` IN #4 reads three abilities,
+OUT #18 carries the reasoning, and `US-0068` is re-milestoned rather than deleted.
+
+**It was chosen on engineering cost, not on design merit**, and the argument is stronger than
+the recommendation this ADR first made. Whisperbolt is not merely the largest of the four
+abilities; it is the only one that needs **netcode this project does not have**:
+
+- **A replicated moving entity.** Nothing in this game currently moves on the wire except
+  pawns and NPCs, both of which are known, slotted and delta-encoded. A projectile is a third
+  kind, and it is the only one whose lifetime is shorter than a second.
+- **Hit validation at an impact 0.55 s after the press.** `RewindClamp` clamps to 100–200 ms
+  of RTT at the moment of the *press*, which is the only moment lag compensation in this
+  project has ever been asked about. **No rule anywhere says what a half-second-later impact
+  resolves against** — the shooter's rewound world, the current world, or something between.
+  That is an open netcode question wearing an ability's clothes.
+- **Downstream bandwidth**, which sits at **105 %** of a budget missed since M2 (TDD-04
+  §7.1.2). A new record type on an over-budget snapshot is a cost the other three do not have.
+
+**And it is the cheapest cut to reverse, which is the property a good cut should have.** Once
+`SYS-ABILITY` exists, restoring an ability is a `.tres` and a behaviour: every
+`TUN-WHISPERBOLT-*` value, every `SFX-` and `ANIM-` ID, the `ABIL-` ID itself, invariant 11 and
+GDD-04 §3.2's full specification stay exactly as written. Cutting the escape verb instead
+would cost a rewrite of the contract system's assumptions across four documents — the
+asymmetry is the whole reason this is the right way round.
+
+### The two costs, stated rather than hidden
+
+- **Loadout variety halves.** Two abilities of four with three passives is eighteen builds;
+  two of three is nine. This is a real loss, and it is a **retention** property rather than a
+  **loop** property — the fence's own test is *"is the loop fun with six humans"*, and no
+  loadout answers that question. The reference runs two of eleven, so both numbers are far
+  from it either way and the MVP was never going to match that shape.
+- **Nothing in the MVP can reach a player on a roof.** GDD-04 §3.2 gives this as Whisperbolt's
+  entire reason to exist — *"the answer to 'there is a player up there and I cannot get to
+  them'"*. Lunge is 6 m and horizontal, Cinderfall is area denial, Second Face is identity. So
+  after this cut the roof is priced **economically rather than mechanically**:
+  `TUN-SUSPICION-GAIN-ROOF` +18/s holds a camper permanently Exposed, visible through geometry
+  to their own hunter and prey, while they score nothing for sitting there. That was always
+  true and it was never the *only* answer before. **Revisit if `TEL-TIME-BY-STRATUM` shows
+  roof time rising**; the ability is deferred, not designed away.
+
+### One candidate in `US-0097`'s table is now moot
+
+That table offered deferring US-0054's two prop blends as an alternative. **They shipped on
+2026-08-26**, so the option no longer exists — and it was already rejected as self-defeating,
+since prop blends are exactly what a fleeing prey wants. Recorded because a decision table
+with a dead row invites somebody to re-pick it.
 
 ## Options considered
 
@@ -116,7 +166,7 @@ loop.
   bounded by the tier gate — an Anonymous hunter starts no chase — and it is what makes the
   verb learnable, but it is a genuine addition to §11's information economy and it is the
   part most likely to need retuning.
-- **It costs an MVP ability.** See the cut, above.
+- **It costs an MVP ability, and the ability is `ABIL-WHISPERBOLT`** (2026-08-27). MVP drops from four abilities to three and loadout variety halves; the roof stratum loses its only mechanical answer. See *Decision, part two*.
 - **Two of the reference's escape bonuses can never fire here, by construction.** Its
   multi-escape bonuses require two and three simultaneous pursuers; a Hamiltonian cycle gives
   every player exactly one incoming edge, so no player is ever hunted by two. This is a

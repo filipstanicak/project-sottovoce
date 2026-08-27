@@ -1,10 +1,10 @@
 ---
 id: US-0097
 title: The escape verb — a hunt that can be survived
-version: 0.1.0
+version: 0.2.0
 status: draft
 owner: Lead Game Designer
-last_updated: 2026-08-26
+last_updated: 2026-08-27
 depends_on: [ADR-0014, ADR-0013, GDD-03-SOCIAL-STEALTH, TDD-10-SCORING, US-0059]
 ---
 
@@ -143,15 +143,20 @@ indistinguishable from a deliberate zero. They land together, with the implement
   the raycast cannot be shared (see below).
 - `score.escape == score.contract` — the same statement invariant 19 makes about the stun.
 
-## What is cut to pay for it — the owner's decision
+## What is cut to pay for it — decided 2026-08-27
 
-`SCOPE_FENCE.md`'s rule is that new scope arrives with an ADR "naming what is being cut to pay
-for it". `ADR-0014` recommends the first of these and **does not decide it**.
+**`ABIL-WHISPERBOLT` is deferred to post-MVP** (`US-0068`). `SCOPE_FENCE.md` IN #4 reads three
+abilities, OUT #18 carries the reasoning and §1.1 records the payment as collected; ADR-0014's
+*Decision, part two* is the decision itself.
+
+**The second row below is now moot and is kept rather than deleted**: US-0054's two prop blends
+**shipped on 2026-08-26**, so that option no longer exists. A decision table with a dead row in
+it invites somebody to re-pick the row.
 
 | Candidate | What it buys back | What it costs |
 |---|---|---|
-| **Defer `ABIL-WHISPERBOLT` to post-MVP** *(recommended)* | The most expensive of the four MVP abilities: a projectile, a trajectory, two tell channels and a lag-compensated hit. Roughly the size of this story. | MVP drops to three abilities. The reference's own equivalent is one of eleven optional loadout items rather than a core verb, so the fidelity loss is small. |
-| **Defer US-0054's two prop blends** | A blend kind, its tunables and its level furniture. | Moves *away* from the reference, which has prop hiding spots everywhere, and weakens the escape verb this story is buying — prop blends are exactly what a fleeing prey wants. Rejected as self-defeating. |
+| **Defer `ABIL-WHISPERBOLT` to post-MVP** **— TAKEN 2026-08-27** | The most expensive of the four MVP abilities: a projectile, a trajectory, two tell channels and a lag-compensated hit. Roughly the size of this story. | MVP drops to three abilities. The reference's own equivalent is one of eleven optional loadout items rather than a core verb, so the fidelity loss is small. |
+| ~~**Defer US-0054's two prop blends**~~ **— MOOT: shipped 2026-08-26** | A blend kind, its tunables and its level furniture. | Moves *away* from the reference, which has prop hiding spots everywhere, and weakens the escape verb this story is buying — prop blends are exactly what a fleeing prey wants. Rejected as self-defeating. |
 | **Defer `US-0085` onboarding minimum out of MVP** | A tutorial pass. | The fence's demonstrability test is "six humans understand why they scored what they scored". Cutting onboarding attacks the fence's own success criterion. |
 
 ## Acceptance criteria

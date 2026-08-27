@@ -365,13 +365,45 @@ hides you by being confusing, never by being solid" applied to a new consumer.
 — the same ordered pair the Compass lock already queries — so the wider pursuit cone
 runs first and the lock's narrower one is a pure angle test on the same result.
 
-**AND IT IS NEW MVP SCOPE WITH THE CUT NOT YET CHOSEN.** `SCOPE_FENCE.md` IN #5 now
-names escape and the file is at 0.2.0, but the fence's rule is that new scope arrives
-naming **what is cut to pay for it**, and that half is the owner's. Recommended:
-defer `ABIL-WHISPERBOLT` to post-MVP — the most expensive of the four abilities to
-build correctly, and one of eleven optional loadout items in the reference rather
-than a core verb. **Recorded as an outstanding payment in SCOPE_FENCE §1.1**, because
-an unpaid amendment to that table is how the fence stops meaning anything.
+**AND THE SCOPE DEBT IT OPENED IS PAID: `ABIL-WHISPERBOLT` IS DEFERRED TO POST-MVP
+(2026-08-27).** `SCOPE_FENCE.md` IN #4 reads **three abilities**, OUT #18 carries the
+reasoning, §1.1 records the payment as collected, and the file is at **0.3.0**. US-0068
+is re-milestoned rather than deleted.
+
+**IT WAS CHOSEN ON ENGINEERING COST RATHER THAN DESIGN MERIT, AND THE ARGUMENT IS
+STRONGER THAN THE ADR'S OWN.** Whisperbolt is not merely the largest of the four —
+it is the only one that needs **netcode this project does not have**: a replicated
+moving entity (a third kind, after pawns and NPCs), client interpolation for it, and
+**hit validation at an impact 0.55 s after the press**. `RewindClamp` clamps to
+100-200 ms of RTT at the moment of the *press*, which is the only moment lag
+compensation here has ever been asked about, and **no rule anywhere says what a
+half-second-later impact resolves against.** US-0068's fifth acceptance criterion is
+that open question written as a criterion. It is also the only one of the four that
+costs **downstream bandwidth, already at 105 %** of a budget missed since M2.
+
+**AND IT IS THE CHEAPEST CUT TO REVERSE, WHICH IS THE PROPERTY A GOOD CUT SHOULD
+HAVE.** Nothing is deleted: GDD-04 §3.2's full specification, every
+`TUN-WHISPERBOLT-*` value, invariant 11, four `SFX-` IDs, two `ANIM-` IDs and the
+`ABIL-` ID all stay exactly as written, so restoring it once `SYS-ABILITY` exists is
+a `.tres` and a behaviour. Cutting **escape** instead would have cost a rewrite of
+the contract system's assumptions across four documents. That asymmetry is the whole
+reason this is the right way round.
+
+**TWO COSTS, RECORDED RATHER THAN HIDDEN.** Loadout variety **halves** — two
+abilities of four with three passives is 18 builds, two of three is 9 — which is a
+*retention* property rather than a *loop* one, and the fence's own test is "is the
+loop fun with six humans". And **nothing in the MVP can reach a player on a roof**:
+Lunge is 6 m and horizontal, Cinderfall is area denial, Second Face is identity.
+GDD-04 §3.2 gives reaching the roof as Whisperbolt's entire reason to exist, so the
+roof stratum is priced **economically rather than mechanically** now —
+`TUN-SUSPICION-GAIN-ROOF` +18/s holds a camper permanently Exposed while they score
+nothing for sitting there. **Revisit if `TEL-TIME-BY-STRATUM` shows roof time
+rising.**
+
+**ONE OF US-0097's THREE CANDIDATES WAS ALREADY DEAD AND THE TABLE DID NOT KNOW.**
+Deferring US-0054's two prop blends **shipped on 2026-08-26**. Struck through rather
+than deleted, because a decision table with a dead row in it invites somebody to
+re-pick the row.
 
 **TWO OF THE REFERENCE'S ESCAPE BONUSES CAN NEVER FIRE HERE AND THAT IS KEPT.** Its
 multi-escape bonuses need two and three simultaneous pursuers; a Hamiltonian cycle
