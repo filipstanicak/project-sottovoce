@@ -1001,10 +1001,23 @@ change is**, and it is the single most carefully-tuned curve in the game.
 
 | Property | Value | Effect |
 |---|---|---|
-| Half-width | `TUN-COMPASS-CONE-HALFWIDTH` 12° | At 30 m, ±6 m of positional ambiguity — about one market stall, containing 8–14 figures in a dense zone. |
+| Half-width **at maximum range** | `TUN-COMPASS-CONE-HALFWIDTH` 12° | The narrowest the arc ever is. ±12.6 m of lateral ambiguity at 60 m — about a market row, containing 8–14 figures in a dense zone. |
+| Half-width closer in | `HALFWIDTH × RANGE-MAX / distance`, capped at 180° | **The arc covers ground, not an angle.** It widens as you close, so the arc stays 12.6 m long and the lateral ambiguity never falls below the ±12.75 m it has at 60 m, and it becomes a **whole ring at 4.0 m** — at which point it has stopped saying *which way* and says only *here, somewhere*. |
 | Wobble amplitude | `TUN-COMPASS-CONE-WOBBLE` 4° | Deterministic, **seeded per contract**. |
 | Wobble period | `TUN-COMPASS-CONE-WOBBLE-PERIOD` 3.1 s | Non-integer so it never visibly syncs with the pulse. |
 | Update rate | `TUN-COMPASS-UPDATE-RATE` 30 Hz | Equals the server tick. The Compass never contains information newer than the simulation. |
+
+**The arc widens as you close, and that is the opposite of what it looks like.** A fixed angular
+cone *appears* to model uncertainty and does not: the ground it covers shrinks in proportion to
+the distance, so at the 2.85 m a kill lands from a 12° arc spans **1.06 m** — narrower than two
+people standing side by side. The instrument this section describes as telling you *which part of
+the plaza, never which body* would have named the body, for free, at exactly the moment the 1.6 s
+lock exists to charge for. Holding the *arc* constant keeps that sentence true everywhere, and
+invariant 33 pins the ring closed before a kill is possible.
+
+**And it is the reference's own behaviour**, which is where the shape came from rather than from
+this argument: its compass arc expands as the target nears and fills the whole ring when they are
+almost on top of you. Amended 2026-08-27 (the owner's standing fidelity direction, ADR-0013).
 
 **Deterministic wobble, not random jitter.** The wobble is a function of `(contract_id, time)`,
 so for the duration of one hunt it is a *stable property of that hunt*. A player can learn "the

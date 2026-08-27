@@ -76,7 +76,8 @@ func _run() -> void:
 	print("")
 	print("LOOK FOR: is the cone soft-edged rather than a needle? Does the pulse read as a")
 	print("BEAT rather than a throb? Can you tell the tier without reading the word? Is the")
-	print("centre of the screen empty apart from the dot?")
+	print("centre of the screen empty apart from the dot? And do 09, 10 and 11 read as ONE")
+	print("arc opening rather than three unrelated shapes?")
 	get_tree().quit()
 
 
@@ -195,8 +196,37 @@ func _capture_cone_diagnostics() -> void:
 			EventBus.compass_updated.emit(0.0, 20, 0.0)
 			EventBus.kill_ready_changed.emit(false, false)
 	)
+	# **A CONTRACT ON THE PLAYER'S RIGHT IS BEARING MINUS 90, NOT PLUS.** This game's
+	# yaw increases toward a turn to the LEFT, so +Z rotated by +90 degrees is +X,
+	# which is the player's left shoulder. Getting this label the wrong way round
+	# would turn the one diagnostic that catches a mirrored cone into one that
+	# demands the mirror.
 	await _state(
 		"08_cone_quarter_right",
-		"Bearing +90deg: the cone MUST point RIGHT. If it points left, the sign is inverted.",
-		func() -> void: EventBus.compass_updated.emit(PI * 0.5, 20, 0.0)
+		"A contract on the player's RIGHT: the cone MUST point RIGHT. Left means a mirror.",
+		func() -> void: EventBus.compass_updated.emit(-PI * 0.5, 20, 0.0)
 	)
+	await _capture_the_arc_widening()
+
+
+## **THE SECOND PROXIMITY CHANNEL, WHICH A SINGLE FRAME CANNOT SHOW AT ALL.** The
+## arc covers a constant patch of ground, so it widens as the contract closes and
+## becomes a whole ring at `CompassMath.full_ring_distance`. Three frames at one
+## bearing is the only way to see that it is a *sequence* rather than three
+## unrelated shapes.
+func _capture_the_arc_widening() -> void:
+	var frames: Array = [
+		[
+			"09_wide_far",
+			110,
+			"55 m: the NARROWEST the arc ever gets. A wedge, still clearly aimed."
+		],
+		["10_wide_near", 20, "10 m: about three times as wide, and still pointing."],
+		["11_wide_ring", 6, "3 m: a COMPLETE RING, evenly lit. It has stopped saying which way."],
+	]
+	for frame: Array in frames:
+		await _state(
+			str(frame[0]),
+			str(frame[2]),
+			func() -> void: EventBus.compass_updated.emit(0.0, int(frame[1]), 0.0)
+		)

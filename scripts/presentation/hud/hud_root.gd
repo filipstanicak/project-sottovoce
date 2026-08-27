@@ -60,9 +60,14 @@ func _exit_tree() -> void:
 ## cone must track the mouse rather than the tick. `CameraRig` writes its own
 ## transform every rendered frame (US-0045), so this reads the same value the
 ## player is looking through.
+##
+## **AND IT IS CONVERTED, WHICH IT WAS NOT IN US-0072.** `global_rotation.y` is
+## the engine's heading and the Compass speaks the game's; they differ by pi, so
+## the cone pointed at the opposite of the contract. `CameraArm.yaw_from_camera`
+## owns that conversion and says why.
 func _process(_delta: float) -> void:
 	if camera != null:
-		compass_vm.camera_yaw = camera.global_rotation.y
+		compass_vm.camera_yaw = CameraArm.yaw_from_camera(camera.global_rotation.y)
 
 
 func _on_compass(bearing: float, bucket: int, lock: float) -> void:

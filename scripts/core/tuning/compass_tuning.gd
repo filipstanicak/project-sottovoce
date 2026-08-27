@@ -25,8 +25,14 @@ extends Resource
 ## TUN-COMPASS-PULSE-EXP
 @export_range(1.6, 3.0, 0.1) var pulse_exp: float = 2.2
 
-## The rendered arc's half-width. ±12° at 30 m is ±6 m of positional ambiguity — about one market
-## stall. It tells you which part of the plaza, never which body. (ASM-0012)
+## The rendered arc's half-width at TUN-COMPASS-RANGE-MAX, which is where the arc is narrowest.
+## It widens inward as one over the distance, so the arc the cone covers is the same length at
+## every range — 12.6 m, about a market row, and the lateral spread never falls below the ±12.75
+## m it has at 60 m — and it becomes a whole ring at HALFWIDTH × RANGE-MAX / 180 = 4.0 m. Held at
+## a fixed angle instead, the arc shrank to 1.06 m wide at the 2.85 m a kill lands from, which is
+## narrower than two people side by side: it would have named the body it says it never names.
+## Amended 2026-08-27 for reference fidelity, whose arc widens with proximity and fills the ring
+## when the target is nearly on top of you. (ASM-0012)
 ## TUN-COMPASS-CONE-HALFWIDTH
 @export_range(8.0, 20.0, 0.1) var cone_halfwidth: float = 12.0
 

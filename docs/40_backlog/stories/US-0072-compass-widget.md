@@ -28,6 +28,22 @@ The game's central instrument: CompassVm plus CompassWidget.
       Drawn as radial slices whose alpha falls to zero at both rims. The bearing
       carries `TUN-COMPASS-CONE-WOBBLE`'s deliberate lie, so a crisp needle would
       draw an uncertain value as a certain one.
+      **AND THE ARC WIDENS AS THE CONTRACT CLOSES, ADDED 2026-08-27.** It covers a
+      constant length of ground rather than a constant angle, so it becomes a whole
+      ring at 4.0 m — the reference's own behaviour, and the fix for a fixed 12°
+      arc that spanned 1.06 m at kill reach, which is narrower than two people side
+      by side. The falloff flattens as it opens, because a full ring has no edges.
+      `CompassMath.cone_halfwidth_for`, invariant 33.
+- [x] The cone points AT the contract.
+      **Added 2026-08-27, after the owner played it.** It did not: this game's yaw
+      0 faces +Z and a Godot node's faces −Z, and `HudRoot` handed the view model
+      the node's heading unconverted; separately the widget mapped a world angle
+      straight onto a screen angle, and the two run opposite ways. **The two errors
+      partly cancelled** — a contract at either shoulder drew correctly and one dead
+      ahead drew at the bottom of the dial, which is exactly what was reported.
+      `CameraArm.yaw_from_camera` and `CompassWidget.screen_angle` own the two
+      conversions and say why; `test_the_cone_points_at_the_contract.gd` builds the
+      rig the way `CameraRig` builds it and asks the widget where it drew.
 - [x] 220 px, centre-bottom, 64 px from the edge.
       Anchored rather than positioned, so it holds at any resolution.
 - [x] Pulse phase advances at DISPLAY rate; period comes from the 30 Hz authoritative distance.

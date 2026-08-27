@@ -39,6 +39,29 @@ static func forward(yaw: float) -> Vector3:
 	return Vector3(sin(yaw), 0.0, cos(yaw))
 
 
+## **THE GAME'S YAW FROM THE CAMERA NODE'S OWN.** They are not the same number,
+## and the difference is exactly pi.
+##
+## This game's yaw 0 faces **+Z** (`forward` above, `ProbeLayout.forward` and
+## `CompassMath.bearing_to` all agree). **Godot's yaw 0 faces −Z**, because a
+## Node3D looks down its local −Z. The rig calls `look_at(pivot)` from behind the
+## pawn, so its view direction is `forward(yaw)` — correct — while the Euler angle
+## you read back off that basis is `yaw + PI`.
+##
+## **MEASURED, NOT REASONED**: a rig built by `position_at` and `look_at` reports
+## `global_rotation.y` exactly half a turn from the yaw it was built with, at every
+## yaw tested. `test_the_cone_points_at_the_contract.gd` is that measurement.
+##
+## It shipped without this conversion in US-0072 and the Compass cone was drawn
+## half a turn out. Nothing else in the project meets both conventions:
+## `PawnMotion` writes `body.rotation.y = ctx.yaw` and `GreyboxBody` is authored
+## front-on-+Z to match, so the pawn is self-consistent. **The camera is the one
+## node whose heading the engine computes**, which is why it is the one that had to
+## be converted and the one nobody had converted.
+static func yaw_from_camera(node_yaw: float) -> float:
+	return node_yaw + PI
+
+
 ## The pawn's right. `forward × up`, the same derivation the ledge probes use.
 static func right(yaw: float) -> Vector3:
 	return forward(yaw).cross(Vector3.UP).normalized()
