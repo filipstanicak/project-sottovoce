@@ -291,6 +291,7 @@ evaluated by the server against the lag-compensated world. A client cannot expre
 | `NET-S2C-STUN-RESULT` | E | Reliable | On event | `stunner:u8`, `target:u8`, `tick:u32`, `valid:bool`, `lockout_ticks:u16`. **To the stunner and target only; a refusal goes to the stunner alone with `target` = 0** (US-0061) |
 | `NET-S2C-ABILITY-STARTED` | E | Reliable | On event | `peer:u8`, `ability:u8`, `origin:3×f32`, `dir:3×f32`, `tick:u32`. **Broadcast to all clients within tell radius** — this is the legibility law on the wire |
 | `NET-S2C-ABILITY-DENIED` | E | Reliable | On event | `slot:u8`, `reason:u8`. To the requester only |
+| `NET-S2C-BLEND-DENIED` | E | Reliable | On event | `reason:u8`. To the requester only (US-0054). `NET-C2S-BLEND-REQUEST` had no answer at all, so a press at an occupied hiding spot was indistinguishable from a broken button |
 | `NET-S2C-PREY-WARNING` | E | Reliable | On event | **`tick:u32` only.** §6.4 |
 | `NET-S2C-SCORE-EVENT` | E | Reliable | On event | `event_id:u32`, `tick:u32`, `kind:u8`, `actor:u8`, `subject:u8`, `base:i16`, `mult:u8`, `group:u16` |
 | `NET-S2C-PHASE-CHANGED` | E | Reliable | On change | `phase:u8`, `tick:u32`, `multiplier:u8` |

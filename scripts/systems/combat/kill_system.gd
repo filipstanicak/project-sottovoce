@@ -51,14 +51,12 @@ var stun := StunSystem.new()
 ## one place, because both gate the same question: may this player initiate?
 var lockouts: CombatLockouts = null
 
-## Rewinds performed since the match began. ADR-0010's compliance list allows two
-## call sites in the whole project and this is one of them; the counter is what
-## makes "how often" answerable rather than assumed.
+## Rewinds performed since the match began. ADR-0010 allows two call sites in the
+## whole project; the counter makes "how often" answerable rather than assumed.
 var rewinds: int = 0
 
-## Presses judged, and presses that landed. Published for the same reason
-## `raycasts_last_tick` is: a rejection rate nobody can read is a feel problem
-## nobody can diagnose.
+## Presses judged and presses that landed — a rejection rate nobody can read is a
+## feel problem nobody can diagnose.
 var presses_judged: int = 0
 var kills_landed: int = 0
 
@@ -181,6 +179,8 @@ func ready_for(peer: int, ctx: MatchContext) -> bool:
 		return false
 	if lockouts != null and lockouts.is_protected(contract, ctx.tick):
 		return false
+	if _is_concealed(ctx, contract):
+		return false
 	var t := Tuning.combat
 	return (
 		KillRules.in_reach(here.position, target.position, t)
@@ -244,6 +244,8 @@ func _verdict_for(ctx: MatchContext, peer: int) -> Array:
 	# they did not choose.
 	if lockouts != null and lockouts.is_protected(contract, ctx.tick):
 		return [KillVerdict.V.TARGET_PROTECTED, contract]
+	if _is_concealed(ctx, contract):
+		return [KillVerdict.V.TARGET_CONCEALED, contract]
 	return KillRules.resolve(world, peer, contract, _living_others(ctx, peer), Tuning.combat)
 
 
@@ -297,6 +299,14 @@ func _is_busy(ctx: MatchContext, peer: int) -> bool:
 	if pawn.state_id == PawnStateId.STUN_ANIM:
 		return true
 	return _is_dead(pawn)
+
+
+## GDD-03 §4.1.4's *"a player inside cannot be killed"* — the one exception to
+## *blend protects anonymity, never the body*. **Read off the pawn**, whose
+## `blend_state` was written three stages earlier in this same tick.
+static func _is_concealed(ctx: MatchContext, peer: int) -> bool:
+	var pawn: PawnContext = ctx.pawn_contexts.get(peer)
+	return pawn != null and pawn.blend_state == BlendKind.Kind.PROP_CONCEAL
 
 
 static func _is_dead(pawn: PawnContext) -> bool:

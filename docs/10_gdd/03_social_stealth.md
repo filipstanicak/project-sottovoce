@@ -367,13 +367,41 @@ All four crush suspicion to 0 over `TUN-BLEND-CRUSH-TIME` 1.2 s, cost
 | **Counterplay** | **This is the strongest and most restricted blend.** Five props exist on the map (the five "hiding spots"). Capacity 1 makes each a *claimable resource*: a second player arriving has a real problem. `TUN-BLEND-PROP-EXIT-VULN` (0.5 s) prevents door-flickering to dodge a kill attempt. And you can see nothing while inside — you are safe and blind, which is a genuine cost in a game about looking. |
 | **Why it exists** | An escape of last resort with a hard cost: total safety in exchange for total blindness and a fixed, learnable location. |
 
+#### 4.1.5 As built, 2026-08-27 (US-0054)
+
+**THE TWELVE LEAN SPOTS ARE DERIVED FROM THE STALL TABLE.** Two per market stall, one on each
+long side, standing `NAV_AGENT_RADIUS` clear of the counter. Six stalls give **twelve**, which
+is where §4.2's *"~12 props"* now comes from — the number follows from the market rather than
+being asserted about it, so adding a stall adds two.
+
+**THE MOST SPECIFIC THING YOU ARE STANDING AT WINS.** §4.1 gives no ordering and one is needed,
+because a hay cart in a market is inside a crowd pocket and beside a counter at once. Five exact
+spots, then twelve exact spots, then a formation within 2.5 m, then *anywhere with four NPCs*. A
+press at a concealment prop that silently took the pocket would spend a walk the player made
+deliberately, and they would not find out until a hunter looked at them.
+
+**THE PROP REACH IS `TUN-BLEND-GROUP-JOIN-RADIUS`, ADOPTED RATHER THAN INVENTED.** §4.1.3 and
+§4.1.4 say only *"at the prop"* and no tunable carries a prop radius. **If a playtest wants them
+different, `TUN-BLEND-PROP-RADIUS` is a `TUN-` addition and therefore the owner's.**
+
+**A STATIC PROP BREAKS ON `TUN-PASV-STILLNESS-SPEED-CEILING`, NOT ON
+`TUN-BLEND-BREAK-ON-SPEED`.** §4.1.3's *"any movement input"* is stricter than every other
+blend's rule, and the game already owns a number for *moving at all* — the speed below which
+`PASV-STILLNESS` considers a player stationary. You may drift inside a crowd pocket; you may not
+shift on a bench.
+
+**AND `TUN-BLEND-PROP-EXIT-VULN` IS PER (PLAYER, PROP).** Leaving the well and running to the
+hay cart is what the design wants; going back into the same well is the door-flicker the window
+exists to stop. It is armed by **any** exit including a break, because a break is the faster of
+the two doors out.
+
 ### 4.2 The blend comparison table
 
 | Blend | Mobility | Vision | Availability | Breakable from outside? | Best for |
 |---|---|---|---|---|---|
 | Crowd pocket | None | Full | 4 locations + wherever ≥ 4 NPCs cluster | Yes (Startle) | Setting an ambush |
 | Walking group | 1.4 m/s on a fixed circuit | Full | 4 circuits | Yes (Startle) | Crossing the map safely |
-| Bench / stall | None | Full | ~12 props | No (but conspicuous) | Waiting out a decay in a quiet street |
+| Bench / stall | None | Full | **12 props, derived from the six market stalls** (US-0054) | No (but conspicuous) | Waiting out a decay in a quiet street |
 | Concealment prop | None | **None** | 5 props, capacity 1 | No | Escaping a lock you cannot break |
 
 ### 4.3 The crucial feel rule

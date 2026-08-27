@@ -35,6 +35,14 @@ signal kill_resolved(killer_slot: int, victim_slot: int, tick: int, bonus_group:
 ## around.
 signal stun_resolved(stunner_slot: int, target_slot: int, valid: bool, lockout_ticks: int)
 
+## `NET-S2C-BLEND-DENIED` arrived. CLIENT SIDE. `why` is a `BlendRefusal.Why`.
+##
+## **THE ONE REFUSAL IN THIS GAME THAT REPORTS ITS REASON.** A rejected kill and a
+## rejected stun must be indistinguishable from each other or they become identity
+## probes; a rejected blend has no such problem, because a prop's occupancy is a
+## property of the level rather than of a stranger.
+signal blend_denied(why: int)
+
 ## `NET-S2C-PREY-WARNING` arrived. CLIENT SIDE. **A world bearing in radians and a
 ## `Quantise.BUCKET_STEP` distance bucket, and nothing else.**
 ##
@@ -109,6 +117,22 @@ func s2c_stun_result(
 	stunner_slot: int, target_slot: int, _tick: int, valid: bool, lockout_ticks: int
 ) -> void:
 	stun_resolved.emit(stunner_slot, target_slot, valid, lockout_ticks)
+
+
+## `NET-S2C-BLEND-DENIED`. SERVER SIDE, **to the requester alone**.
+##
+## Broadcasting it would announce that somebody just tried to hide, and where —
+## which is the inference a hunter is supposed to have to earn.
+func send_blend_denied(peer: int, why: int) -> void:
+	if not Net.is_server:
+		return
+	s2c_blend_denied.rpc_id(peer, why)
+
+
+## `NET-S2C-BLEND-DENIED`. CLIENT SIDE.
+@rpc("authority", "call_remote", "reliable", Messages.Channel.EVENT)
+func s2c_blend_denied(why: int) -> void:
+	blend_denied.emit(why)
 
 
 ## `NET-S2C-PREY-WARNING`. SERVER SIDE, **to the prey alone**.
