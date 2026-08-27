@@ -48,7 +48,7 @@ gantt
 | **M3** Crowd | 80 NPCs with clones, blend groups, startle/gawk, ≤ 2 ms/frame | US-0039–0048 | `RISK-CROWD-PERF`, `RISK-ANONYMITY-LEAK`, `RISK-ANIM-SCOPE` |
 | **M4** The Loop | Contracts, compass, suspicion, kill, stun, respawn — ~~**the game is playable end-to-end**~~ **the loop RESOLVES end-to-end on the server; no player can perceive any of it** | US-0049–0063 | `RISK-NOT-FUN-SOLO` — **not measurable until M6, see US-0063** |
 | **M5** Depth | **3 abilities** (`ABIL-WHISPERBOLT` deferred 2026-08-27 to pay for escape — `SCOPE_FENCE.md` OUT #18), scoring with all bonuses, **the escape verb**, HUD, results screen, audio events | US-0064–0077 less US-0068, US-0097 | — |
-| **M6** Playable MVP | Lobby, 8-min match flow, balance pass 1, **3 external playtests completed and logged** | US-0078–0088 | `RISK-POPULATION`, `RISK-BALANCE-UNFALSIFIABLE` |
+| **M6** Playable MVP | Lobby, 8-min match flow, balance pass 1, **the first human playtest (US-0098, split out of the M4 gate by ADR-0016)**, **3 external playtests completed and logged** | US-0078–0088, US-0098 | `RISK-POPULATION`, `RISK-BALANCE-UNFALSIFIABLE`, **`RISK-NOT-FUN-SOLO` — moved here from M4** |
 
 > **THE M4 ROW'S ORIGINAL WORDING WAS NEVER TRUE OF M4'S STORY LIST, AND THE M4 GATE IS WHAT
 > FOUND IT (2026-08-27).** *"Playable end-to-end"* requires a match (`SYS-MATCH`, US-0079, **M6**),
@@ -56,10 +56,20 @@ gantt
 > contains none of them. So **six of US-0063's ten criteria cannot be run at M4 by construction**,
 > and two more need telemetry that does not exist — 28 of GDD-07 §8's 29 events have no emitter.
 >
-> **The recommendation is to split US-0063 rather than move it**: a technical M4 exit that runs
-> today, and the human playtest beside US-0088 at M6 where the score feed its questions assume
-> actually exists. That is an ADR, because it amends a milestone exit criterion. **Nothing
-> downstream is blocked** — M5 is the work that unblocks the playtest either way.
+> **DECIDED 2026-08-27 BY [ADR-0016](../00_meta/adr/ADR-0016-split-the-m4-gate.md): THE GATE IS
+> SPLIT.** US-0063 is the M4 technical exit and is **done** — the fifteen systems are registered
+> in the shipped server, the tick is 2.16 ms of an 8.0 ms budget, and
+> `test_the_m4_loop_resolves.gd` drives the loop from a press to a respawn through the real
+> `MatchDirector` for the first time. The human playtest is **`US-0098`, at M6**.
+>
+> **Running it now was rejected as worse than not running it**: Q7 would score near zero against a
+> build that does not tell a player they died, and that number would be quoted later as a
+> legibility failure of a design that has no legibility layer yet.
+>
+> **The cost is recorded rather than softened**: `RISK-NOT-FUN-SOLO` is first measurable at M6, two
+> milestones later than planned. **Nothing downstream is blocked** — M5 is the work that unblocks
+> the playtest either way. ADR-0016 prices one lever that would pull it earlier: moving `SYS-MATCH`
+> (US-0079) to M5, where the results screen (US-0077) already sits without a match to end.
 
 Each milestone ends with an explicit **gate story** — US-0038, US-0048, US-0063, US-0088 — so the
 exit criterion is somebody's named deliverable rather than a shared assumption.
