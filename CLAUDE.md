@@ -273,6 +273,47 @@ now, so the ambiguity never shrinks as you approach and it becomes a **whole rin
 at `TUN-COMPASS-CONE-FULL-RADIUS` 6.0 m**. The falloff flattens as the arc opens,
 because a full ring has no edges to fade.
 
+**AND THE CONE'S MOTION IS CHASED NOW, BECAUSE THE WIRE QUANTISES IT.** Reported
+from the controls: *"when I am walking in one direction and the cone is moving for
+example to the left, it's not as smooth as I would like. I wouldn't say it
+stutters."* **That is a quantisation staircase, not a dropped frame**, and the
+distinction is what named it: `Quantise.YAW_STEP` is **1.41 degrees**, which is
+2.4 px at the cone's outer rim, arriving at 30 Hz and drawn at 144. Worse, the
+wobble alone moves the bearing about 8 deg/s — **under one quantum per server
+tick** — so the value sits still for five ticks and then twitches.
+
+**THE DRAWN BEARING AND THE DRAWN WIDTH CHASE THE AUTHORITATIVE ONES OVER
+`TUN-NET-INTERP-BUFFER`.** Not a new number: every other remote thing on screen is
+already drawn that far behind, so the cone and the body it points at move on one
+clock. **This is not prediction and the distinction is the whole point** —
+UI_UX_SPEC §3.3 forbids information *newer* than the simulation, and an exponential
+chase is strictly *older*: it starts behind, converges, never leads, never
+overshoots. TDD-04's own sentence, in a new place: **the simulation snaps; the
+visual blends.**
+
+**THE CAMERA'S YAW IS DELIBERATELY NOT SMOOTHED**, and that is asserted. Only the
+world bearing is chased; smoothing the yaw would put the one HUD element whose job
+is to track the player's head behind their mouse.
+
+**A NEW CONTRACT IS ADOPTED RATHER THAN SWEPT TOWARD**, and
+`TUN-CONTRACT-REASSIGN-DELAY` is what makes that safe: a cone sliding from the old
+bearing to the new one would draw every angle in between — a bearing that was never
+true, reading as the contract sprinting around you.
+
+**AND A GUARD THAT BANNED A FUNCTION NAME BECAME ONE THAT ASSERTS THE PROPERTY.**
+`test_compass_invents_nothing.gd` forbade the string `lerp_angle` in the view
+model. **A name-ban cannot tell smoothing from extrapolation, and cannot catch
+extrapolation written without the banned word.** It asserts instead that the drawn
+bearing never crosses the value it was given and always arrives — strictly
+stronger, and falsified against a chase with `alpha` tripled. **Third guard
+narrowed this way in a week**, all three by the first client that ever needed to
+*draw* gameplay state.
+
+**AND THE ARC WIDTH IS CHASED TOO, WHICH NOBODY REPORTED.** The distance arrives in
+0.5 m buckets and **near the ring one bucket is nine degrees of half-width**, so it
+would have been the next thing noticed. Same defect, same channel, same constant —
+said here rather than folded in silently.
+
 **AND THE RING RADIUS WAS WIDENED TWICE MORE, BOTH TIMES AT THE CONTROLS, AND IT
 IS NOW `TUN-COMPASS-LOCK-RANGE` 20 m.** 4.0 m, then 6.0 m, then 20.0 — and the
 judgement each time was the same sentence: *"currently i have to stand right next

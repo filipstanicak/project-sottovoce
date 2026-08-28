@@ -76,8 +76,43 @@ func test_the_bearing_is_never_extrapolated() -> void:
 	for _i: int in 240:
 		vm.advance(1.0 / 60.0)
 	assert_eq(vm.bearing, 0.75, "four seconds of frames moved the bearing")
-	for term: String in ["velocity", "extrapolat", "predict", "lerp_angle"]:
+	for term: String in ["velocity", "extrapolat", "predict"]:
 		assert_false(SourceScanner.code_contains(VM, term), "CompassVm mentions `%s`" % term)
+
+
+func test_the_drawn_bearing_never_leads_the_one_it_was_given() -> void:
+	# **THIS REPLACED A BAN ON THE WORD `lerp_angle`, AND IS STRICTLY STRONGER.**
+	# The drawn angle now eases toward the authoritative one over
+	# `TUN-NET-INTERP-BUFFER`, because the wire quantises the bearing to 1.41
+	# degrees and drawing that raw is a staircase. A name-ban could not tell that
+	# apart from extrapolation, and could not have caught extrapolation written
+	# without the banned word. **The property is what matters: the chase starts
+	# behind, converges, and never crosses to the other side.**
+	var vm := CompassVm.new()
+	vm.bucket = Quantise.distance_to_bucket(30.0)
+	vm.bearing = 0.0
+	vm.advance(1.0 / 60.0)
+	vm.bearing = 1.0
+	var previous := 0.0
+	for _i: int in 600:
+		vm.advance(1.0 / 60.0)
+		var reached := vm.cone_radians()
+		assert_between(reached, previous - 0.0001, 1.0, "the drawn bearing passed the target")
+		previous = reached
+	assert_almost_eq(previous, 1.0, 0.0001, "the drawn bearing never arrived")
+
+
+func test_turning_the_camera_is_not_smoothed_at_all() -> void:
+	# **THE HALF THAT MUST STAY INSTANT.** Only the world bearing is chased; the
+	# camera's own yaw is applied on the frame it is read. Smoothing that would put
+	# the one HUD element whose job is to track the player's head behind their
+	# mouse, which is the defect the server-side bearing exists to avoid.
+	var vm := CompassVm.new()
+	vm.bucket = Quantise.distance_to_bucket(30.0)
+	vm.bearing = 0.0
+	vm.advance(1.0 / 60.0)
+	vm.camera_yaw = 1.0
+	assert_almost_eq(vm.cone_radians(), -1.0, 0.0001, "the camera yaw is being smoothed")
 
 
 func test_no_numeric_distance_reaches_the_screen() -> void:
