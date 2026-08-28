@@ -22,6 +22,11 @@ extends RefCounted
 
 var _ctx: MatchContext
 
+## How far into `ScoreLog` this has already sent. **An index, not an event id**,
+## because ids start at 1 and a cursor of 0 must mean "nothing sent yet" rather
+## than "sent the first one".
+var _sent: int = 0
+
 
 func _init(ctx: MatchContext) -> void:
 	_ctx = ctx
@@ -145,3 +150,57 @@ func ability_started(
 ## the stun refusal, which must say nothing.
 func ability_denied(peer: int, slot: int, why: int) -> void:
 	Net.events.send_ability_denied(peer, slot, why)
+
+
+## **EVERY SCORE EVENT APPENDED THIS TICK, EACH TO THE PLAYER WHO EARNED IT.**
+## `NET-S2C-SCORE-EVENT`, US-0074. Hangs off `MatchDirector.tick_completed`.
+##
+## **IT READS THE LOG RATHER THAN BEING TOLD BY THE SYSTEM THAT APPENDED.** Two
+## systems append today - the kill and the stun - and ADR-0014's escape will be a
+## third; a courier wired to each call site is a list that goes stale silently, and
+## the symptom is one bonus that quietly stopped reaching the feed. A cursor over
+## an append-only log cannot miss an append, whoever made it.
+##
+## **THE RECIPIENT IS `actor_id` AND THERE IS NO SECOND RULE.** Never-do #12's
+## "no global kill feed" is not enforced here by a filter somebody could relax -
+## the loop has nobody else to send to.
+##
+## **THE DEATH MARKER IS THE ONE KIND WITHHELD, FOR TWO REASONS THAT AGREE.** It
+## pays nothing, so a feed whose question is *"what did I just get paid for?"* has
+## nothing to draw. And it is the **only** score event whose `subject` is somebody
+## the recipient has not earned: `ScoreLog.mark_death` records the victim as actor
+## and the *killer* as subject, so sending it would put the killer's slot on the
+## victim's wire through a side door. `NET-S2C-KILL-RESULT` already tells a victim
+## who killed them and is the message designed to; a second channel for the same
+## fact is one nobody would think to audit. Every kind that *is* sent has a subject
+## the recipient already knows - the contract they killed, the pursuer they stunned
+## - which is what makes `subject` safe to carry at all.
+## **THE SIGNATURE IS `tick_completed`'s, AND GETTING IT WRONG COST A WHOLE
+## INTEGRATION RUN.** `MatchDirector.tick_completed(ctx, dt)` carries two
+## arguments; a zero-argument handler is accepted by `connect` and fails at every
+## emission, once a tick, in a message that names the callable rather than the
+## story that added it. **The unit test could not see it**, because it drives the
+## decision below rather than this loop — which is the cost of that split, said
+## here rather than left for the next person to rediscover.
+##
+## The context is the one this was constructed with, so both are ignored.
+func flush_score(_ctx_in: MatchContext = null, _dt: float = 0.0) -> void:
+	for event: ScoreEvent in _ctx.score.tail(_sent):
+		_sent += 1
+		var peer := score_recipient(event)
+		if peer == 0:
+			continue
+		Net.events.send_score(
+			peer, event, _ctx.slots.slot_of(peer), _ctx.slots.slot_of(event.subject_id)
+		)
+
+
+## **WHO HEARS ONE SCORE EVENT, AS A FUNCTION RATHER THAN AS A LOOP BODY.** Zero
+## for nobody. It is separated from the flush above for the reason every rule in
+## this project is separated from the system that runs it: the decision is the part
+## that can be wrong in an interesting way, and this way a test can ask it about
+## every kind without a socket.
+func score_recipient(event: ScoreEvent) -> int:
+	if event.kind == Ids.SCORE_DEATH:
+		return 0
+	return event.actor_id if _ctx.slots.has_peer(event.actor_id) else 0

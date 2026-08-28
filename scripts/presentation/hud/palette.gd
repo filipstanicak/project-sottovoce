@@ -39,6 +39,13 @@ extends Resource
 @export var crosshair_kill: Color = Color(0.96, 0.96, 0.97)
 @export var crosshair_stun: Color = Color(0.72, 0.88, 0.86)
 
+## The score feed. **A penalty differs in plate first** (UI_UX_SPEC §5.2: the one
+## negative event must never read as a smaller positive one), so these two exist to
+## reinforce a distinction the plate already carries — the same relationship the
+## crosshair's two colours have with its two shapes.
+@export var score: Color = Color(0.95, 0.95, 0.96)
+@export var score_penalty: Color = Color(0.91, 0.55, 0.44)
+
 ## Text and plates.
 @export var text: Color = Color(0.93, 0.94, 0.95)
 @export var text_dim: Color = Color(0.93, 0.94, 0.95, 0.62)

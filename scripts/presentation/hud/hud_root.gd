@@ -25,6 +25,7 @@ extends CanvasLayer
 var camera: Node3D = null
 
 var compass_vm := CompassVm.new()
+var score_vm := ScoreFeedVm.new()
 
 var _bridge: HudBridge = null
 var _widgets: Array[Control] = []
@@ -40,6 +41,8 @@ func _ready() -> void:
 	add_child(_bridge)
 	var compass := CompassWidget.new()
 	compass.vm = compass_vm
+	var feed := ScoreFeedWidget.new()
+	feed.vm = score_vm
 	# **THE VIGNETTE IS ADDED FIRST SO IT SITS BEHIND EVERYTHING.** It is the only
 	# full-screen effect in the game (§4.2) and it must never cover a widget the
 	# player is trying to read at the exact moment they most need to read it.
@@ -48,12 +51,16 @@ func _ready() -> void:
 	_add(TierWidget.new(), "Tier")
 	_add(PortraitWidget.new(), "Portrait")
 	_add(CrosshairWidget.new(), "Crosshair")
+	_add(feed, "ScoreFeed")
 	EventBus.compass_updated.connect(_on_compass)
+	EventBus.score_event_appended.connect(_on_score)
 
 
 func _exit_tree() -> void:
 	if EventBus.compass_updated.is_connected(_on_compass):
 		EventBus.compass_updated.disconnect(_on_compass)
+	if EventBus.score_event_appended.is_connected(_on_score):
+		EventBus.score_event_appended.disconnect(_on_score)
 
 
 ## **THE YAW IS READ ON THE RENDER FRAME**, like the Compass's phase, because the
@@ -68,6 +75,16 @@ func _exit_tree() -> void:
 func _process(_delta: float) -> void:
 	if camera != null:
 		compass_vm.camera_yaw = CameraArm.yaw_from_camera(camera.global_rotation.y)
+
+
+## **THE BUS TYPES THIS `RefCounted` AND THE ROOT NARROWS IT.** `EventBus` may hold
+## no `func` and no `class`, so its signals carry the widest type that fits; a cast
+## that fails is a report this build does not understand, which is dropped rather
+## than passed on as null.
+func _on_score(event: RefCounted) -> void:
+	var report := event as ScoreReport
+	if report != null:
+		score_vm.report(report)
 
 
 func _on_compass(bearing: float, bucket: int, lock: float) -> void:

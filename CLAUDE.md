@@ -225,18 +225,92 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 *Updated 2026-08-27 (ADR-0016, the M4 gate). Keep this section current — it is the first thing a
 fresh session reads, and a stale one is worse than none.*
 
-## M4 IS COMPLETE. M5 HAS STARTED AT THE HUD, AND THE COMPASS IS DRAWN.
+## M4 IS COMPLETE. M5 HAS STARTED AT THE HUD, AND A KILL IS NOW PAID FOR ON SCREEN.
 
 **M4's fifteen stories are built and its gate is run and split.** The whole loop
 resolves on the server — contracts, suspicion, all four blends, detection, the
 Compass's server half, the prey warning, kill, stun, spawn.
 
-**AND AS OF US-0072 A PLAYER CAN SEE ONE THING: THE COMPASS.** A cone with soft
-edges, a pulse whose cadence *is* the distance, and a lock arc. It is the first
-pixel of gameplay this project has ever drawn. **Everything else is still
-invisible** — no tier indicator, no portrait, no reticle, no score, no match, and
-no animation clips on either rig. **A kill is still a state change and a log
-line.**
+**AND FOUR HUD STORIES LATER A PLAYER CAN SEE THE COMPASS, THEIR TIER AND WHY,
+WHETHER A KILL WOULD LAND, AND — AS OF US-0074 — WHAT THEY WERE JUST PAID FOR.**
+A patient blend kill now arrives as four named lines, `TUN-UI-SCOREFEED-STAGGER`
+0.12 s apart, on the right above centre. **Still invisible**: the match timer, the
+ability slots, the results screen, and **any animation clip on either rig**. A kill
+is a state change, a log line and now a feed.
+
+**US-0074 IS DONE, EIGHT OF EIGHT, AND `NET-S2C-SCORE-EVENT` IS WHAT IT ACTUALLY
+COST.** The bus signal `EVT-SCORE-EVENT-APPENDED` was declared at M0 with no
+emitter and **no story claimed the wire message**, so the feed was inert until this
+one built it: `ScoreWire` owns the catalogue's sixteen-byte row, `MatchAnnouncer`
+addresses it, `HudBridge` forwards it, `ScoreFeedVm` queues it.
+
+**THE COURIER IS A CURSOR OVER THE LOG RATHER THAN A HOOK ON EACH APPEND.** Two
+systems append today — the kill and the stun — and ADR-0014's escape will be a
+third; a courier wired to each call site is a list that goes stale in silence, and
+the symptom is one bonus that quietly stopped reaching the feed. `ScoreLog.tail`
+is the seam, and **a cursor cannot miss an append whoever made it**.
+
+**AND THE RECIPIENT IS A FIELD OF THE EVENT, WHICH MAKES NEVER-DO #12 STRUCTURAL.**
+Every other S2C message takes a recipient list its caller assembled; this one takes
+`ScoreEvent.actor_id`, so there is **no list to widen by accident**. A global feed
+would hand every player the shape of the contract cycle for free.
+
+**`SCORE-DEATH` IS THE ONE KIND WITHHELD, FOR TWO REASONS THAT AGREE.** It pays
+nothing, so a feed whose question is *"what did I just get paid for?"* has nothing
+to draw — and it is the **only** score event whose `subject` names somebody the
+recipient has not earned: `ScoreLog.mark_death` records the victim as actor and the
+**killer** as subject. `NET-S2C-KILL-RESULT` already tells a victim who killed them
+and is the message designed to; a second channel for the same fact is one nobody
+would think to audit.
+
+**`gdlint` REFUSED THE MESSAGE AND WAS RIGHT FOR THE SECOND TIME IN THREE
+STORIES.** Eight loose RPC arguments exceeded the six-argument cap, so the row is
+**hand-packed** — which is US-0095's lesson applied before it cost anything (Godot
+Variant-encoded `NET-C2S-INPUT` at **56 bytes against a budgeted 9**) and, more
+importantly, makes `base:i16` a real width instead of an assumed one. Eight
+positional integers in which transposing `actor` and `subject` is invisible is
+exactly the shape `ScoreAward` was extracted to avoid.
+
+**AND THE ROW IS SIXTEEN BYTES, NOT THE FOURTEEN I WROTE IN TWO PLACES.** My own
+arithmetic, caught by the size assertion on its first run — which is the entire
+reason to assert a declared width rather than trust it.
+
+**THREE BONUSES HAD NO NAME AND NOTHING CHECKED.** `SCORE-HALFSEEN` (2026-08-27)
+and `SCORE-ESCAPE`/`SCORE-CLOSECALL` (2026-08-26) had no row in
+`data/strings/en.csv` — **fourteen of seventeen**, which is the shape of a table
+that looks complete. The display key is **derived** now (`SCORE-FROMABOVE` →
+`bonus.fromabove`) rather than tabulated, so a second seventeen-row list cannot
+drift from the first, and `test_bonus_names_exist.gd` harvests the ids from `Ids`
+and refuses a kind with no name.
+
+**AND MY UNIT TEST DROVE THE DECISION AND NOT THE WIRING, WHICH COST A WHOLE
+INTEGRATION RUN.** `MatchDirector.tick_completed(ctx, dt)` carries two arguments
+and `flush_score()` took none; `connect` accepts that happily and fails at **every
+emission**, once a tick, in a message that names the callable rather than the story
+that added it. The pure-decision/thin-system split is right and this is its price:
+**the seam has to be tested from both sides.** `test_score_courier.gd` now calls
+the loop as well as the rule.
+
+**AND LOOKING AT IT FOUND THREE THINGS NO TEST HERE COULD.** Run
+`godot --path . res://tools/hud_probe.tscn` windowed after any HUD change — it
+captures fourteen states now, three of them the feed:
+
+- **THE BLOCKS TOUCHED.** A block was exactly as tall as its own two rows, so four
+  bonuses read as one eight-row ladder rather than as four things — and the penalty
+  plate, which is padded, drew **straight over the line above it**.
+- **THE NAME WAS DIM AND THE VALUE BRIGHT**, which is backwards for an element
+  whose stated purpose is that *the name is the lesson* (GDD-06 §3.2). The value
+  keeps its dominance by **size**, a channel a colourblind palette cannot undo.
+- **ONLY THE PENALTY HAD A PLATE.** UI_UX_SPEC §5.2 prices a penalty as *"different
+  plate, different weight"* — which says every line has one. White text over the
+  district's pale sky is at the edge of legible at the fovea and gone in the
+  periphery, and this element's requirement is to be read **without being looked
+  at**.
+
+**AND THE PENALTY TREATMENT HAS NO PRODUCER, WHICH IS WORTH KNOWING BEFORE
+SOMEBODY LOOKS FOR IT.** ADR-0013 took `TUN-SCORE-RECKLESS` to **zero**, so no
+shipped bonus pays below zero: §5.2's treatment is built, tested and dormant, and
+`SCORE-RECKLESS` draws in the **neutral** treatment because a zero is not a fine.
 
 **AND THE FIRST TIME SOMEBODY PLAYED IT, THE COMPASS POINTED THE WRONG WAY — TWO
 ERRORS THAT PARTLY CANCELLED.** The owner walked toward the cone and it led them
@@ -4005,7 +4079,7 @@ US-0024 measures it against clips that do not exist.
 | | |
 |---|---|
 | CI | 7 jobs. **Running again as of 2026-08-07 after a two-day outage** — run `31200490320`, all seven green. The seven commits merged during the outage were never through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | **49 arch + 167 unit + 33 integration scripts**, holding 191 + 1274 + 242 tests and 806 + 27 148 + 671 assertions — the assertion count tripled at US-0049, because `test_contract_cycle_fuzz.gd` checks the invariant after every one of 10 000 events. **Nine are `pending` by design** — **eight in the unit suite and one in the integration suite**, which reports that an NPC aimed into the void never gives up. The island `pending` beside it **turned green by itself** when the alley mouths were built, which is what a `pending` naming its own blocker is for. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite is at **183.5 s** and the 180 s it is 'allowed' is **enforced nowhere** — TEST_PLAN §3, TEST_PLAN §10 and TDD-12 §17 all assert it and no job checks it, which is the M4 gate's fourth drift finding. `test_the_m4_loop_resolves.gd` cost 13.1 s of that and is the first test ever to run M4's systems together. It was 162-172 s, up from 87.7 s at M2 — **under 9 s of headroom left, and the next integration test has to justify itself hard against that**. `test_server_tick_budget.gd` cost 9.8 s of it and is a gate line; the one before it, the 2 s pass A/B, samples ninety ticks **twice** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **The six are**: `test_upstream_bandwidth.gd` reporting the 145 % upstream miss, `test_crowd_bandwidth.gd` the 112 % downstream projection, `test_crowd_wire_cost.gd` the 112 % it actually costs, **`test_spawn_points.gd` twice — GDD-05 §2.7 rule 6's nine unoccluded spawn pairs and rule 8's S3 4, S4 1, S5 6 of 8 seats** — and `test_clone_animation_parity.gd` the missing clip library. **Two entries this row carried are gone because their findings closed**: `test_circuit_separation.gd`'s 0.51 m circuits (re-authored, now 21.20 m) and `test_cull_radius_price.gd`'s flat curve, which asserts rather than pends. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
+| Tests | **50 arch + 172 unit + 33 integration scripts**, holding 201 + 1453 + 242 tests and 1 126 + 28 661 + 676 assertions — the assertion count tripled at US-0049, because `test_contract_cycle_fuzz.gd` checks the invariant after every one of 10 000 events. **Nine are `pending` by design** — **eight in the unit suite and one in the integration suite**, which reports that an NPC aimed into the void never gives up. The island `pending` beside it **turned green by itself** when the alley mouths were built, which is what a `pending` naming its own blocker is for. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite measured **174.6 s** on 2026-08-28 against **183.5 s** the day before, with **no test removed and one assertion added** — so the 9 s is machine variance and neither number should be quoted as *the* figure; what is real is that the suite sits within a few seconds of its limit either way. The 180 s it is 'allowed' is **enforced nowhere** — TEST_PLAN §3, TEST_PLAN §10 and TDD-12 §17 all assert it and no job checks it, which is the M4 gate's fourth drift finding. `test_the_m4_loop_resolves.gd` cost 13.1 s of that and is the first test ever to run M4's systems together. It was 162-172 s, up from 87.7 s at M2 — **under 9 s of headroom left, and the next integration test has to justify itself hard against that**. `test_server_tick_budget.gd` cost 9.8 s of it and is a gate line; the one before it, the 2 s pass A/B, samples ninety ticks **twice** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **The six are**: `test_upstream_bandwidth.gd` reporting the 145 % upstream miss, `test_crowd_bandwidth.gd` the 112 % downstream projection, `test_crowd_wire_cost.gd` the 112 % it actually costs, **`test_spawn_points.gd` twice — GDD-05 §2.7 rule 6's nine unoccluded spawn pairs and rule 8's S3 4, S4 1, S5 6 of 8 seats** — and `test_clone_animation_parity.gd` the missing clip library. **Two entries this row carried are gone because their findings closed**: `test_circuit_separation.gd`'s 0.51 m circuits (re-authored, now 21.20 m) and `test_cull_radius_price.gd`'s flat curve, which asserts rather than pends. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
 | Tuning | **290** tunables across 14 resource classes; all **33** cross-field invariants assert. **`TUN-COMPASS-CONE-FULL-RADIUS` 20.0 m was added on 2026-08-27** — where the Compass arc becomes a whole ring — and **invariant 33 is the reason it is not a chosen number**: it pins the radius equal to `TUN-COMPASS-LOCK-RANGE`, so the arc stops pointing exactly where the lock starts working, and separately outside the validated kill reach. It was **set three times in one day and only ever by somebody playing it** — 4.0 m derived from the half-width alone, 6.0 m at `TUN-SUSPICION-OPEN-RADIUS`, then 20.0 — and the second is the one worth remembering, because it was **derived and still wrong**. **`TUN-SCORE-HALFSEEN` +50 was added on 2026-08-27** by the fidelity re-audit — the stealth ladder had no middle rung, so a kill at **Noticed** and one at **Exposed** scored identically; invariant 32 keeps it strictly descending and strictly positive, and the `> 0` clause is the load-bearing half because every ordering check passes over a zero. `TuningInvariantsScore` was split out when that pushed the file past 400 lines — tech is how the game is *transmitted*, score is what it *pays*, and what is left is how it *plays*, with one entry point still. **Four scoring values were re-priced on 2026-08-26 (ADR-0013)** — `TUN-SCORE-SILENT` 100 → 200, `TUN-SCORE-PATIENT` 150 → 100, `TUN-SCORE-FOCUS` 100 → 150, `TUN-SCORE-RECKLESS` −50 → **0**, and invariant 18 rewritten from an ordering to a floor — split across `TuningInvariants` and `TuningInvariantsTech` since the first file hit 400 lines, with one entry point still. **Eight IDs are deprecated** and recorded in TUNABLES §19 — never reused |
 | Autoloads | All eight. `Tuning` precomputes 89 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |
@@ -4036,17 +4110,22 @@ it comes from: its occupant leaves `present_slots` entirely and both combat syst
 | Abilities | **`SYS-ABILITY` at the `abilities` stage, and nothing it casts does anything** (US-0066). `AbilityRules` is pure — five validations answering with the first rung that fails, and an aim that is **clamped rather than refused** because the client's aim and the server's differ by a rounding error on every cast. Cooldowns are **integer tick deadlines started at ACTIVATION**, reset on death by `AbilitySystem.on_death` rather than by `PawnContext.reset_for_spawn`, which prediction replays. The tell is **the one broadcast in this game** — reliable, to everybody inside `TUN-<ABIL>-TELL-AUDIO-RADIUS`, and emitted **before** `effect.begin`. A denial **carries its reason**, unlike the stun's, because every reason is a fact about the presser's own kit. `AbilityData.effect_script` is null for all four, so a cast is a cooldown and a tell |
 | Score | **Thirteen bonuses, judged at initiation and paid at the contact frame** (US-0065). `ScoreBonuses` is pure — facts in, awards out — and `KillScoring` is the thin half that reads the world; `KillSystem` captures a `KillScoreFacts` at `_begin` and carries it on the pending row for 0.9 s, so a hunter keeps Silent through an animation they cannot cancel and cannot launder recklessness by standing still after it. **The suspicion ladder is a partition**: exactly one of Silent, Halfseen and Reckless fires, and Reckless fires at **zero** rather than not firing. `ScoreWindows` holds the four facts one tick cannot answer — the speed ring, the focus streak, the hunt clock and the vendetta debt — **on `MatchContext` rather than `PawnContext`, which TDD-10 §2.1 is amended for**, because a pawn is replayed by prediction. **Sampled upstream of the `combat` stage** by `SYS-SUSPICION` and `SYS-DETECTION`, which is why **`SYS-SCORE` is not a `GameSystem`** — the fourth such call for a fourth reason. Focus rides `can_lock` and costs **no raycast**, closing US-0056's last criterion. **Masked and Poisoned are dormant**: no `AbilitySystem` to ask, and no MVP ability that poisons | 
 | Score log | **`SYS-SCORE` does not exist yet and the log does** (US-0064). `ScoreLog` lives on `MatchContext` beside `lockouts` and `impulses`, adopted by reference; `ScoreEvent` is immutable in the engine — getter-only properties, so an assignment is a parse error — and freezes `TUN-MATCH-FINALPHASE-MULT` from its **own tick** inside its one constructor, which is why no inconsistent event can be built. **The final phase is a property of the clock**, so this is not blocked on `SYS-MATCH`; US-0079 must read `ScoreEvent.multiplier_at` rather than decide it again. `ScoreFold` is pure and takes **no tuning** — TDD-10 §1.3's signature is amended, because points frozen on the event and points re-read at fold time are two sources of truth. `ScoreAward` is the claim a system makes and `ScoreEvent` is what the log made of it; the seam exists because eight constructor arguments is a design signal `.gdlintrc` refuses to let anybody suppress. **Two events are appended in a live match** — `SCORE-CONTRACT` and the `SCORE-DEATH` marker, sharing a group — and the other eleven bonuses are US-0065's, because each is judged at *initiation* against state the kill handler no longer holds |
+| Score feed | **THE FIRST THING IN THIS GAME THAT TELLS A PLAYER WHY THEY WERE PAID** (US-0074). `NET-S2C-SCORE-EVENT` did not exist and no story claimed it; `ScoreWire` owns the catalogue's **sixteen-byte** row, hand-packed because `gdlint` refused eight loose RPC arguments and was right twice — Variant encoding, and eight positional integers where transposing `actor` and `subject` is invisible. **The courier is a cursor over the log**, `ScoreLog.tail`, rather than a hook on each append, so a third append site (ADR-0014's escape) is covered by existing. **The recipient is `ScoreEvent.actor_id` — a field of the event, not a list a caller assembles**, which is what makes never-do #12's no-global-kill-feed structural. **`SCORE-DEATH` is the one kind withheld**: it pays nothing and it is the only event whose `subject` names somebody the recipient has not earned. `ScoreFeedVm` owns the stagger, the cap and the lifetimes — **a line's lifetime starts when it is SHOWN, not when it was told**, or the fourth bonus of a kill would be readable for 3.64 s against a documented 4.0. The display key is **derived** from the id (`SCORE-FROMABOVE` → `bonus.fromabove`), which is how three bonuses with no name at all were found. `ScoreFeedWidget` draws each value digit by digit at the widest digit's advance, which is right-alignment and tabular spacing in one operation |
 | Suspicion | `SYS-SUSPICION` ticks at the `suspicion` stage, **after `crowd`** — the boundary `SystemOrder` calls the most damaging silent failure in the game, since a stale crowd lets a player accrue *alone* suspicion inside a pocket that has re-formed. One pass over six pawns: the world is read from `ctx.crowd_hash` (never a physics query), impulses drain first and re-arm `TUN-SUSPICION-DECAY-DELAY`, then the integrator, then the tier with hysteresis. **The value lives on `PawnContext`, not in the system** — the builder reads it, so a copy here would be a second authority. `suspicion`, `tier` and `active_sources` go out in the own-gameplay block **to the owner alone**; there is no field anywhere in the format for another player's, which is the rule living in the wire rather than in a widget. `SuspicionSources.of()` is the only place the five conditions are applied and `gain_rate()` is their sum, so the HUD's source list cannot drift from the number it explains. **The impulse queue is `MatchContext`'s** as of US-0060, adopted by reference rather than mirrored, because a system reaching another system's state does it through the context. It has two live callers now — a failed kill and a witnessed one. **The bump still has none**, because pawn and NPC both mask `WORLD` and there is no contact to report; `has_stillness` still needs a loadout |
 | Pawn body | `GreyboxBody`, procedural — capsule, head and a chest marker on `+Z`, measured from the collider so the two cannot drift. **`PersonaVisuals` was empty through US-0021, 0022 and 0023**: three stories of camera work built around a pawn that did not render, every suite green. Not a persona — ART_BIBLE §6.1's four constructions are US-0039's |
 | Camera | Real spring arm: 2.6 m, **pawn centred** (US-0092 — the 0.45 m offset never changed the composition, because the rig aims at the pawn's own axis; `INPUT-SHOULDER` retired with it), occlusion that pulls **in** and never sideways, `WORLD`-masked so a crowd cannot push it. The FOV ladder is bound to the **state**, never to `ctx.velocity`: the rung is a consequence of the decision, not of the physics that follows it. Crowd-scan narrows to 48° and grants nothing. **Positive pitch LOWERS the arm** — the rig looks *at* the pivot, so a raised arm looks down; it shipped inverted from US-0021 until somebody played it |
 | Input | 20 `InputMap` actions from 14 live `INPUT-` IDs — `INPUT-SHOULDER` is retired via `InputActions.DEPRECATED`, still in the corpus and bound to nothing, KBM + pad. Chain GDD-02 → `Ids` → `InputActions` → `project.godot`, guarded on every hop, both directions. **Sampled once per physics frame by `LocalPawnDriver`, the only caller** — see trap 12. The mouse is **captured** on boot; `INPUT-MENU` releases, a click takes it back. **Only a mapped gamepad holds the joypad bindings** — `PadSelection`, applied through the one `InputMap` writer, because a set of sim pedals was steering |
 
-**Forty-eight criteria are deliberately unticked**, each blocked by something real — counted
-from the `done` and `in-progress` stories on **2026-08-27**. It went 47 → 56 → 48
-in one day and both moves are US-0063: running the M4 gate made it `in-progress`,
-so its nine unmet lines began counting, and **ADR-0016's split then closed six of
-them and re-homed the rest to US-0098** (a `draft`, so its ten do not count). Nine
-of the forty-eight are still US-0048's M3 gate lines. A prose
+**Fifty criteria are deliberately unticked**, each blocked by something real — counted
+from the `done` and `in-progress` stories on **2026-08-28**. It went 47 → 56 → 48
+in one day on 2026-08-27 and both moves are US-0063: running the M4 gate made it
+`in-progress`, so its nine unmet lines began counting, and **ADR-0016's split then
+closed six of them and re-homed the rest to US-0098** (a `draft`, so its ten do not
+count). **The +2 since is US-0066 and US-0073 being marked `done` while one and
+three of their lines are honestly unmet** — the count was not regenerated in either
+story's checkpoint, which is the fifth time a prose count here has drifted. Six of
+the fifty are still US-0048's M3 gate lines. US-0074 added none: it is eight of
+eight. A prose
 count of these has drifted four times, so they are a table — and the story files
 are the source of truth, not this. Regenerate the count rather than editing it:
 

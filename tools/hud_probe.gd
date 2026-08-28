@@ -69,6 +69,7 @@ func _run() -> void:
 	print("HUD widgets in the scene: ", _names(_hud))
 
 	await _capture_every_state()
+	await _capture_the_score_feed()
 	print("")
 	print("wrote %d frames:" % _shots.size())
 	for line: String in _shots:
@@ -226,3 +227,55 @@ func _capture_the_arc_widening() -> void:
 			str(frame[2]),
 			func() -> void: EventBus.compass_updated.emit(0.0, int(frame[1]), 0.0)
 		)
+
+
+## **THE FEED, WHICH IS THE ONE ELEMENT A STILL FRAME UNDERSTATES.** Its whole
+## design is a sequence — four bonuses `TUN-UI-SCOREFEED-STAGGER` apart — so two
+## frames of one kill are the minimum that shows the stack building rather than
+## arriving. The penalty frame is separate because §5.2's requirement is that the
+## one negative event does **not** read as a smaller positive one, which is a
+## comparison and needs both on screen at once.
+func _capture_the_score_feed() -> void:
+	await _state(
+		"12_feed_building",
+		"ONE line so far: +100 Contract. The stack has not arrived yet.",
+		func() -> void: _kill_awards()
+	)
+	await _state(
+		"13_feed_full",
+		"FOUR lines, right side above centre. Values in a straight column, names under them.",
+		func() -> void: pass
+	)
+	await _state(
+		"14_feed_penalty",
+		"A WARM plate on the negative line against neutral ones. Not a smaller positive.",
+		func() -> void: _penalty_awards()
+	)
+
+
+## One patient kill's worth of bonuses, on the bus, in one group.
+func _kill_awards() -> void:
+	var awards: Array = [
+		[Ids.SCORE_CONTRACT, 100],
+		[Ids.SCORE_SILENT, 200],
+		[Ids.SCORE_PATIENT, 100],
+		[Ids.SCORE_BLENDED, 200],
+	]
+	for award: Array in awards:
+		EventBus.score_event_appended.emit(
+			ScoreReport.new(award[0] as StringName, int(award[1]), 7)
+		)
+
+
+## A zero-point marker beside a penalty. `SCORE-RECKLESS` pays **zero** since
+## ADR-0013 and must not wear the penalty treatment; the negative one must.
+##
+## **THE NEGATIVE LINE IS HYPOTHETICAL AND SAYING SO MATTERS.** No shipped bonus
+## pays below zero — ADR-0013 neutralised the only one that did — so §5.2's penalty
+## treatment is built and has no producer, and this frame is the only place it can
+## be looked at. `SCORE-DEATH` is used because it is the kind a penalty would most
+## plausibly attach to; the courier withholds it, so this shape cannot reach a
+## player today.
+func _penalty_awards() -> void:
+	EventBus.score_event_appended.emit(ScoreReport.new(Ids.SCORE_RECKLESS, 0, 8))
+	EventBus.score_event_appended.emit(ScoreReport.new(Ids.SCORE_DEATH, -50, 8))
