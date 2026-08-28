@@ -51,6 +51,9 @@ var _view: Node3D
 var _panel: Control
 var _hues: Dictionary = {}
 
+## Every mesh this overlay repainted, so F3 can put them back.
+var _painted: Array[MeshInstance3D] = []
+
 
 static func attach(to: Node, driver: LocalPawnDriver) -> Node:
 	var overlay: CanvasLayer = (load("res://scripts/debug/district_map.gd") as GDScript).new()
@@ -101,6 +104,28 @@ func _tint_the_world() -> void:
 		var paint := StandardMaterial3D.new()
 		paint.albedo_color = Color.from_hsv(float(_hues[str(row[0])]), TINT_SATURATION, 0.82)
 		mesh.material_override = paint
+		_painted.append(mesh)
+
+
+## **THE TINT COMES OFF WITH THE MAP, WHICH IS WHY THIS IS NOT JUST `visible`.**
+## `DebugOverlays` calls this on F3. Hiding the `CanvasLayer` alone would leave the
+## district still repainted in flat hues — a half-off debug view that looks like a
+## rendering fault rather than like a debug tool somebody switched off.
+##
+## The overrides are dropped rather than remembered: the meshes carry no material
+## of their own (the generator emits untextured greybox), so `null` restores
+## exactly what was there.
+func set_overlay_shown(shown: bool) -> void:
+	visible = shown
+	if shown and _painted.is_empty():
+		_tint_the_world()
+		return
+	if shown:
+		return
+	for mesh: MeshInstance3D in _painted:
+		if is_instance_valid(mesh):
+			mesh.material_override = null
+	_painted.clear()
 
 
 func _find_geometry(node: Node) -> Node:

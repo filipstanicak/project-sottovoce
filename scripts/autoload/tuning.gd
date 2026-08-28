@@ -103,6 +103,18 @@ func step_ticks(id: StringName) -> int:
 
 
 ## True when `id` is a duration and therefore has a tick count.
+## One ability's data, by `ABIL-` id, or null.
+##
+## **THE DICTIONARY LIVES ON THE PROFILE AND NOT ON THIS NODE**, unlike the twelve
+## section resources above — it is keyed data rather than a section, so mirroring
+## it as a field would be a second copy to keep in step with `adopt()`. This is the
+## one guarded reader, so no call site writes its own null check.
+func ability_data(id: StringName) -> AbilityData:
+	if profile == null:
+		return null
+	return profile.abilities.get(id) as AbilityData
+
+
 func has_ticks(id: StringName) -> bool:
 	return _ticks.has(id)
 

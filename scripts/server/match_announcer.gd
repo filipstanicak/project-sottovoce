@@ -110,3 +110,38 @@ func stun_rejected(stunner: int, _verdict: int, _target: int) -> void:
 ## stranger, so it cannot be used as an identity probe.
 func blend_refused(peer: int, why: int) -> void:
 	Net.events.send_blend_denied(peer, why)
+
+
+## `NET-S2C-ABILITY-STARTED`. **THE ONE BROADCAST IN THIS CLASS**, and the reason
+## is design law 3: *no ability resolves without the victim having had a
+## perceivable chance to read it*. Every other method here has a recipient list
+## that exists to withhold something; this one has a list that exists to make sure
+## nobody near enough is left out.
+##
+## The radius is the ability's own `TUN-<ABIL>-TELL-AUDIO-RADIUS`, measured to each
+## living pawn. **A tell sent to the whole lobby would be a global ability feed** —
+## never-do #12's shape — telling somebody two streets away that a hunt was under
+## way, which is the inference the crowd is for.
+func ability_started(
+	ctx: MatchContext, caster: int, ability: StringName, origin: Vector3, direction: Vector3
+) -> void:
+	var data: AbilityData = Tuning.ability_data(ability)
+	if data == null:
+		return
+	var radius := maxf(data.tell_audio_radius, 0.0)
+	var slot := _ctx.slots.slot_of(caster)
+	for peer: int in ctx.pawn_contexts.keys():
+		var pawn := ctx.pawn_contexts[peer] as PawnContext
+		if CombatTargets.is_dead(pawn):
+			continue
+		if peer != caster and pawn.position.distance_to(origin) > radius:
+			continue
+		Net.events.send_ability_started(peer, slot, ability, origin, direction)
+
+
+## `NET-S2C-ABILITY-DENIED`. To the presser alone, **carrying its reason** — every
+## one of them is a fact about the presser's own kit, cooldown, state or aim, so
+## there is nothing in it to learn about a stranger. That is what separates it from
+## the stun refusal, which must say nothing.
+func ability_denied(peer: int, slot: int, why: int) -> void:
+	Net.events.send_ability_denied(peer, slot, why)

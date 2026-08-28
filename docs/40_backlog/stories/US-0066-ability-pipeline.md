@@ -1,10 +1,10 @@
 ---
 id: US-0066
 title: Ability pipeline and validation
-version: 0.1.0
-status: draft
+version: 1.0.0
+status: in-progress
 owner: Technical Director
-last_updated: 2026-08-03
+last_updated: 2026-08-28
 depends_on: [GDD-04-ABILITIES, TDD-09-ABILITY]
 ---
 
@@ -25,19 +25,67 @@ AbilityEffect base class.
 
 ## Acceptance criteria
 
-- [ ] Five validations: equipped, cooldown, global cooldown, legal pawn state, aim range.
-- [ ] Aim is CLAMPED server-side, not rejected, when out of range.
-- [ ] Cooldowns are integer tick deadlines on the server; the client mirrors optimistically.
-- [ ] Cooldowns start at ACTIVATION, not at effect end.
-- [ ] Cooldowns reset on death.
-- [ ] NET-S2C-ABILITY-STARTED broadcasts to ALL clients within tell radius, reliably.
+- [x] Five validations: equipped, cooldown, global cooldown, legal pawn state, aim range.
+      `AbilityRules.check` is pure and answers with **the first rung that fails**,
+      which is also the order a player would want to hear: *you do not have that*
+      before *not yet*, and both before anything about their body. The state check
+      is a **denylist** — the legal states are every other one, and an allowlist
+      would silently forbid each future locomotion state nobody remembered.
+- [x] Aim is CLAMPED server-side, not rejected, when out of range.
+      And the direction is normalised in **one** place, so a zero, a NaN or a
+      400-long vector cannot reach an effect. Four effects each writing their own
+      guard is four chances for one to forget.
+- [x] Cooldowns are integer tick deadlines on the server; the client mirrors optimistically.
+      The owner's own two ride the snapshot's existing `cooldown_a_tick` /
+      `cooldown_b_tick`, so a mispredicted cooldown self-corrects within 33 ms.
+- [x] Cooldowns start at ACTIVATION, not at effect end.
+      Asserted by running past the effect's own duration and checking the cooldown
+      has been ticking throughout — Second Face lasts 15 s, and starting its
+      cooldown at expiry would make the real interval 45 s against a published 30.
+- [x] Cooldowns reset on death.
+      **And not in `PawnContext.reset_for_spawn`, which is where US-0062 expected
+      it.** That object is replayed during prediction reconciliation, so a cooldown
+      living there would be rewound and re-applied on every correction — the third
+      time this finding has appeared, after the suspicion impulse queue and the
+      patient speed ring. This closes US-0062's last open criterion.
+- [x] NET-S2C-ABILITY-STARTED broadcasts to ALL clients within tell radius, reliably.
+      **The one broadcast in `MatchAnnouncer`**, and the only message in this game
+      whose recipient list exists to make sure nobody is left out rather than to
+      withhold something. Reliable, because a dropped snapshot costs a frame of
+      smoothness and a dropped tell costs the victim their only warning.
 - [ ] The TELL is predicted locally and cancelled on denial; the EFFECT is not predicted.
-- [ ] Other players' cooldowns are never replicated.
+      **Blocked on a client that can cast.** The server half is done —
+      `NET-S2C-ABILITY-DENIED` carries its reason — and the local tell needs
+      `AbilitySlots` and an input path, which are US-0071's and US-0073's. The
+      half that is here is the half that cannot be added later: the denial arrives
+      with something to cancel *on*.
+- [x] Other players' cooldowns are never replicated.
+      Asserted on the **format** rather than on a filter: there is no field
+      anywhere in `Snapshot` for another player's cooldown, and a missing field
+      cannot be bypassed by a later caller. Kit-reading is a skill (GDD-04 §5.1).
 
 ## Test notes
 
 `test_ability_validation.gd`, `test_ability_aim_clamped.gd`, `test_cooldown_authority.gd`,
 `test_ability_started_broadcast.gd`.
+
+## What this story does NOT do
+
+**No ability does anything yet.** `AbilityData.effect_script` is null for all four
+`.tres` files, so a cast runs the whole pipeline — validation, cooldown, suspicion
+cost, tell broadcast — and changes nothing in the world. Cinderfall, Lunge and
+Second Face are US-0067, US-0070 and US-0069.
+
+**The loadout is a placeholder that says so.** `NET-C2S-LOADOUT` and the lobby are
+US-0071's; until then `server_root` gives every joiner the two MVP actives, because
+a pipeline nobody can reach is a pipeline nobody can test. Validation 1 is
+implemented and tested against the table either way.
+
+**`AbilityDenial.Why.OUT_OF_RANGE` and `NO_LOS` are declared and unreachable.**
+Aim is clamped rather than refused, and none of the MVP three needs line of sight —
+Cinderfall is thrown, Lunge is a dash, Second Face is on the self. They exist
+because the protocol row does, and so that an ability which genuinely needs a hard
+limit reaches for the reason that already means what it means.
 
 ## Notes
 

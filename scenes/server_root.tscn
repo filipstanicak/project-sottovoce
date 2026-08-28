@@ -1,4 +1,4 @@
-[gd_scene load_steps=14 format=3 uid="uid://bs0ttovserverroot"]
+[gd_scene load_steps=15 format=3 uid="uid://bs0ttovserverroot"]
 
 [ext_resource type="PackedScene" path="res://scenes/map/map_vetraio_collision.tscn" id="1_map"]
 [ext_resource type="Script" path="res://scripts/server/match_director.gd" id="2_director"]
@@ -13,6 +13,7 @@
 [ext_resource type="Script" path="res://scripts/systems/suspicion/suspicion_system.gd" id="11_suspicion"]
 [ext_resource type="Script" path="res://scripts/systems/detection/detection_system.gd" id="12_detection"]
 [ext_resource type="Script" path="res://scripts/systems/combat/kill_system.gd" id="13_kill"]
+[ext_resource type="Script" path="res://scripts/systems/ability/ability_system.gd" id="14_ability"]
 
 ; Server topology. NO PRESENTATION NODES — the release server export excludes
 ; scripts/presentation/, scripts/mirrors/ and scenes/ui/ entirely, so anything
@@ -53,6 +54,12 @@ script = ExtResource("11_suspicion")
 ; line-of-sight query in the project. US-0055, US-0056.
 [node name="DetectionSystem" type="Node" parent="Systems"]
 script = ExtResource("12_detection")
+
+; SYS-ABILITY. Request, five validations, cooldown, tell broadcast, effect — at
+; the `abilities` stage, BEFORE `combat`, so a Cinderfall thrown this tick is
+; already blocking kills when the kill stage runs. US-0066.
+[node name="AbilitySystem" type="Node" parent="Systems"]
+script = ExtResource("14_ability")
 
 ; SYS-KILL. Validation against the lag-compensated world, the contest window and
 ; the committed animation, at the `combat` stage — BEFORE `contract`, so the
