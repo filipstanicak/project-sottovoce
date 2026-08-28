@@ -101,6 +101,73 @@ func test_the_cone_is_camera_relative() -> void:
 	)
 
 
+func test_the_cone_chases_the_bearing_over_the_interpolation_buffer() -> void:
+	# **THE CONSTANT IS `TUN-NET-INTERP-BUFFER`, NOT A NUMBER CHOSEN HERE**, so
+	# the cone and the body it points at are drawn on one clock. An exponential
+	# chase covers 1 - 1/e = 63 % of the gap in one time constant; that is what is
+	# measured, so the assertion pins the *rate* rather than merely that it moves.
+	_at(30.0)
+	_vm.bearing = 0.0
+	_vm.advance(1.0 / 60.0)
+	_vm.bearing = 1.0
+	var tau: float = Tuning.net.interp_buffer / 1000.0
+	for _i: int in 60:
+		_vm.advance(tau / 60.0)
+	gut.p("covered %.3f of the gap in one TUN-NET-INTERP-BUFFER" % _vm.cone_radians())
+	assert_almost_eq(_vm.cone_radians(), 0.632, 0.02, "the chase is not on the interp buffer")
+
+
+func test_the_chase_is_frame_rate_independent() -> void:
+	# Sixty frames or six hundred, the same wall-clock second must land in the same
+	# place — or the instrument reads differently on better hardware, which is the
+	# defect §3.2 already avoids for the pulse.
+	var reached: Array[float] = []
+	for frames: int in [60, 600]:
+		var vm := CompassVm.new()
+		vm.bucket = Quantise.distance_to_bucket(30.0)
+		vm.bearing = 0.0
+		vm.advance(0.001)
+		vm.bearing = 1.0
+		for _i: int in frames:
+			vm.advance(1.0 / float(frames))
+		reached.append(vm.cone_radians())
+	assert_almost_eq(reached[0], reached[1], 0.005, "the chase depends on the frame rate")
+
+
+func test_a_new_contract_is_adopted_rather_than_swept_toward() -> void:
+	# **`TUN-CONTRACT-REASSIGN-DELAY` IS THE WINDOW THAT MAKES THIS SAFE.** Sliding
+	# from the old bearing to the new one would draw every angle in between — a
+	# bearing that was never true, reading as the contract sprinting around you.
+	_at(30.0)
+	_vm.bearing = 0.0
+	_vm.advance(1.0 / 60.0)
+	_vm.bucket = CompassBoard.NO_CONTRACT
+	_vm.advance(1.0 / 60.0)
+	_at(30.0)
+	_vm.bearing = PI * 0.75
+	_vm.advance(1.0 / 60.0)
+	assert_almost_eq(
+		_vm.cone_radians(), PI * 0.75, 0.0001, "the cone swept across the dial to a new contract"
+	)
+
+
+func test_the_arc_width_is_chased_too() -> void:
+	# The same defect in the other channel: the distance arrives in 0.5 m buckets,
+	# and near the ring one bucket is nine degrees of half-width. Reported as
+	# direction, but the width would have been the next thing to notice.
+	_at(30.0)
+	_vm.bearing = 0.0
+	_vm.advance(1.0 / 60.0)
+	var wide := _vm.cone_halfwidth()
+	_at(24.0)
+	_vm.advance(1.0 / 60.0)
+	var stepped := _vm.cone_halfwidth()
+	var wanted := deg_to_rad(_vm.authoritative_halfwidth())
+	assert_gt(wanted, wide, "the fixture does not widen the arc, so this proves nothing")
+	assert_lt(stepped, wanted, "the arc width snapped to the new bucket instead of easing")
+	assert_gt(stepped, wide, "the arc width did not move at all")
+
+
 func test_turning_the_camera_never_changes_the_bearing() -> void:
 	# The cone moves; the reading does not. A view model that rotated its stored
 	# bearing would drift a little further from the server on every frame, and the

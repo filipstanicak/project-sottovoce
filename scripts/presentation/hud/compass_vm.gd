@@ -32,8 +32,14 @@ extends RefCounted
 ## without a round trip through the bus.
 signal pulsed
 
-## The wobbled **world** bearing, radians, exactly as received.
-var bearing: float = 0.0
+## The wobbled **world** bearing, radians, exactly as received. **Never written by
+## anything but a snapshot** — the drawn angle is a separate value that eases
+## toward this one and can only ever be behind it.
+var bearing: float = 0.0:
+	set(value):
+		bearing = value
+		if not _settled:
+			_drawn_bearing = value
 
 ## `Quantise.BUCKET_STEP` units, or `CompassBoard.NO_CONTRACT`.
 var bucket: int = CompassBoard.NO_CONTRACT
@@ -47,6 +53,12 @@ var lock: float = 0.0
 var camera_yaw: float = 0.0
 
 var _phase: float = 0.0
+
+## What is actually drawn. Both ease toward the authoritative values over
+## `TUN-NET-INTERP-BUFFER` — see `advance`.
+var _drawn_bearing: float = 0.0
+var _drawn_halfwidth: float = 0.0
+var _settled := false
 
 
 ## Is there anything to point at? During `TUN-CONTRACT-REASSIGN-DELAY` a killer has
@@ -66,7 +78,7 @@ func has_contract() -> bool:
 ## docstring names this exact use: *"what a client uses to turn a world bearing
 ## into a camera-relative arc."*
 func cone_radians() -> float:
-	return CompassMath.angle_between(camera_yaw, bearing)
+	return CompassMath.angle_between(camera_yaw, _drawn_bearing)
 
 
 ## **HOW WIDE THE ARC IS DRAWN, IN RADIANS OF HALF-WIDTH.** The second proximity
@@ -80,10 +92,16 @@ func cone_radians() -> float:
 func cone_halfwidth() -> float:
 	if not has_contract():
 		return deg_to_rad(Tuning.compass.cone_halfwidth)
-	var degrees := CompassMath.cone_halfwidth_for(
-		Quantise.bucket_to_distance(bucket), Tuning.compass
-	)
-	return deg_to_rad(degrees)
+	if not _settled:
+		return deg_to_rad(authoritative_halfwidth())
+	return deg_to_rad(_drawn_halfwidth)
+
+
+## The width the current bucket asks for, in degrees, before any easing.
+func authoritative_halfwidth() -> float:
+	if not has_contract():
+		return Tuning.compass.cone_halfwidth
+	return CompassMath.cone_halfwidth_for(Quantise.bucket_to_distance(bucket), Tuning.compass)
 
 
 ## Seconds per pulse, from the authoritative bucket. `CompassMath.period_for` is
@@ -100,6 +118,7 @@ func period() -> float:
 ## periods — an alt-tab, a shader compile — would otherwise leave the phase above
 ## 1.0 and the ring drawn inside out until the next frame caught up.
 func advance(delta: float) -> bool:
+	_ease(delta)
 	var seconds := period()
 	if seconds <= 0.0:
 		_phase = 0.0
@@ -111,6 +130,51 @@ func advance(delta: float) -> bool:
 		_phase -= 1.0
 	pulsed.emit()
 	return true
+
+
+## **THE DRAWN ANGLES CHASE THE AUTHORITATIVE ONES, AND CAN ONLY EVER BE BEHIND.**
+##
+## The bearing arrives at `TUN-COMPASS-UPDATE-RATE` 30 Hz **quantised to a byte** —
+## `Quantise.YAW_STEP` is 1.41 degrees, which is 2.4 px at the cone's outer rim.
+## Drawn raw at 144 Hz that is a staircase: five identical frames, then a jump.
+## Worse, the wobble alone moves the bearing about 8 deg/s, so at slow angular
+## rates the value sits still for five ticks and then twitches. **Reported from the
+## controls as "not as smooth as I would like, but I wouldn't say it stutters"**,
+## which is exactly what a quantisation staircase looks like as opposed to a
+## dropped frame.
+##
+## **THIS IS NOT PREDICTION AND THE DISTINCTION IS THE WHOLE POINT.** UI_UX_SPEC
+## §3.3 forbids the Compass containing information *newer* than the simulation. An
+## exponential chase is strictly *older*: it starts behind and converges, it never
+## leads, and it never overshoots. Same sentence as TDD-04's most important one —
+## **the simulation snaps; the visual blends.**
+##
+## **THE TIME CONSTANT IS `TUN-NET-INTERP-BUFFER`, NOT A NEW NUMBER.** Every other
+## remote thing on screen is already drawn that far behind, so the cone and the
+## body it points at move on one clock. At 100 ms the steady-state lag is the rate
+## times the constant: sprinting sideways at 25 m is 15 deg/s, so 1.5 degrees
+## against a half-width of 104 — under a fiftieth of the arc, and four hundred
+## times smaller than the thing it is smoothing away is visible.
+func _ease(delta: float) -> void:
+	# **LOSING THE CONTRACT UNSETTLES THE CHASE**, so the next bearing is adopted
+	# rather than swept toward. `TUN-CONTRACT-REASSIGN-DELAY` guarantees a window of
+	# `NO_CONTRACT` between two contracts, and a cone that slid from the old bearing
+	# to the new one would draw every angle in between — a bearing that was never
+	# true, reading as the contract sprinting around you.
+	if not has_contract():
+		_settled = false
+		return
+	if not _settled:
+		_drawn_bearing = bearing
+		_drawn_halfwidth = authoritative_halfwidth()
+		_settled = true
+		return
+	var tau := maxf(Tuning.net.interp_buffer / 1000.0, 0.001)
+	var alpha := 1.0 - exp(-maxf(delta, 0.0) / tau)
+	_drawn_bearing = CompassMath.wrap_angle(
+		_drawn_bearing + CompassMath.angle_between(_drawn_bearing, bearing) * alpha
+	)
+	_drawn_halfwidth += (authoritative_halfwidth() - _drawn_halfwidth) * alpha
 
 
 func phase() -> float:
