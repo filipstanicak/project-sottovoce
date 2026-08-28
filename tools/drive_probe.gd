@@ -14,9 +14,18 @@
 ## hold/toggle latches and `SprintGate` — every one of which has held a defect at
 ## some point. Pressing the action exercises the same path a finger does.
 ##
-## **AND IT REFUSES TO RUN HEADLESS**, trap 13: there is no windowing layer to
-## deliver an action, so every reading would be zero and a zero from a blind probe
-## reads exactly like a healthy machine.
+## **AND IT REFUSES TO RUN HEADLESS — BUT NOT FOR THE REASON IT USED TO GIVE.**
+## This block said *"there is no windowing layer to deliver an action"*, and
+## `tools/bot_client.gd` disproved it: `Input.action_press` is a **synthetic** press
+## into the Input singleton and works perfectly headless, where a headless bot
+## walked 12.5 m in fifteen seconds with the server agreeing. Trap 13 is about
+## *reading a device* — a joypad axis, mouse motion — which is what
+## `tools/input_probe.gd` actually measured.
+##
+## The refusal is kept because **this probe needs a window for a different
+## reason**: it reports a reconciliation error while driving, and the render clock,
+## the camera and `PadSelection`'s device pass are all part of what it is
+## measuring. A headless reading here would be of something else.
 extends Node
 
 const CLIENT_ROOT := "res://scenes/client_root.tscn"
