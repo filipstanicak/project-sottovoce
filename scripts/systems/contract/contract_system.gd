@@ -234,6 +234,13 @@ func _announce_what_changed(ctx: MatchContext) -> void:
 			continue
 		_published[peer] = now
 		_held_until.erase(peer)
+		# **THE HUNT CLOCK STARTS WHEN THE CONTRACT IS ANNOUNCED, NOT WHEN THE GRAPH
+		# CHANGED** (US-0065). `TUN-CONTRACT-REASSIGN-DELAY` holds the announcement
+		# for three seconds after a kill, and paying `SCORE-LONGHUNT` for a breath
+		# the player spent not knowing who to look for would price the wrong thing.
+		# `SYS-DETECTION` moves it later still on the first Compass lock.
+		ctx.score_windows.begin_hunt(peer, ctx.tick)
+		ctx.score_windows.break_focus(peer)
 		var why: int = int(_reason.get(peer, Reason.REPAIR))
 		_reason.erase(peer)
 		contract_issued.emit(peer, now, why)

@@ -60,6 +60,12 @@ var lockouts: CombatLockouts = null
 ## `test_sight_is_wired_into_the_kill.gd` is what stops that shipping.
 var sight: Callable = Callable()
 
+## **WHAT A KILL IS WORTH.** Bound by `server_root`, like `sight`. Null is legal
+## and means an unscored match, which is what every combat fixture written before
+## US-0065 gets — the alternative is a hundred tests that must stand a score log up
+## to press a button.
+var scoring: KillScoring = null
+
 ## Rewinds performed since the match began. ADR-0010 allows two call sites in the
 ## whole project; the counter makes "how often" answerable rather than assumed.
 var rewinds: int = 0
@@ -146,17 +152,7 @@ func tick(ctx: MatchContext, _dt: float) -> void:
 	_resolve_contact_frames(ctx)
 	_resolve_requests(ctx)
 	stun.tick(ctx)
-	_publish_readiness(ctx)
-
-
-## The reticle hint, once per pawn per tick. Six players, two comparisons each.
-##
-## **AFTER THE PRESSES, NOT BEFORE.** A killer who has just committed must see the
-## reticle close, and computing it first would leave it open for the whole 1.4 s
-## of an animation they cannot act during.
-func _publish_readiness(ctx: MatchContext) -> void:
-	for peer: int in ctx.pawn_contexts.keys():
-		(ctx.pawn_contexts[peer] as PawnContext).kill_ready = ready_for(peer, ctx)
+	KillReadiness.publish(ctx, lockouts, sight, _is_busy)
 
 
 func teardown() -> void:
@@ -169,35 +165,11 @@ func teardown() -> void:
 	_pending.clear()
 
 
-## Would a press right now land? For the snapshot's `kill_ready` bit, which is
-## what GDD-06 §4 expands the reticle on — *"only when pressing kill would
-## succeed"*.
-##
-## **PRESENT TENSE, NOT REWOUND.** It is a hint drawn on the killer's own screen
-## about their own position, and rewinding it would make the reticle disagree with
-## what the player can see in front of them.
+## Would a press right now land? **The answer lives in `KillReadiness`** — this is
+## the door four combat tests already knock on, and moving a public question out
+## from under its callers would be a rename wearing a refactor's clothes.
 func ready_for(peer: int, ctx: MatchContext) -> bool:
-	var here: PawnContext = ctx.pawn_contexts.get(peer)
-	var contract := int(ctx.announced_contracts.get(peer, ContractCycle.NOBODY))
-	if here == null or contract == ContractCycle.NOBODY or _is_busy(ctx, peer):
-		return false
-	var target: PawnContext = ctx.pawn_contexts.get(contract)
-	if target == null or CombatTargets.is_dead(target):
-		return false
-	if lockouts != null and lockouts.is_exiled(peer, contract, ctx.tick):
-		return false
-	if lockouts != null and lockouts.is_protected(contract, ctx.tick):
-		return false
-	if CombatTargets.is_concealed(target):
-		return false
-	var t := Tuning.combat
-	return (
-		KillRules.in_reach(here.position, target.position, t)
-		and KillRules.within_cone(here.position, here.yaw, target.position, t)
-		# **THE HINT CARRIES THE SIGHT GATE TOO**, or the reticle would promise a
-		# kill through a stall that the press refuses — `stun_ready`'s lesson.
-		and KillRules.can_see(sight, here.position, target.position)
-	)
+	return KillReadiness.of(peer, ctx, lockouts, sight, _is_busy)
 
 
 func pending_count() -> int:
@@ -328,9 +300,15 @@ func _stagger(ctx: MatchContext, peer: int, victim: int) -> void:
 	contest_resolved.emit(peer, victim)
 
 
+## **THE BONUSES ARE CAPTURED HERE AND PAID AT THE CONTACT FRAME**, because
+## GDD-07 §3 judges every one of them at the moment the player committed. The
+## pending row already spans exactly that 0.9 s, so it carries them.
 func _begin(ctx: MatchContext, killer: int, victim: int) -> void:
 	var contact := ctx.tick + maxi(Tuning.ticks(&"TUN-KILL-CORPSE-SPAWN-DELAY"), 1)
-	_pending[killer] = [victim, contact]
+	var facts: KillScoreFacts = null
+	if scoring != null:
+		facts = scoring.facts_at(ctx, killer, victim)
+	_pending[killer] = [victim, contact, facts]
 	_enter(ctx, killer, PawnStateId.KILL_ANIM, PawnState.PRIORITY_COMBAT)
 
 
@@ -350,6 +328,8 @@ func _resolve_contact_frames(ctx: MatchContext) -> void:
 			# Stunned or killed before the contact frame. The save landed.
 			continue
 		_land(ctx, killer, victim)
+		if scoring != null and row.size() > 2 and row[2] != null:
+			scoring.pay_for_kill(ctx, row[2] as KillScoreFacts)
 
 
 ## Is the killer still in the animation they started?

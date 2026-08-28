@@ -142,7 +142,7 @@ relevant.
 | `SCORE-SILENT` | `suspicion <= 29` at initiation | `SuspicionSystem` |
 | `SCORE-PATIENT` | Speed history ring: max speed over the last 300 ticks (10 s) ≤ `TUN-SCORE-PATIENT-SPEED` | `PawnContext.speed_history` |
 | `SCORE-MASKED` | `AbilitySystem.is_effect_active(peer, ABIL-SECONDFACE)` | `AbilitySystem` |
-| `SCORE-FOCUS` | `los_unbroken_ticks >= 180` (6 s), with `TUN-SCORE-FOCUS-BREAK-GRACE` 0.4 s of tolerance | `DetectionSystem` |
+| `SCORE-FOCUS` | `los_unbroken_ticks >= 180` (6 s), with `TUN-SCORE-FOCUS-BREAK-GRACE` 0.4 s of tolerance. **Amended 2026-08-28 (US-0065): the streak rides `can_lock`**, so it asks for unbroken *watching* — the lock's cone and range as well as its line. It costs **zero extra raycasts**, and §3 prices this bonus for *"tracking one person in a moving crowd"*: a hunter with their back turned has a line and is tracking nobody | `DetectionSystem` |
 | `SCORE-FROMABOVE` | `killer.y - victim.y >= 3.0` at initiation | Geometry |
 | `SCORE-BLENDED` | `BlendSystem.grace_ticks_remaining(peer) > 0` | `BlendSystem` |
 | `SCORE-LONGHUNT` | `tick - hunt_start_tick`, where `hunt_start_tick = max(assignment, first_lock)` | `ContractSystem` |
@@ -158,6 +158,13 @@ relevant.
 ## of speed samples. Sized so it cannot be gamed by decelerating at the last
 ## moment — the whole window must be clean.
 var speed_history: PackedFloat32Array   # ring, 300 entries, ~1.2 KB per pawn
+## AMENDED 2026-08-28 (US-0065): this lives on `MatchContext.score_windows`, NOT
+## on `PawnContext`. That object is replayed during prediction reconciliation
+## (never-do #9), so a client replaying twenty commands would push twenty
+## duplicate samples into a gameplay buffer and the ring would then say a patient
+## player sprinted. It is US-0052's finding about the suspicion impulse queue in a
+## second place. Sampled by `SYS-SUSPICION` at stage 4 — upstream of the `combat`
+## stage the bonus is judged at, which is why nothing ticks at the `score` stage.
 
 ## SCORE-FOCUS: LOS may lapse up to TUN-SCORE-FOCUS-BREAK-GRACE (0.4 s = 12 ticks)
 ## without resetting. Without the grace the bonus is UNEARNABLE in a crowd —

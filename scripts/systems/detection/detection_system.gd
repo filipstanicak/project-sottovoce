@@ -225,6 +225,13 @@ func _read_the_compass(hunter: int, ctx: MatchContext) -> void:
 ## blocker as `PASV-STILLNESS` in `SYS-SUSPICION`. `CompassLock` takes the flag as
 ## an argument and is tested both ways, so the day a loadout exists this is one
 ## call site rather than a rule to re-derive.
+## **`SCORE-FOCUS`'s STREAK RIDES `can_lock`, WHICH DIVERGES FROM TDD-10 §2.** That
+## section writes *"unbroken LOS on the contract"*; this asks for unbroken
+## **watching** — the lock's cone and range as well as its line. It costs **zero
+## extra raycasts**, and GDD-07 §3 prices Focus for *"tracking one person in a
+## moving crowd"*: a hunter with their back turned has a line and is tracking
+## nobody. `TUN-SCORE-FOCUS-BREAK-GRACE` forgives an NPC crossing the line and a
+## moment of camera wobble alike.
 func _advance_the_lock(
 	hunter: int,
 	contract: int,
@@ -237,7 +244,11 @@ func _advance_the_lock(
 	var can_lock := metres <= t.lock_range and _within_facing_cone(here, there.position, t)
 	if can_lock and t.lock_requires_los:
 		can_lock = has_los(sight_point(here.position), sight_point(there.position))
+	# `SCORE-FOCUS` rides `can_lock` — see this function's docstring.
+	ctx.score_windows.sample_focus(hunter, can_lock, Tuning.ticks(&"TUN-SCORE-FOCUS-BREAK-GRACE"))
 	if lock.advance(hunter, contract, can_lock, MatchContext.net_dt(), false):
+		# `SCORE-LONGHUNT` runs from the LATER of assignment and first lock.
+		ctx.score_windows.note_lock(hunter, ctx.tick)
 		lock_completed.emit(hunter, contract)
 	ctx.compass.set_lock(hunter, lock.fraction_of(hunter), lock.portrait_revealed(hunter, contract))
 

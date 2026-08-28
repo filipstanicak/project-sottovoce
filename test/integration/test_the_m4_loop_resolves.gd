@@ -173,10 +173,21 @@ func test_a_kill_travels_the_whole_loop() -> void:
 	#     the game — the pool allocated ninety bodies in tests and none in a match
 	#     for a whole milestone, under a ticked criterion.
 	var log := _ctx().score
-	assert_eq(
+	var paid := ScoreFold.breakdown(log.events(), _hunter)
+	assert_true(
+		paid.has(Ids.SCORE_CONTRACT), "the killer was not paid SCORE-CONTRACT by the running server"
+	)
+	# **EXACTLY ONE RUNG OF THE SUSPICION LADDER**, in the shipped server as well as
+	# in the pure test (US-0065). The three are a partition of one number, and a
+	# kill that paid none of them is the hole the 2026-08-27 re-audit found.
+	var rungs := 0
+	for kind: StringName in [Ids.SCORE_SILENT, Ids.SCORE_HALFSEEN, Ids.SCORE_RECKLESS]:
+		rungs += 1 if paid.has(kind) else 0
+	assert_eq(rungs, 1, "a real kill paid %d rungs of the suspicion ladder" % rungs)
+	assert_gte(
 		ScoreFold.total_for(log.events(), _hunter),
 		int(round(Tuning.scoring.contract)),
-		"the killer was not paid SCORE-CONTRACT by the running server"
+		"the killer was paid less than one base kill"
 	)
 	assert_eq(ScoreFold.deaths_of(log.events(), _prey), 1, "no SCORE-DEATH marker was recorded")
 	assert_eq(ScoreFold.total_for(log.events(), _prey), 0, "dying cost or paid the victim points")
