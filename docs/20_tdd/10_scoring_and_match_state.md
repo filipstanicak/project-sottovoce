@@ -73,8 +73,27 @@ Freezing also makes the fold a pure sum, with no clock access.
 ```gdscript
 ## No autoload, no scene, no clock. This is what makes the most bug-prone part
 ## of the design the most testable part.
-static func fold(events: Array[ScoreEvent], tuning: ScoringTuning) -> Dictionary
+static func fold(events: Array[ScoreEvent]) -> Dictionary
 ```
+
+**AMENDED 2026-08-28 (US-0064): THE `tuning` ARGUMENT IS GONE, AND THIS SECTION
+CONTRADICTED ITSELF.** §1.2 freezes the multiplier at append and the struct above
+carries `base_points` already rounded — so the points are frozen twice over, and a
+fold that re-read `ScoringTuning` could produce **a different total from the one
+the score feed already showed the player** the moment a value was retuned. That is
+two sources of truth, which is the entire argument §1.1 makes against a running
+total plus a parallel stats dictionary; it applies unchanged to a parallel points
+table. The prose and the struct were right and only the signature was wrong.
+
+**AND `ScoreEvent` IS CONSTRUCTED FROM A `ScoreAward`, WHICH IS NEW.** The struct
+above is eight fields, and `ScoreEvent.new(id, tick, kind, actor, subject, points,
+rules, group)` is a call site where transposing the actor and the subject is
+invisible — it appears twelve times per kill in US-0065. `.gdlintrc` caps a
+signature at six and says in as many words that the limit is a design signal, not
+a style preference. `ScoreAward` is the record that answers it: **an award is a
+claim a system makes, an event is what the log made of that claim**, and the seam
+between them is the append. `ScoreLog.append(award, rules, group)` is the only
+entry point and the only place a `TUN-SCORE-` float becomes an integer.
 
 ### 1.4 `SCORE-VARIETY` is computed at append time
 

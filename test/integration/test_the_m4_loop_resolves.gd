@@ -167,6 +167,20 @@ func test_a_kill_travels_the_whole_loop() -> void:
 	assert_false(_root.contracts.cycle.has(_prey), "the dead player is still in the cycle")
 	assert_eq(_root.contracts.cycle.assert_valid(), "", _root.contracts.cycle.assert_valid())
 
+	# 3b. **THE KILL WAS PAID FOR, IN THE SHIPPED SERVER.** US-0064. Every other
+	#     assertion about scoring is a unit test over a `ScoreLog` a test built, and
+	#     `NpcPool`'s lesson is that a criterion can be true of a class and false of
+	#     the game — the pool allocated ninety bodies in tests and none in a match
+	#     for a whole milestone, under a ticked criterion.
+	var log := _ctx().score
+	assert_eq(
+		ScoreFold.total_for(log.events(), _hunter),
+		int(round(Tuning.scoring.contract)),
+		"the killer was not paid SCORE-CONTRACT by the running server"
+	)
+	assert_eq(ScoreFold.deaths_of(log.events(), _prey), 1, "no SCORE-DEATH marker was recorded")
+	assert_eq(ScoreFold.total_for(log.events(), _prey), 0, "dying cost or paid the victim points")
+
 	# 4. The breath ends and a new contract is announced.
 	await _run(maxi(Tuning.ticks(&"TUN-CONTRACT-REASSIGN-DELAY"), 1) + 2)
 	var after := int(_ctx().announced_contracts.get(_hunter, ContractCycle.NOBODY))

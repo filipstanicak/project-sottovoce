@@ -89,6 +89,15 @@ var cinderfall := CinderfallVolumes.new()
 ## added a write to one, which is `announced_contracts`' lesson.
 var lockouts := CombatLockouts.new()
 
+## **THE ONLY WAY POINTS ENTER THE GAME.** ADR-0004, US-0064. Append-only, and
+## adopted by reference like `lockouts` and `impulses` rather than mirrored — a
+## second copy of a score log is a scoreboard that disagrees with a results
+## screen, which is the defect TDD-10 §1.1 is entirely about.
+##
+## **NOTHING CLIENT-SIDE MAY HOLD ONE.** `test_score_no_direct_mutation.gd`
+## refuses any mention under `presentation/`, `mirrors/` or `pawn/`.
+var score := ScoreLog.new()
+
 ## `MapData` for the loaded map. Read-only to systems.
 var map: MapData = null
 
