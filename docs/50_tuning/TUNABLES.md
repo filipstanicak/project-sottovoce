@@ -359,7 +359,7 @@ Shared rules first, then per ability. Cooldowns are authoritative on the server 
 | ID | Value | Unit | Range | Rationale |
 |---|---|---|---|---|
 | `TUN-CINDERFALL-COOLDOWN` | 45.0 | s | 35–60 | Roughly once per 90-second hunt cycle. It is an escape, not a tool. |
-| `TUN-CINDERFALL-CAST-TIME` | 0.45 | s | 0.3–0.7 | The wind-and-throw. Short enough to be a panic button, long enough to be a visible tell. |
+| `TUN-CINDERFALL-CAST-TIME` | 0.45 | s | 0.3–0.7 | The wind-and-throw. Short enough to be a panic button, long enough to be a visible tell. **Read for the first time at US-0067** — the pipeline began every effect on the press tick until then, so this value was an animation length and nothing else. It is now the gap between the tell going out and the cloud existing, which is the window design law 3 asks for. **A caster killed during it drops no cloud**; nothing else interrupts a cast. |
 | `TUN-CINDERFALL-THROW-RANGE` | 8.0 | m | 5–12 | You may place it ahead of you or at your feet. Placing it ahead is the aggressive use (deny a chaser's line); at your feet is the escape. |
 | `TUN-CINDERFALL-RADIUS` | 5.0 | m | 4–7 | Twice `TUN-KILL-RANGE`. Covers a doorway or an alley mouth, not a plaza. |
 | `TUN-CINDERFALL-DURATION` | 4.0 | s | 3–6 | Long enough to break a lock (`TUN-COMPASS-LOCK-FILL-TIME` is 1.6 s) and leave; short enough that it cannot be used to camp a corner. |
@@ -389,7 +389,7 @@ Shared rules first, then per ability. Cooldowns are authoritative on the server 
 | ID | Value | Unit | Range | Rationale |
 |---|---|---|---|---|
 | `TUN-SECONDFACE-COOLDOWN` | 60.0 | s | 45–90 | The longest cooldown in the set. It is the strongest ability, because it attacks the one thing the whole game is built on: identity. |
-| `TUN-SECONDFACE-CAST-TIME` | 0.8 | s | 0.6–1.2 | A visible transition — the tell is a brief silhouette morph, readable at 20 m by anyone watching. |
+| `TUN-SECONDFACE-CAST-TIME` | 0.8 | s | 0.6–1.2 | A visible transition — the tell is a brief silhouette morph, readable at 20 m by anyone watching. **Live as of US-0067** even though `ABIL-SECONDFACE` is not: the wind-up is `AbilitySystem`'s rather than each effect's, so US-0069 inherits it. `is_effect_active` answers **false** during it — a Second Face that has not been put on yet is not a disguise, and `SCORE-MASKED` must not pay for one. |
 | `TUN-SECONDFACE-DURATION` | 15.0 | s | 10–22 | Two full Compass hunt cycles. Long enough to cross a plaza and set up; short enough that you cannot wear it as armour. |
 | `TUN-SECONDFACE-BREAK-SPEED` | 6.2 | m/s | — | Sprinting breaks it. Equals `TUN-SPEED-SPRINT`. You may run; you may not sprint. |
 | `TUN-SECONDFACE-BREAK-ON-HIT` | true | bool | — | Any stun, stagger or kill-attempt against you breaks it. |

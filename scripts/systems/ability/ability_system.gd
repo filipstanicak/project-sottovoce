@@ -24,6 +24,16 @@ signal ability_started(peer: int, ability: StringName, origin: Vector3, directio
 ## `NET-S2C-ABILITY-DENIED`, to the presser alone.
 signal ability_denied(peer: int, slot: int, why: int)
 
+## An ability that lands loudly enough to scare the crowd. **Wired in
+## `server_root` to `CrowdDirector.startle_at`**, the way `SYS-KILL`'s consequences
+## are: a system does not reach the crowd, it says what happened.
+##
+## **IT FIRES WHEN THE EFFECT BEGINS, NOT WHEN THE BUTTON IS PRESSED.** GDD-04
+## §3.1 lists the 0.45 s underarm throw and the crack as *separate* tell channels —
+## the animation is the wind-up and the crack is the impact, so the crowd scatters
+## when the pot bursts.
+signal ability_startled(at: Vector3, radius: float)
+
 ## Two active slots, `TUN-ABILITY-SLOTS-ACTIVE`. Indexed by slot, not by ability —
 ## which is why adding an ability needs no new snapshot field (TDD-09 §5.1).
 const SLOTS := 2
@@ -46,7 +56,7 @@ var _ready_at: Dictionary = {}
 ## Peer -> the tick anything may next be cast.
 var _global_ready_at: Dictionary = {}
 
-## Peer -> Array of [AbilityEffect, ends_at_tick, ability_id].
+## Peer -> Array of `LiveAbility`.
 var _live: Dictionary = {}
 
 ## Requests received this tick, drained in `tick`.
@@ -88,8 +98,19 @@ func cooldown_ticks(peer: int, slot: int) -> int:
 ## (TDD-10 §2), and so will `SYS-KILL` for Second Face's identity swap. It answers
 ## honestly today and always false, because no effect exists to be active.
 func is_effect_active(peer: int, ability: StringName) -> bool:
-	for row: Array in _live.get(peer, []) as Array:
-		if row[2] == ability:
+	for row: LiveAbility in _live.get(peer, []) as Array:
+		if row.ability == ability and row.began:
+			return true
+	return false
+
+
+## Is this ability wound up but not yet burst? **Separate from `is_effect_active`
+## on purpose**: a Second Face mid-cast is not a disguise, and a Cinderfall
+## mid-throw is not yet a cloud. Nothing in the shipped game reads this; it exists
+## so that the distinction is askable rather than inferable from two other answers.
+func is_casting(peer: int, ability: StringName) -> bool:
+	for row: LiveAbility in _live.get(peer, []) as Array:
+		if row.ability == ability and not row.began:
 			return true
 	return false
 
@@ -154,11 +175,12 @@ func _commit(
 	if data.suspicion_cost > 0.0:
 		ctx.impulses.queue(peer, data.suspicion_cost)
 	ability_started.emit(peer, ability, aim.origin, aim.direction)
-	var effect := _effect_for(data)
-	effect.begin(ctx, peer, aim)
+	var row := LiveAbility.new(_effect_for(data), ability, aim, ctx.tick + _cast_ticks(data))
 	var live: Array = _live.get(peer, [])
-	live.append([effect, ctx.tick + maxi(_duration_ticks(data), 1), ability])
+	live.append(row)
 	_live[peer] = live
+	if row.begins_at <= ctx.tick:
+		_begin(ctx, peer, row, data)
 
 
 ## **INTEGER TICK DEADLINES, NOT FLOAT TIMERS** (TDD-09 §2, TDD-03 §4.1). A float
@@ -203,35 +225,84 @@ func _effect_for(data: AbilityData) -> AbilityEffect:
 	return made as AbilityEffect if made is AbilityEffect else AbilityEffect.new()
 
 
+## **THE WIND-UP, AND IT IS WHAT MAKES THE TELL WORTH SENDING.**
+## `TUN-CINDERFALL-CAST-TIME` 0.45 s is *"the wind-and-throw — short enough to be a
+## panic button, long enough to be a visible tell"*, and a cast that resolved on the
+## press tick would broadcast a warning about something that had already happened.
+##
+## **ZERO IS A LEGAL ANSWER AND IS THE COMMON ONE.** Lunge has no `cast_time` at
+## all; the branch in `_commit` begins those on the press tick, so an ability
+## without a wind-up costs no extra tick and needs no case of its own.
+func _cast_ticks(data: AbilityData) -> int:
+	return int(round(maxf(data.cast_time, 0.0) * Tuning.net.server_tick))
+
+
 ## An ability with no duration is instantaneous and lives exactly one tick, which
 ## is what gives `end()` somewhere to run.
 func _duration_ticks(data: AbilityData) -> int:
 	return int(round(maxf(data.duration, 0.0) * Tuning.net.server_tick))
 
 
+## **THE BURST.** The effect starts, the crowd scatters, and the duration begins
+## counting from here rather than from the press — so a 0.45 s throw followed by a
+## 4.0 s cloud is 4.0 s of cloud, which is what `TUN-CINDERFALL-DURATION`'s row
+## promises and what the counterplay is priced against.
+func _begin(ctx: MatchContext, peer: int, row: LiveAbility, data: AbilityData) -> void:
+	row.began = true
+	row.ends_at = ctx.tick + maxi(_duration_ticks(data), 1)
+	if data.startle_radius > 0.0:
+		ability_startled.emit(row.aim.point, data.startle_radius)
+	row.effect.begin(ctx, peer, row.aim)
+
+
 func _advance_effects(ctx: MatchContext, dt: float) -> void:
 	for peer: int in _live.keys():
 		var kept: Array = []
-		for row: Array in _live[peer] as Array:
-			var effect := row[0] as AbilityEffect
-			if ctx.tick >= int(row[1]) or not effect.tick(ctx, dt):
-				effect.end(ctx)
-				continue
-			kept.append(row)
+		for row: LiveAbility in _live[peer] as Array:
+			if _advance(ctx, peer, row, dt):
+				kept.append(row)
 		if kept.is_empty():
 			_live.erase(peer)
 		else:
 			_live[peer] = kept
 
 
+## One cast, one tick. **A pending cast is never ticked** — `AbilityEffect.tick`
+## returning false is the documented *end early* signal, so ticking an effect that
+## has not begun would end it during its own wind-up, and the cloud would never
+## land.
+func _advance(ctx: MatchContext, peer: int, row: LiveAbility, dt: float) -> bool:
+	if not row.began:
+		if ctx.tick < row.begins_at:
+			return true
+		_begin(ctx, peer, row, Tuning.ability_data(row.ability))
+		return true
+	if ctx.tick >= row.ends_at or not row.effect.tick(ctx, dt):
+		row.effect.end(ctx)
+		return false
+	return true
+
+
 ## **IDEMPOTENT BY CONSTRUCTION**: the row is dropped before `end` is called, so a
 ## death that races an expiry cannot end the same effect twice from here — which
 ## is half of TDD-09 §3's requirement. The other half is the effect's own.
+## **A CAST THAT NEVER BEGAN IS DROPPED, NOT ENDED**, and that is the rule for a
+## caster killed mid-wind-up: there is nobody left to throw the pot, so no cloud
+## lands. The cooldown and the suspicion were spent at the press and stay spent —
+## which means a victim who read the 0.45 s tell and killed the thrower is paid for
+## reading it, and design law 3 pays off in the one place it can be measured.
+##
+## **A STUN DOES NOT CANCEL A CAST, AND THAT IS LEFT ALONE RATHER THAN DECIDED.**
+## Nothing in GDD-04 gives a stun that power — §3.1 names the counter to Cinderfall
+## as *patience*, waiting at the cloud's edge — and adding one would change the
+## ability's counterplay on my own judgement. Recorded in US-0067 as an open
+## question for the owner.
 func _end_all(peer: int) -> void:
 	var rows: Array = _live.get(peer, [])
 	_live.erase(peer)
-	for row: Array in rows:
-		(row[0] as AbilityEffect).end(_ctx)
+	for row: LiveAbility in rows:
+		if row.began:
+			row.effect.end(_ctx)
 
 
 ## The `TUN-` id for this ability's cooldown. **Derived from the `ABIL-` id**, so a

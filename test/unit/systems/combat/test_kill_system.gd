@@ -248,6 +248,34 @@ func test_a_cinder_cloud_refuses_the_initiation_including_the_casters_own() -> v
 	assert_eq(_state(A), PawnStateId.KILL_ANIM, "the fixture cannot tell a cloud from a bad kill")
 
 
+func test_a_kill_already_in_progress_completes_inside_a_cloud() -> void:
+	# **GDD-04 §3.1: the cloud forbids INITIATION, and a kill already in progress
+	# completes.** US-0067's fourth criterion, and the distinction matters both ways
+	# — a cloud that cancelled committed kills would be a hard counter to a verb
+	# that ADR-0013 made uninterruptible, and one that permitted new ones would be
+	# the blind-kill tool GDD-04 names as the ability's failure mode.
+	#
+	# The gate lives in `_verdict_for`, which runs on a **press**; the contact frame
+	# resolves from the pending row and asks nothing about clouds. That is the rule
+	# expressed as which function the check is in.
+	_two_players()
+	_press(A)
+	_advance()
+	assert_eq(_state(A), PawnStateId.KILL_ANIM, "the kill never started")
+	# The prey throws Cinderfall over both of them, one tick too late.
+	_ctx.cinderfall.add(Vector3.ZERO, _ctx.tick)
+	_advance(Tuning.ticks(&"TUN-KILL-CORPSE-SPAWN-DELAY"))
+	# **`CombatTargets.is_dead` TAKES THE PAWN, NOT THE CONTEXT AND A PEER**, and my
+	# first version passed both. It was a **parse error**, which GUT reports by
+	# *ignoring the whole file* — the folder still said "all tests passed" while
+	# running six scripts of seven, and only `.ci/run_gut.sh`'s script count caught
+	# it. Trap 10's family, and the reason that check exists.
+	assert_true(
+		CombatTargets.is_dead(_ctx.pawn_contexts[B] as PawnContext),
+		"a cloud thrown after the commitment saved the victim"
+	)
+
+
 # ----------------------------------------------------------- the contest --
 
 

@@ -142,8 +142,39 @@ func _to_dict() -> Dictionary:
 	for section: StringName in _SECTIONS:
 		out[section] = get(section)
 	out[&"flags"] = flags
-	out[&"abilities"] = abilities
-	out[&"passives"] = passives
+	out[&"abilities"] = _wireable(abilities)
+	out[&"passives"] = _wireable(passives)
+	return out
+
+
+## **NUMBERS TRAVEL; CODE AND SCENES DO NOT.** `NET-S2C-TUNING-SYNC`, US-0067.
+##
+## `serialise` is `var_to_bytes_with_objects`, so every field of every
+## `AbilityData` goes on the wire as an object — and two of them are not numbers.
+## `effect_script` is a `Script`, and TDD-09 §3 makes effects **server only**:
+## `scripts/systems/` is excluded from the client export, so a client has no
+## business holding the code and every reason not to be handed it by whatever it
+## connected to. `tell_vfx` is a `PackedScene` and is null for all four abilities
+## today, stripped here so it cannot start travelling by being filled in.
+##
+## **THIS WAS FOUND BY THE ENGINE REFUSING IT, NOT BY REVIEW.** The moment
+## `cinderfall.tres` gained an `effect_script`, `test_tuning_serialise_roundtrip.gd`
+## went red with *"Class CinderfallEffect hides a global script class"* —
+## `bytes_to_var_with_objects` re-parsing a script that is already registered. The
+## parse error is a symptom; the defect is that the script was in the payload.
+##
+## **THE HASH IS UNAFFECTED**, because `compute_hash` walks `_SECTIONS` and has
+## never included abilities — so a client and a server still agree about the tuning
+## they are playing under, and `Handshake` cannot start refusing peers over this.
+static func _wireable(rows: Dictionary) -> Dictionary:
+	var out: Dictionary = {}
+	for key: Variant in rows:
+		var row: Resource = (rows[key] as Resource).duplicate()
+		if &"effect_script" in row:
+			row.set(&"effect_script", null)
+		if &"tell_vfx" in row:
+			row.set(&"tell_vfx", null)
+		out[key] = row
 	return out
 
 

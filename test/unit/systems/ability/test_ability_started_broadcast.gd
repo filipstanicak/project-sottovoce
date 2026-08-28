@@ -58,40 +58,75 @@ func test_a_refused_cast_announces_nothing() -> void:
 	# **THE HALF THAT WOULD LEAK.** A tell on a refused cast would broadcast that
 	# somebody nearby had pressed a button and been told no — a free read on a
 	# stranger's cooldowns, which GDD-04 §5.1 makes a skill to be earned.
+	# **AND THIS ASSERTION COULD NOT HAVE FAILED UNTIL US-0067.** It counted into a
+	# lambda-captured `int`, which GDScript copies — so `told` was zero however many
+	# tells went out, and "a refused cast announced nothing" was true of every cast
+	# ever made. Found because the same shape failed in a test that expected **one**.
 	_system.loadout.erase(A)
-	var told := 0
+	var told: Array = []
 	_system.ability_started.connect(
-		func(_p: int, _a: StringName, _o: Vector3, _d: Vector3) -> void: told += 1
+		func(_p: int, _a: StringName, _o: Vector3, _d: Vector3) -> void: told.append(1)
 	)
 	_cast(A)
-	assert_eq(told, 0, "a refused cast still announced itself")
+	assert_eq(told.size(), 0, "a refused cast still announced itself")
 	assert_eq(_system.activations, 0, "the fixture did not actually refuse")
 
 
 func test_the_tell_is_emitted_before_the_effect_begins() -> void:
-	# **ASSERTED ON THE SOURCE, AND SAYING SO IS THE POINT.** The behavioural test
-	# needs an effect that outlives its own first tick, and there is not one:
-	# `AbilityEffect.tick` returns false — *"return false to end early"* — so the
-	# base ends inside the tick it began, which is the honest thing for a no-op to
-	# do. **My first version asserted `is_effect_active` after a cast and read
-	# false**, which looks exactly like an effect that never started and is in fact
-	# an effect that finished. US-0067 is the first story that can watch this
-	# properly; until then the ordering is guarded where it lives.
+	# **ASSERTED ON THE SOURCE, FOR THE ABILITY THAT HAS NO WIND-UP.** An ability
+	# with a `cast_time` gets the separation for free — the tell fires at the press
+	# and the effect begins `TUN-<ABIL>-CAST-TIME` later — so the ordering only
+	# matters for one that begins on the press tick, and there the two lines are
+	# adjacent in `_commit`. **US-0066's version of this note said the behavioural
+	# test was impossible; US-0067 made half of it possible and this is the half
+	# that is still source-only.**
 	var source := SourceScanner.read("res://scripts/systems/ability/ability_system.gd")
 	var tell := source.find("ability_started.emit")
-	var begins := source.find("effect.begin(")
+	var begins := source.find("_begin(ctx, peer, row, data)")
 	assert_gt(tell, 0, "the tell left `_commit`")
 	assert_gt(begins, 0, "the effect is never begun")
 	assert_lt(tell, begins, "the effect begins before the tell goes out — design law 3")
 
 
-func test_a_no_op_effect_ends_inside_the_tick_it_began() -> void:
-	# The other half of the same fact, behaviourally. `end()` must still run — an
-	# effect that began and never ended would leak a row per cast for the match.
+func test_the_tell_precedes_the_cloud_by_the_whole_wind_up() -> void:
+	# **THE BEHAVIOURAL HALF, WHICH `ABIL-CINDERFALL` MADE POSSIBLE** (US-0067). The
+	# victim gets `TUN-CINDERFALL-CAST-TIME` 0.45 s between being told and the world
+	# changing, and that window is the entire reason the cast time exists.
+	# **AN ARRAY, NOT AN INT, AND THAT IS NOT A STYLE CHOICE.** A GDScript lambda
+	# captures a local by **value**, so `told += 1` inside one increments a copy and
+	# the assertion outside reads whatever it started at. An append mutates the
+	# object both sides hold.
+	var told: Array = []
+	_system.ability_started.connect(
+		func(_p: int, _a: StringName, _o: Vector3, _d: Vector3) -> void: told.append(1)
+	)
 	_cast(A)
+	assert_eq(told.size(), 1, "the tell did not go out on the press tick")
+	assert_eq(_ctx.cinderfall.count_at(_ctx.tick), 0, "the cloud existed on the press tick")
+	for _i: int in Tuning.ticks(&"TUN-CINDERFALL-CAST-TIME") + 1:
+		_ctx.tick += 1
+		_system.tick(_ctx, MatchContext.net_dt())
+	assert_eq(_ctx.cinderfall.count_at(_ctx.tick), 1, "the cloud never landed")
+	assert_eq(told.size(), 1, "the tell fired twice for one cast")
+
+
+func test_a_no_op_effect_ends_inside_the_tick_it_began() -> void:
+	# `end()` must still run — an effect that began and never ended would leak a row
+	# per cast for the match.
+	#
+	# **IT CASTS LUNGE, AND IT CAST CINDERFALL UNTIL US-0067.** Cinderfall has a real
+	# effect now, so this file kept passing while measuring nothing: after one tick a
+	# Cinderfall is mid-wind-up, which reports inactive for a completely different
+	# reason. `ABIL-LUNGE` is the ability whose `effect_script` is still null, which
+	# is what this test is about.
+	assert_null(
+		Tuning.ability_data(Ids.ABIL_LUNGE).effect_script,
+		"Lunge gained an effect; move this test to whichever ability still has none"
+	)
+	_cast(A, 1)
 	assert_eq(_system.activations, 1)
 	assert_false(
-		_system.is_effect_active(A, Ids.ABIL_CINDERFALL),
+		_system.is_effect_active(A, Ids.ABIL_LUNGE),
 		"a base AbilityEffect stayed live past the tick it started"
 	)
 
