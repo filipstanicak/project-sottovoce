@@ -170,9 +170,15 @@ func _start_the_crowd_system() -> void:
 	# **ADR-0015: A KILL NEEDS A CLEAR LINE.** Bound rather than reached for —
 	# `KillRules` is pure Core and `has_los` is `SYS-DETECTION`'s single ray site.
 	kills.sight = detection.clear_line
+	# **WHAT A KILL IS WORTH, BOUND RATHER THAN REACHED FOR** (US-0065). `SYS-BLEND`
+	# is handed over because `SCORE-BLENDED` asks it a question.
+	kills.scoring = KillScoring.new(suspicion.blend)
 	kills.killed.connect(_on_killed)
 	kills.kill_rejected.connect(announcer.kill_rejected)
 	kills.stun.stunned.connect(announcer.stunned)
+	# **A STUN IS PAID FOR HERE RATHER THAN INSIDE `SYS-STUN`**, which decides and
+	# announces; nothing about scoring is decided in it.
+	kills.stun.stunned.connect(_pay_for_stun)
 	kills.stun.stun_rejected.connect(announcer.stun_rejected)
 
 
@@ -278,33 +284,7 @@ func _on_killed(killer: int, victim: int, at: Vector3) -> void:
 	crowd_director.register_corpse(at, director.ctx.tick, victim)
 	crowd_director.startle_at(at)
 	_charge_for_witnesses(killer, at)
-	_record_the_score(killer, victim)
 	announcer.kill_landed(killer, victim)
-
-
-## **THE FIRST TWO EVENTS THE SCORE LOG HAS EVER HELD.** US-0064.
-##
-## `SCORE-CONTRACT` is unconditional here because `SYS-KILL` only ever kills the
-## **announced** contract — there is no other kill in this game — so every kill
-## that reaches this handler is a contract kill by construction. **The other eleven
-## bonuses are US-0065's**, and this deliberately does not guess at them: each is
-## judged at *initiation* against state this handler no longer has.
-##
-## `SCORE-DEATH` is the marker that delimits lives (TDD-10 §1.4). It is worth zero
-## and is a real event rather than a sentinel, so the results screen counts deaths
-## from the same log it reads everything else from.
-##
-## **BOTH SHARE A GROUP**, which is what lets the feed draw one kill as one line.
-func _record_the_score(killer: int, victim: int) -> void:
-	var ctx := director.ctx
-	var rules := Tuning.match_rules
-	var group := ctx.score.open_group()
-	ctx.score.append(
-		ScoreAward.new(ctx.tick, Ids.SCORE_CONTRACT, killer, victim, Tuning.scoring.contract),
-		rules,
-		group
-	)
-	ctx.score.mark_death(ctx.tick, victim, killer, rules, group)
 
 
 ## US-0052's last criterion: `TUN-SUSPICION-GAIN-WITNESSED-KILL` applies only if
@@ -328,8 +308,14 @@ func _charge_for_witnesses(killer: int, at: Vector3) -> void:
 		return
 
 
+func _pay_for_stun(stunner: int, target: int, _lockout_ticks: int) -> void:
+	if kills.scoring != null:
+		kills.scoring.pay_for_stun(director.ctx, stunner, target)
+
+
 func _on_peer_left(peer: int) -> void:
 	contracts.report_disconnect(peer, director.ctx)
+	director.ctx.score_windows.forget(peer)
 	contracts.spawn.forget(peer)
 	detection.warning.forget(peer)
 	kills.forget(peer)

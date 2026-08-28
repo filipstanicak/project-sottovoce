@@ -46,8 +46,12 @@ occlusion can never disagree.
       What *did* become rewindable is the cinder-cloud half: `CinderfallVolumes` records a
       lit tick as well as an expiry, and every liveness question now takes the tick it is
       asked about.
-- [ ] Called by lock progression, Focus tracking and kill validation.
-      **Three of the four callers exist; only Focus is outstanding, and it is US-0064's.**
+- [x] Called by lock progression, Focus tracking and kill validation.
+      **All four exist as of US-0065.** Focus was the last, and it needed no query
+      of its own: it rides `can_lock`, which is the same ordered pair the Compass
+      lock already asks about. That is a divergence from TDD-10 §2's literal
+      *"unbroken LOS"* — it asks for unbroken **watching** — and it is recorded
+      there rather than absorbed.
       `SYS-COMPASS`'s lock calls it as of US-0058 — `TUN-COMPASS-LOCK-REQUIRES-LOS` — and
       `test_lock_through_crowd.gd` measures the ladder: zero raycasts for a hunter facing
       away, one for a hunter watching. **US-0060 added the witnessed-kill check**, which asks
@@ -60,7 +64,7 @@ occlusion can never disagree.
       `NAV_AGENT_RADIUS` clear of each face, so **the twelve blend spots form six pairs at
       2.80 m against a 2.85 m reach** — mutually killable through the stall they are hiding
       behind. `DetectionSystem.clear_line()` is the body-to-body form and lifts both endpoints,
-      since `RewoundWorld` holds feet. **Focus tracking is US-0064 and is the one still open.**
+      since `RewoundWorld` holds feet. **Focus tracking landed in US-0065 and costs no raycast of its own.**
 
 ## Test notes
 

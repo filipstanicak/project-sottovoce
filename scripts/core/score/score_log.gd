@@ -47,6 +47,57 @@ func mark_death(
 	return append(ScoreAward.new(at, Ids.SCORE_DEATH, victim, killer, 0.0), rules, group)
 
 
+## **ONE KILL, ONE GROUP, AND `SCORE-VARIETY` COMPUTED HERE.** TDD-10 §1.4.
+##
+## Variety is the one bonus the fold cannot do, because it counts against **the
+## events already in the log**: `n` is how many of this kill's bonus types the
+## actor has not earned since their last death. Making the fold stateful to
+## accommodate one bonus would cost more than this exception does.
+##
+## **ITSELF, `SCORE-CONTRACT` AND `SCORE-RECKLESS` ARE EXCLUDED** (ASM-0017).
+## Contract is on every kill, so counting it would pay a flat 50 for existing;
+## Reckless is a marker worth nothing, so counting it would pay for carelessness.
+## **`SCORE-HALFSEEN` IS NOT EXCLUDED, AND ASM-0017 PREDATES IT** — the middle rung
+## was added on 2026-08-27 and nobody has said whether a tier rung should count as
+## variety. Reported rather than decided: it is one entry in this list.
+##
+## **PAID AS ONE EVENT OF `variety × n`, NOT `n` EVENTS.** The feed draws a kill as
+## one line with a breakdown, and `n` identical lines saying +50 would be the
+## breakdown lying about what happened.
+func append_kill(awards: Array[ScoreAward], rules: MatchTuning, s: ScoringTuning) -> int:
+	if awards.is_empty():
+		return 0
+	var group := open_group()
+	var head := awards[0]
+	var fresh := variety_count(head.actor, awards)
+	for award: ScoreAward in awards:
+		append(award, rules, group)
+	if fresh > 0:
+		append(
+			ScoreAward.new(
+				head.tick, Ids.SCORE_VARIETY, head.actor, head.subject, s.variety * float(fresh)
+			),
+			rules,
+			group
+		)
+	return group
+
+
+## How many of these kinds the actor has not earned since their last death.
+func variety_count(actor: int, awards: Array[ScoreAward]) -> int:
+	var already: Dictionary = {}
+	for event: ScoreEvent in ScoreFold.since_last_death(_events, actor):
+		already[event.kind] = true
+	var fresh := 0
+	for award: ScoreAward in awards:
+		if award.kind in [Ids.SCORE_VARIETY, Ids.SCORE_CONTRACT, Ids.SCORE_RECKLESS]:
+			continue
+		if not already.has(award.kind):
+			already[award.kind] = true
+			fresh += 1
+	return fresh
+
+
 ## A fresh id tying one kill's bonuses together for the feed.
 func open_group() -> int:
 	var id := _next_group

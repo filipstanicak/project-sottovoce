@@ -98,6 +98,16 @@ var lockouts := CombatLockouts.new()
 ## refuses any mention under `presentation/`, `mirrors/` or `pawn/`.
 var score := ScoreLog.new()
 
+## **THE FOUR THINGS A BONUS NEEDS THAT ONE TICK CANNOT ANSWER.** US-0065.
+## Sampled by `SYS-SUSPICION` (speed) and `SYS-DETECTION` (line of sight) at stages
+## 4 and 5, read by `SYS-KILL` at stage 7 — **upstream of the initiation it is
+## judged at**, which is why there is no system at the `score` stage.
+##
+## **NOT ON `PawnContext`, WHICH IS WHERE TDD-10 §2.1 PUTS IT.** That object is
+## replayed during prediction reconciliation, so a client replaying twenty commands
+## would push twenty duplicate speed samples into a gameplay buffer.
+var score_windows := ScoreWindows.new()
+
 ## `MapData` for the loaded map. Read-only to systems.
 var map: MapData = null
 

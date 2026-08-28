@@ -195,6 +195,11 @@ func _force_exposed_while_stunned(s: SuspicionState, pawn: PawnContext, t: Suspi
 
 
 ## Everything the integrator is allowed to know, read from this tick's world.
+##
+## **`SCORE-PATIENT`'s SPEED WINDOW RIDES THIS PASS** (US-0065): the same
+## horizontal number, sampled at stage 4 — three stages before the kill initiation
+## it is judged at. A sampler of its own at the `score` stage would answer one tick
+## late, and one on `PawnContext` would be replayed twenty times by prediction.
 func _read_the_world(
 	peer: int, s: SuspicionState, pawn: PawnContext, ctx: MatchContext, t: SuspicionTuning
 ) -> void:
@@ -215,6 +220,8 @@ func _read_the_world(
 	# in the game, permanently, with nothing to see. Every radius and every ceiling
 	# in this design is a distance across the district rather than through it.
 	s.speed = Vector2(pawn.velocity.x, pawn.velocity.z).length()
+
+	ctx.score_windows.sample_speed(peer, s.speed, Tuning.ticks(&"TUN-SCORE-PATIENT-WINDOW"))
 
 	# Absolute, and TUNABLES says so: it works while the street stratum is flat at
 	# y = 0, and a map with varying ground level needs stratum data in `MapData`.
