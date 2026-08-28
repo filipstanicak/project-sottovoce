@@ -157,18 +157,20 @@ func test_a_fixed_cone_would_point_at_one_body() -> void:
 	)
 
 
-func test_the_ring_closes_at_the_space_you_are_standing_in() -> void:
-	# **INVARIANT 33's FIRST CLAUSE, AND WHERE THE 6.0 m COMES FROM.** The Compass
-	# stops pointing exactly when the game already considers your contract to be in
-	# your own surroundings — the radius the alone-check and the spatial-hash cell
-	# both use. Derived rather than chosen, which is why it is asserted rather than
-	# written down.
+func test_the_ring_closes_where_the_lock_starts_working() -> void:
+	# **INVARIANT 33's FIRST CLAUSE, AND WHERE THE 20.0 m COMES FROM.** The arc
+	# stops saying *which way* at exactly the range the lock begins to work, so a
+	# player learns one boundary rather than two: outside it the instrument points,
+	# inside it you look, and looking is what the lock is for. Derived rather than
+	# chosen, which is why it is asserted rather than written down.
 	assert_almost_eq(
 		CompassMath.full_ring_distance(_t),
-		Tuning.suspicion.open_radius,
+		_t.lock_range,
 		0.001,
-		"the ring radius is no longer TUN-SUSPICION-OPEN-RADIUS, so it is now a chosen number"
+		"the ring radius is no longer TUN-COMPASS-LOCK-RANGE, so it is now a chosen number"
 	)
+	# The hand-off only means anything while there is something to hand over to.
+	assert_lt(_t.lock_range, _t.range_max, "the lock reaches as far as the Compass does")
 
 
 func test_the_ring_closes_before_a_kill_is_possible() -> void:

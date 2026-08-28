@@ -35,15 +35,16 @@ extends Resource
 @export_range(8.0, 20.0, 0.1) var cone_halfwidth: float = 12.0
 
 ## Where the arc becomes a whole ring and the Compass stops saying which way, saying only here,
-## somewhere. Derived, not chosen: it equals TUN-SUSPICION-OPEN-RADIUS — invariant 33 — because
-## that is already this game's answer to how big is the space you are standing in, the radius the
-## alone-check and the spatial-hash cell both use. Inside it your contract is one of the bodies
-## around you, and the instrument has nothing left to add. Added 2026-08-27 for reference
-## fidelity: "when you're looking at a complete circle, you know that your target is within
-## range" — within engagement range, not touching. The first cut derived the radius from the
-## half-width alone and closed the ring at 4.0 m, which was judged too tight at the controls.
+## somewhere. Derived, not chosen: it equals TUN-COMPASS-LOCK-RANGE — invariant 33 — whose own
+## rationale is that a lock "always means 'I am in the same space as them'". That is exactly the
+## sentence the ring needs, so the two are one boundary a player learns once: outside it the
+## instrument points, inside it you look, and looking is what the lock is for. Reference
+## semantics: "when you're looking at a complete circle, you know that your target is within
+## range" — within engagement range, not touching. Widened twice on the same day, both times at
+## the controls: 4.0 m derived from the half-width alone, then 6.0 m at TUN-SUSPICION-OPEN-
+## RADIUS, both judged as having to stand on top of the contract.
 ## TUN-COMPASS-CONE-FULL-RADIUS
-@export_range(4.0, 9.0, 0.1) var cone_full_radius: float = 6.0
+@export_range(6.0, 24.0, 0.1) var cone_full_radius: float = 20.0
 
 ## Deterministic slow drift of the cone's centre, seeded per contract so it is a stable property
 ## of this hunt rather than a per-frame lie.
