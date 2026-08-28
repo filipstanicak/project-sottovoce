@@ -52,6 +52,12 @@ signal blend_denied(why: int)
 ## would lag the mouse by the round trip on a marker whose whole job is to point.
 signal prey_warned(bearing_radians: float, bucket: int)
 
+## `NET-S2C-ABILITY-STARTED`. The tell, on the wire.
+signal ability_started(caster_slot: int, ability: StringName, origin: Vector3, direction: Vector3)
+
+## `NET-S2C-ABILITY-DENIED`. To the presser alone.
+signal ability_denied(slot: int, why: int)
+
 
 ## `NET-S2C-CONTRACT-ASSIGNED`. SERVER SIDE, **to the holder only**.
 ##
@@ -158,3 +164,50 @@ func send_prey_warning(peer: int, bearing_radians: float, bucket: int) -> void:
 @rpc("authority", "call_remote", "reliable", Messages.Channel.EVENT)
 func s2c_prey_warning(bearing_byte: int, bucket: int) -> void:
 	prey_warned.emit(Quantise.u8_to_yaw(bearing_byte), bucket)
+
+
+## `NET-S2C-ABILITY-STARTED`. SERVER SIDE, **to everybody who could perceive it**.
+##
+## **THIS IS DESIGN LAW 3 ON THE WIRE, AND IT IS THE ONE BROADCAST IN THIS FILE.**
+## Every other message here has a recipient list that is the rule — a kill result
+## goes to two people because a global kill feed would convert an inference into a
+## fact. A tell is the opposite: *no ability resolves without the victim having had
+## a perceivable chance to read it*, so the failure mode is somebody **not** being
+## told. The radius is the ability's own `TUN-<ABIL>-TELL-AUDIO-RADIUS`.
+##
+## **RELIABLE, AND THAT IS NOT THE DEFAULT CHOICE FOR A COSMETIC.** A dropped
+## snapshot costs one frame of smoothness; a dropped tell costs the victim their
+## only warning, and TDD-09's own note says tell latency is a netcode issue rather
+## than a balance one — *if Lunge proves unstunnable in practice, check delivery
+## time before touching tunables.*
+func send_ability_started(
+	peer: int, caster_slot: int, ability: StringName, origin: Vector3, direction: Vector3
+) -> void:
+	if not Net.is_server:
+		return
+	s2c_ability_started.rpc_id(peer, caster_slot, ability, origin, direction)
+
+
+@rpc("authority", "call_remote", "reliable", Messages.Channel.EVENT)
+func s2c_ability_started(
+	caster_slot: int, ability: StringName, origin: Vector3, direction: Vector3
+) -> void:
+	ability_started.emit(caster_slot, ability, origin, direction)
+
+
+## `NET-S2C-ABILITY-DENIED`. SERVER SIDE, **to the presser alone**.
+##
+## **IT CARRIES ITS REASON, UNLIKE THE STUN REFUSAL**, and the difference is who
+## the reason is about. A stun refusal that named its reason would be a free
+## identity probe; every reason here is a fact about the presser's own kit, their
+## own cooldown, their own state. There is nothing in it to learn about anybody
+## else, which is what makes it safe to be helpful.
+func send_ability_denied(peer: int, slot: int, why: int) -> void:
+	if not Net.is_server:
+		return
+	s2c_ability_denied.rpc_id(peer, slot, why)
+
+
+@rpc("authority", "call_remote", "reliable", Messages.Channel.EVENT)
+func s2c_ability_denied(slot: int, why: int) -> void:
+	ability_denied.emit(slot, why)

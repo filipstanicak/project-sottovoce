@@ -39,10 +39,13 @@ Constrained spawn selection with a fallback that cannot fail.
 - [x] Suspicion resets to zero on respawn — **through `TUN-RESPAWN-SUSPICION`**, which had no
       reader at all before this story: `PawnContext.reset_for_spawn` writes a literal `0.0`
       that *agrees* with the tunable without reading it.
-- [ ] Ability cooldowns reset on death. **Blocked: there are no ability cooldowns.**
-      `SYS-ABILITY` is M5 and `PawnContext` has no cooldown field, so there is nothing to
-      reset. `reset_for_spawn` is the one call site and will honour them when they exist;
-      it already clears `ability_buffer_ticks`.
+- [x] Ability cooldowns reset on death.
+      **Done in US-0066, and not where this story expected.** The note here read
+      *"`reset_for_spawn` is the one call site and will honour them when they
+      exist"*, and that would have been wrong: `PawnContext` is **replayed during
+      prediction reconciliation**, so a cooldown living there would be rewound and
+      re-applied on every correction. `AbilitySystem.on_death` owns them and
+      `server_root._on_killed` calls it in the tick the death resolves.
 - [x] From any single camping position, at least three spawns remain valid. **Swept over
       3 721 positions on a 2 m grid rather than the four the analysis names**, and the worst
       is exactly 3 — at (0, 58), which is not one of the four.

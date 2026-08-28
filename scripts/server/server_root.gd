@@ -27,6 +27,7 @@ var _fallen_reported: int = 0
 @onready var suspicion: SuspicionSystem = $Systems/SuspicionSystem
 @onready var detection: DetectionSystem = $Systems/DetectionSystem
 @onready var kills: KillSystem = $Systems/KillSystem
+@onready var abilities: AbilitySystem = $Systems/AbilitySystem
 
 
 func _ready() -> void:
@@ -165,6 +166,13 @@ func _start_the_crowd_system() -> void:
 	suspicion.blend.blend_refused.connect(announcer.blend_refused)
 	director.register(detection)
 	detection.prey_warned.connect(announcer.prey_warned)
+	# **BEFORE `combat`**: a Cinderfall thrown this tick must already block kills
+	# when the kill stage runs, and `SystemOrder` is what makes that true.
+	director.register(abilities)
+	abilities.setup(director.ctx)
+	router.ability_requested.connect(abilities.report_request)
+	abilities.ability_started.connect(_on_ability_started)
+	abilities.ability_denied.connect(announcer.ability_denied)
 	director.register(kills)
 	kills.setup(director.ctx)
 	# **ADR-0015: A KILL NEEDS A CLEAR LINE.** Bound rather than reached for —
@@ -173,6 +181,14 @@ func _start_the_crowd_system() -> void:
 	# **WHAT A KILL IS WORTH, BOUND RATHER THAN REACHED FOR** (US-0065). `SYS-BLEND`
 	# is handed over because `SCORE-BLENDED` asks it a question.
 	kills.scoring = KillScoring.new(suspicion.blend)
+	_wire_the_combat_answers()
+
+
+## Every message the two combat systems produce, and the one payment a stun earns.
+## **Split from `_start_the_crowd_system` for the length guard**, and the seam is
+## honest: above is *register the systems in the document's order*, here is *what
+## anybody is told when one of them decides something*.
+func _wire_the_combat_answers() -> void:
 	kills.killed.connect(_on_killed)
 	kills.kill_rejected.connect(announcer.kill_rejected)
 	kills.stun.stunned.connect(announcer.stunned)
@@ -206,6 +222,7 @@ func _await_navigation_map(map: RID) -> void:
 ## It was `net_ticked` until US-0035, while this file claimed "last in the tick".
 ## Full account on `MatchDirector.tick_completed`.
 func _wire_end_of_tick() -> void:
+	snapshots.abilities = abilities
 	snapshots.setup(director.ctx, pawns, router)
 	director.tick_completed.connect(snapshots.send_all)
 	router.snapshot_acked.connect(snapshots.note_ack)
@@ -262,6 +279,17 @@ func _on_peer_joined(peer: int) -> void:
 	if pawns.spawn(peer):
 		router.set_pawn_owner(peer, true)
 		contracts.report_join(peer, director.ctx)
+		# **A PLACEHOLDER LOADOUT, AND IT SAYS SO.** `NET-C2S-LOADOUT` and the lobby
+		# are US-0071's; until then every player carries the two MVP actives, because
+		# a pipeline nobody can reach is a pipeline nobody can test.
+		abilities.loadout[peer] = [Ids.ABIL_CINDERFALL, Ids.ABIL_LUNGE]
+
+
+## The tell. Broadcast rather than addressed — see `MatchAnnouncer.ability_started`.
+func _on_ability_started(
+	peer: int, ability: StringName, origin: Vector3, direction: Vector3
+) -> void:
+	announcer.ability_started(director.ctx, peer, ability, origin, direction)
 
 
 ## **EVERY OWNER OF PER-PEER STATE IS TOLD, IN ONE PLACE.** ENet reuses peer ids,
@@ -284,6 +312,7 @@ func _on_killed(killer: int, victim: int, at: Vector3) -> void:
 	crowd_director.register_corpse(at, director.ctx.tick, victim)
 	crowd_director.startle_at(at)
 	_charge_for_witnesses(killer, at)
+	abilities.on_death(victim)
 	announcer.kill_landed(killer, victim)
 
 
@@ -316,6 +345,7 @@ func _pay_for_stun(stunner: int, target: int, _lockout_ticks: int) -> void:
 func _on_peer_left(peer: int) -> void:
 	contracts.report_disconnect(peer, director.ctx)
 	director.ctx.score_windows.forget(peer)
+	abilities.forget(peer)
 	contracts.spawn.forget(peer)
 	detection.warning.forget(peer)
 	kills.forget(peer)

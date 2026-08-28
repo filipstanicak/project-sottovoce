@@ -37,6 +37,15 @@ var delta := SnapshotDelta.new()
 ## one of them. `NpcDelta` keys per NPC and advances on the ack. TDD-04 §7.1.2.
 var crowd_delta := NpcDelta.new()
 
+## `SYS-ABILITY`, for the owner's own cooldowns. **Optional**: every snapshot test
+## written before US-0066 builds this without one, and a null means both cooldowns
+## read zero — which is what a match with no abilities should say.
+##
+## **THERE IS NO FIELD IN THE FORMAT FOR ANOTHER PLAYER'S COOLDOWNS**, which is the
+## rule living in the wire rather than in a filter — **kit-reading is a skill**
+## (GDD-04 §5.1), and a hunter who could see your Lunge was down would simply wait.
+var abilities: AbilitySystem = null
+
 var _ctx: MatchContext
 var _pawns: PawnHost
 var _router: RpcRouter
@@ -246,6 +255,7 @@ func _fill_own(snapshot: Snapshot, peer: int) -> void:
 	snapshot.blend_state = own.blend_state
 	snapshot.kill_ready = own.kill_ready
 	snapshot.stun_ready = own.stun_ready
+	_fill_cooldowns(snapshot, peer)
 
 	# **THE COMPASS BLOCK, BUCKETED AND WOBBLED BEFORE IT GOT HERE** (US-0057).
 	# `SYS-DETECTION` decided both at the `detection` stage; this reads them. The
@@ -310,3 +320,14 @@ static func _mask(records: Array) -> int:
 		if slot > 0 and slot <= 8:
 			mask |= 1 << (slot - 1)
 	return mask
+
+
+## **YOUR OWN COOLDOWNS AND NOBODY ELSE'S** — see the `abilities` field above.
+## Split out for the length guard, and the seam is the one the format already
+## draws: this is the only part of the own-gameplay block that comes from a system
+## rather than from the pawn.
+func _fill_cooldowns(snapshot: Snapshot, peer: int) -> void:
+	if abilities == null:
+		return
+	snapshot.cooldown_a_tick = abilities.cooldown_ticks(peer, 0)
+	snapshot.cooldown_b_tick = abilities.cooldown_ticks(peer, 1)

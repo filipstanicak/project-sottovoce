@@ -127,6 +127,18 @@ func _attach_district_map() -> void:
 	if not OS.has_feature("debug") or not ResourceLoader.exists(MAP_PATH):
 		return
 	(load(MAP_PATH) as GDScript).attach(self, self)
+	_attach_the_toggle()
+
+
+## **AND ONE KEY TURNS ALL FOUR OFF.** `F3`. Attached last, so it finds every
+## overlay above it as a sibling; by the same two guards, because it is debug code
+## like the rest. Four overlays at once cover the top-left quarter of the screen
+## and repaint the district, and the HUD is drawn underneath them.
+func _attach_the_toggle() -> void:
+	const TOGGLE_PATH := "res://scripts/debug/debug_overlays.gd"
+	if not OS.has_feature("debug") or not ResourceLoader.exists(TOGGLE_PATH):
+		return
+	(load(TOGGLE_PATH) as GDScript).attach(self)
 
 
 func _physics_process(delta: float) -> void:
