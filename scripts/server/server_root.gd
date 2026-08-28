@@ -231,6 +231,12 @@ func _wire_end_of_tick() -> void:
 	lag_comp.setup(director.ctx, pawns)
 	director.tick_completed.connect(lag_comp.record)
 
+	# **THE SCORE LOG IS DRAINED LAST, LIKE THE SNAPSHOT AND FOR THE SAME REASON.**
+	# Every bonus a tick pays is appended by the `combat` stage; a courier on
+	# `net_ticked` would send the previous tick's, so a kill and the points for it
+	# would reach the player 33 ms apart with nothing saying why.
+	director.tick_completed.connect(announcer.flush_score)
+
 
 ## **HOW OFTEN THE INPUT QUEUE RAN DRY**, once every ten seconds and only while it
 ## is happening. A starved tick repeats the peer's last command, which is a step

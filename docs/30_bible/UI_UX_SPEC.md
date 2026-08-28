@@ -214,7 +214,7 @@ Nothing else in the game takes the whole screen.
 | Stagger within one kill | `TUN-UI-SCOREFEED-STAGGER` 0.12 s |
 | Entry | Slide 16 px + fade, 0.15 s |
 | Exit | Fade only, 0.3 s |
-| Layout | Value right-aligned (tabular), name left-aligned below |
+| Layout | Value right-aligned (tabular), name left-aligned below. **Built US-0074.** Tabular has no Godot equivalent, so `ScoreFeedWidget` walks backwards from the right edge advancing by the widest digit's width — which gives right-alignment and tabular spacing in one operation |
 
 ### 5.1 Why the stagger matters
 
@@ -229,6 +229,19 @@ Paired with `SFX-SCORE-BONUS-LARGE` pitching up per position in the stack, a fou
 
 `−50 Reckless` uses the penalty treatment: different plate, different weight, no ascending pitch.
 The one negative event must never read as a smaller positive one.
+
+**"Different plate" means every line has one, and US-0074 built it that way only after looking at
+it.** The first build plated the penalty alone; white text over the district's pale sky is at the
+edge of legible at the fovea and gone in the periphery, which fails §5's own requirement that the
+feed be read *without being looked at*. Every line gets the neutral `Palette.plate`; a penalty
+gets a warm one from `Palette.score_penalty`, so the difference survives the monochrome palette
+as a **value** difference rather than a hue one.
+
+**AND `−50 Reckless` IS NO LONGER A THING THAT HAPPENS.** ADR-0013 took `TUN-SCORE-RECKLESS` to
+**zero** on 2026-08-26, so no shipped bonus pays below zero and this treatment has no producer.
+It is built, tested and dormant, and it is reachable only through `tools/hud_probe.tscn`'s frame
+14. `SCORE-RECKLESS` still draws — the line saying *you were seen* is the half that teaches — and
+it draws in the **neutral** treatment, because a zero is not a fine.
 
 ---
 

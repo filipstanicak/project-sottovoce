@@ -117,6 +117,17 @@ func size() -> int:
 	return _events.size()
 
 
+## Everything appended at or after `index`. **A cursor over an append-only log is
+## how the wire stays honest without a call site knowing it exists** — US-0065
+## added two append points and US-0097 will add more, and a courier that hooked
+## each one is a list somebody forgets to extend. `MatchAnnouncer` holds the index
+## and this hands back only what it has not seen.
+func tail(index: int) -> Array[ScoreEvent]:
+	if index >= _events.size():
+		return [] as Array[ScoreEvent]
+	return _events.slice(maxi(index, 0))
+
+
 ## The scoreboard. Every reader goes through the fold; there is no running total
 ## anywhere to disagree with it.
 func totals() -> Dictionary:

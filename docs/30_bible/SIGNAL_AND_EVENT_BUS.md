@@ -74,7 +74,7 @@ Both are **past tense**. The bus reports what *has happened*, never what *should
 
 | EVT- ID | Signal | Payload | Emitted when | Consumers |
 |---|---|---|---|---|
-| `EVT-SCORE-EVENT-APPENDED` | `score_event_appended(event: ScoreEvent)` | The immutable event | A `ScoreEvent` arrives | `ScoreFeedVM`, `ScoreMirror`, `Audio` |
+| `EVT-SCORE-EVENT-APPENDED` | `score_event_appended(event: RefCounted)` | A **`ScoreReport`**, not a `ScoreEvent`. **Amended US-0074.** A `ScoreEvent` is server-side, immutable and built by one constructor that derives its own multiplier from its own tick; a client cannot build one faithfully and must not try, because re-deriving what a kill was worth is a client deciding gameplay state. What crosses the wire is `ScoreWire`'s decoding: kind, points already multiplied, and the feed group. The parameter is typed `RefCounted` because `EventBus` may hold no `class` | `NET-S2C-SCORE-EVENT` arrives, forwarded by `HudBridge` | `ScoreFeedVm` (**built US-0074**), `Audio` (US-0075) |
 | `EVT-PREY-WARNING-TRIGGERED` | `prey_warning_triggered(bearing: float, bucket: int)` | A **world** bearing in radians, wobble already applied, and a `Quantise.BUCKET_STEP` distance bucket. **Nothing that names anybody** | Pursuer within 15 m **and** ≥ Noticed | `CompassVm`, `Audio`, `CaptionOverlay` |
 | `EVT-ABILITY-STARTED` | `ability_started(peer: int, ability: StringName, origin: Vector3)` | | Any ability starts within tell radius | VFX, `Audio`, `CaptionOverlay` |
 | `EVT-ABILITY-DENIED` | `ability_denied(slot: int, reason: int)` | `DenyReason` | Own request refused | `AbilitySlotVM`, `Audio` |

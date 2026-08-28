@@ -38,6 +38,7 @@ var _multiplier: int = NOTHING
 
 func _ready() -> void:
 	Net.snapshot_received.connect(_on_snapshot)
+	Net.events.score_reported.connect(_on_score)
 
 
 func _exit_tree() -> void:
@@ -46,6 +47,8 @@ func _exit_tree() -> void:
 	# listeners are gone, which is US-0037's lesson in a presentation costume.
 	if Net.snapshot_received.is_connected(_on_snapshot):
 		Net.snapshot_received.disconnect(_on_snapshot)
+	if Net.events.score_reported.is_connected(_on_score):
+		Net.events.score_reported.disconnect(_on_score)
 
 
 func _on_snapshot(snapshot: Snapshot) -> void:
@@ -105,3 +108,16 @@ func _publish_match(snapshot: Snapshot) -> void:
 	_phase = snapshot.phase
 	_multiplier = snapshot.multiplier
 	EventBus.match_phase_changed.emit(_phase, float(_multiplier))
+
+
+## **THE ONE THING HERE THAT IS NOT A SNAPSHOT, AND IT IS FORWARDED UNCHANGED.**
+## Everything else in this class exists to answer *did this field change since the
+## last packet*; a score event has no previous value to compare against — it either
+## happened or it did not. `EventBus`'s own taxonomy calls this a **moment** rather
+## than a state, and moments are re-emitted verbatim.
+##
+## **THE DECODING ALREADY HAPPENED**, in `ScoreWire`, which is why this is one
+## line: the rule that a widget must not know the protocol is served by the wire
+## owning its own layout rather than by this class translating a second format.
+func _on_score(report: ScoreReport) -> void:
+	EventBus.score_event_appended.emit(report)

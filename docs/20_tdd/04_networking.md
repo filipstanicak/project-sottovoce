@@ -293,7 +293,7 @@ evaluated by the server against the lag-compensated world. A client cannot expre
 | `NET-S2C-ABILITY-DENIED` | E | Reliable | On event | `slot:u8`, `reason:u8`. To the requester only |
 | `NET-S2C-BLEND-DENIED` | E | Reliable | On event | `reason:u8`. To the requester only (US-0054). `NET-C2S-BLEND-REQUEST` had no answer at all, so a press at an occupied hiding spot was indistinguishable from a broken button |
 | `NET-S2C-PREY-WARNING` | E | Reliable | On event | **`tick:u32` only.** §6.4 |
-| `NET-S2C-SCORE-EVENT` | E | Reliable | On event | `event_id:u32`, `tick:u32`, `kind:u8`, `actor:u8`, `subject:u8`, `base:i16`, `mult:u8`, `group:u16` |
+| `NET-S2C-SCORE-EVENT` | E | Reliable | On event | `event_id:u32`, `tick:u32`, `kind:u8`, `actor:u8`, `subject:u8`, `base:i16`, `mult:u8`, `group:u16` — 16 B, hand-packed by `ScoreWire`. **Built US-0074.** To the event's own actor alone; `SCORE-DEATH` is withheld. See `NETWORK_PROTOCOL.md` §4 |
 | `NET-S2C-PHASE-CHANGED` | E | Reliable | On change | `phase:u8`, `tick:u32`, `multiplier:u8` |
 | `NET-S2C-MATCH-END` | E | Reliable | Once | Full `ScoreEvent` log for the results fold |
 | `NET-S2C-PLAYER-JOINED` | X | Reliable | On change | `peer_id:u8`, `persona:u8` |

@@ -84,7 +84,17 @@ func _init(id: int, award: ScoreAward, rules: MatchTuning, group: int = 0) -> vo
 
 ## What this event is worth. The fold sums exactly this and nothing else.
 func points() -> int:
-	return int(round(float(_base_points) * _multiplier))
+	return points_of(_base_points, _multiplier)
+
+
+## **ONE ROUNDING RULE, AND THE WIRE IS WHY IT IS STATIC.**
+## `NET-S2C-SCORE-EVENT` carries the base and the multiplier separately, so the
+## client multiplies them too — and a client that rounded the other way would draw
+## a feed line one point away from the total the results screen folds. Not a
+## defect anybody would find by playing, and not one any test of either side alone
+## could see.
+static func points_of(base: int, multiplier: float) -> int:
+	return int(round(float(base) * multiplier))
 
 
 ## **THE FINAL PHASE IS A PROPERTY OF THE CLOCK, NOT OF A STATE MACHINE**, which

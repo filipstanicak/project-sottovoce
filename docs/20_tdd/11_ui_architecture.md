@@ -108,7 +108,7 @@ func update(_delta: float) -> void:
 |---|---|---|
 | `CompassVm` | **Pulse phase accumulator**, smoothed bearing, lock fill, portrait reveal flag | Snapshot → `ContractMirror` |
 | `TierVM` | Current tier, transition lerp, active-source list | `EVT-SUSPICION-TIER-CHANGED` |
-| `ScoreFeedVM` | Line queue with per-line lifetimes and stagger | `EVT-SCORE-EVENT-APPENDED` |
+| `ScoreFeedVm` | Line queue with per-line lifetimes and stagger. **Built US-0074** | `EVT-SCORE-EVENT-APPENDED` |
 | `MatchVM` | Phase, locally-interpolated clock, multiplier flag | `EVT-MATCH-PHASE-CHANGED` + snapshot |
 | `AbilitySlotVM` | Cooldown fractions, ready flags | Snapshot |
 
@@ -149,22 +149,34 @@ protects against leaks and this protects against *invention*:
 | Apply its own wobble | Wobble is applied **server-side** and is deterministic per contract, so every peer sees the same cone. A client-side wobble would be a second, unlearnable lie |
 | Extrapolate the bearing forward | The Compass must never contain information newer than the simulation |
 
-### 2.3 `ScoreFeedVM` — the teacher
+### 2.3 `ScoreFeedVm` — the teacher
+
+**Built US-0074.** `scripts/presentation/hud/score_feed_vm.gd`.
 
 ```gdscript
 ## Bonuses from one kill share a group_id and arrive as a SEQUENCE staggered by
 ## TUN-UI-SCOREFEED-STAGGER (0.12 s). Four bonuses arriving simultaneously is
 ## ONE event; arriving 0.12 s apart they are four, each individually readable —
 ## and the sequence is more satisfying, which is a real effect and not a small one.
-func _on_score_event(e: ScoreEvent) -> void:
-    var delay := _count_in_group(e.group_id) * Tuning.ui_audio.scorefeed_stagger
-    _pending.append(FeedLine.new(
-        text  = Strings.get(_bonus_key(e.kind)),      ## NEVER a literal (ASM-0023)
-        value = int(e.base_points * e.multiplier),
-        show_at = _now + delay,
-        lifetime = Tuning.ui_audio.scorefeed_duration,
-        is_penalty = e.base_points < 0))              ## distinct treatment, not a small positive
+func report(entry: ScoreReport) -> void:
+    var key := ScoreKinds.string_key(entry.kind)      ## NEVER a literal (ASM-0023)
+    var delay := _count_in_group(entry.group) * Tuning.ui_audio.scorefeed_stagger
+    ## show_at = _now + delay, dies_at = show_at + Tuning.ui_audio.scorefeed_duration
 ```
+
+**Three amendments the build made to this sketch, each for a reason worth keeping.**
+
+| Sketch | Built | Why |
+|---|---|---|
+| `_on_score_event(e: ScoreEvent)` | `report(entry: ScoreReport)` | A `ScoreEvent` is server-side and has exactly one constructor, which derives its own multiplier from its own tick. A client cannot build one faithfully, and re-deriving what a kill was worth is a client deciding gameplay state |
+| `value = int(base * multiplier)` | `entry.points`, resolved by `ScoreEvent.points_of` on both sides | One rounding rule. Two would put a feed line one point away from the total the results screen folds — a defect nobody would find by playing, and one no test of either side alone could see |
+| `_bonus_key(e.kind)` as a lookup | `ScoreKinds.string_key`, **derived** from the id | A hand-written seventeen-row map is seventeen chances to mistype one, and the symptom is `bonus.closecall` in front of a player. `SCORE-FROMABOVE` becomes `bonus.fromabove` by construction |
+
+**The lifetime starts when a line is SHOWN, not when it was told**, which the sketch does not say
+and a staggered feed gets wrong by default: the fourth bonus of a kill is told at the same instant
+as the first and shown 0.36 s later, so measured from telling it would be readable for 3.64 s
+rather than 4.0 — and the later a line, the less time to read it, which is backwards for a stack
+that ascends.
 
 ---
 
@@ -199,7 +211,7 @@ checked without a running match.
 | `CompassWidget` | `CompassVm` | Cone arc, pulse ring, lock arc |
 | `ContractPortrait` | `CompassVm` | Unknown silhouette, or the revealed persona (ASM-0030) |
 | `TierIndicator` | `TierVM` | Shape + colour + word, plus the active-source list |
-| `ScoreFeed` | `ScoreFeedVM` | Up to `TUN-UI-SCOREFEED-MAX-LINES` 4 lines |
+| `ScoreFeedWidget` | `ScoreFeedVm` | Up to `TUN-UI-SCOREFEED-MAX-LINES` 4 lines. **Built US-0074** |
 | `AbilitySlots` | `AbilitySlotVM` | Two icons, radial sweeps, key labels |
 | `MatchTimer` | `MatchVM` | `M:SS`, final-phase bar, ×2 marker |
 | `Crosshair` | `AbilitySlotVM` + snapshot | Dot; ring when a kill or stun would succeed |
@@ -340,8 +352,8 @@ func replace(screen: PackedScene) -> void
 | `test_compass_no_wobble_clientside.gd` | `CompassVm` applies no wobble of its own |
 | `test_compass_no_position.gd` | `CompassVm` has no field holding a world position |
 | `test_prey_warning_signal_arity.gd` | `prey_warning_triggered` takes **zero** parameters |
-| `test_scorefeed_stagger.gd` | Four bonuses from one kill appear 0.12 s apart, penalties visually distinct |
-| `test_scorefeed_cap.gd` | Never more than `TUN-UI-SCOREFEED-MAX-LINES` simultaneous lines |
+| `test_scorefeed_stagger.gd` | **Exists.** Four bonuses from one kill appear 0.12 s apart; two kills stagger independently; a penalty is marked and a zero-point marker is not |
+| `test_scorefeed_cap.gd` | **Exists.** Never more than `TUN-UI-SCOREFEED-MAX-LINES`; the **oldest** is dropped; a line's lifetime starts when it is *shown*, not when it was told |
 | `test_crosshair_truth.gd` | Ring state agrees with server kill validity across 500 randomised poses |
 | `test_tier_monochrome.gd` | All three tiers are distinguishable in a greyscale render |
 | `test_no_colour_literals.gd` | No widget names a colour literal; all come from `Palette` |

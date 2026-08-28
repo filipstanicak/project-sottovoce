@@ -24,6 +24,7 @@ bonus.contract,Contract
 bonus.blended,Blended
 bonus.patient,Patient
 bonus.silent,Silent
+bonus.halfseen,Halfseen
 bonus.masked,Masked
 bonus.fromabove,From Above
 bonus.focus,Focus
@@ -31,6 +32,8 @@ bonus.longhunt,Long Hunt
 bonus.vendetta,Vendetta
 bonus.variety,Variety
 bonus.stun,Stun
+bonus.escape,Escape
+bonus.closecall,Close Call
 bonus.poisoned,Poisoned
 bonus.reckless,Reckless
 bonus.death,Death

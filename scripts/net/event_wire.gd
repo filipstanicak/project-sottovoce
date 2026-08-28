@@ -58,6 +58,12 @@ signal ability_started(caster_slot: int, ability: StringName, origin: Vector3, d
 ## `NET-S2C-ABILITY-DENIED`. To the presser alone.
 signal ability_denied(slot: int, why: int)
 
+## `NET-S2C-SCORE-EVENT` arrived. CLIENT SIDE. **One award, already decoded into a
+## `ScoreReport`** — the wire's `kind` byte, base and multiplier are resolved here
+## so no consumer has to know the protocol, which is the rule `HudBridge` follows
+## for the Compass's yaw byte.
+signal score_reported(report: ScoreReport)
+
 
 ## `NET-S2C-CONTRACT-ASSIGNED`. SERVER SIDE, **to the holder only**.
 ##
@@ -211,3 +217,40 @@ func send_ability_denied(peer: int, slot: int, why: int) -> void:
 @rpc("authority", "call_remote", "reliable", Messages.Channel.EVENT)
 func s2c_ability_denied(slot: int, why: int) -> void:
 	ability_denied.emit(slot, why)
+
+
+## `NET-S2C-SCORE-EVENT`. SERVER SIDE, **to the player who earned it and to nobody
+## else**.
+##
+## **THE RECIPIENT IS A FIELD OF THE EVENT, WHICH IS WHAT MAKES "NO GLOBAL KILL
+## FEED" STRUCTURAL RATHER THAN REMEMBERED.** Every other message in this file
+## takes a recipient list its caller assembled; this one takes `ScoreEvent.actor_id`,
+## so there is no list to widen by accident. Never-do #12 forbids a global feed
+## because "X killed Y" broadcast to everyone hands every player the shape of the
+## contract cycle for free.
+##
+## **THE PAYLOAD IS `NETWORK_PROTOCOL.md` §4's ROW UNCHANGED, AND PACKED.**
+## `ScoreWire` owns the layout and says why it is bytes rather than arguments.
+func send_score(peer: int, event: ScoreEvent, actor_slot: int, subject_slot: int) -> void:
+	if not Net.is_server:
+		return
+	s2c_score_event.rpc_id(peer, ScoreWire.pack(event, actor_slot, subject_slot))
+
+
+## `NET-S2C-SCORE-EVENT`. CLIENT SIDE.
+##
+## **RELIABLE, AND THE CHANNEL TABLE SAYS WHY IN ONE SENTENCE**: *a lost
+## `SCORE-EVENT` is a score that never existed.* There is no later snapshot
+## carrying it and no total to reconcile against — the log is the only record, so
+## a dropped packet is a bonus the player earned and was never told about.
+##
+## **A MALFORMED ROW IS DROPPED IN SILENCE.** The alternative is emitting a report
+## the server never sent, and the score feed is the game's teacher: a line it
+## invents teaches something false.
+@rpc("authority", "call_remote", "reliable", Messages.Channel.EVENT)
+func s2c_score_event(row: PackedByteArray) -> void:
+	var report := ScoreWire.unpack(row)
+	if report == null:
+		Log.error("malformed score row: %d bytes" % row.size(), &"net")
+		return
+	score_reported.emit(report)
