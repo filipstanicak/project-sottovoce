@@ -225,6 +225,118 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 *Updated 2026-08-27 (ADR-0016, the M4 gate). Keep this section current — it is the first thing a
 fresh session reads, and a stale one is worse than none.*
 
+## M4 IS COMPLETE. M5 IS AT THE HUD AND THE ABILITIES, AND ONE OF THEM WORKS.
+
+**AND US-0067 IS DONE, SEVEN OF SEVEN: `ABIL-CINDERFALL` IS THE FIRST ABILITY IN
+THIS GAME THAT CHANGES THE WORLD.** Press it and 0.45 s later a 5 m cloud lands
+where you threw it, blocks every line of sight through it for 4 s, forbids kill
+initiation inside it **for everybody including you**, costs +40 suspicion and
+sends every NPC within 9 m running.
+
+**`CinderfallEffect` IS ELEVEN LINES, AND THAT IS THE STORY RATHER THAN A
+SHORTCUT.** `CinderfallVolumes` was built at US-0056 and sharpened at US-0060,
+`SYS-DETECTION` has consulted it in the project's one line-of-sight query since,
+`SYS-KILL` has refused initiation inside one since US-0060, and `SYS-ABILITY` has
+run the pipeline around it since US-0066. **`add()` was the one entry point with
+nothing behind it** — the shape `CrowdAlarm.startle_at` had through all of M3.
+
+**THE 0.45 s CAST WAS NOBODY'S AND IS NOW THE PIPELINE'S.**
+`TUN-CINDERFALL-CAST-TIME` had **no reader**: `_commit` began the effect on the
+press tick. `LiveAbility` holds a cast that is *pending* until `begins_at` and
+*live* afterwards, and it sits in the system rather than the effect because
+`AbilityData.cast_time` is used by Second Face too. **TDD-09 §1's sequence diagram
+has no cast phase and is amended** — twice now, since US-0066 already moved the
+tell ahead of `begin`.
+
+**AND THE WIND-UP IS WHAT MAKES THE TELL WORTH SENDING.** The tell fires at the
+press and the cloud lands 0.45 s later, so design law 3's *perceivable chance to
+react* is a measurable window rather than a claim. **A caster killed during it
+drops no cloud**, and the cooldown and the +40 stay spent — so a victim who read
+the tell and acted is paid for reading it.
+
+**A STUN DOES NOT CANCEL A CAST, AND THAT IS LEFT RATHER THAN DECIDED.** Nothing
+in GDD-04 gives a stun that power and §3.1 names the counter to Cinderfall as
+**patience** — wait at the cloud's edge. Adding one would change the ability's
+counterplay on my own judgement. **Sixth thing waiting on the owner.**
+
+**THE STARTLE IS THE SYSTEM'S, NOT THE EFFECT'S**, because `startle_radius` is
+Lunge's too: it sits beside the suspicion cost and leaves through
+`ability_startled`, which `server_root` wires to `CrowdDirector.startle_at` — the
+shape `SYS-KILL`'s consequences already use. **It fires at the burst and is
+centred on the pot**, because GDD-04 §3.1 lists the 0.45 s underarm throw and the
+crack as *separate* tell channels, and a wave at the caster's feet would announce
+them however far they threw.
+
+**`end()` MUST NOT REMOVE THE CLOUD, WHICH IS THE OPPOSITE OF WHAT "DEREGISTERED
+ON EXPIRY" SOUNDS LIKE.** `CinderfallVolumes.expire` deliberately lags the
+burn-out by `RewindClamp.max_ticks()`, because a kill is validated in the past and
+a cloud that was up when the attacker pressed must still block that validation
+100-200 ms later.
+
+**AND THE ENGINE FOUND A DEFECT NO REVIEW HERE WOULD HAVE: CODE WAS ABOUT TO GO
+ON THE WIRE.** The tick `cinderfall.tres` gained an `effect_script`,
+`test_tuning_serialise_roundtrip.gd` went red with *"Class CinderfallEffect hides
+a global script class"*. `TuningProfile.serialise` is
+`var_to_bytes_with_objects`, so **an `AbilityData` field holding a `Script` is
+sent as a script** — and TDD-09 §3 makes effects server-only, with
+`scripts/systems/` excluded from every client export. The parse error was the
+symptom; the defect was the payload. `_wireable` strips `effect_script` and
+`tell_vfx` now: **numbers travel, code does not.** The hash is untouched, because
+`compute_hash` has never walked abilities — asserted, since a moved hash would
+make `Handshake` refuse peers for an unexplainable reason.
+
+**THREE OF FOUR PLANTED DEFECTS WENT RED AND THE FOURTH IS THE FINDING.**
+Measuring the effect's deadline from the press rather than from the burst left
+`test_the_duration_runs_from_the_burst_and_not_from_the_press` **green**, because
+the cloud's lifetime is `CinderfallVolumes`' own arithmetic and the test only
+asked about the cloud. **The effect and the volume keep two clocks and the defect
+lives in the gap**: the effect would be dead for the last 0.45 s of its own cloud,
+which nothing about the cloud reveals.
+
+**AND A TEST IN US-0066 COULD NEVER HAVE FAILED.**
+`test_a_refused_cast_announces_nothing` counted into a **lambda-captured `int`** —
+GDScript captures a local by *value*, so `told += 1` incremented a copy and `told`
+was zero however many tells went out. Found because the same shape failed in a
+test that expected *one* rather than *none*. A scan of `test/` found no third
+instance; the only other lambda counter mutates a class member, which is captured
+through `self`. **Second US-0066 test repaired here** — the other cast Cinderfall
+to prove a null-effect property and kept passing for a completely different reason
+once Cinderfall had an effect.
+
+**AND `AbilityEffect.tick` RETURNING FALSE NEARLY MADE THE CLOUD INERT.** The base
+returns false because *"return false to end early"* and a no-op's honest lifetime
+is one tick — which is right, and is why the first `CinderfallEffect` ended on the
+tick after it began. **The first effect with a duration is the first that must
+override it**, exactly as US-0066's note predicted.
+
+**AND IT IS VERIFIED ON A REAL SERVER RATHER THAN ONLY AGAINST THE SYSTEM.**
+`tools/ability_probe.tscn` boots `server_root.tscn`, joins a peer and presses slot
+0 — the unit tests drive `AbilitySystem` directly and cannot see the wiring, which
+is the gap US-0074 lost a whole integration run to. Measured: **0 clouds during
+the wind-up, 1 after it, 1 startle wave over 78 NPCs, suspicion 45.2, 1 325 ticks
+of cooldown left.**
+
+```bash
+godot --headless --path . res://tools/ability_probe.tscn
+```
+
+**ITS FIRST VERSION READ THE WRONG NUMBER**, printing `SuspicionImpulses.pending`
+and getting `0.0` — which reads exactly like a cost never charged, and is
+`SYS-SUSPICION` having drained the queue a tick later. It reads
+`PawnContext.suspicion` now.
+
+**AND A GREEN SUITE WAS RUNNING ONE FILE FEWER THAN EXISTS.**
+`CombatTargets.is_dead` takes a pawn and I called it with a context and a peer — a
+**parse error**, which GUT answers by *ignoring the whole file*.
+`test/unit/systems/combat` printed **"All tests passed!"** over six scripts of
+seven, and the full unit suite reported 1 463 passing over **174 of 175**. The file
+it dropped held this story's own new assertion. **Only `.ci/run_gut.sh`'s script
+count could see it** — trap 10's family, seventh instance.
+
+**NOTHING DRAWS THE CLOUD.** There is no VFX pass and `tell_vfx` is null for every
+ability, so on a client a Cinderfall is an *absence* of information — the Compass
+stops pointing and the reticle stops offering, with nothing on screen to say why.
+
 ## M4 IS COMPLETE. M5 HAS STARTED AT THE HUD, AND A KILL IS NOW PAID FOR ON SCREEN.
 
 **M4's fifteen stories are built and its gate is run and split.** The whole loop
@@ -754,7 +866,7 @@ PLANNED.** Probability and impact unchanged — no new evidence about fun either
 
 ---
 
-## FIVE THINGS WAIT ON THE OWNER, AND NONE BLOCKS M5
+## SIX THINGS WAIT ON THE OWNER, AND NONE BLOCKS M5
 
 1. **Move `SYS-MATCH` (US-0079) M6 → M5?** The only single-story lever that pulls
    the first playtest a milestone earlier. M5 already ships a **results screen**
@@ -770,6 +882,12 @@ PLANNED.** Probability and impact unchanged — no new evidence about fun either
    lock, defeating ASM-0030. Neither message is implemented, so nothing leaks
    today.
 5. **The tag `m4-the-loop`.**
+6. **Does a stun cancel an ability's wind-up?** US-0067 gave every cast a
+   `TUN-<ABIL>-CAST-TIME`, and nothing interrupts one but death. GDD-04 §3.1 names
+   the counter to Cinderfall as **patience**, not a stun, so adding one would
+   change a documented counterplay — and never-do #13 only forbids *weakening*
+   stun, so this is a real choice rather than a rule. `AbilitySystem._end_all` is
+   where it would go.
 
 ---
 
@@ -4079,7 +4197,7 @@ US-0024 measures it against clips that do not exist.
 | | |
 |---|---|
 | CI | 7 jobs. **Running again as of 2026-08-07 after a two-day outage** — run `31200490320`, all seven green. The seven commits merged during the outage were never through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | **50 arch + 172 unit + 33 integration scripts**, holding 201 + 1453 + 242 tests and 1 126 + 28 661 + 676 assertions — the assertion count tripled at US-0049, because `test_contract_cycle_fuzz.gd` checks the invariant after every one of 10 000 events. **Nine are `pending` by design** — **eight in the unit suite and one in the integration suite**, which reports that an NPC aimed into the void never gives up. The island `pending` beside it **turned green by itself** when the alley mouths were built, which is what a `pending` naming its own blocker is for. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite measured **174.6 s** on 2026-08-28 against **183.5 s** the day before, with **no test removed and one assertion added** — so the 9 s is machine variance and neither number should be quoted as *the* figure; what is real is that the suite sits within a few seconds of its limit either way. The 180 s it is 'allowed' is **enforced nowhere** — TEST_PLAN §3, TEST_PLAN §10 and TDD-12 §17 all assert it and no job checks it, which is the M4 gate's fourth drift finding. `test_the_m4_loop_resolves.gd` cost 13.1 s of that and is the first test ever to run M4's systems together. It was 162-172 s, up from 87.7 s at M2 — **under 9 s of headroom left, and the next integration test has to justify itself hard against that**. `test_server_tick_budget.gd` cost 9.8 s of it and is a gate line; the one before it, the 2 s pass A/B, samples ninety ticks **twice** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **The six are**: `test_upstream_bandwidth.gd` reporting the 145 % upstream miss, `test_crowd_bandwidth.gd` the 112 % downstream projection, `test_crowd_wire_cost.gd` the 112 % it actually costs, **`test_spawn_points.gd` twice — GDD-05 §2.7 rule 6's nine unoccluded spawn pairs and rule 8's S3 4, S4 1, S5 6 of 8 seats** — and `test_clone_animation_parity.gd` the missing clip library. **Two entries this row carried are gone because their findings closed**: `test_circuit_separation.gd`'s 0.51 m circuits (re-authored, now 21.20 m) and `test_cull_radius_price.gd`'s flat curve, which asserts rather than pends. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
+| Tests | **50 arch + 175 unit + 33 integration scripts**, holding 201 + 1478 + 242 tests and 1 133 + 28 718 + 676 assertions — the assertion count tripled at US-0049, because `test_contract_cycle_fuzz.gd` checks the invariant after every one of 10 000 events. **Nine are `pending` by design** — **eight in the unit suite and one in the integration suite**, which reports that an NPC aimed into the void never gives up. The island `pending` beside it **turned green by itself** when the alley mouths were built, which is what a `pending` naming its own blocker is for. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite measured **174.6 s** twice on 2026-08-28 against **183.5 s** the day before, with **no test removed** — so the 9 s is machine variance and neither number should be quoted as *the* figure; what is real is that the suite sits within a few seconds of its limit either way. The 180 s it is 'allowed' is **enforced nowhere** — TEST_PLAN §3, TEST_PLAN §10 and TDD-12 §17 all assert it and no job checks it, which is the M4 gate's fourth drift finding. `test_the_m4_loop_resolves.gd` cost 13.1 s of that and is the first test ever to run M4's systems together. It was 162-172 s, up from 87.7 s at M2 — **under 9 s of headroom left, and the next integration test has to justify itself hard against that**. `test_server_tick_budget.gd` cost 9.8 s of it and is a gate line; the one before it, the 2 s pass A/B, samples ninety ticks **twice** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **The six are**: `test_upstream_bandwidth.gd` reporting the 145 % upstream miss, `test_crowd_bandwidth.gd` the 112 % downstream projection, `test_crowd_wire_cost.gd` the 112 % it actually costs, **`test_spawn_points.gd` twice — GDD-05 §2.7 rule 6's nine unoccluded spawn pairs and rule 8's S3 4, S4 1, S5 6 of 8 seats** — and `test_clone_animation_parity.gd` the missing clip library. **Two entries this row carried are gone because their findings closed**: `test_circuit_separation.gd`'s 0.51 m circuits (re-authored, now 21.20 m) and `test_cull_radius_price.gd`'s flat curve, which asserts rather than pends. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
 | Tuning | **290** tunables across 14 resource classes; all **33** cross-field invariants assert. **`TUN-COMPASS-CONE-FULL-RADIUS` 20.0 m was added on 2026-08-27** — where the Compass arc becomes a whole ring — and **invariant 33 is the reason it is not a chosen number**: it pins the radius equal to `TUN-COMPASS-LOCK-RANGE`, so the arc stops pointing exactly where the lock starts working, and separately outside the validated kill reach. It was **set three times in one day and only ever by somebody playing it** — 4.0 m derived from the half-width alone, 6.0 m at `TUN-SUSPICION-OPEN-RADIUS`, then 20.0 — and the second is the one worth remembering, because it was **derived and still wrong**. **`TUN-SCORE-HALFSEEN` +50 was added on 2026-08-27** by the fidelity re-audit — the stealth ladder had no middle rung, so a kill at **Noticed** and one at **Exposed** scored identically; invariant 32 keeps it strictly descending and strictly positive, and the `> 0` clause is the load-bearing half because every ordering check passes over a zero. `TuningInvariantsScore` was split out when that pushed the file past 400 lines — tech is how the game is *transmitted*, score is what it *pays*, and what is left is how it *plays*, with one entry point still. **Four scoring values were re-priced on 2026-08-26 (ADR-0013)** — `TUN-SCORE-SILENT` 100 → 200, `TUN-SCORE-PATIENT` 150 → 100, `TUN-SCORE-FOCUS` 100 → 150, `TUN-SCORE-RECKLESS` −50 → **0**, and invariant 18 rewritten from an ordering to a floor — split across `TuningInvariants` and `TuningInvariantsTech` since the first file hit 400 lines, with one entry point still. **Eight IDs are deprecated** and recorded in TUNABLES §19 — never reused |
 | Autoloads | All eight. `Tuning` precomputes 89 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |
@@ -4107,7 +4225,8 @@ it comes from: its occupant leaves `present_slots` entirely and both combat syst
 | Compass lock | `CompassLock` is pure and holds the arc, the reveal window, the cooldown and the portrait; `SYS-DETECTION` supplies the yes-or-no its conditions come to. **`has_los()`'s first and only caller**, last in the early-out ladder — a hunter facing away spends zero raycasts, one watching spends one, against TDD-07 §4.3's budget of 2-6. The cone is gated on the hunter's **own yaw**, never the wobbled bearing. **The arc is not reset on completion**: a held view keeps a full arc and `TUN-COMPASS-REVEAL-COOLDOWN` is what stops chain-locking. **It resets on reassignment, tracked separately from the portrait** — inferring one from the other let a half-filled arc cross to the next contract. `NOBODY` is not a reassignment, or the breath would destroy an earned portrait. `PASV-COLDREAD` is an argument with no reader until a loadout exists |
 | Compass | **The cone points at the contract and widens as you close** (2026-08-27), to a whole ring at `TUN-COMPASS-CONE-FULL-RADIUS` 20.0 m — which is `TUN-COMPASS-LOCK-RANGE`, invariant 33, rather than a number anybody chose: outside it the instrument points, inside it you look. Two conversions stand between a world bearing and a pixel and **neither existed**: `CameraArm.yaw_from_camera` (this game's yaw 0 faces +Z, a Godot node's faces −Z) and `CompassWidget.screen_angle` (this game's yaw increases to the left, a screen angle increases clockwise). They partly cancelled, so the shoulders drew correctly and ahead drew behind. `CompassMath.cone_halfwidth_for` holds the arc at a constant **length of ground** rather than a constant angle — a whole ring at 4.0 m, invariant 33 — and the widget's edge falloff flattens as it opens. **The server half lives in `SYS-DETECTION`**, at steps 9-10 of its pass, because the Compass is about the observer's *contract* — the same relationship the render state is computed from — and TDD-07 §1's diagram draws it there. `CompassMath` is pure Core: `period_for()` reproduces TUNABLES §4.2's twelve rows to **0.40 ms**, and the reciprocal exponent makes the rate **58x steeper close in than far out**. One reading per hunter into `ctx.compass`: a **world** bearing with `TUN-COMPASS-CONE-WOBBLE`'s drift already applied server-side, and a `Quantise.BUCKET_STEP` 0.5 m distance bucket, so nothing downstream holds the exact metres. The wobble is a sine of `(contract, tick)` — deterministic and learnable, never RNG — with its phase **mixed**, or adjacent peer ids would drift in step. **A missing reading is `NO_CONTRACT` 255, never bucket 0**, which is a real reading. `lock_fraction` and `portrait_revealed` are US-0058's and read zero; nothing draws any of it |
 | Detection | `SYS-DETECTION` ticks at the `detection` stage, **after `suspicion`**, because the render state is computed from *tier* and a tick of lag makes the silhouette disagree with the tier indicator. One pass over 30 ordered pairs, **costing zero raycasts**: GDD-03 §2.1's rule is `tier × relationship` and §2.3 draws the Exposed outline through geometry, so occlusion must not gate it. The early-out ladder drops ~70 % of pairs on the tier check alone. It reads the **announced** contract from `ctx.announced_contracts`, never the graph's, so a tint cannot arrive before the Compass does. `RenderMatrix` carries the answer to `SnapshotBuilder` four stages later and **absent means `PLAIN`**, which is the safe direction. **It also holds the only line-of-sight query in the project** — `WORLD`-masked, so NPCs and players cannot block it by construction; Cinderfall is a sphere tested against the segment; the rewound form is **still refused**, and US-0060 sharpened the reason rather than clearing it — kill validation asks no line-of-sight question at all, so there is still no caller for a past one. **`has_los()` has two callers**: the Compass lock (US-0058) and the witnessed-kill check (US-0060). `cinderfall` is `MatchContext`'s list, adopted by reference, and every liveness query takes the tick it is asked about. **It also owns the prey warning** (US-0059): `_resolve_pair` already computes `hunted_by`, so the warning is a distance, a tier comparison and a cooldown lookup on pairs the ladder has already admitted — no second pass and no raycast. `PreyWarning` holds only the cooldown, and **a new pursuer defeats it**, or a repair would silence the prey's one warning for 2.5 s |
-| Abilities | **`SYS-ABILITY` at the `abilities` stage, and nothing it casts does anything** (US-0066). `AbilityRules` is pure — five validations answering with the first rung that fails, and an aim that is **clamped rather than refused** because the client's aim and the server's differ by a rounding error on every cast. Cooldowns are **integer tick deadlines started at ACTIVATION**, reset on death by `AbilitySystem.on_death` rather than by `PawnContext.reset_for_spawn`, which prediction replays. The tell is **the one broadcast in this game** — reliable, to everybody inside `TUN-<ABIL>-TELL-AUDIO-RADIUS`, and emitted **before** `effect.begin`. A denial **carries its reason**, unlike the stun's, because every reason is a fact about the presser's own kit. `AbilityData.effect_script` is null for all four, so a cast is a cooldown and a tell |
+| Abilities | **`SYS-ABILITY` at the `abilities` stage, and one of the four now does something** (US-0066, US-0067). `AbilityRules` is pure — five validations answering with the first rung that fails, and an aim that is **clamped rather than refused** because the client's aim and the server's differ by a rounding error on every cast. Cooldowns are **integer tick deadlines started at ACTIVATION**, reset on death by `AbilitySystem.on_death` rather than by `PawnContext.reset_for_spawn`, which prediction replays. The tell is **the one broadcast in this game** — reliable, to everybody inside `TUN-<ABIL>-TELL-AUDIO-RADIUS`, and emitted **before** `effect.begin`. A denial **carries its reason**, unlike the stun's, because every reason is a fact about the presser's own kit. **A cast has a wind-up as of US-0067**: `LiveAbility` holds it *pending* until `TUN-<ABIL>-CAST-TIME` has passed and *live* afterwards, the duration runs from the burst rather than from the press, and a caster killed mid-throw drops nothing. `AbilityData.startle_radius` is raised by the **system** beside the suspicion cost, because Lunge carries one too, and leaves through `ability_startled` for `server_root` to wire. `effect_script` is set for **Cinderfall** and null for the other three — and it is **stripped from `TuningProfile.serialise`**, because `var_to_bytes_with_objects` would otherwise send a server-only `Script` to every client |
+| Cinderfall | **`ABIL-CINDERFALL` IS THE FIRST ABILITY THAT CHANGES THE WORLD** (US-0067). `CinderfallEffect` is eleven lines and calls `CinderfallVolumes.add`, which had been built, tested and callerless since US-0056. The cloud **forbids kill initiation inside it including the caster's own** — GDD-04 §3.1's *"design detail that carries the ability"*, and without it the dominant play is *cloud, then kill inside it*. **`end()` deliberately does not remove the cloud**: `expire` lags the burn-out by `RewindClamp.max_ticks()` so a kill validated in the past still meets a cloud that was up when it was pressed, and clearing it here would delete exactly that window. **Nothing draws it** — there is no VFX pass, so on a client a Cinderfall is an absence of information |
 | Score | **Thirteen bonuses, judged at initiation and paid at the contact frame** (US-0065). `ScoreBonuses` is pure — facts in, awards out — and `KillScoring` is the thin half that reads the world; `KillSystem` captures a `KillScoreFacts` at `_begin` and carries it on the pending row for 0.9 s, so a hunter keeps Silent through an animation they cannot cancel and cannot launder recklessness by standing still after it. **The suspicion ladder is a partition**: exactly one of Silent, Halfseen and Reckless fires, and Reckless fires at **zero** rather than not firing. `ScoreWindows` holds the four facts one tick cannot answer — the speed ring, the focus streak, the hunt clock and the vendetta debt — **on `MatchContext` rather than `PawnContext`, which TDD-10 §2.1 is amended for**, because a pawn is replayed by prediction. **Sampled upstream of the `combat` stage** by `SYS-SUSPICION` and `SYS-DETECTION`, which is why **`SYS-SCORE` is not a `GameSystem`** — the fourth such call for a fourth reason. Focus rides `can_lock` and costs **no raycast**, closing US-0056's last criterion. **Masked and Poisoned are dormant**: no `AbilitySystem` to ask, and no MVP ability that poisons | 
 | Score log | **`SYS-SCORE` does not exist yet and the log does** (US-0064). `ScoreLog` lives on `MatchContext` beside `lockouts` and `impulses`, adopted by reference; `ScoreEvent` is immutable in the engine — getter-only properties, so an assignment is a parse error — and freezes `TUN-MATCH-FINALPHASE-MULT` from its **own tick** inside its one constructor, which is why no inconsistent event can be built. **The final phase is a property of the clock**, so this is not blocked on `SYS-MATCH`; US-0079 must read `ScoreEvent.multiplier_at` rather than decide it again. `ScoreFold` is pure and takes **no tuning** — TDD-10 §1.3's signature is amended, because points frozen on the event and points re-read at fold time are two sources of truth. `ScoreAward` is the claim a system makes and `ScoreEvent` is what the log made of it; the seam exists because eight constructor arguments is a design signal `.gdlintrc` refuses to let anybody suppress. **Two events are appended in a live match** — `SCORE-CONTRACT` and the `SCORE-DEATH` marker, sharing a group — and the other eleven bonuses are US-0065's, because each is judged at *initiation* against state the kill handler no longer holds |
 | Score feed | **THE FIRST THING IN THIS GAME THAT TELLS A PLAYER WHY THEY WERE PAID** (US-0074). `NET-S2C-SCORE-EVENT` did not exist and no story claimed it; `ScoreWire` owns the catalogue's **sixteen-byte** row, hand-packed because `gdlint` refused eight loose RPC arguments and was right twice — Variant encoding, and eight positional integers where transposing `actor` and `subject` is invisible. **The courier is a cursor over the log**, `ScoreLog.tail`, rather than a hook on each append, so a third append site (ADR-0014's escape) is covered by existing. **The recipient is `ScoreEvent.actor_id` — a field of the event, not a list a caller assembles**, which is what makes never-do #12's no-global-kill-feed structural. **`SCORE-DEATH` is the one kind withheld**: it pays nothing and it is the only event whose `subject` names somebody the recipient has not earned. `ScoreFeedVm` owns the stagger, the cap and the lifetimes — **a line's lifetime starts when it is SHOWN, not when it was told**, or the fourth bonus of a kill would be readable for 3.64 s against a documented 4.0. The display key is **derived** from the id (`SCORE-FROMABOVE` → `bonus.fromabove`), which is how three bonuses with no name at all were found. `ScoreFeedWidget` draws each value digit by digit at the widest digit's advance, which is right-alignment and tabular spacing in one operation |
@@ -4149,8 +4268,7 @@ total=0; for f in docs/40_backlog/stories/*.md; do
 | US-0037 | match end below minimum players | `SYS-MATCH`'s, in M4. **The timeout criterion was ticked at the M2 gate** — a hard-killed client took the same `peer left` → `pawn freed` path across four real processes |
 | US-0056 | Focus tracking as a `has_los` consumer | **three of the four arrived and only Focus is left.** The Compass lock (US-0058), the witnessed-kill check (US-0060) and — as of ADR-0015, 2026-08-27 — **kill validation itself**. Focus is US-0064's |
 | US-0054 | the occupant can see nothing while inside | **no client renders a blend at all.** The server half is done — `blend_state` reaches the occupant's own snapshot block, which is what a widget will black the screen out from — and the widget is US-0073 in M5. A guard over zero call sites would be vacuously green |
-| US-0062 | ability cooldowns reset on death | **there are no ability cooldowns.** `SYS-ABILITY` is M5 and `PawnContext` has no cooldown field, so there is nothing to reset. `reset_for_spawn` is the one call site and will honour them when they exist |
-| US-0061 | a player mid-Lunge is stunnable | **`ABIL-LUNGE` is M5, so there is no state to be mid-.** The way it stays true when the ability arrives is that `StunSystem._is_busy` and `_is_stunnable` never grow a case for it, and both name the criterion. Everything else in the story is built and falsified |
+| US-0061 | a player mid-Lunge is stunnable | **`ABIL-LUNGE` is US-0070, so there is still no state to be mid-** — and US-0067 sharpened the question rather than answering it: every cast now has a wind-up, and **nothing but death interrupts one**. Whether a stun should is the sixth owner decision above. The way it stays true when the ability arrives is that `StunSystem._is_busy` and `_is_stunnable` never grow a case for it, and both name the criterion. Everything else in the story is built and falsified |
 | US-0059 | the client-side rotation; the mono sting | **the server halves are done and neither client half exists.** A world bearing needs `CompassVM` to rotate it (US-0072, M5) — US-0057's seventh line, again — and the sting has **no call site at all**: `Audio.play()` is a stub until US-0075 and `EventBus` may hold no `func`, so a guard over zero call sites would be vacuously green |
 | US-0060 | NPCs rewound; the contest loser's movement stagger | **both are reported rather than blocked.** ADR-0010's two reasons for rewinding NPCs are false of the built game, so a rewound crowd has no consumer and would cost ~100 KB of ring to be read by nothing. And GDD-02 §3's fifteen-state diagram declares no stagger state while three rules need one, so the loser gets an **initiation** lockout: no points, no lockout, no suspicion, 1.5 s in which they cannot press again |
 | US-0057 | the cone's half-width, camera-relative | **the server's half is done and the drawn half does not exist.** `TUN-COMPASS-CONE-HALFWIDTH` is asserted wider than the wobble, so the true bearing is always inside the arc — but nothing renders an arc, because `CompassVM` and the HUD are US-0072/0073 in M5 |
@@ -4300,10 +4418,16 @@ view.
     nothing failed, on the other hand nothing did anything"*. It is the same
     silent-skip family as trap 3 and as the cache bug in `.ci/run_gut.sh`'s
     header. **Use `.ci/run_gut.sh`**, which counts the scripts on disk and
-    refuses to pass over a short run. **It has now caught three silent skips**,
-    the last on 2026-08-12: deleting `CameraArm.Shoulder` broke three test
-    scripts, which failed to parse and were skipped, and both suites reported
-    green while running three fewer scripts than exist on disk.
+    refuses to pass over a short run. **It has now caught SEVEN silent skips**,
+    the last on 2026-08-28 (US-0067): `CombatTargets.is_dead` takes a pawn and I
+    called it with a context and a peer, which is a **parse error** — and GUT
+    answers a parse error by *ignoring the whole file*. `test/unit/systems/combat`
+    reported **"All tests passed!"** while running six scripts of seven, and the
+    full unit suite reported 1 463 passing tests over 174 of 175 scripts. **The
+    file it skipped was the one holding this story's own new assertion.** Nothing
+    but the script count could see it, and the failing call sits at the very line
+    the run's *first* error names — which is 2 700 lines above the summary, so
+    **capture the run to a file and read the top**, not the tail.
 11. **THE FUNCTION-LENGTH GUARD MEASURES `func` TO `func`**, so a function is
     charged for the docstring of the one AFTER it. Adding a seven-line docstring
     to a new function pushed its *neighbour* over 40 lines in US-0022. The

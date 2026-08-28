@@ -324,7 +324,7 @@ technical debt with a nice name, and the Definition of Done checks for it.
 | `suspicion_cost` | float | |
 | `forces_exposed` | bool | Whisperbolt only |
 | `exposed_tail` | float | |
-| `effect_script` | `Script` | `extends AbilityEffect`. **The only per-ability code** |
+| `effect_script` | `Script` | `extends AbilityEffect`. **The only per-ability code.** Set for `ABIL-CINDERFALL` (US-0067); null for the other three until US-0069/0070. **Stripped from `TuningProfile.serialise`** — effects are server-only and `scripts/systems/` is excluded from the client export, so a client is never handed the code by whatever it connected to. `tell_vfx` is stripped for the same reason. Neither is in `compute_hash`, so this cannot cause a handshake refusal |
 | `range_min` / `range_max` / `radius` | float | |
 | `tell_sfx` | `StringName` | `SFX-*` |
 | `tell_audio_radius` | float | **Environmental/audio tell channel** |

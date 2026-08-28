@@ -170,9 +170,7 @@ func _start_the_crowd_system() -> void:
 	# when the kill stage runs, and `SystemOrder` is what makes that true.
 	director.register(abilities)
 	abilities.setup(director.ctx)
-	router.ability_requested.connect(abilities.report_request)
-	abilities.ability_started.connect(_on_ability_started)
-	abilities.ability_denied.connect(announcer.ability_denied)
+	_wire_the_ability_answers()
 	director.register(kills)
 	kills.setup(director.ctx)
 	# **ADR-0015: A KILL NEEDS A CLEAR LINE.** Bound rather than reached for —
@@ -182,6 +180,23 @@ func _start_the_crowd_system() -> void:
 	# is handed over because `SCORE-BLENDED` asks it a question.
 	kills.scoring = KillScoring.new(suspicion.blend)
 	_wire_the_combat_answers()
+
+
+## The request in, and everything a cast produces. **Split from
+## `_start_the_crowd_system` for the length guard** — the same seam as
+## `_wire_the_combat_answers` below, and it became necessary the moment an ability
+## had a third consequence.
+##
+## **THE CROWD IS SCARED FROM HERE, NOT FROM INSIDE THE ABILITY** (US-0067). A
+## system says what happened and this file decides who is told, the way
+## `SYS-KILL`'s consequences already do. `TUN-CINDERFALL-STARTLE-RADIUS` 9.0 m is
+## the ability's own rather than the violence default, and `crowd` runs three
+## stages before `abilities`, so the grid the alarm queries was rebuilt this tick.
+func _wire_the_ability_answers() -> void:
+	router.ability_requested.connect(abilities.report_request)
+	abilities.ability_started.connect(_on_ability_started)
+	abilities.ability_denied.connect(announcer.ability_denied)
+	abilities.ability_startled.connect(_on_ability_startled)
 
 
 ## Every message the two combat systems produce, and the one payment a stun earns.
@@ -320,6 +335,14 @@ func _on_killed(killer: int, victim: int, at: Vector3) -> void:
 	_charge_for_witnesses(killer, at)
 	abilities.on_death(victim)
 	announcer.kill_landed(killer, victim)
+
+
+## **THE CLOUD HIDES YOU AND PAINTS AN ARROW AT YOUR POSITION, AND THAT IS THE
+## ABILITY'S HONEST COST.** GDD-04 §3.1: *"every NPC within 9 m runs"* — so
+## Cinderfall buys line of sight at the price of telling everybody within 30 m
+## roughly where you are. The radius is the caster's, not the violence default.
+func _on_ability_startled(at: Vector3, radius: float) -> void:
+	crowd_director.startle_at(at, radius)
 
 
 ## US-0052's last criterion: `TUN-SUSPICION-GAIN-WITNESSED-KILL` applies only if

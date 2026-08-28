@@ -48,16 +48,41 @@ sequenceDiagram
     else accepted
         A->>A: start cooldown (server clock)
         A->>A: apply suspicion cost / forced tier
-        A->>E: effect.begin(ctx, caster, aim)
         A->>B: NET-S2C-ABILITY-STARTED {peer, ability, origin, dir, tick}
         B->>O: RELIABLE, to every client in tell radius
         O->>O: play tell — THIS is the legibility law on the wire
+        A->>A: wind up for TUN-<ABIL>-CAST-TIME
+        A->>E: effect.begin(ctx, caster, aim)
         loop each tick until duration expires
             A->>E: effect.tick(ctx, dt)
         end
         A->>E: effect.end(ctx)
     end
 ```
+
+**Two amendments to this diagram, both made by the code that implements it.**
+
+**The tell is emitted BEFORE `effect.begin`** (US-0066). Drawn the other way round it would be a
+tell that arrives after the thing it warns about, which is a notification. The two are adjacent
+lines in `AbilitySystem._commit` for an ability with no wind-up.
+
+**And there is a cast phase** (US-0067). `TUN-CINDERFALL-CAST-TIME` 0.45 s and
+`TUN-SECONDFACE-CAST-TIME` had no reader until Cinderfall needed one: this diagram began the
+effect on the press tick, so the wind-up existed as a tunable and as an animation length and as
+nothing else. `LiveAbility` holds a cast that is **pending** until `begins_at` and **live**
+afterwards, and the distinction is observable — `AbilitySystem.is_effect_active` answers false
+during the wind-up, because a Second Face that has not been put on yet is not a disguise and
+`SCORE-MASKED` must not pay for one. **An ability with no `cast_time` begins on the press tick**,
+so this costs nothing where it is not wanted.
+
+**The duration runs from the burst, not from the press.** A 0.45 s throw followed by a 4.0 s
+cloud is 4.0 s of cloud, which is what `TUN-CINDERFALL-DURATION`'s row promises and what GDD-04
+§3.1's counterplay is priced against.
+
+**And a caster killed during the wind-up drops nothing.** The cooldown and the suspicion were
+spent at the press and stay spent, so a victim who read the tell and acted is paid for reading
+it. **A stun does not cancel a cast** — nothing in GDD-04 gives it that power, and §3.1 names
+patience as the counter; it is US-0067's one open question rather than a decision taken here.
 
 ### 1.1 The five validations
 
@@ -370,7 +395,7 @@ func on_death(peer: int) -> void
 
 | # | Question | Position | Needed by |
 |---|---|---|---|
-| 1 | `AbilityData.effect_script` couples data to code. Is that acceptable in a data-driven design? | Yes, and it is the honest boundary: an ability's *numbers* are data, its *behaviour* is code. Pretending behaviour can be data means building a scripting language, which is scope we do not have | — |
+| 1 | `AbilityData.effect_script` couples data to code. Is that acceptable in a data-driven design? | Yes, and it is the honest boundary: an ability's *numbers* are data, its *behaviour* is code. Pretending behaviour can be data means building a scripting language, which is scope we do not have. **Answered a second time by US-0067, in the other direction: the coupling stops at the wire.** `NET-S2C-TUNING-SYNC` is `var_to_bytes_with_objects`, so a `Script` field would be *sent as a script* — and the engine said so, refusing the round-trip with *"Class CinderfallEffect hides a global script class"* the moment `cinderfall.tres` gained one. `TuningProfile._wireable` strips `effect_script` and `tell_vfx`: **numbers travel, code does not** | **Closed** |
 | 2 | Should cooldowns persist across death to close suicide-to-reroll? | Not yet. Monitor `TEL-SUICIDE-SUSPECTED`. Preserving cooldowns is the fix if needed; a death penalty is not, because it would harm the low-skill player far more than the exploiter | M5 |
 | 3 | Second Face inside a Cinderfall cloud is the one combination flagged as concerning ([`../10_gdd/04_abilities.md`](../10_gdd/04_abilities.md) §7.1). Should it be forbidden pre-emptively? | **No.** Clever combinations should exist until proven dominant. The `nearest_clone` fallback already means you do not control what you become inside a cloud. Monitor `TEL-SECONDFACE-IN-CLOUD`; the fix is a one-line validation if it exceeds ~20 % of uses | M5 |
 | 4 | Ability tells are predicted but effects are not (§4). Does the ~RTT gap feel wrong at 100 ms+? | Measure at M5. The fallback is delaying the local tell to match — costing responsiveness to gain consistency | M5 |
