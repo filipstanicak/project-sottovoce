@@ -11,6 +11,9 @@ extends Node
 
 const MAP := "res://data/maps/map_vetraio.tres"
 
+## Every message this server sends, and the one place a peer becomes a wire slot.
+var announcer: MatchAnnouncer = null
+
 var _fallen_reported: int = 0
 
 @onready var director: MatchDirector = $MatchDirector
@@ -29,6 +32,7 @@ var _fallen_reported: int = 0
 func _ready() -> void:
 	director.ctx.map = load(MAP) as MapData
 	pawns.setup(director.ctx)
+	announcer = MatchAnnouncer.new(director.ctx)
 	_seed_the_match()
 	_stand_the_crowd_up()
 
@@ -152,24 +156,24 @@ func _start_the_crowd_system() -> void:
 	crowd_director.form_groups()
 	director.register(contracts)
 	contracts.setup(director.ctx)
-	contracts.contract_issued.connect(_on_contract_issued)
+	contracts.contract_issued.connect(announcer.contract_issued)
 
 	# **AFTER THE CROWD, AND `SystemOrder` IS WHAT MAKES THAT TRUE** rather than
 	# this line's position: a system registered backwards still ticks in the
 	# document's order. The order here is only the reading order.
 	director.register(suspicion)
-	suspicion.blend.blend_refused.connect(_on_blend_refused)
+	suspicion.blend.blend_refused.connect(announcer.blend_refused)
 	director.register(detection)
-	detection.prey_warned.connect(_on_prey_warned)
+	detection.prey_warned.connect(announcer.prey_warned)
 	director.register(kills)
 	kills.setup(director.ctx)
 	# **ADR-0015: A KILL NEEDS A CLEAR LINE.** Bound rather than reached for —
 	# `KillRules` is pure Core and `has_los` is `SYS-DETECTION`'s single ray site.
 	kills.sight = detection.clear_line
 	kills.killed.connect(_on_killed)
-	kills.kill_rejected.connect(_on_kill_rejected)
-	kills.stun.stunned.connect(_on_stunned)
-	kills.stun.stun_rejected.connect(_on_stun_rejected)
+	kills.kill_rejected.connect(announcer.kill_rejected)
+	kills.stun.stunned.connect(announcer.stunned)
+	kills.stun.stun_rejected.connect(announcer.stun_rejected)
 
 
 ## **WAIT FOR THE MAP, OR EVERY NPC LANDS AT THE ORIGIN.** A query before the
@@ -254,18 +258,6 @@ func _on_peer_joined(peer: int) -> void:
 		contracts.report_join(peer, director.ctx)
 
 
-## **THE ONE PLACE A CONTRACT REACHES THE WIRE.** `SYS-CONTRACT` deals in peer ids
-## because it is the authority; **peer ids never travel** (US-0029), so the slot
-## mapping happens here and nowhere else.
-##
-## `NET-S2C-CONTRACT-ASSIGNED` carries the slot and the reason and **nothing else**:
-## no persona, no position, no tier. The crowd's entire value is that a contract is
-## one of about seventy-eight candidates until you earn better, and a field on this
-## message is the cheapest possible way to give that away.
-func _on_contract_issued(peer: int, contract: int, reason: int) -> void:
-	Net.events.send_contract(peer, director.ctx.slots.slot_of(contract), reason)
-
-
 ## **EVERY OWNER OF PER-PEER STATE IS TOLD, IN ONE PLACE.** ENet reuses peer ids,
 ## so anything left behind is inherited by the next joiner: a stale sequence
 ## makes their input arrive in the past, a stale pawn flag authorises input for
@@ -286,10 +278,33 @@ func _on_killed(killer: int, victim: int, at: Vector3) -> void:
 	crowd_director.register_corpse(at, director.ctx.tick, victim)
 	crowd_director.startle_at(at)
 	_charge_for_witnesses(killer, at)
-	var slots := director.ctx.slots
-	var tick := director.ctx.tick
-	for peer: int in [killer, victim]:
-		Net.events.send_kill(peer, slots.slot_of(killer), slots.slot_of(victim), tick, 0)
+	_record_the_score(killer, victim)
+	announcer.kill_landed(killer, victim)
+
+
+## **THE FIRST TWO EVENTS THE SCORE LOG HAS EVER HELD.** US-0064.
+##
+## `SCORE-CONTRACT` is unconditional here because `SYS-KILL` only ever kills the
+## **announced** contract — there is no other kill in this game — so every kill
+## that reaches this handler is a contract kill by construction. **The other eleven
+## bonuses are US-0065's**, and this deliberately does not guess at them: each is
+## judged at *initiation* against state this handler no longer has.
+##
+## `SCORE-DEATH` is the marker that delimits lives (TDD-10 §1.4). It is worth zero
+## and is a real event rather than a sentinel, so the results screen counts deaths
+## from the same log it reads everything else from.
+##
+## **BOTH SHARE A GROUP**, which is what lets the feed draw one kill as one line.
+func _record_the_score(killer: int, victim: int) -> void:
+	var ctx := director.ctx
+	var rules := Tuning.match_rules
+	var group := ctx.score.open_group()
+	ctx.score.append(
+		ScoreAward.new(ctx.tick, Ids.SCORE_CONTRACT, killer, victim, Tuning.scoring.contract),
+		rules,
+		group
+	)
+	ctx.score.mark_death(ctx.tick, victim, killer, rules, group)
 
 
 ## US-0052's last criterion: `TUN-SUSPICION-GAIN-WITNESSED-KILL` applies only if
@@ -311,75 +326,6 @@ func _charge_for_witnesses(killer: int, at: Vector3) -> void:
 			continue
 		director.ctx.impulses.queue(killer, Tuning.suspicion.gain_witnessed_kill)
 		return
-
-
-## **A REJECTED KILL IS ANSWERED, BECAUSE SILENCE IS THE WORST ANSWER.** GDD-02 §9
-## failure mode 7: *players press kill in range, nothing happens, and they blame
-## the game — whatever the cause, the fix is feedback.*
-##
-## It rides `NET-S2C-KILL-RESULT` with a **victim slot of zero**, which US-0029
-## reserves to mean nobody. No new message and no new field: "your press did not
-## land" is exactly what a kill result naming no victim says, and a separate whiff
-## message would be a second way to say one thing.
-##
-## **THE ANIMATION DOES NOT EXIST.** There are no animation clips in this project
-## on either rig, so what arrives is the event and not yet the gesture.
-func _on_kill_rejected(killer: int, _verdict: int, _target: int) -> void:
-	var slots := director.ctx.slots
-	Net.events.send_kill(killer, slots.slot_of(killer), SlotTable.NO_SLOT, director.ctx.tick, 0)
-
-
-## **THE PREY WARNING GOES TO THE PREY AND TO NOBODY ELSE.** US-0059, GDD-03 §9.1.
-##
-## The recipient list is the whole rule. Broadcasting it would tell every living
-## player that somebody, somewhere, had gone careless — which is the inference the
-## crowd is for. Sending it to the *pursuer* would tell them they had been made,
-## and a hunter who knows they have been seen is a hunter who can simply wait.
-##
-## **NO SLOT IS MAPPED HERE, WHICH IS THE DIFFERENCE FROM EVERY OTHER MESSAGE IN
-## THIS FILE.** `send_contract` and `send_kill` both translate a peer into a wire
-## slot because they name somebody. This one names nobody, so there is nothing to
-## translate — and that absence is the anonymity rule expressed as a missing line
-## of code rather than as a comment.
-func _on_prey_warned(prey: int, bearing: float, bucket: int) -> void:
-	Net.events.send_prey_warning(prey, bearing, bucket)
-
-
-## **A LANDED STUN REACHES THE TWO PLAYERS IN IT AND NOBODY ELSE.** US-0061.
-##
-## Both are told the same `lockout_ticks`: the hunter learns the length of their
-## exile and the prey learns how much time they just bought. GDD-03 §10.2 makes
-## that number the difference between counterplay and a four-second delay, so a
-## prey who could not see it would have no way to judge whether the stun was worth
-## the risk of turning round.
-func _on_stunned(stunner: int, target: int, lockout_ticks: int) -> void:
-	var slots := director.ctx.slots
-	var a := slots.slot_of(stunner)
-	var b := slots.slot_of(target)
-	var tick := director.ctx.tick
-	Net.events.send_stun(stunner, a, b, tick, true, lockout_ticks)
-	Net.events.send_stun(target, a, b, tick, true, lockout_ticks)
-
-
-## **A REFUSAL GOES TO THE STUNNER ALONE, AND NAMES NOBODY.**
-##
-## Telling the *target* that somebody tried to stun them would say "that player
-## believes you are hunting them", which is a free read on a stranger's suspicion
-## of you. And `SlotTable.NO_SLOT` rather than the peer they swung at, so the
-## answer cannot be compared across presses — every refusal looks the same, which
-## is what stops the stun button being an identity probe.
-func _on_stun_rejected(stunner: int, _verdict: int, _target: int) -> void:
-	var slots := director.ctx.slots
-	var tick := director.ctx.tick
-	Net.events.send_stun(stunner, slots.slot_of(stunner), SlotTable.NO_SLOT, tick, false, 0)
-
-
-## **US-0054's THIRD CRITERION, ON THE WIRE.** *"Refused with distinct feedback,
-## not silence"* — `NET-C2S-BLEND-REQUEST` had no answer of any kind until now, so
-## a press at an occupied hay cart and a press at an empty street produced exactly
-## the same nothing.
-func _on_blend_refused(peer: int, why: int) -> void:
-	Net.events.send_blend_denied(peer, why)
 
 
 func _on_peer_left(peer: int) -> void:
