@@ -55,6 +55,7 @@ var _errors: PackedFloat32Array = PackedFloat32Array()
 var _seq: int = 0
 var _move := Vector2.ZERO
 var _recent: Array[bool] = []
+var _bucket: int = CompassBoard.NO_CONTRACT
 
 
 ## Built by `LocalPawnDriver`, like `feel_readout.gd`, for the export reason above.
@@ -82,6 +83,7 @@ func _ready() -> void:
 		_reconciler.connect("corrected", Callable(self, "_on_corrected"))
 	if _driver != null:
 		_driver.command_sampled.connect(_on_command)
+	EventBus.compass_updated.connect(_on_compass)
 
 
 ## **EVERY COMPARISON, NOT ONLY THE ONES THAT SNAPPED.** `replays` counts
@@ -133,7 +135,33 @@ func _lines() -> Array[String]:
 	out.append("  bias    %s   over %d" % [_framed(_bias()), _corrections.size()])
 	out.append("  ground  %s" % _ground_line())
 	out.append("  wire    %d refused   %d held" % [_refused(), _held()])
+	out.append("  compass %s" % _compass_line())
 	return out
+
+
+## **THE RANGE TO THE CONTRACT, IN THE BUCKET THE SERVER SENT.** Debug only, and
+## `scripts/debug/` is excluded from all three release presets — a player is told
+## *nearer*, never *how far* (GDD-03 §8.5), and the Compass widget draws no text at
+## all so it cannot leak one.
+##
+## **IT EXISTS BECAUSE `TUN-COMPASS-CONE-FULL-RADIUS` WAS SET TWICE FROM A GUESS.**
+## Both times the judgement was "I have to stand right next to them", and both
+## times the only way to price it was to estimate the distance off a screenshot —
+## once from apparent capsule height, to ±2.5 m. This turns the next judgement into
+## a reading. It prints the bucket, the arc it produces, and how far the ring still
+## is, so a report can say *the ring should close here* and mean a number.
+func _compass_line() -> String:
+	if _bucket == CompassBoard.NO_CONTRACT:
+		return "no contract"
+	var metres := Quantise.bucket_to_distance(_bucket)
+	var half := CompassMath.cone_halfwidth_for(metres, Tuning.compass)
+	var closes := CompassMath.full_ring_distance(Tuning.compass)
+	var state := "FULL RING" if half >= 179.9 else "%.0f m to full" % (metres - closes)
+	return "%.1f m   arc %.0f deg   %s" % [metres, half * 2.0, state]
+
+
+func _on_compass(_bearing: float, bucket: int, _lock: float) -> void:
+	_bucket = bucket
 
 
 ## **THE TYPICAL DISAGREEMENT, WHICH IS THE NUMBER THAT WAS MISSING.** Under

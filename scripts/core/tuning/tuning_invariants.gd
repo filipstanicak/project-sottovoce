@@ -242,23 +242,23 @@ static func _compass(p: TuningProfile) -> Array[String]:
 
 
 ## 33. THE ARC MUST BE A WHOLE RING BEFORE IT COULD NAME A BODY. Two clauses.
-## The equality is where 6.0 m comes from — the Compass stops pointing exactly
-## when the game already considers your contract to be in the space you are
-## standing in. The inequality is the thesis, and is **implied by the equality at
-## the shipped ranges**; it is kept because that margin is 0.2 m across two
-## independently tunable bands. TUNABLES §17 carries the rest.
+## The equality is where 20.0 m comes from — the arc stops pointing at exactly the
+## range the lock starts working, so outside it the instrument points and inside it
+## you look. The inequality is the thesis, and is **implied by the equality at the
+## shipped ranges**; it is kept because it is the clause that would fire if either
+## band widened. TUNABLES §17 carries the rest.
 static func _cone_closes_in_time(p: TuningProfile) -> Array[String]:
 	var e: Array[String] = []
 	var closes := CompassMath.full_ring_distance(p.compass)
-	if not is_equal_approx(closes, p.suspicion.open_radius):
+	if not is_equal_approx(closes, p.compass.lock_range):
 		e.append(
 			(
 				(
-					"33. compass.cone_full_radius (%.2f) must EQUAL suspicion.open_radius "
-					+ "(%.2f) — the ring closes when the contract is inside the space you "
-					+ "are standing in, and that radius is already decided"
+					"33. compass.cone_full_radius (%.2f) must EQUAL compass.lock_range "
+					+ "(%.2f) — the arc stops pointing exactly where the lock starts "
+					+ "working, so a player learns one boundary rather than two"
 				)
-				% [closes, p.suspicion.open_radius]
+				% [closes, p.compass.lock_range]
 			)
 		)
 	var reach := p.combat.kill_range + p.combat.kill_validation_grace

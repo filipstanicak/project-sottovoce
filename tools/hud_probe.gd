@@ -216,9 +216,9 @@ func _capture_cone_diagnostics() -> void:
 ## unrelated shapes.
 func _capture_the_arc_widening() -> void:
 	var frames: Array = [
-		["09_wide_far", 110, "55 m: 13 deg. The NARROWEST the arc ever gets, and clearly aimed."],
-		["10_wide_near", 20, "10 m: 99 deg. Seven times as wide, and still pointing."],
-		["11_wide_ring", 12, "6 m: a COMPLETE RING, evenly lit. It has stopped saying which way."],
+		["09_wide_far", 110, "55 m: 15 deg. The NARROWEST the arc ever gets, and clearly aimed."],
+		["10_wide_near", 60, "30 m: 66 deg. Four times as wide, and still pointing."],
+		["11_wide_ring", 40, "20 m: a COMPLETE RING, evenly lit. It has stopped saying which way."],
 	]
 	for frame: Array in frames:
 		await _state(

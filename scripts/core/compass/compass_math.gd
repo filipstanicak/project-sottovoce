@@ -51,18 +51,22 @@ static func rate_for(distance: float, t: CompassTuning) -> float:
 ## **TWO ANCHORS, AND THE CURVE BETWEEN THEM IS DERIVED.** The far end is
 ## `TUN-COMPASS-CONE-HALFWIDTH` at `TUN-COMPASS-RANGE-MAX`; the near end is a whole
 ## ring at `TUN-COMPASS-CONE-FULL-RADIUS`, which is invariant 33's equality with
-## `TUN-SUSPICION-OPEN-RADIUS` — the radius this game already uses for *the space
-## you are standing in*. The exponent is whatever passes through both, so **no
-## third number exists to disagree with the first two**.
+## `TUN-COMPASS-LOCK-RANGE` — **the arc stops pointing at exactly the range the
+## lock starts working**, so outside it the instrument points and inside it you
+## look, and looking is what the lock is for. The exponent is whatever passes
+## through both anchors, so **no third number exists to disagree with them**.
 ##
 ## **AND THE SHAPE IS THE PULSE CURVE'S OWN**: flat over the long approach, steep
-## at the end. 13 degrees at 55 m, 27 at 30, 44 at 20, 99 at 10, a full ring at 6.
+## at the end. 12 degrees at 60 m, 24 at 45, 45 at 35, 66 at 30, a full ring at 20.
 ## GDD-03 §8.2's *"long, flat approach followed by a sudden sense of imminence"*,
 ## said a second time in a second channel.
 ##
-## **THE FIRST CUT USED ONE ANCHOR AND CLOSED THE RING AT 4.0 m**, derived from the
-## half-width alone. It was judged too tight at the controls — you had to be
-## standing on your contract — which is what the second anchor exists to fix.
+## **THE RING RADIUS WAS WIDENED TWICE ON ITS FIRST DAY, BOTH TIMES AT THE
+## CONTROLS.** The first cut had one anchor and closed it at 4.0 m; the second
+## pinned it to `TUN-SUSPICION-OPEN-RADIUS` at 6.0. Both were judged as having to
+## stand on top of the contract before the instrument let go. **The number is worth
+## nothing without somebody walking toward somebody** — no test here could have
+## found either.
 static func cone_halfwidth_for(distance: float, t: CompassTuning) -> float:
 	if distance <= 0.0:
 		return 180.0

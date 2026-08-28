@@ -1002,8 +1002,8 @@ change is**, and it is the single most carefully-tuned curve in the game.
 | Property | Value | Effect |
 |---|---|---|
 | Half-width **at maximum range** | `TUN-COMPASS-CONE-HALFWIDTH` 12° | The narrowest the arc ever is. ±12.6 m of lateral ambiguity at 60 m — about a market row, containing 8–14 figures in a dense zone. |
-| Whole ring at | `TUN-COMPASS-CONE-FULL-RADIUS` 6.0 m | **Derived, not chosen: it equals `TUN-SUSPICION-OPEN-RADIUS`** — the radius this game already uses for the space you are standing in. Inside it your contract is one of the bodies around you and the instrument has nothing left to add. |
-| Half-width between them | `180° × (FULL-RADIUS / d) ^ p`, `p` derived | **The arc covers ground, not an angle**, and the curve is the pulse curve's shape: 13° at 55 m, 27° at 30, 44° at 20, 99° at 10. It opens **4.8° over the first fifteen metres of the approach and 138.8° over the last**. |
+| Whole ring at | `TUN-COMPASS-CONE-FULL-RADIUS` 20.0 m | **Derived, not chosen: it equals `TUN-COMPASS-LOCK-RANGE`** — the arc stops saying *which way* at exactly the range the lock starts working. One boundary, learned once: **outside it the instrument points, inside it you look.** |
+| Half-width between them | `180° × (FULL-RADIUS / d) ^ p`, `p` derived | **The arc covers ground, not an angle**, and the curve is the pulse curve's shape: 12° at 60 m, 24° at 45, 45° at 35, 66° at 30. It opens **12.4° over the first fifteen metres of the approach and 134.7° over the last**. |
 | Wobble amplitude | `TUN-COMPASS-CONE-WOBBLE` 4° | Deterministic, **seeded per contract**. |
 | Wobble period | `TUN-COMPASS-CONE-WOBBLE-PERIOD` 3.1 s | Non-integer so it never visibly syncs with the pulse. |
 | Update rate | `TUN-COMPASS-UPDATE-RATE` 30 Hz | Equals the server tick. The Compass never contains information newer than the simulation. |
@@ -1016,10 +1016,12 @@ the plaza, never which body* would have named the body, for free, at exactly the
 lock exists to charge for.
 
 **The two anchors are the whole specification and the curve between them is derived**, so no third
-number can be set to something the first two contradict. **The first cut had only one anchor** — it
-held the arc at a constant length of ground, which closed the ring at 4.0 m, and at the controls
-that meant standing on your contract before the instrument let go. The near anchor is what fixed
-it, and invariant 33 is what stops it being a number somebody chose.
+number can be set to something the first two contradict. **The near anchor was widened twice on its
+first day, both times at the controls**: 4.0 m when it was derived from the half-width alone, then
+6.0 m at `TUN-SUSPICION-OPEN-RADIUS`, and both times the judgement was that you had to stand on top
+of your contract before the instrument let go. At 20 m it hands over to the lock, and invariant 33
+is what stops it being a number somebody chose. **No test here could have found either miss** — the
+number is worth nothing without somebody walking toward somebody.
 
 **And it is the reference's own behaviour**, which is where the shape came from rather than from
 this argument: its compass arc expands as the target nears and fills the whole ring when they are

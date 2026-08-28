@@ -126,7 +126,7 @@ The game's central instrument. Specified to the frame.
 
 | Part | Spec |
 |---|---|
-| **Direction cone** | Filled arc, camera-relative. Half-width `TUN-COMPASS-CONE-HALFWIDTH` 12° **at maximum range**, widening to a full ring at `TUN-COMPASS-CONE-FULL-RADIUS` 6.0 m — `CompassMath.cone_halfwidth_for`, flat over the long approach and steep at the end. Soft gradient edges — **never a hard-edged needle**, because the visual must communicate imprecision — and the falloff **flattens as the arc opens**, because a full ring has no edges to fade: every direction is equally possible and drawing a front and a back would be a direction the reading does not carry |
+| **Direction cone** | Filled arc, camera-relative. Half-width `TUN-COMPASS-CONE-HALFWIDTH` 12° **at maximum range**, widening to a full ring at `TUN-COMPASS-CONE-FULL-RADIUS` 20.0 m, which is `TUN-COMPASS-LOCK-RANGE` — `CompassMath.cone_halfwidth_for`, flat over the long approach and steep at the end. Soft gradient edges — **never a hard-edged needle**, because the visual must communicate imprecision — and the falloff **flattens as the arc opens**, because a full ring has no edges to fade: every direction is equally possible and drawing a front and a back would be a direction the reading does not carry |
 | **Pulse ring** | Concentric ring, scale 1.0 → 1.35, alpha 0.9 → 0.0 over one period |
 | **Lock arc** | Outer ring, fills clockwise, 0 → 360° over `TUN-COMPASS-LOCK-FILL-TIME` |
 | **Centre dot** | Static reference point |
