@@ -139,6 +139,15 @@ godot --headless -- --server --port 27015 --max-players 6
 # Run a client that joins immediately
 godot -- --connect 127.0.0.1:27015
 
+# ALL THREE AT ONCE, FROM cmd: a server, N walking bots, and you.
+# Close the game window and it shuts the server and the bots down.
+play.bat            REM 3 bots
+play.bat 5 27016 42 REM 5 bots, another port, a fixed match seed
+
+# One bot on its own, against a server that is already up.
+# A scene, not a `-s` script: it needs the autoloads (trap: a `-s` script gets none).
+godot --headless --path . res://tools/bot_client.tscn -- --connect 127.0.0.1:27015 --bot 1
+
 # What the input layer reports with nobody touching the controls.
 # NEVER --headless: there is no windowing layer there to see a device. Trap 13.
 godot --path . -s res://tools/input_probe.gd
@@ -506,6 +515,26 @@ effect that never started, and is in fact an effect that **finished**:
 `AbilityEffect.tick` returns false, which is the documented *end early* signal, so a
 base no-op ends inside the tick it began. The ordering is guarded on the source
 until US-0067 provides an effect that outlives its first tick.
+
+**AND THERE ARE BOTS NOW, WHICH THIS PROJECT HAS NEVER HAD.**
+`tools/bot_client.tscn` is **the real client scene** joined over the real wire with
+its movement actions pressed from a script — so the contract cycle, suspicion, the
+Compass, a kill, a stun and a score all run for it exactly as they do for a person.
+`play.bat` starts a server, N of them and your own client from cmd, and closing the
+game window shuts the rest down.
+
+**IT RUNS HEADLESS, AND `drive_probe.gd` SAYS THAT IS IMPOSSIBLE.** That file
+refuses with *"headless cannot deliver an input action"* — **and it is wrong.**
+Trap 13's evidence is about *reading a device*: a joypad axis and mouse motion need
+a windowing layer, which `tools/input_probe.gd` measured. `Input.action_press` is a
+**synthetic** press into the Input singleton and needs none. Measured: a headless
+bot walked **12.5 m in fifteen seconds** with the server agreeing. The refusal in
+`drive_probe` is over-broad and its stated reason is not the real one.
+
+**WHAT A BOT STILL CANNOT DO IS LOOK WITH A MOUSE.** Turning goes through
+`input_look_left`/`-right`, which exist for the pad, so a bot sweeps rather than
+aims. It does not press kill or stun and does not pretend to: **it is a moving,
+blending, killable player, not an opponent.**
 
 **AND THE FOUR DEBUG OVERLAYS TURN OFF WITH `F3`.** They cover the top-left
 quarter of the screen and repaint the whole district, with the HUD drawn
@@ -4447,7 +4476,13 @@ view.
     if you need a command, listen to that. `test_input_sampled_by_one_caller.gd`
     names the cause; `test_input_sampled_once.gd` measures the consequence.
 13. **`--headless` CANNOT SEE AN INPUT DEVICE, SO A HEADLESS DIAGNOSTIC PROVES
-    NOTHING ABOUT ONE.** There is no windowing layer to poll a pad or deliver
+    NOTHING ABOUT ONE — BUT IT CAN STILL *PRESS* ONE.** Narrowed 2026-08-28.
+    `Input.action_press` is a **synthetic** press into the Input singleton and
+    works headless; `tools/bot_client.gd` walks a real client 12.5 m in fifteen
+    seconds with no window, and the server agrees. What headless cannot do is
+    *read* a physical device, which is what the evidence below is about.
+    `drive_probe.gd` refused headless with the over-broad reason and now says
+    the real one. There is no windowing layer to poll a pad or deliver
     mouse motion, so every reading is a zero — and a zero from a probe that
     cannot see is indistinguishable from a zero from a quiet machine. A tool
     written to find the spinning camera reported "connected joypads: 0 — a
