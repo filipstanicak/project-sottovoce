@@ -47,6 +47,12 @@ signal contract_portrait_revealed(persona: StringName)
 ## EVT-COMPASS-UPDATED
 signal compass_updated(bearing: float, distance_bucket: int, lock: float)
 
+## Both sides of a pursuit, `[0, 1]` each: the chase YOU are running and the chase
+## run AGAINST you. Two values because a Hamiltonian cycle makes every player both
+## at once. Names nobody — a bar, never a finger on it.
+## EVT-PURSUIT-CHANGED
+signal pursuit_changed(hunting: float, hunted: float)
+
 ## Match phase transition. multiplier is 1.0 or 2.0.
 ## EVT-MATCH-PHASE-CHANGED
 signal match_phase_changed(phase: int, multiplier: float)

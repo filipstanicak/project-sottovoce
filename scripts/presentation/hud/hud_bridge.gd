@@ -34,6 +34,8 @@ var _stun_ready: bool = false
 var _portrait: bool = false
 var _phase: int = NOTHING
 var _multiplier: int = NOTHING
+var _hunting: int = NOTHING
+var _hunted: int = NOTHING
 
 
 func _ready() -> void:
@@ -55,6 +57,7 @@ func _on_snapshot(snapshot: Snapshot) -> void:
 	_publish_suspicion(snapshot)
 	_publish_compass(snapshot)
 	_publish_combat(snapshot)
+	_publish_pursuit(snapshot)
 	_publish_match(snapshot)
 
 
@@ -97,6 +100,24 @@ func _publish_combat(snapshot: Snapshot) -> void:
 	_kill_ready = snapshot.kill_ready
 	_stun_ready = snapshot.stun_ready
 	EventBus.kill_ready_changed.emit(_kill_ready, _stun_ready)
+
+
+## **THE CHANGE TEST EARNS ITS KEEP HERE MORE THAN ANYWHERE ELSE IN THIS CLASS.**
+## While a chase is live the bytes move on most ticks — 255 steps over the 322 the
+## bar lasts — so this looks like the Compass, which is the documented exception.
+## It is not: **most of a match has no chase at all**, and the two bytes are then
+## zero and stay zero. The comparison suppresses the common case and passes the
+## rare one straight through, which is the opposite way round from the bearing.
+##
+## **COMPARED AS BYTES, EMITTED AS FRACTIONS.** Comparing the divided floats would
+## be a float equality test on a value that arrived as an integer, which is a
+## comparison that is true by luck rather than by construction.
+func _publish_pursuit(snapshot: Snapshot) -> void:
+	if _hunting == snapshot.hunt_fraction and _hunted == snapshot.hunted_fraction:
+		return
+	_hunting = snapshot.hunt_fraction
+	_hunted = snapshot.hunted_fraction
+	EventBus.pursuit_changed.emit(_hunting / 255.0, _hunted / 255.0)
 
 
 func _publish_match(snapshot: Snapshot) -> void:

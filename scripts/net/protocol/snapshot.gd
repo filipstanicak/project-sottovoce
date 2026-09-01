@@ -31,7 +31,11 @@ const NO_STATE := 255
 ## **EIGHT SINCE US-0031** — `baseline_age:u8` joined the header. One byte at
 ## 30 Hz is 30 B/s against a saving measured in thousands.
 const HEADER_BYTES := 8
-const OWN_BYTES := 43
+## **FORTY-FIVE SINCE US-0097** — the two pursuit bytes below. The own block is
+## sent once per snapshot rather than once per entity, so two bytes here is
+## 0.48 kbit/s against a downstream budget of 96: half a point on a miss already
+## twelve points wide.
+const OWN_BYTES := 45
 const REMOTE_BYTES := 10
 ## **EIGHT, NOT TEN.** An NPC's `y` is a byte at 5 cm rather than an `i16` at
 ## 1 cm, and its animation is `u3 + u5` rather than `u4 + u6`. Both were changed
@@ -94,6 +98,18 @@ var cooldown_b_tick: int = 0
 var blend_state: int = 0
 var kill_ready: bool = false
 var stun_ready: bool = false
+
+## **TWO BARS, AND US-0097 ASKED FOR ONE.** A Hamiltonian cycle gives every player
+## one outgoing edge and one incoming one, so both chases are live at once and mean
+## opposite things — one byte would be ambiguous in the ordinary case rather than in
+## an edge case. NETWORK_PROTOCOL §4 carries the reasoning.
+##
+## `hunt_fraction` is the chase **you** are running: 1.0 you have just seen your
+## prey, 0.0 you are about to lose the contract. `hunted_fraction` is the chase run
+## **against you**: 1.0 they have just seen you, 0.0 you have escaped. **Neither
+## names anybody**, which is what keeps both inside never-do #12.
+var hunt_fraction: int = 0
+var hunted_fraction: int = 0
 
 # --- compass: bucketed and wobbled server-side ---
 var bearing: int = 0
@@ -211,6 +227,14 @@ func _write_own(buffer: StreamPeerBuffer) -> void:
 	var flags_byte := Quantise.pack(tier, 2, blend_state, 4) << 2
 	flags_byte |= (2 if kill_ready else 0) | (1 if stun_ready else 0)
 	buffer.put_u8(flags_byte)
+	# **THE ORDER IS `hunt` THEN `hunted`, AND A TRANSPOSITION HERE IS INVISIBLE.**
+	# Two adjacent bytes of the same width holding two fractions of the same bar is
+	# exactly the shape `ScoreAward` was extracted to avoid, and there is no type
+	# that separates them. What catches it is the round trip and the builder both
+	# being asserted with **two different values** — equal fixtures would agree
+	# whichever way round they were written.
+	buffer.put_u8(clampi(hunt_fraction, 0, 255))
+	buffer.put_u8(clampi(hunted_fraction, 0, 255))
 
 
 func _write_compass_and_match(buffer: StreamPeerBuffer) -> void:
@@ -316,6 +340,8 @@ func _read_own(buffer: StreamPeerBuffer) -> void:
 	var packed := flags_byte >> 2
 	tier = Quantise.unpack_high(packed, 4, 2)
 	blend_state = Quantise.unpack_low(packed, 4)
+	hunt_fraction = buffer.get_u8()
+	hunted_fraction = buffer.get_u8()
 
 
 func _read_compass_and_match(buffer: StreamPeerBuffer) -> void:

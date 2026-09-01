@@ -184,7 +184,9 @@ NET-S2C-SNAPSHOT — per client, per tick
 │   ├── cooldown_b_tick    u16
 │   ├── blend_state        u4
 │   ├── kill_ready         bool     drives the crosshair — must not lie (built US-0060)
-│   └── stun_ready         bool
+│   ├── stun_ready         bool
+│   ├── hunt_fraction      u8       the chase YOU are running; 0 = about to lose the contract
+│   └── hunted_fraction    u8       the chase run AGAINST you; 0 = you have escaped
 ├── compass
 │   ├── bearing            u8       wobble ALREADY APPLIED server-side
 │   ├── distance_bucket    u8       0.5 m buckets to 60 m — never an exact distance
@@ -209,6 +211,17 @@ NET-S2C-SNAPSHOT — per client, per tick
     ├── yaw                u8       1 deg
     └── anim_state         u3 + phase u5      == 8 bytes per NPC including index
 ```
+
+**THE PURSUIT IS TWO BYTES AND US-0097 ASKED FOR ONE.** Its criterion reads *"the hunter's
+own-gameplay block and the prey's each carry `pursuit_fraction:u8`"* — one field, written as
+though the two roles were exclusive. **They are never exclusive**: a Hamiltonian cycle gives
+every player exactly one outgoing edge and exactly one incoming one, so every player is always
+simultaneously a hunter and a prey, both chases can be live at once, and they mean opposite
+things. One byte would have been ambiguous in the ordinary case rather than in an edge case.
+
+**Neither byte names anybody**, which is what keeps them inside never-do #12. The prey learns
+*a bar is draining*, never whose finger is on it — and they had already been told a pursuer
+exists, because `NET-S2C-PREY-WARNING` fires on the very condition that opens a chase.
 
 **THE CROWD RECORD IS COARSER THAN THE PLAYER RECORD, AND THAT IS WHERE THE BUDGET LIVES.**
 Ninety NPCs against six players: a byte saved on an NPC is worth fifteen saved on a remote pawn.

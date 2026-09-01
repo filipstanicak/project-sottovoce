@@ -256,6 +256,7 @@ func _fill_own(snapshot: Snapshot, peer: int) -> void:
 	snapshot.kill_ready = own.kill_ready
 	snapshot.stun_ready = own.stun_ready
 	_fill_cooldowns(snapshot, peer)
+	_fill_pursuit(snapshot, peer)
 
 	# **THE COMPASS BLOCK, BUCKETED AND WOBBLED BEFORE IT GOT HERE** (US-0057).
 	# `SYS-DETECTION` decided both at the `detection` stage; this reads them. The
@@ -331,3 +332,33 @@ func _fill_cooldowns(snapshot: Snapshot, peer: int) -> void:
 		return
 	snapshot.cooldown_a_tick = abilities.cooldown_ticks(peer, 0)
 	snapshot.cooldown_b_tick = abilities.cooldown_ticks(peer, 1)
+
+
+## **BOTH SIDES OF A CHASE, TO THE ONE PLAYER EACH IS ABOUT** (US-0097, ADR-0014).
+##
+## `hunt_fraction` is read for the observer directly — they are the hunter of their
+## own chase. `hunted_fraction` needs a reverse lookup, which is a scan of at most
+## six rows, because `PursuitBoard` is keyed on the hunter: a cycle gives every
+## player exactly one outgoing edge, so that is the key that cannot go stale.
+##
+## **NOBODY IS NAMED IN EITHER DIRECTION.** The observer is told a bar and never
+## whose finger is on it — and they already knew a pursuer existed, because
+## `NET-S2C-PREY-WARNING` fired on the same condition that opened the chase.
+func _fill_pursuit(snapshot: Snapshot, peer: int) -> void:
+	var full := Tuning.ticks(&"TUN-PURSUIT-DURATION")
+	snapshot.hunt_fraction = _byte(_ctx.pursuit.fraction_of(peer, full))
+	# **`NOBODY` IS ZERO AND ZERO IS A DICTIONARY KEY LIKE ANY OTHER.** No engine
+	# peer id is ever 0 so the lookup would miss anyway, but resting a rule on that
+	# is `CompassBoard.NO_CONTRACT`'s hazard exactly: the safe default must be
+	# stated, not inherited from a coincidence about the id space.
+	var pursuer := _ctx.pursuit.hunter_of(peer)
+	if pursuer == ContractCycle.NOBODY:
+		snapshot.hunted_fraction = 0
+		return
+	snapshot.hunted_fraction = _byte(_ctx.pursuit.fraction_of(pursuer, full))
+
+
+## A `[0, 1]` fraction as the byte the wire carries. `lock_fraction`'s own rounding,
+## said once rather than twice.
+func _byte(fraction: float) -> int:
+	return clampi(int(round(fraction * 255.0)), 0, 255)

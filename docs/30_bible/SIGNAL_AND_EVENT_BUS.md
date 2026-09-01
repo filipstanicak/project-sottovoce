@@ -64,6 +64,7 @@ Both are **past tense**. The bus reports what *has happened*, never what *should
 | `EVT-CONTRACT-ASSIGNED` | `contract_assigned(reason: int)` | `START` `KILL` `RESPAWN` `REPAIR` | A new contract is issued | `CompassVm`, `Audio` |
 | `EVT-CONTRACT-PORTRAIT-REVEALED` | `contract_portrait_revealed(persona: StringName)` | `PERSONA-*` | A Compass lock completes (ASM-0030) | `CompassVm` |
 | `EVT-COMPASS-UPDATED` | `compass_updated(bearing: float, distance_bucket: int, lock: float)` | bearing rad; bucket index; lock 0–1 | Every snapshot (30 Hz) | `CompassVm` |
+| `EVT-PURSUIT-CHANGED` | `pursuit_changed(hunting: float, hunted: float)` | two fractions, `[0, 1]` each | Either pursuit bar changes. **Two values, because a Hamiltonian cycle makes every player a hunter and a prey simultaneously** — US-0097's criterion asks for one `pursuit_fraction` and one byte cannot carry two chases that mean opposite things. `hunting` drains toward losing your contract; `hunted` drains toward escaping. **Neither names anybody** | `ChaseVm`, `Audio` (US-0075) |
 | `EVT-MATCH-PHASE-CHANGED` | `match_phase_changed(phase: int, multiplier: float)` | phase enum; 1.0 or 2.0 | Phase transition | `MatchVM`, `Audio`, music controller |
 | `EVT-ABILITY-COOLDOWN-CHANGED` | `ability_cooldown_changed(slot: int, remaining_ticks: int)` | slot 0–1 | Cooldown starts, expires, or is corrected | `AbilitySlotVM` |
 | `EVT-BLEND-STATE-CHANGED` | `blend_state_changed(blend_type: int)` | `NONE` `POCKET` `GROUP` `PROP_STATIC` `PROP_CONCEAL` | Own blend begins or ends | `TierVM`, `Audio` |
