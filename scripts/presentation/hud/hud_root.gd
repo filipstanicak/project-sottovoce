@@ -26,6 +26,7 @@ var camera: Node3D = null
 
 var compass_vm := CompassVm.new()
 var score_vm := ScoreFeedVm.new()
+var chase_vm := ChaseVm.new()
 
 var _bridge: HudBridge = null
 var _widgets: Array[Control] = []
@@ -43,17 +44,25 @@ func _ready() -> void:
 	compass.vm = compass_vm
 	var feed := ScoreFeedWidget.new()
 	feed.vm = score_vm
+	var chase := ChaseRingWidget.new()
+	chase.vm = chase_vm
 	# **THE VIGNETTE IS ADDED FIRST SO IT SITS BEHIND EVERYTHING.** It is the only
 	# full-screen effect in the game (§4.2) and it must never cover a widget the
 	# player is trying to read at the exact moment they most need to read it.
 	_add(VignetteWidget.new(), "Vignette")
 	_add(compass, "Compass")
+	# **AFTER THE COMPASS, SO THE BARS SIT OVER ITS RIM RATHER THAN UNDER IT.** The
+	# two never overlap by construction — the arcs are outside `LOCK_RADIUS` — but
+	# order decides which wins if either radius is ever retuned, and the bar losing
+	# to the instrument it annotates is the wrong way round.
+	_add(chase, "ChaseRing")
 	_add(TierWidget.new(), "Tier")
 	_add(PortraitWidget.new(), "Portrait")
 	_add(CrosshairWidget.new(), "Crosshair")
 	_add(feed, "ScoreFeed")
 	EventBus.compass_updated.connect(_on_compass)
 	EventBus.score_event_appended.connect(_on_score)
+	EventBus.pursuit_changed.connect(_on_pursuit)
 
 
 func _exit_tree() -> void:
@@ -61,6 +70,8 @@ func _exit_tree() -> void:
 		EventBus.compass_updated.disconnect(_on_compass)
 	if EventBus.score_event_appended.is_connected(_on_score):
 		EventBus.score_event_appended.disconnect(_on_score)
+	if EventBus.pursuit_changed.is_connected(_on_pursuit):
+		EventBus.pursuit_changed.disconnect(_on_pursuit)
 
 
 ## **THE YAW IS READ ON THE RENDER FRAME**, like the Compass's phase, because the
@@ -85,6 +96,10 @@ func _on_score(event: RefCounted) -> void:
 	var report := event as ScoreReport
 	if report != null:
 		score_vm.report(report)
+
+
+func _on_pursuit(hunting: float, hunted: float) -> void:
+	chase_vm.apply(hunting, hunted)
 
 
 func _on_compass(bearing: float, bucket: int, lock: float) -> void:

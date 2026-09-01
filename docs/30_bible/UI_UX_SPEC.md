@@ -72,6 +72,7 @@ depends_on: [GDD-06-UI-AUDIO, TDD-11-UI, BIBLE-ART, ADR-0006]
 | **E Match timer** | Top-centre | 120 × 48 | Matters intensely for ~40 s of 480; ignorable otherwise |
 | **F Crosshair** | Screen centre | 3 px dot | The one element that must be exact |
 | **G Ability slots** | Bottom-left | 2 × 64 px | Below the tier indicator that governs their cost |
+| **H Chase ring** | Concentric with the Compass | 260 × 260 | Two arcs outside the lock arc (US-0097). It annotates the Compass, so it shares its centre — **derived from `CompassWidget`'s own constants, never re-chosen**. Inner arc, winding anticlockwise: the chase run **against you**. Outer arc, clockwise like the lock: the chase **you** are running. Three channels separate them and only one is hue, so both survive §7.1's monochrome palette. A re-acquisition thickens the inner bar briefly, because sight refreshes it to full every tick it lasts and a pegged bar is otherwise indistinguishable from a dead HUD |
 
 **Nothing occupies the centre 60 % of the screen.** That region is where players read faces and
 gait, and it is kept clear deliberately.

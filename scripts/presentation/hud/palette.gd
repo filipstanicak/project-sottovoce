@@ -32,6 +32,17 @@ extends Resource
 @export var compass_lock: Color = Color(0.98, 0.98, 0.98, 0.85)
 @export var compass_dot: Color = Color(0.90, 0.91, 0.93, 0.75)
 
+## The two pursuit bars (US-0097). **Hue is the third of three channels here**,
+## after radius and direction of travel, which is what keeps `ChaseRingWidget`
+## readable on §7.1's monochrome verification palette.
+##
+## The hunt bar takes the Compass's own near-neutral, because it is the remaining
+## life of that instrument. The hunted bar takes `noticed`'s amber, because it is a
+## threat channel and the HUD already spends that hue on exactly that meaning —
+## a second warning colour would be a second thing to learn.
+@export var chase_hunt: Color = Color(0.86, 0.88, 0.90, 0.70)
+@export var chase_hunted: Color = Color(0.93, 0.78, 0.42, 0.85)
+
 ## The crosshair. **Kill and stun differ in shape first** (§6: a bracket pair, not
 ## just a colour), so these two exist to reinforce a distinction that is already
 ## legible without them.

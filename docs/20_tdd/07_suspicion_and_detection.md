@@ -458,6 +458,8 @@ for each ordered pair (O, S):
     # only now consider a raycast, and only for lock progression
 ```
 
+**MEASURED 2026-09-01, AND THE CEILING IS NOW REACHABLE.** US-0097 moved the cast from the lock's 25° cone to the chase's 90° one, because a cast gated on the narrower test leaves the chase blind through two thirds of its own. `test_pursuit_raycast_budget.gd` puts the worst case at **6 casts per tick for a six-player lobby with every player at Noticed** — the top of the band below rather than the middle of it — and at 35° off axis the chase spends **six where the lock alone would have spent zero**. A hunter facing away still spends nothing, which is the early-out that keeps the ordinary case cheap.
+
 In practice **2–6 raycasts per tick**, not 30, because most players are Anonymous most of the
 time — which is the game working.
 
