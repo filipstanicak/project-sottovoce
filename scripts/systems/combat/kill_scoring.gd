@@ -69,6 +69,24 @@ func pay_for_kill(ctx: MatchContext, facts: KillScoreFacts) -> int:
 	return group
 
 
+## **PAY THE PREY FOR SURVIVING A HUNT.** US-0097, ADR-0014.
+##
+## Beside `pay_for_stun` rather than in `server_root`, because these are the prey's
+## **two non-death outcomes** — stun the hunter, or lose them — and invariants 19
+## and 37 price both against the same base kill. Splitting them across two files
+## would put one under a rule the other could drift from.
+##
+## **THE ACTOR IS THE PREY AND THE SUBJECT IS THE HUNTER.** `NET-S2C-SCORE-EVENT`
+## reaches `ScoreEvent.actor_id` alone, so the hunter is never told they were
+## escaped from; they find out because their Compass stops pointing.
+func pay_for_escape(ctx: MatchContext, prey: int, hunter: int, close_call: bool) -> void:
+	var group := ctx.score.open_group()
+	for award: ScoreAward in ScoreBonuses.for_escape(
+		ctx.tick, prey, hunter, close_call, Tuning.scoring
+	):
+		ctx.score.append(award, Tuning.match_rules, group)
+
+
 ## Pay for a landed stun. **One base kill, and no variety group** — a stun is one
 ## award, so a group would be a feed line with nothing to group.
 func pay_for_stun(ctx: MatchContext, stunner: int, target: int) -> void:

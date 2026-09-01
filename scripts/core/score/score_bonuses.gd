@@ -40,6 +40,26 @@ static func for_stun(tick: int, stunner: int, target: int, s: ScoringTuning) -> 
 	return [ScoreAward.new(tick, Ids.SCORE_STUN, stunner, target, s.stun)] as Array[ScoreAward]
 
 
+## **WHAT SURVIVING A HUNT IS WORTH.** US-0097, ADR-0014, GDD-07 §3.
+##
+## Paid to the **prey**, at the tick their pursuer's bar emptied. `SCORE-ESCAPE` is
+## one base kill — invariant 37, the same statement invariant 19 makes about the
+## stun: the prey's two non-death outcomes must both price against the kill they
+## prevented, or one of them becomes the only one worth playing for.
+##
+## **`SCORE-CLOSECALL` IS AN ADDITION, NOT A REPLACEMENT.** Escaping from under the
+## hunter's nose is the same achievement performed under pressure rather than a
+## different achievement, which is why it is half an escape on top rather than a
+## larger escape instead.
+static func for_escape(
+	tick: int, prey: int, hunter: int, close_call: bool, s: ScoringTuning
+) -> Array[ScoreAward]:
+	var awards: Array[ScoreAward] = [ScoreAward.new(tick, Ids.SCORE_ESCAPE, prey, hunter, s.escape)]
+	if close_call:
+		awards.append(ScoreAward.new(tick, Ids.SCORE_CLOSECALL, prey, hunter, s.closecall))
+	return awards
+
+
 ## **THE ONE RUNG OF THE SUSPICION LADDER THIS KILL LANDED ON.** Never zero rungs
 ## and never two: the bands are a partition of one number, and a kill that paid
 ## neither Silent nor Halfseen nor Reckless is the defect that existed until the

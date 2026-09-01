@@ -82,6 +82,16 @@ var impulses := SuspicionImpulses.new()
 ## `announced_contracts` was moved here to avoid.
 var cinderfall := CinderfallVolumes.new()
 
+## **EVERY LIVE CHASE.** `SYS-DETECTION` opens and refreshes them, `SYS-CONTRACT`
+## consumes the ones that empty. US-0097, ADR-0014.
+##
+## Here rather than on either system for the reason `cinderfall` and `lockouts` are
+## here: two systems at two stages ask about the same rows, and a system reaching
+## another system's state does it through the context. `SYS-DETECTION` sits at
+## stage 5 and `SYS-CONTRACT` at stage 8, so an escape is detected and repaired in
+## the same tick.
+var pursuit := PursuitBoard.new()
+
 ## **THE COMBAT TIMERS BOTH COMBAT SYSTEMS TOUCH.** US-0061. `SYS-STUN` writes the
 ## exile and the flail stagger; `SYS-KILL` reads both — a locked-out hunter may
 ## not re-initiate on the player who stunned them, and a staggered player may not

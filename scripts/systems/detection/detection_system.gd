@@ -31,6 +31,11 @@ extends GameSystem
 ## `lock_fraction` and `portrait_revealed`, never this.
 signal lock_completed(hunter: int, contract: int)
 
+## **A CHASE EMPTIED: THE HUNTER HAS LOST THIS CONTRACT.** US-0097, ADR-0014.
+## `server_root` wires it to `ContractSystem.report_escape` and to the prey's two
+## score awards — a system says what happened and that file decides who is told.
+signal escaped(hunter: int, prey: int, close_call: bool)
+
 ## **THE PREY'S ONLY WARNING.** US-0059. `bearing` is a *world* angle with the
 ## Compass wobble already applied and `bucket` is a `Quantise.BUCKET_STEP` step,
 ## so nothing downstream of here holds an exact metre or a camera-relative angle.
@@ -69,6 +74,15 @@ var pairs_considered: int = 0
 ## same reason `lock` is: the cooldown's one interesting property — that a new
 ## pursuer re-arms it — is exercisable without a district.
 var warning := PreyWarning.new()
+
+## **THE CHASE, OWNED AND DRIVEN HERE.** US-0097. A plain object rather than a
+## second `GameSystem` — `BlendSystem`/`StunSystem`'s shape, and for the same
+## reason: `MatchDirector` permits one system per stage, and every question a chase
+## asks is one this pass has already answered. Split out when adding it took this
+## file to 477 lines, and the seam is a subject rather than a line count: above is
+## *who can see whom*, this is *how long you keep a contract once you have been
+## seen*.
+var chase := PursuitTracker.new()
 
 ## Warnings sent this match. Cumulative, unlike `raycasts_last_tick`, because the
 ## question worth asking of it is *did recklessness ever cost anybody anything*.
@@ -119,12 +133,14 @@ func tick(ctx: MatchContext, _dt: float) -> void:
 	)
 	ctx.render_states.clear()
 	ctx.compass.clear()
+	chase.begin_pass()
 	for observer: int in ctx.pawn_contexts.keys():
 		_read_the_compass(observer, ctx)
 		for subject: int in ctx.pawn_contexts.keys():
 			if observer == subject:
 				continue
 			_resolve_pair(observer, subject, ctx)
+	chase.drain(ctx)
 
 
 ## **THE EARLY-OUT LADDER, CHEAPEST FIRST** (TDD-07 §4.3). Most players are
@@ -172,7 +188,15 @@ func _consider_warning(prey: int, pursuer: int, them: PawnContext, ctx: MatchCon
 	var t := Tuning.compass
 	var metres := CompassMath.distance_to(here.position, them.position)
 	var within := metres <= t.warn_radius
-	if not warning.consider(prey, pursuer, within, them.tier >= _warn_tier, ctx.tick):
+	var careless := them.tier >= _warn_tier
+	# **THE CHASE OPENS ON THE CONDITION, NOT ON THE MESSAGE**, which is why it is
+	# above the cooldown rather than below it. `PreyWarning` re-triggers no faster
+	# than `TUN-COMPASS-WARN-COOLDOWN` 2.5 s; a chase gated on that would refuse to
+	# open for up to two and a half seconds after the carelessness that earned it,
+	# and the hunter would keep a contract the rule says they had put at risk.
+	#
+	_open_a_chase(prey, pursuer, within and careless, ctx)
+	if not warning.consider(prey, pursuer, within, careless, ctx.tick):
 		return
 	warnings_sent += 1
 	var bearing := CompassMath.shown_bearing(here.position, them.position, pursuer, ctx.tick, t)
@@ -241,9 +265,18 @@ func _advance_the_lock(
 	ctx: MatchContext
 ) -> void:
 	var t := Tuning.compass
-	var can_lock := metres <= t.lock_range and _within_facing_cone(here, there.position, t)
+	var angle := PursuitTracker.angle_to(here, there.position)
+	var can_lock := metres <= t.lock_range and angle <= deg_to_rad(t.lock_cone) * 0.5
+	# **THE CAST IS TAKEN FOR THE WIDER TEST AND BOTH READ IT** (US-0097).
+	# Invariant 36 is what guarantees this ordering is the right way round;
+	# `PursuitTracker`'s docstring carries what it costs.
+	var watching := PursuitTracker.geometry(angle, metres)
+	var clear := false
+	if watching or (can_lock and t.lock_requires_los):
+		clear = has_los(sight_point(here.position), sight_point(there.position))
 	if can_lock and t.lock_requires_los:
-		can_lock = has_los(sight_point(here.position), sight_point(there.position))
+		can_lock = clear
+	chase.advance(hunter, contract, there, metres, watching and clear, ctx)
 	# `SCORE-FOCUS` rides `can_lock` — see this function's docstring.
 	ctx.score_windows.sample_focus(hunter, can_lock, Tuning.ticks(&"TUN-SCORE-FOCUS-BREAK-GRACE"))
 	if lock.advance(hunter, contract, can_lock, MatchContext.net_dt(), false):
@@ -251,18 +284,6 @@ func _advance_the_lock(
 		ctx.score_windows.note_lock(hunter, ctx.tick)
 		lock_completed.emit(hunter, contract)
 	ctx.compass.set_lock(hunter, lock.fraction_of(hunter), lock.portrait_revealed(hunter, contract))
-
-
-## Is `at` inside the hunter's own facing cone? `TUN-COMPASS-LOCK-CONE` is the
-## **total** width, so the test is against half of it.
-##
-## **THE HUNTER'S YAW, NOT THE COMPASS BEARING.** The bearing carries
-## `TUN-COMPASS-CONE-WOBBLE`'s lie; the lock must be gated on where the player is
-## actually looking, or a hunter aiming at the drifted cone would fail to lock a
-## contract standing exactly where they are pointing.
-func _within_facing_cone(here: PawnContext, at: Vector3, t: CompassTuning) -> bool:
-	var toward := CompassMath.bearing_to(here.position, at)
-	return absf(CompassMath.angle_between(here.yaw, toward)) <= deg_to_rad(t.lock_cone) * 0.5
 
 
 ## Who `peer` has been **told** they are hunting.
@@ -361,3 +382,18 @@ func teardown() -> void:
 	if _ctx != null:
 		_ctx.render_states.clear()
 		_ctx.compass.clear()
+
+
+## **A CHASE OPENS ON THE CONDITION, NOT ON THE MESSAGE**, which is why this sits
+## above `PreyWarning.consider` rather than below it. The warning re-triggers no
+## faster than `TUN-COMPASS-WARN-COOLDOWN` 2.5 s; a chase gated on that would
+## refuse to open for up to two and a half seconds after the carelessness that
+## earned it, and the hunter would keep a contract the rule says they had risked.
+##
+## **IT OPENS ONE AND NEVER REFRESHES ONE.** Collapsing the two would be a real
+## rule change: *near and careless* would hold a chase open, so a hunter standing
+## beside their prey facing the wrong way would never lose them. Only **sight**
+## refreshes, and that is `PursuitTracker`'s.
+func _open_a_chase(prey: int, pursuer: int, alerted: bool, ctx: MatchContext) -> void:
+	if alerted and ctx.pursuit.prey_of(pursuer) != prey:
+		ctx.pursuit.refresh(pursuer, prey, Tuning.ticks(&"TUN-PURSUIT-DURATION"))

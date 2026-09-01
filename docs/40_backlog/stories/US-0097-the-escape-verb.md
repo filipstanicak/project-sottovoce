@@ -1,7 +1,7 @@
 ---
 id: US-0097
 title: The escape verb — a hunt that can be survived
-version: 0.3.0
+version: 0.4.0
 status: in-progress
 owner: Lead Game Designer
 last_updated: 2026-08-29
@@ -187,6 +187,23 @@ enough to accept 10.7 is an epsilon wide enough to accept the next one too.
 why the invariant is worth having — it caught the story that proposed it, before any code
 consumed the value.
 
+**THE ANTI-REPEAT HISTORY RECORDS WHAT WAS *DEALT*, NOT WHAT WAS *HELD*, AND US-0097 NAMED THE
+WRONG MECHANISM.** The story says `_choose_index`'s `killer` constraint generalises without
+modification. **It does not** — that constraint forbids a *predecessor*, and what an escape must
+forbid is the hunter's *successor* being the prey they just lost. The right guarantee is
+`_held_recently(peer, successor)`, the anti-repeat filter.
+
+**And that alone was not enough either, which a test found rather than a reading.**
+`ContractCycle._remember` is called from `insert` and `open` only, so a contract acquired any
+other way is invisible to the history — and a hunter holds their prey for the length of a chase
+without either. Over six escapes in one fixture, **one player was re-handed their escapee**.
+`report_escape` now calls `cycle.remember` before the removal.
+
+**THE SAME GAP EXISTS FOR AN INHERITED CONTRACT AND IS REPORTED RATHER THAN CLOSED.** When a
+killer inherits their victim's contract, `_remember` is not called, so
+`TUN-CONTRACT-ANTI-REPEAT-DEPTH` does not protect a later respawn from re-handing it. That
+changes what a *kill* does, which is US-0049's fuzzed territory rather than this story's.
+
 **`Dictionary.get` HANDS BACK `null` AND A TYPED `Array` REFUSES IT.** Every accessor on
 `PursuitBoard` was written `var row: Array = _chases.get(hunter)`, which is a runtime error on
 every miss — *"trying to assign value of type 'Nil' to a variable of type 'Array'"* — and eleven
@@ -194,12 +211,15 @@ of thirteen tests went red at once. One guarded reader, asked only after `has()`
 
 ## Acceptance criteria
 
-**The rule is built and proven; nothing consumes it yet.** `PursuitBoard` is the same shape
-`CinderfallVolumes` had between US-0056 and US-0067: complete, falsifiable and callerless, named
-as such rather than left to be discovered.
+**The mechanic is live end to end.** A careless hunter opens a chase, sight refreshes it, absence
+drains it, an empty bar takes the contract away and pays the prey. What is missing is the
+*anticipatory* channel — the bar itself on both HUDs — and nothing else.
 
-- [ ] A chase opens on exactly the prey-warning condition and on no other; a hunter below
-      `TUN-COMPASS-WARN-MIN-TIER` never opens one, at any range.
+- [x] A chase opens on exactly the prey-warning condition and on no other; a hunter below
+      `TUN-COMPASS-WARN-MIN-TIER` never opens one, at any range. **The tier half cannot be
+      falsified and that is recorded rather than papered over**: `_resolve_pair`'s first rung
+      already drops every Anonymous subject, and invariant 8 pins the warn floor equal to the
+      Noticed threshold, so no profile can separate them. US-0059's finding, second instance.
 - [x] Sight of the prey refreshes the bar to full rather than incrementing it. **The duty cycle
       is what proves it**: a hunter looking once per `window - 1` holds a chase open over ten
       cycles, and one looking once per `window` loses it every time. The second assertion is the
@@ -210,24 +230,30 @@ as such rather than left to be discovered.
 - [x] A blend entered **out of** the hunter's sight conceals the prey; a blend entered **under**
       unbroken sight does not, and the flag clears the moment sight breaks. **The rule is on the
       board**; the caller that decides `under_sight` is `SYS-DETECTION`'s and is not built.
-- [ ] When the bar empties, the hunter is removed and reinserted through the same
+- [x] When the bar empties, the hunter is removed and reinserted through the same
       `ContractCycle` calls a respawn uses, with `Reason.ESCAPE`, announced after
-      `TUN-CONTRACT-REASSIGN-DELAY`.
-- [ ] The escapee's former hunter is excluded by the existing insertion constraint, so the same
-      pairing cannot recur immediately.
-- [ ] The cycle is still a single Hamiltonian cycle with no fixed point after an escape —
-      asserted by extending `test_contract_cycle_fuzz.gd`'s event mix rather than by a new test,
-      so the 10 000-event invariant covers escapes too. **The fuzz must assert it reached at
-      least one escape**, or it will pass by never generating one.
-- [ ] The pursuit sight test spends **no raycast the Compass lock has not already spent**:
-      `test_los_single_query.gd` still finds one query site and still asserts it casts, and a
-      new test measures `DetectionSystem.raycasts_last_tick` unchanged with six chases live.
+      `TUN-CONTRACT-REASSIGN-DELAY`. The clear is immediate — a Compass still pointing at
+      somebody who escaped is the defect that beat prevents.
+- [x] The escapee's former hunter is excluded, **but not by the mechanism this story named** —
+      see *What building it changed*.
+- [x] The cycle is still a single Hamiltonian cycle with no fixed point after an escape.
+      `test_contract_cycle_fuzz.gd` generates **597 escapes over 10 000 events** and asserts it
+      reached at least fifty — **and the guard fired on its first run at zero**, because the
+      counter was never initialised.
+- [ ] The pursuit sight test spends **no raycast the Compass lock has not already spent**.
+      **This criterion is not achievable as written and the story contradicts itself**: it also
+      specifies a 90° pursuit cone against the lock's 25°, so a cast gated on the lock leaves the
+      chase blind through most of its own cone. What is true and is asserted: **one query site,
+      at most one cast per hunter per tick**. The per-tick count rises. Owed: the measurement.
 - [ ] Both parties are told: the hunter's own-gameplay block and the prey's each carry
-      `pursuit_fraction:u8`. **Nothing in either payload names the other player** — the prey
-      learns *a bar is draining*, never whose.
-- [ ] `SCORE-ESCAPE` and `SCORE-CLOSECALL` fire as events with the right conditions. **Their
-      payout is `SYS-SCORE`'s and is not this story's** — this story emits, US-0064 pays.
-- [ ] A chase survives the hunter's tier falling back to Anonymous; only a kill, a death, a
+      `pursuit_fraction:u8`. **The only piece left.** Both parties already perceive an escape
+      through channels that exist — the hunter's Compass stops pointing, the prey gets a
+      `+100 Escape` feed line — so what the field adds is the *anticipatory* half.
+- [x] `SCORE-ESCAPE` and `SCORE-CLOSECALL` fire as events with the right conditions.
+      **`SCORE-CLOSECALL` is measured at the LAST SIGHTING, not at the empty bar**: by
+      definition the hunter has not seen their prey for the whole window, so the distance when it
+      empties is one nobody observed.
+- [x] A chase survives the hunter's tier falling back to Anonymous; only a kill, a death, a
       disconnect or the timer ends one.
 
 ## What is left, and it is most of the story
