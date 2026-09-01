@@ -71,6 +71,13 @@ func _run() -> void:
 	await _capture_every_state()
 	await _capture_the_chase()
 	await _capture_the_score_feed()
+	_report()
+	get_tree().quit()
+
+
+## What was written, and what to look for in it. **Split out for the length guard**
+## — trap 11, and the seam is honest: above is *capture*, here is *tell somebody*.
+func _report() -> void:
 	print("")
 	print("wrote %d frames:" % _shots.size())
 	for line: String in _shots:
@@ -82,7 +89,7 @@ func _run() -> void:
 	print("arc opening rather than three unrelated shapes?")
 	print("AND IN 15-17: are the two chase arcs TELLABLE APART without reading the colour —")
 	print("different radius, opposite directions — and do they stay clear of the lock arc?")
-	get_tree().quit()
+	print("Is each bar's FRACTION judgeable against its track, or only its gap visible?")
 
 
 ## One scripted state: set it, let it settle, capture it.

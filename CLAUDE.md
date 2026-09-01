@@ -234,6 +234,95 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 *Updated 2026-08-27 (ADR-0016, the M4 gate). Keep this section current — it is the first thing a
 fresh session reads, and a stale one is worse than none.*
 
+## US-0097 IS DONE, TWELVE OF TWELVE: A HUNT CAN BE SURVIVED AND BOTH SIDES WATCH IT HAPPEN
+
+**Be careless within `TUN-COMPASS-WARN-RADIUS` of your prey and you open a chase**,
+and as of 2026-09-01 **both parties see the bar**. Sight refreshes it, absence
+drains it, and after `TUN-PURSUIT-DURATION` **10.72 s** without seeing them the
+hunter **loses the contract**. The prey is paid `SCORE-ESCAPE` +100, and +50 more
+if the hunter was within 5 m at the last sighting.
+
+**TWO BYTES, AND THE STORY ASKED FOR ONE — AND THE CASE THAT BREAKS ONE BYTE IS
+THE ORDINARY CASE.** US-0097's criterion reads *"the hunter's own-gameplay block
+and the prey's each carry `pursuit_fraction:u8`"*, written as though a player were
+either a hunter or a prey. **They are never either**: a Hamiltonian cycle gives
+every player exactly one outgoing edge and exactly one incoming one, so everybody
+is always both, both chases can be live at once, and they mean opposite things —
+`hunt_fraction` drains toward losing your contract and `hunted_fraction` drains
+toward escaping. One byte would have been ambiguous **always**, not rarely.
+
+**NEITHER NAMES ANYBODY**, which is what keeps them inside never-do #12, and the
+test fixture is built so a transposition of the two is *visible*: Alice is made a
+hunter and a prey at once with the bars at deliberately different values. Two
+adjacent bytes of the same width holding two fractions of the same bar is exactly
+the shape `ScoreAward` was extracted to avoid, and there is no type that separates
+them — equal fixtures would agree whichever way round they were written.
+
+**`NOBODY` IS ZERO AND ZERO IS A DICTIONARY KEY LIKE ANY OTHER.** The prey's bar
+needs a reverse lookup and `PursuitBoard.hunter_of` answers `ContractCycle.NOBODY`
+— **0** — for a player nobody hunts. No engine peer id is ever 0, so the lookup
+would miss anyway; resting a rule on that is `CompassBoard.NO_CONTRACT`'s hazard
+exactly, so `_fill_pursuit` **states** the default rather than inheriting it from a
+coincidence about the id space. Deleting the guard reddens one test and nothing else.
+
+**A SEPARATE WIDGET, BECAUSE THE COMPASS DRAWS NOTHING WITHOUT A CONTRACT.**
+`CompassWidget._draw` returns early on `has_contract()`, and the most important
+moment this element has — a hunter about to lose you while you are inside the
+reassign breath — is exactly when that early-out fires. Folding the bars in would
+have meant deleting a guard that is correct for the Compass. `ChaseRingWidget`
+derives its centre from `CompassWidget`'s own constants, so moving one moves both.
+
+**AND LOOKING AT IT FOUND TWO THINGS NO TEST HERE COULD.** `tools/hud_probe.tscn`
+captures nineteen states now, five of them the chase:
+
+- **A BAR WITH NO TRACK IS NOT A BAR.** Without the unfilled remainder drawn behind
+  it, 0.95 and 0.6 both read as *an arc with a gap in it* and the fraction is not
+  judgeable at a glance — which is the entire value of an element whose question is
+  *how long have I got*. It matters more here than on the lock arc, which fills in
+  1.6 s against this one's 10.72.
+- **DIRECTION OF TRAVEL ONLY SEPARATES THE TWO ARCS IN MOTION.** The first version
+  claimed three non-hue channels — radius, direction, colour — and a **still**
+  capture shows an arc with a gap: which way it wound is not recoverable from a
+  frame. The monochrome-palette argument was resting on two channels rather than
+  three. **Weight is the fourth**, and it is a design call rather than a patch: the
+  hunted bar is the heavier, because a hunter is already looking at the Compass and
+  the prey is looking at the world. UI_UX_SPEC §5.2 states that requirement for the
+  score feed and gives the same answer.
+
+**AND THE PROBE CANNOT CATCH A TRANSIENT AT ITS DEFAULT SETTLE, WHICH IS SAID
+RATHER THAN FAKED.** Ninety frames is right for a *state* — it makes a capture
+reproducible — and exactly wrong for the 0.45 s re-acquisition pulse, which has
+decayed to nothing by then. `_state` takes an optional settle now and frames 16b
+and 16c are taken mid-pulse. Captioning a decayed pulse as a pulse would have been
+an instrument wrong in a plausible direction, which this corpus already calls worse
+than no instrument.
+
+**THE RAYCAST MEASUREMENT IS OWED NO LONGER: 6 CASTS PER TICK, AT THE TOP OF THE
+BAND.** `test_pursuit_raycast_budget.gd` drives a six-player ring through the real
+`DetectionSystem`. Worst case is **6 for 6 hunters** against TDD-07 §4.3's
+published **2-6** — the ceiling rather than the middle — and at **35 degrees off
+axis**, inside the pursuit cone and outside the lock's, the chase spends **six
+where the lock alone would have spent zero**. That band is why *"no raycast the
+lock has not already spent"* was never achievable alongside a 90 degree cone
+against a 25 degree one. A hunter facing away still spends nothing.
+
+**AND THE PREMISE ASSERTION IN THAT FILE IS NOT DECORATION.**
+`_clear_of_geometry` answers *nothing blocks* and returns **before** it increments
+when there is no `World3D`, so a fixture out of the tree measures zero for every
+arrangement and every assertion in the file would pass over nothing.
+
+**`snapshot.gd` IS AT 397 OF ITS 400 LINES.** The next field added to the format
+forces a split, and the honest seam is the value object against its serialiser —
+though *"the field order is the wire"* argues for keeping them together, so it is a
+real decision rather than a mechanical one.
+
+**AND TWO PROSE COUNTS IN THIS FILE WERE STALE AND HAVE SELF-CORRECTED.** The
+unticked-criteria figure read **fifty** while the truth was fifty-two (US-0097 was
+`in-progress` with two); closing both makes the printed number right again by
+accident. And `EventBus` was described as having **twenty** signals when it had
+nineteen; it has twenty now, and twenty `EVT-` ids, which agree exactly for the
+first time. **Regenerate a count, never edit it** — sixth instance.
+
 ## M4 IS COMPLETE. M5 IS AT THE HUD AND THE ABILITIES, AND ONE OF THEM WORKS.
 
 **AND US-0067 IS DONE, SEVEN OF SEVEN: `ABIL-CINDERFALL` IS THE FIRST ABILITY IN
@@ -923,10 +1012,19 @@ PLANNED.** Probability and impact unchanged — no new evidence about fun either
   persona — `CrowdRoster` derives identity from `match_seed` and no client is told
   it — so the effect would be invisible in the same way Cinderfall's cloud is.
 
-**SO US-0097 IS THE ONE UNBLOCKED M5 STORY THAT ADDS A MECHANIC**, and it is also
-the largest thing ADR-0013's audit found missing: a hunt that can be **survived**.
+**SO US-0097 WAS THE ONE UNBLOCKED M5 STORY THAT ADDS A MECHANIC**, and it is now
+**done**. It was also the largest thing ADR-0013's audit found missing: a hunt that
+can be **survived**.
 
-## US-0097 IS TEN OF TWELVE: A HUNT CAN NOW BE SURVIVED
+**WHICH MEANS M5's NEXT MOVE IS AN OWNER DECISION RATHER THAN A STORY.** Every
+remaining M5 item sits behind one of the four blockers above, or behind decision 1
+(move `SYS-MATCH` forward) or decision 3 (the sixteenth pawn state). **The
+sixteenth state is the single highest-value unblock**: it releases US-0070 (Lunge),
+which releases US-0071's `depends_on` and its four buildable criteria, and it closes
+the three staggers `TUN-KILL-CONTEST-STAGGER`, `TUN-STUN-INVALID-STAGGER` and
+`TUN-LUNGE-WHIFF-STAGGER`, which have had no state to live in since M4.
+
+## US-0097 IS DONE. WHAT FOLLOWS IS THE RULE ITSELF, BUILT AT #184 AND #185
 
 **Be careless within `TUN-COMPASS-WARN-RADIUS` of your prey and you open a chase.**
 Sight refreshes it, absence drains it, and after `TUN-PURSUIT-DURATION` **10.72 s**
@@ -979,10 +1077,10 @@ which is exactly the failure the story predicted the guard would catch.
 By definition the hunter has not seen their prey for the whole window, so the
 distance when it empties is one nobody observed.
 
-**WHAT IS LEFT IS `pursuit_fraction:u8` ON THE WIRE** — the bar on both HUDs. Both
-parties already *perceive* an escape through channels that exist: the hunter's
-Compass stops pointing, and the prey gets a `+100 Escape` feed line. What the
-field adds is the anticipatory half.
+**NOTHING IS LEFT: THE BAR SHIPPED AT #186** — as `hunt_fraction` and
+`hunted_fraction`, two bytes rather than one, for the reason at the top of this
+file. Both parties already *perceived* an escape through channels that existed;
+what the field added is the anticipatory half.
 
 ## SIX THINGS WAIT ON THE OWNER, AND NONE BLOCKS M5
 
@@ -4315,7 +4413,7 @@ US-0024 measures it against clips that do not exist.
 | | |
 |---|---|
 | CI | 7 jobs. **Running again as of 2026-08-07 after a two-day outage** — run `31200490320`, all seven green. The seven commits merged during the outage were never through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | **50 arch + 178 unit + 33 integration scripts**, holding 201 + 1507 + 242 tests and 1 134 + 29 342 + 676 assertions — the assertion count tripled at US-0049, because `test_contract_cycle_fuzz.gd` checks the invariant after every one of 10 000 events. **Nine are `pending` by design** — **eight in the unit suite and one in the integration suite**, which reports that an NPC aimed into the void never gives up. The island `pending` beside it **turned green by itself** when the alley mouths were built, which is what a `pending` naming its own blocker is for. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite measured **174.6 s** twice on 2026-08-28 against **183.5 s** the day before, with **no test removed** — so the 9 s is machine variance and neither number should be quoted as *the* figure; what is real is that the suite sits within a few seconds of its limit either way. The 180 s it is 'allowed' is **enforced nowhere** — TEST_PLAN §3, TEST_PLAN §10 and TDD-12 §17 all assert it and no job checks it, which is the M4 gate's fourth drift finding. `test_the_m4_loop_resolves.gd` cost 13.1 s of that and is the first test ever to run M4's systems together. It was 162-172 s, up from 87.7 s at M2 — **under 9 s of headroom left, and the next integration test has to justify itself hard against that**. `test_server_tick_budget.gd` cost 9.8 s of it and is a gate line; the one before it, the 2 s pass A/B, samples ninety ticks **twice** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **The six are**: `test_upstream_bandwidth.gd` reporting the 145 % upstream miss, `test_crowd_bandwidth.gd` the 112 % downstream projection, `test_crowd_wire_cost.gd` the 112 % it actually costs, **`test_spawn_points.gd` twice — GDD-05 §2.7 rule 6's nine unoccluded spawn pairs and rule 8's S3 4, S4 1, S5 6 of 8 seats** — and `test_clone_animation_parity.gd` the missing clip library. **Two entries this row carried are gone because their findings closed**: `test_circuit_separation.gd`'s 0.51 m circuits (re-authored, now 21.20 m) and `test_cull_radius_price.gd`'s flat curve, which asserts rather than pends. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
+| Tests | **50 arch + 181 unit + 33 integration scripts**, holding 201 + 1535 + 242 tests and 1 153 + 29 390 + 676 assertions (measured 2026-09-01 from a `git archive HEAD` extraction, all three green) — the assertion count tripled at US-0049, because `test_contract_cycle_fuzz.gd` checks the invariant after every one of 10 000 events. **Nine are `pending` by design** — **eight in the unit suite and one in the integration suite**, which reports that an NPC aimed into the void never gives up. The island `pending` beside it **turned green by itself** when the alley mouths were built, which is what a `pending` naming its own blocker is for. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite measured **183.8 s** on 2026-09-01, **174.6 s** twice on 2026-08-28 and **183.5 s** the day before that, with **no test removed** — so the 9 s is machine variance and neither number should be quoted as *the* figure; what is real is that the suite sits within a few seconds of its limit either way. The 180 s it is 'allowed' is **enforced nowhere** — TEST_PLAN §3, TEST_PLAN §10 and TDD-12 §17 all assert it and no job checks it, which is the M4 gate's fourth drift finding. `test_the_m4_loop_resolves.gd` cost 13.1 s of that and is the first test ever to run M4's systems together. It was 162-172 s, up from 87.7 s at M2 — **under 9 s of headroom left, and the next integration test has to justify itself hard against that**. `test_server_tick_budget.gd` cost 9.8 s of it and is a gate line; the one before it, the 2 s pass A/B, samples ninety ticks **twice** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **The six are**: `test_upstream_bandwidth.gd` reporting the 145 % upstream miss, `test_crowd_bandwidth.gd` the 112 % downstream projection, `test_crowd_wire_cost.gd` the 112 % it actually costs, **`test_spawn_points.gd` twice — GDD-05 §2.7 rule 6's nine unoccluded spawn pairs and rule 8's S3 4, S4 1, S5 6 of 8 seats** — and `test_clone_animation_parity.gd` the missing clip library. **Two entries this row carried are gone because their findings closed**: `test_circuit_separation.gd`'s 0.51 m circuits (re-authored, now 21.20 m) and `test_cull_radius_price.gd`'s flat curve, which asserts rather than pends. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
 | Tuning | **296** tunables across 14 resource classes; all **37** cross-field invariants assert. **Six were added on 2026-08-29 for US-0097's escape verb** — four `TUN-PURSUIT-*` on `ContractTuning` (a pursuit ends by removing and reinserting a contract, so §7 is its section and no new resource was needed) and `TUN-SCORE-ESCAPE`/`-CLOSECALL` on `ScoringTuning`. **Invariant 34 fired on its first run against the story's own proposed value**: `TUN-PURSUIT-DURATION` is `warn_radius / blend_walk` = 10.7143, US-0097 wrote **10.7**, and that asks the prey for 1.402 m/s — fractionally faster than a blend walk, in exactly the direction the invariant forbids. Shipped at **10.72**, with the tolerance tightened to a true floor rather than widened to admit it. **A rounded derivation is not a derivation.** **`TUN-COMPASS-CONE-FULL-RADIUS` 20.0 m was added on 2026-08-27** — where the Compass arc becomes a whole ring — and **invariant 33 is the reason it is not a chosen number**: it pins the radius equal to `TUN-COMPASS-LOCK-RANGE`, so the arc stops pointing exactly where the lock starts working, and separately outside the validated kill reach. It was **set three times in one day and only ever by somebody playing it** — 4.0 m derived from the half-width alone, 6.0 m at `TUN-SUSPICION-OPEN-RADIUS`, then 20.0 — and the second is the one worth remembering, because it was **derived and still wrong**. **`TUN-SCORE-HALFSEEN` +50 was added on 2026-08-27** by the fidelity re-audit — the stealth ladder had no middle rung, so a kill at **Noticed** and one at **Exposed** scored identically; invariant 32 keeps it strictly descending and strictly positive, and the `> 0` clause is the load-bearing half because every ordering check passes over a zero. `TuningInvariantsScore` was split out when that pushed the file past 400 lines — tech is how the game is *transmitted*, score is what it *pays*, and what is left is how it *plays*, with one entry point still. **Four scoring values were re-priced on 2026-08-26 (ADR-0013)** — `TUN-SCORE-SILENT` 100 → 200, `TUN-SCORE-PATIENT` 150 → 100, `TUN-SCORE-FOCUS` 100 → 150, `TUN-SCORE-RECKLESS` −50 → **0**, and invariant 18 rewritten from an ordering to a floor — split across `TuningInvariants` and `TuningInvariantsTech` since the first file hit 400 lines, with one entry point still. **Eight IDs are deprecated** and recorded in TUNABLES §19 — never reused |
 | Autoloads | All eight. `Tuning` precomputes 89 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |

@@ -688,12 +688,12 @@ does not work — and finding that out at M4 costs one milestone rather than thr
 |---|---|
 | `ScoreEvent`, `ScoreLog`, the pure fold | |
 | All twelve kill bonuses, evaluated at initiation — **plus `SCORE-ESCAPE` and `SCORE-CLOSECALL`, which are not** | The two escape bonuses fold when a chase timer empties, not at a kill. US-0097 |
-| `AbilitySystem` + Cinderfall, Whisperbolt, Second Face, Lunge | |
+| `AbilitySystem` + Cinderfall, Whisperbolt, Second Face, Lunge | **`SYS-ABILITY` and Cinderfall are DONE** (US-0066, US-0067). Whisperbolt is deferred post-MVP; Second Face (US-0069) swaps an identity no client draws, and Lunge (US-0070) needs a pawn state that does not exist — owner decision 3 |
 | Three passives | |
-| The full HUD: Compass, portrait, tier, feed, abilities, timer, crosshair | |
+| The full HUD: Compass, portrait, tier, feed, abilities, timer, crosshair | **Compass, portrait, tier, crosshair, vignette, score feed and the pursuit bars are DONE** (US-0072/0073/0074, US-0097). **Still missing: the ability slots and the match timer**, which need `SYS-ABILITY`'s loadout and `SYS-MATCH` |
 | Audio dispatcher, the event table, reactive music stems | |
 | Results screen with the per-bonus breakdown | |
-| **The escape verb** — pursuit timer, contract loss, `SCORE-ESCAPE`, `SCORE-CLOSECALL` | US-0097, [ADR-0014](../00_meta/adr/ADR-0014-the-escape-verb.md). **New scope**, and the cut that pays for it is not chosen yet — see SCOPE_FENCE §1.1 |
+| **The escape verb** — pursuit timer, contract loss, `SCORE-ESCAPE`, `SCORE-CLOSECALL`, the bar on both HUDs | **DONE 2026-09-01, twelve of twelve.** US-0097, [ADR-0014](../00_meta/adr/ADR-0014-the-escape-verb.md). The cut that paid for it **was chosen on 2026-08-27** — `ABIL-WHISPERBOLT` deferred post-MVP, SCOPE_FENCE §1.1 records the payment as collected. The wire carries **two** bytes rather than the one the story asked for: a Hamiltonian cycle makes every player a hunter and a prey at once |
 
 ### 7.1 The M5 gate
 
