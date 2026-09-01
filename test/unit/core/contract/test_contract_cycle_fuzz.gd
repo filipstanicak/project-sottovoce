@@ -31,7 +31,7 @@ var _sizes: Dictionary = {}
 
 
 func before_each() -> void:
-	_counts = {&"remove": 0, &"insert": 0, &"batch": 0, &"refused": 0}
+	_counts = {&"remove": 0, &"insert": 0, &"escape": 0, &"batch": 0, &"refused": 0}
 	_sizes = {}
 
 
@@ -69,6 +69,10 @@ func _assert_it_actually_fuzzed(events: int) -> void:
 	assert_gt(int(_sizes.get(2, 0)), 0, "the fuzz never reached the degenerate two-player case")
 	assert_gt(int(_sizes.get(1, 0)), 0, "the fuzz never reached a single survivor")
 	assert_gt(int(_sizes.get(6, 0)), 0, "the fuzz never reached a full lobby")
+	# **THE FUZZ MUST ASSERT IT GENERATED AN ESCAPE**, or the event simply never
+	# ran and the invariant above says nothing about it — US-0097's own test note,
+	# and the same coverage guard the three size assertions are.
+	assert_gt(int(_counts.get(&"escape", 0)), 50, "the fuzz never generated an escape")
 
 
 func _report(events: int) -> void:
@@ -76,17 +80,21 @@ func _report(events: int) -> void:
 	for size: int in range(0, POOL + 1):
 		if _sizes.has(size):
 			spread.append("%d:%d" % [size, _sizes[size]])
-	gut.p(
-		(
-			"%d events over %d sequences — %d removals, %d insertions, %d batches, %d refused"
-			% [
-				events,
-				SEQUENCES,
-				_counts[&"remove"],
-				_counts[&"insert"],
-				_counts[&"batch"],
-				_counts[&"refused"]
-			]
+	(
+		gut
+		. p(
+			(
+				"%d events over %d sequences — %d removals, %d insertions, %d escapes, %d batches, %d refused"
+				% [
+					events,
+					SEQUENCES,
+					_counts[&"remove"],
+					_counts[&"insert"],
+					_counts.get(&"escape", 0),
+					_counts[&"batch"],
+					_counts[&"refused"]
+				]
+			)
 		)
 	)
 	gut.p("cycle sizes visited (size:ticks) — " + " ".join(spread))
@@ -110,8 +118,10 @@ func _one_event() -> void:
 		_respawn()
 	elif roll < 80:
 		_join()
-	elif roll < 88:
+	elif roll < 84:
 		_disconnect()
+	elif roll < 92:
+		_escape()
 	else:
 		_batch()
 
@@ -125,6 +135,26 @@ func _kill() -> void:
 		_dead.append(victim)
 	else:
 		_counts[&"refused"] = int(_counts[&"refused"]) + 1
+
+
+## **AN ESCAPE IS A REMOVAL AND AN INSERTION WITH NOBODY DEAD IN BETWEEN.**
+## US-0097, ADR-0014. It is in the mix rather than in a test of its own precisely
+## because it reaches `ContractCycle` through the same two calls a respawn does —
+## so what proves it sound is the 10 000-event invariant, not a second proof.
+##
+## `remember` before `remove` is `ContractSystem.report_escape`'s own order, and
+## putting it here means the fuzz exercises the anti-repeat path an escape takes
+## rather than a simplified one.
+func _escape() -> void:
+	if _cycle.size() < 2:
+		return
+	var hunter: int = _cycle.living()[_rng.randi_range(0, _cycle.size() - 1)]
+	_cycle.remember(hunter, _cycle.contract_of(hunter))
+	if not _cycle.remove(hunter):
+		_counts[&"refused"] = int(_counts[&"refused"]) + 1
+		return
+	_cycle.insert(hunter, ContractCycle.NOBODY)
+	_counts[&"escape"] = int(_counts[&"escape"]) + 1
 
 
 func _respawn() -> void:

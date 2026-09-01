@@ -166,18 +166,23 @@ func _start_the_crowd_system() -> void:
 	suspicion.blend.blend_refused.connect(announcer.blend_refused)
 	director.register(detection)
 	detection.prey_warned.connect(announcer.prey_warned)
+	detection.chase.escaped.connect(_on_escaped)
 	# **BEFORE `combat`**: a Cinderfall thrown this tick must already block kills
 	# when the kill stage runs, and `SystemOrder` is what makes that true.
 	director.register(abilities)
 	abilities.setup(director.ctx)
 	_wire_the_ability_answers()
+	_start_the_combat_systems()
+
+
+## **`SYS-KILL` AND ITS TWO BOUND DEPENDENCIES.** Both are handed over rather than
+## reached for: `has_los` is `SYS-DETECTION`'s single ray site (ADR-0015) and
+## `SYS-BLEND` answers `SCORE-BLENDED`'s question (US-0065). A system that reached
+## for either would be one that knows where the other lives.
+func _start_the_combat_systems() -> void:
 	director.register(kills)
 	kills.setup(director.ctx)
-	# **ADR-0015: A KILL NEEDS A CLEAR LINE.** Bound rather than reached for —
-	# `KillRules` is pure Core and `has_los` is `SYS-DETECTION`'s single ray site.
 	kills.sight = detection.clear_line
-	# **WHAT A KILL IS WORTH, BOUND RATHER THAN REACHED FOR** (US-0065). `SYS-BLEND`
-	# is handed over because `SCORE-BLENDED` asks it a question.
 	kills.scoring = KillScoring.new(suspicion.blend)
 	_wire_the_combat_answers()
 
@@ -343,6 +348,15 @@ func _on_killed(killer: int, victim: int, at: Vector3) -> void:
 ## roughly where you are. The radius is the caster's, not the violence default.
 func _on_ability_startled(at: Vector3, radius: float) -> void:
 	crowd_director.startle_at(at, radius)
+
+
+## **THE PREY GOT AWAY.** US-0097. `SYS-DETECTION` is stage 5 and `SYS-CONTRACT`
+## stage 8, so the bar empties and the cycle repairs in one tick — the guarantee
+## `combat` before `contract` already buys for a kill. The payment lives on
+## `KillScoring` beside the stun's, which is where its reasoning is.
+func _on_escaped(hunter: int, prey: int, close_call: bool) -> void:
+	contracts.report_escape(hunter, director.ctx)
+	kills.scoring.pay_for_escape(director.ctx, prey, hunter, close_call)
 
 
 ## US-0052's last criterion: `TUN-SUSPICION-GAIN-WITNESSED-KILL` applies only if

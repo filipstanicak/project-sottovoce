@@ -242,6 +242,24 @@ func _candidates(peer: int, killer: int, stage: Relaxation) -> PackedInt32Array:
 	return out
 
 
+## **RECORD A PAIRING THE HISTORY WOULD OTHERWISE NEVER SEE.** US-0097.
+##
+## `_remember` is called from `insert` and `open`, so the history is a record of
+## what was **dealt** — and a contract acquired any other way is invisible to it.
+## An escape is exactly that case: the hunter held the prey for the length of a
+## chase and the history has no idea, so a reinsertion would legally hand them
+## straight back. Measured, not reasoned: over six escapes in one fixture, one
+## player was re-handed their escapee.
+##
+## **THE SAME GAP EXISTS FOR AN INHERITED CONTRACT AND IS NOT CLOSED HERE.** When a
+## killer inherits their victim's contract, `_remember` is not called either, so
+## `TUN-CONTRACT-ANTI-REPEAT-DEPTH` does not protect a later respawn from it.
+## Reported rather than fixed: it changes what a *kill* does, which is US-0049's
+## fuzzed territory and not this story's.
+func remember(peer: int, contract: int) -> void:
+	_remember(peer, contract)
+
+
 func _held_recently(peer: int, candidate: int) -> bool:
 	var history: PackedInt32Array = _recent.get(peer, PackedInt32Array())
 	return history.has(candidate)

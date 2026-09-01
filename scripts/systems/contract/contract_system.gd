@@ -33,7 +33,11 @@ signal contract_issued(peer: int, contract: int, reason: int)
 ## Why a contract was issued. **Appended, never inserted**: the ordinals travel on
 ## the wire as `NET-S2C-CONTRACT-ASSIGNED`'s `reason:u8`, and they are the same four
 ## `EVT-CONTRACT-ASSIGNED` declares.
-enum Reason { START, KILL, RESPAWN, REPAIR }
+## **`ESCAPE` IS APPENDED AT INDEX 4** (US-0097). The wire field is already
+## `reason:u8`, so nothing about `NET-S2C-CONTRACT-ASSIGNED`'s payload changes —
+## and appending rather than inserting is what keeps every ordinal already on a
+## client meaning what it meant.
+enum Reason { START, KILL, RESPAWN, REPAIR, ESCAPE }
 
 var cycle: ContractCycle = null
 
@@ -162,6 +166,42 @@ func _forget_anyone_hunting(gone: int, why: int) -> void:
 ## told at the debounce boundary, with no breath, because they did not earn one.
 func report_disconnect(peer: int, ctx: MatchContext) -> void:
 	report_death(peer, ContractCycle.NOBODY, ctx)
+
+
+## **THE PREY GOT AWAY. STRUCTURALLY THIS IS A RESPAWN WITHOUT A DEATH.** US-0097,
+## ADR-0014. The hunter leaves the cycle and is queued for reinsertion through the
+## same two calls a respawn uses, so the 10 000-event fuzz covers escapes too.
+##
+## **THE CLEAR IS IMMEDIATE AND THE NAME WAITS**, which is the shape a kill already
+## has: `_announce_what_changed` walks `cycle.living()` and the hunter is not in it
+## between the removal and the reinsertion, so their clear is emitted here or not
+## at all — and a Compass still pointing at somebody who escaped is the defect this
+## line exists to prevent.
+##
+## **NOTHING FORBIDS THE REPEAT EXPLICITLY, AND NOTHING NEEDS TO.** US-0097 says
+## `_choose_index`'s `killer` constraint generalises; **it does not** — that one
+## forbids a *predecessor*, and what an escape must forbid is the hunter's
+## *successor* being the prey they just lost. What actually delivers it is the
+## anti-repeat history: `_held_recently(peer, successor)` filters at the first
+## relaxation stage, and the hunter's history already holds that prey from when the
+## contract was issued. The right guarantee by a different mechanism than the story
+## named.
+func report_escape(hunter: int, ctx: MatchContext) -> void:
+	cycle.tick = ctx.tick
+	# **TELL THE HISTORY BEFORE THE REMOVAL, OR IT NEVER LEARNS.** `_remember` is
+	# written by `insert` and `open` alone, so it records what was *dealt* rather
+	# than what was *held* — and a hunter who lost their prey to a chase acquired
+	# nothing by insertion. Without this line the reinsertion may legally hand the
+	# same prey straight back, which is not a subtle failure: it deletes the escape.
+	cycle.remember(hunter, cycle.contract_of(hunter))
+	if not cycle.remove(hunter):
+		return
+	if int(_published.get(hunter, ContractCycle.NOBODY)) != ContractCycle.NOBODY:
+		_published[hunter] = ContractCycle.NOBODY
+		contract_issued.emit(hunter, ContractCycle.NOBODY, Reason.ESCAPE)
+	_pending.append([hunter, ContractCycle.NOBODY, Reason.ESCAPE])
+	_held_until[hunter] = ctx.tick + Tuning.ticks(&"TUN-CONTRACT-REASSIGN-DELAY")
+	_open_window(ctx)
 
 
 ## A respawn. Queued rather than applied, because an insertion **chooses** a
