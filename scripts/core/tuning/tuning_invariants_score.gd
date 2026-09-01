@@ -16,6 +16,7 @@ static func check(p: TuningProfile) -> Array[String]:
 	e.append_array(_ladder_shape(p))
 	e.append_array(_payouts(p))
 	e.append_array(_patience(p))
+	e.append_array(_escape(p))
 	return e
 
 
@@ -110,4 +111,22 @@ static func _patience(p: TuningProfile) -> Array[String]:
 	if not (low < speed and speed < high):
 		var text := "23. scoring.patient_speed (%.2f) must sit strictly between "
 		e.append((text + "stroll (%.2f) and run (%.2f)") % [speed, low, high])
+	return e
+
+
+## 37. **SURVIVING A HUNT IS WORTH WHAT ENDING ONE IS.** Added 2026-08-29 with
+## `ABIL`-free US-0097, and it is invariant 19's sentence about a second verb: the
+## prey has exactly two outcomes that are not a death — stun the hunter, or lose
+## them — and both must price against the kill they prevented. Let either fall
+## below a base kill and it becomes the outcome nobody plays for, which collapses
+## design law 5 back onto the one tooth ADR-0013 had already blunted.
+static func _escape(p: TuningProfile) -> Array[String]:
+	var e: Array[String] = []
+	if not is_equal_approx(p.scoring.escape, p.scoring.contract):
+		e.append(
+			(
+				"37. scoring.escape (%.0f) must EQUAL scoring.contract (%.0f)"
+				% [p.scoring.escape, p.scoring.contract]
+			)
+		)
 	return e

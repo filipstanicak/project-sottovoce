@@ -30,6 +30,14 @@ EXCEPTIONS = {
     "TUN-SUSPICION-MAX": ("max_value", "a member named `max` shadows GDScript's built-in max()"),
     "TUN-PASV-COLDREAD-MULT": ("cold_read_mult", "compound word"),
     "TUN-PASV-SECONDWIND-REDUCTION": ("second_wind_reduction", "compound word"),
+    # A pursuit lives on ContractTuning because it ends by removing and reinserting
+    # a contract, but the mechanical strip would drop the domain and leave
+    # `contract.duration`, `contract.sight_range` — names that read as being about
+    # the contract itself. US-0097's own invariants are written `pursuit_duration`.
+    "TUN-PURSUIT-DURATION": ("pursuit_duration", "shares ContractTuning; the domain IS the name"),
+    "TUN-PURSUIT-SIGHT-RANGE": ("pursuit_sight_range", "shares ContractTuning"),
+    "TUN-PURSUIT-SIGHT-CONE": ("pursuit_sight_cone", "shares ContractTuning"),
+    "TUN-PURSUIT-CLOSECALL-RADIUS": ("pursuit_closecall_radius", "shares ContractTuning"),
 }
 
 
