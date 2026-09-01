@@ -140,13 +140,39 @@ func test_the_ring_is_concentric_with_the_compass() -> void:
 ## chase read as one thick ring rather than as two instruments.
 func test_neither_bar_overlaps_the_lock_arc() -> void:
 	var lock_outer: float = CompassWidget.LOCK_RADIUS + CompassWidget.LOCK_WIDTH * 0.5
-	var hunted_inner: float = ChaseRingWidget.HUNTED_RADIUS - ChaseRingWidget.WIDTH * 0.5
-	assert_gt(hunted_inner, lock_outer, "the hunted bar is drawn on top of the lock arc")
+	# The pulse thickens the hunted bar, so the clearance is measured against its
+	# **widest** state — a gap that only holds while nobody is being seen is not one.
+	var swollen: float = ChaseRingWidget.HUNTED_WIDTH + ChaseRingWidget.FLASH_WIDTH
 	assert_gt(
-		ChaseRingWidget.HUNT_RADIUS - ChaseRingWidget.WIDTH * 0.5,
-		ChaseRingWidget.HUNTED_RADIUS + ChaseRingWidget.WIDTH * 0.5 + ChaseRingWidget.FLASH_WIDTH,
+		ChaseRingWidget.HUNTED_RADIUS - swollen * 0.5,
+		lock_outer,
+		"a pulsing hunted bar is drawn on top of the lock arc"
+	)
+	assert_gt(
+		ChaseRingWidget.HUNT_RADIUS - ChaseRingWidget.HUNT_WIDTH * 0.5,
+		ChaseRingWidget.HUNTED_RADIUS + swollen * 0.5,
 		"a pulsing hunted bar reaches the hunt bar"
 	)
+
+
+## **THE HEAVIER BAR IS THE ONE THAT MUST BE READ WITHOUT BEING LOOKED AT.** A
+## hunter is already looking at the Compass; the prey is looking at the world. It
+## is also the channel that separates the two arcs in a **still** frame, which
+## direction of travel does not — looking at a capture is what found that.
+func test_the_hunted_bar_carries_more_weight_than_the_hunt_bar() -> void:
+	assert_gt(
+		ChaseRingWidget.HUNTED_WIDTH,
+		ChaseRingWidget.HUNT_WIDTH,
+		"the peripheral bar is the lighter of the two"
+	)
+
+
+## A bar with no track is an arc of arbitrary length: 0.95 and 0.6 both read as
+## *an arc with a gap in it*, and the whole value of this element is judging how
+## long you have. Faint enough not to be a ring the player has to learn.
+func test_the_track_is_present_and_faint() -> void:
+	assert_gt(ChaseRingWidget.TRACK_ALPHA, 0.0, "there is no track behind the bars")
+	assert_lt(ChaseRingWidget.TRACK_ALPHA, 0.35, "the track competes with the bar in front of it")
 
 
 ## **NEVER-DO #12, STRUCTURALLY.** A bar that named its owner would be a nameplate

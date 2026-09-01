@@ -1,10 +1,10 @@
 ---
 id: US-0097
 title: The escape verb — a hunt that can be survived
-version: 0.4.0
-status: in-progress
+version: 1.0.0
+status: done
 owner: Lead Game Designer
-last_updated: 2026-08-29
+last_updated: 2026-09-01
 depends_on: [ADR-0014, ADR-0013, GDD-03-SOCIAL-STEALTH, TDD-10-SCORING, US-0059]
 ---
 
@@ -240,21 +240,65 @@ drains it, an empty bar takes the contract away and pays the prey. What is missi
       `test_contract_cycle_fuzz.gd` generates **597 escapes over 10 000 events** and asserts it
       reached at least fifty — **and the guard fired on its first run at zero**, because the
       counter was never initialised.
-- [ ] The pursuit sight test spends **no raycast the Compass lock has not already spent**.
-      **This criterion is not achievable as written and the story contradicts itself**: it also
-      specifies a 90° pursuit cone against the lock's 25°, so a cast gated on the lock leaves the
-      chase blind through most of its own cone. What is true and is asserted: **one query site,
-      at most one cast per hunter per tick**. The per-tick count rises. Owed: the measurement.
-- [ ] Both parties are told: the hunter's own-gameplay block and the prey's each carry
-      `pursuit_fraction:u8`. **The only piece left.** Both parties already perceive an escape
-      through channels that exist — the hunter's Compass stops pointing, the prey gets a
-      `+100 Escape` feed line — so what the field adds is the *anticipatory* half.
+- [x] The pursuit sight test spends **no raycast the Compass lock has not already spent** —
+      **not achievable as written, and the story contradicts itself**: it also specifies a 90°
+      pursuit cone against the lock's 25°, so a cast gated on the lock leaves the chase blind
+      through two thirds of its own cone. What is true and is asserted: **one query site, at most
+      one cast per hunter per tick**. **The measurement is owed no longer**:
+      `test_pursuit_raycast_budget.gd` puts the worst case at **6 casts per tick for a
+      six-player lobby**, at the top of TDD-07 §4.3's published 2-6 band — and at 35° off axis,
+      inside the pursuit cone and outside the lock's, the chase spends **six where the lock alone
+      would have spent zero**. A hunter facing away still spends nothing.
+- [x] Both parties are told — **but in two bytes, not one**, and the correction is the finding.
+      `hunt_fraction` and `hunted_fraction` sit in the own-gameplay block and `ChaseRingWidget`
+      draws both as arcs concentric with the Compass. A single `pursuit_fraction` would have
+      been ambiguous in the **ordinary** case: see *Two bytes, not one* below.
 - [x] `SCORE-ESCAPE` and `SCORE-CLOSECALL` fire as events with the right conditions.
       **`SCORE-CLOSECALL` is measured at the LAST SIGHTING, not at the empty bar**: by
       definition the hunter has not seen their prey for the whole window, so the distance when it
       empties is one nobody observed.
 - [x] A chase survives the hunter's tier falling back to Anonymous; only a kill, a death, a
       disconnect or the timer ends one.
+
+### Two bytes, not one, and the ordinary case is what breaks the criterion
+
+The criterion above asked for *one* field, written as though a player were either a hunter or a
+prey. **They are never either.** A Hamiltonian cycle gives every player exactly one outgoing
+edge and exactly one incoming one, so every player is always simultaneously hunting and hunted;
+both chases can be live at once and they mean opposite things — one drains toward losing your
+contract, the other toward escaping. One byte could not have carried them, and the failure would
+not have been an edge case but the normal one.
+
+**NEITHER BYTE NAMES ANYBODY**, which is what keeps them inside never-do #12. The prey learns
+*a bar is draining*, never whose finger is on it — and they had already been told a pursuer
+exists, because `NET-S2C-PREY-WARNING` fires on the very condition that opens a chase.
+
+**`NOBODY` IS ZERO AND ZERO IS A DICTIONARY KEY LIKE ANY OTHER.** The prey's bar needs a reverse
+lookup, and `PursuitBoard.hunter_of` answers `ContractCycle.NOBODY` — **0** — for a player nobody
+hunts. No engine peer id is ever 0, so the lookup would miss anyway; resting the rule on that is
+`CompassBoard.NO_CONTRACT`'s hazard exactly, so `_fill_pursuit` states the default. Deleting the
+guard reddens exactly one test and nothing else.
+
+### And looking at it found two things no test here could
+
+**DIRECTION OF TRAVEL ONLY SEPARATES THE TWO ARCS IN MOTION.** The first version claimed three
+non-hue channels — radius, direction, colour — and a still capture shows an arc with a gap in it.
+Which way it wound is not recoverable from a frame, only from watching it move, so the
+monochrome-palette argument rested on two channels rather than three. **Weight is the fourth**,
+and it is a design call rather than a patch: the hunted bar is the heavier of the two, because a
+hunter is already looking at the Compass and the prey is looking at the world. UI_UX_SPEC §5.2
+states that requirement for the score feed and gives the same answer.
+
+**AND A BAR WITH NO TRACK IS NOT A BAR.** Without the unfilled remainder drawn behind it, 0.95
+and 0.6 both read as *an arc with a gap in it* and the fraction is not judgeable at a glance —
+which is the whole value of an element whose question is *how long have I got*. It matters more
+here than on the lock arc, which fills in 1.6 s against this one's 10.72.
+
+**THE PROBE CANNOT CATCH A TRANSIENT AT ITS DEFAULT SETTLE**, and saying so was cheaper than
+faking it. `hud_probe.gd` settles ninety frames before every capture, which is right for a
+*state* and exactly wrong for the 0.45 s re-acquisition pulse. `_state` takes an optional settle
+now; frames `16b` and `16c` are taken mid-pulse. Captioning a decayed pulse as a pulse would have
+been an instrument wrong in a plausible direction.
 
 ## What is left, and it is most of the story
 
@@ -265,7 +309,7 @@ drains it, an empty bar takes the contract away and pays the prey. What is missi
 | The blend clause's caller | `SYS-BLEND` → `note_blend_began` | Needs the hunter's sight at the tick the blend begins |
 | Empty → remove and reinsert | `ContractSystem` | Through the same `ContractCycle` calls a respawn uses, `Reason.ESCAPE` at index 4 |
 | `SCORE-ESCAPE` / `SCORE-CLOSECALL` | `KillScoring`'s shape | The tunables and the string names exist; nothing appends them |
-| `pursuit_fraction:u8` on the wire | `Snapshot` own-gameplay block | Both parties, naming neither |
+| ~~`pursuit_fraction:u8` on the wire~~ **DONE, as two bytes** | `Snapshot` own-gameplay block | Both parties, naming neither. One byte could not carry two live chases — see above |
 | The fuzz reaching an escape | `test_contract_cycle_fuzz.gd` | Extend the event mix, and **assert it generated at least one** |
 
 ## Test notes

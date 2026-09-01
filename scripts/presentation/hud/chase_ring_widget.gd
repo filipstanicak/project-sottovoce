@@ -10,11 +10,28 @@
 ## see — is exactly the moment that early-out fires. Folding the bars in would have
 ## meant deleting a guard that is correct for the Compass.
 ##
-## **THREE CHANNELS SEPARATE THE TWO BARS AND ONLY ONE OF THEM IS HUE**: radius,
-## direction of travel, and colour. UI_UX_SPEC §7.3's rule for this corner of the
-## screen is that the instrument stays readable on the monochrome verification
-## palette, and it does — the two arcs are at different radii and wind opposite
-## ways, so the colour is reinforcement rather than the carrier.
+## **FOUR CHANNELS SEPARATE THEM AND ONLY ONE IS HUE**: radius, weight, direction
+## of travel, and colour. UI_UX_SPEC §7.3's rule for this corner of the screen is
+## that the instrument stays readable on the monochrome verification palette.
+##
+## **DIRECTION ONLY SEPARATES THEM IN MOTION, WHICH LOOKING AT IT IS WHAT FOUND.**
+## A still frame shows an arc with a gap in it; which way it wound is not
+## recoverable from the picture, only from watching it move. So the weight was
+## added as the channel that works in a frozen frame **and** in monochrome, and the
+## claim that direction is one of three was narrowed rather than left standing.
+##
+## **THE HUNTED BAR IS THE HEAVIER OF THE TWO, WHICH IS A DESIGN CALL AND NOT A
+## TWEAK.** A hunter is already looking at the Compass — that is what the Compass
+## is for — so their own bar can be a hairline beside it. The prey is looking at
+## the *world*, hiding, and their bar has to be read without being looked at. That
+## is the same requirement UI_UX_SPEC §5.2 states for the score feed, and the same
+## answer: give the peripheral element the weight.
+##
+## **BOTH ARCS HAVE A TRACK BEHIND THEM, AND THAT IS THE FINDING WORTH KEEPING.**
+## Without one, a bar at 0.95 and a bar at 0.6 are both *an arc with a gap in it*
+## and the fraction is not judgeable at a glance — a progress bar without its track
+## is not a progress bar. It matters more here than on the lock arc, which fills in
+## 1.6 s, because the whole value of this element is judging how long you have.
 class_name ChaseRingWidget
 extends Control
 
@@ -25,9 +42,15 @@ const DIAMETER := 260.0
 
 ## Outside `CompassWidget.LOCK_RADIUS` (104) and its 3 px stroke, with a gap wide
 ## enough that a full lock and a full chase do not read as one thick ring.
-const HUNTED_RADIUS := 112.0
-const HUNT_RADIUS := 121.0
-const WIDTH := 3.0
+const HUNTED_RADIUS := 113.0
+const HUNTED_WIDTH := 5.0
+const HUNT_RADIUS := 123.0
+const HUNT_WIDTH := 2.5
+
+## The unfilled remainder, so a bar reads as a fraction rather than as an arc of
+## arbitrary length. Faint enough to sit under the district without adding a ring
+## the player has to learn.
+const TRACK_ALPHA := 0.18
 
 ## The re-acquisition pulse thickens the bar rather than only brightening it, so
 ## the moment survives the monochrome palette too.
@@ -84,9 +107,11 @@ func _draw() -> void:
 	# Compass's one relationship; the chase on you unwinds the other way, so the two
 	# are told apart by motion as well as by radius.
 	if vm.is_hunted():
-		_arc(centre, HUNTED_RADIUS, -vm.hunted, palette.chase_hunted, WIDTH + _flash_width())
+		_track(centre, HUNTED_RADIUS, palette.chase_hunted, HUNTED_WIDTH)
+		_arc(centre, HUNTED_RADIUS, -vm.hunted, palette.chase_hunted, HUNTED_WIDTH + _flash_width())
 	if vm.is_hunting():
-		_arc(centre, HUNT_RADIUS, vm.hunting, palette.chase_hunt, WIDTH)
+		_track(centre, HUNT_RADIUS, palette.chase_hunt, HUNT_WIDTH)
+		_arc(centre, HUNT_RADIUS, vm.hunting, palette.chase_hunt, HUNT_WIDTH)
 
 
 ## A pulse thickens the bar the prey is reading, never the one they are not. The
@@ -101,3 +126,10 @@ func _flash_width() -> float:
 ## convention a cooldown already uses and the reason neither needs a label.
 func _arc(centre: Vector2, radius: float, fraction: float, colour: Color, width: float) -> void:
 	draw_arc(centre, radius, TOP, TOP + TAU * fraction, SEGMENTS, colour, width, true)
+
+
+## The whole circle at a fraction of the bar's own alpha, so the track cannot be a
+## colour of its own to keep in step with the bar in front of it.
+func _track(centre: Vector2, radius: float, colour: Color, width: float) -> void:
+	var faint := Palette.with_alpha(colour, colour.a * TRACK_ALPHA)
+	draw_arc(centre, radius, 0.0, TAU, SEGMENTS, faint, width, true)

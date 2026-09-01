@@ -69,6 +69,7 @@ func _run() -> void:
 	print("HUD widgets in the scene: ", _names(_hud))
 
 	await _capture_every_state()
+	await _capture_the_chase()
 	await _capture_the_score_feed()
 	print("")
 	print("wrote %d frames:" % _shots.size())
@@ -79,13 +80,21 @@ func _run() -> void:
 	print("BEAT rather than a throb? Can you tell the tier without reading the word? Is the")
 	print("centre of the screen empty apart from the dot? And do 09, 10 and 11 read as ONE")
 	print("arc opening rather than three unrelated shapes?")
+	print("AND IN 15-17: are the two chase arcs TELLABLE APART without reading the colour —")
+	print("different radius, opposite directions — and do they stay clear of the lock arc?")
 	get_tree().quit()
 
 
 ## One scripted state: set it, let it settle, capture it.
-func _state(id: String, expect: String, setup: Callable) -> void:
+## **`settle` IS OVERRIDABLE FOR ONE REASON: A TRANSIENT CANNOT BE CAUGHT AT
+## 1.5 s.** Ninety frames is right for a state — it makes a capture reproducible —
+## and it is exactly wrong for the chase pulse, which lasts `ChaseVm.FLASH_SECONDS`
+## 0.45 s and would have decayed to nothing by then. Capturing it at the default
+## and captioning it as a pulse would be an instrument wrong in a plausible
+## direction, which is worse than no instrument.
+func _state(id: String, expect: String, setup: Callable, settle: int = SETTLE) -> void:
 	setup.call()
-	for _i: int in SETTLE:
+	for _i: int in settle:
 		await get_tree().process_frame
 	var path := "user://hud_%s.png" % id
 	get_tree().root.get_texture().get_image().save_png(path)
@@ -233,6 +242,50 @@ func _capture_the_arc_widening() -> void:
 ## design is a sequence — four bonuses `TUN-UI-SCOREFEED-STAGGER` apart — so two
 ## frames of one kill are the minimum that shows the stack building rather than
 ## arriving. The penalty frame is separate because §5.2's requirement is that the
+## **THE PURSUIT BARS** (US-0097). The third frame is the one worth looking at:
+## a Hamiltonian cycle makes every player a hunter and a prey simultaneously, so
+## both arcs live at once is the ordinary case rather than the corner case — and it
+## is the case a single `pursuit_fraction:u8` could not have carried.
+##
+## **THEY ARE CAPTURED BEFORE THE SCORE FEED ON PURPOSE.** A feed line lives four
+## seconds and the settle is a handful of frames, so running these afterwards would
+## put a stack of bonuses in every chase frame.
+func _capture_the_chase() -> void:
+	await _state(
+		"15_chase_hunting",
+		"ONE arc, the OUTER one, about half round, winding CLOCKWISE from the top.",
+		func() -> void: EventBus.pursuit_changed.emit(0.5, 0.0)
+	)
+	await _state(
+		"16_chase_hunted",
+		"ONE arc, the INNER one, nearly full, winding ANTICLOCKWISE.",
+		func() -> void: EventBus.pursuit_changed.emit(0.0, 0.95)
+	)
+	# Captured mid-pulse, twelve frames after the rise, because the pulse is gone
+	# long before the default settle. It is the moment a prey is re-acquired.
+	await _state(
+		"16b_chase_reacquired",
+		"The SAME inner arc, visibly THICKER: the pulse on being seen again.",
+		func() -> void: EventBus.pursuit_changed.emit(0.0, 0.3),
+		1
+	)
+	await _state(
+		"16c_chase_pulse",
+		"Thicker still — full bar, freshly re-acquired. Compare against 16.",
+		func() -> void: EventBus.pursuit_changed.emit(0.0, 1.0),
+		12
+	)
+	await _state(
+		"17_chase_both",
+		"BOTH arcs, at different lengths, clear of each other and of the lock arc.",
+		func() -> void: EventBus.pursuit_changed.emit(0.85, 0.3)
+	)
+	# **CLEARED, OR EVERY FRAME AFTER THIS ONE HAS A CHASE IN IT.** The bus holds
+	# the last value it carried, so leaving 17's state up would put two arcs behind
+	# the score-feed captures and read as though the feed had grown a ring.
+	EventBus.pursuit_changed.emit(0.0, 0.0)
+
+
 ## one negative event does **not** read as a smaller positive one, which is a
 ## comparison and needs both on screen at once.
 func _capture_the_score_feed() -> void:
