@@ -135,6 +135,20 @@ extends Resource
 ## TUN-SCORE-STUN
 @export_range(75.0, 150.0, 0.1) var stun: float = 100.0
 
+## Added 2026-08-29 (US-0097, ADR-0014). Your pursuer's chase timer emptied while you were the
+## prey. The reference's own value, and it lands equal to a base kill and to TUN-SCORE-STUN —
+## which is the same statement those two already make about each other: surviving a hunt is worth
+## what ending one is. Invariant 37.
+## TUN-SCORE-ESCAPE
+@export_range(75.0, 150.0, 0.1) var escape: float = 100.0
+
+## Added 2026-08-29 (US-0097, ADR-0014). …and the hunter was still within TUN-PURSUIT-CLOSECALL-
+## RADIUS 5.0 m when it emptied. The reference's own value. Half an escape, because escaping from
+## under the hunter's nose is the same achievement performed under pressure rather than a
+## different achievement.
+## TUN-SCORE-CLOSECALL
+@export_range(25.0, 100.0, 0.1) var closecall: float = 50.0
+
 ## Stunning a non-pursuer. Zero, plus TUN-STUN-INVALID-STAGGER and TUN-STUN-INVALID-SUSPICION.
 ## TUN-SCORE-STUN-INVALID
 @export var stun_invalid: float = 0.0

@@ -32,7 +32,11 @@ extends Resource
 ## TUN-CINDERFALL-COOLDOWN
 @export_range(35.0, 60.0, 0.1) var cooldown: float = 0.0
 
-## The wind-and-throw. Short enough to be a panic button, long enough to be a visible tell.
+## The wind-and-throw. Short enough to be a panic button, long enough to be a visible tell. Read
+## for the first time at US-0067 — the pipeline began every effect on the press tick until then,
+## so this value was an animation length and nothing else. It is now the gap between the tell
+## going out and the cloud existing, which is the window design law 3 asks for. A caster killed
+## during it drops no cloud; nothing else interrupts a cast.
 ## Used by: Cinderfall, Secondface.
 ## TUN-CINDERFALL-CAST-TIME
 @export_range(0.3, 0.7, 0.01) var cast_time: float = 0.0

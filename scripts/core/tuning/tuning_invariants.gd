@@ -29,6 +29,7 @@ static func check(p: TuningProfile) -> Array[String]:
 	e.append_array(TuningInvariantsTech.check(p))
 	e.append_array(TuningInvariantsScore.check(p))
 	e.append_array(_traversal_reach(p))
+	e.append_array(TuningInvariantsPursuit.check(p))
 	return e
 
 

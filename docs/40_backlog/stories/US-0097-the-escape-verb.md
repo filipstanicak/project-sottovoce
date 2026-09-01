@@ -1,10 +1,10 @@
 ---
 id: US-0097
 title: The escape verb — a hunt that can be survived
-version: 0.2.0
-status: draft
+version: 0.3.0
+status: in-progress
 owner: Lead Game Designer
-last_updated: 2026-08-27
+last_updated: 2026-08-29
 depends_on: [ADR-0014, ADR-0013, GDD-03-SOCIAL-STEALTH, TDD-10-SCORING, US-0059]
 ---
 
@@ -119,9 +119,24 @@ A kill, either party's death, or a disconnect. **A chase does not end because th
 down.** Once you have been seen, you must close or lose them — a hunter who could cancel a chase
 by standing still would have alerted their prey for free.
 
-## The tunables this needs — proposed, not yet shipped
+## The tunables this needs — SHIPPED 2026-08-29
 
-**Deliberately not added to `TUNABLES.md` by this story.**
+All six are in `TUNABLES.md` and generated into `ContractTuning` and `ScoringTuning`;
+invariants 34-37 are in `TuningInvariants` and `TuningInvariantsScore` and assert at load.
+**`TUN-PURSUIT-DURATION` shipped at 10.72, not the 10.7 proposed below** — see the correction
+under *What building it changed*.
+
+**They live on `ContractTuning` rather than a new section**, because a pursuit ends by removing
+and reinserting a contract and `SYS-CONTRACT` is this story's own system. The codegen maps
+TUNABLES §7 to that class, so no new resource, no new `.tres`, no change to
+`TuningProfile._SECTIONS` and no movement in `compute_hash`. The four keep a `pursuit_` prefix
+through an entry in the codegen's exception table: the mechanical transform strips the leading
+domain, which would have left `contract.duration` and `contract.sight_range` — names that read
+as being about the contract itself.
+
+### The original proposal, kept for its derivations
+
+**Was: deliberately not added to `TUNABLES.md` by this story.**
 `test_tunables_match_the_document.gd` compares the document against the *shipped* profile, so a
 documented row with no `.tres` row behind it goes red — and trap 17 says a missing `.tres` row is
 indistinguishable from a deliberate zero. They land together, with the implementation.
@@ -159,15 +174,42 @@ it invites somebody to re-pick the row.
 | ~~**Defer US-0054's two prop blends**~~ **— MOOT: shipped 2026-08-26** | A blend kind, its tunables and its level furniture. | Moves *away* from the reference, which has prop hiding spots everywhere, and weakens the escape verb this story is buying — prop blends are exactly what a fleeing prey wants. Rejected as self-defeating. |
 | **Defer `US-0085` onboarding minimum out of MVP** | A tutorial pass. | The fence's demonstrability test is "six humans understand why they scored what they scored". Cutting onboarding attacks the fence's own success criterion. |
 
+## What building it changed
+
+**INVARIANT 34 FIRED ON ITS FIRST RUN, AGAINST THIS STORY'S OWN PROPOSED VALUE.** The derivation
+is `TUN-COMPASS-WARN-RADIUS` ÷ `TUN-SPEED-BLENDWALK` = 15.0 / 1.4 = **10.7143**, and the table
+below rounds it to **10.7** — which asks the prey for **1.402 m/s**, fractionally *faster* than a
+blend walk, in exactly the direction the invariant exists to forbid. Shipped at **10.72**, and
+the tolerance was tightened to a true floor rather than widened to admit it: an epsilon wide
+enough to accept 10.7 is an epsilon wide enough to accept the next one too.
+
+**A rounded derivation is not a derivation**, and this is the cheapest possible demonstration of
+why the invariant is worth having — it caught the story that proposed it, before any code
+consumed the value.
+
+**`Dictionary.get` HANDS BACK `null` AND A TYPED `Array` REFUSES IT.** Every accessor on
+`PursuitBoard` was written `var row: Array = _chases.get(hunter)`, which is a runtime error on
+every miss — *"trying to assign value of type 'Nil' to a variable of type 'Array'"* — and eleven
+of thirteen tests went red at once. One guarded reader, asked only after `has()`.
+
 ## Acceptance criteria
+
+**The rule is built and proven; nothing consumes it yet.** `PursuitBoard` is the same shape
+`CinderfallVolumes` had between US-0056 and US-0067: complete, falsifiable and callerless, named
+as such rather than left to be discovered.
 
 - [ ] A chase opens on exactly the prey-warning condition and on no other; a hunter below
       `TUN-COMPASS-WARN-MIN-TIER` never opens one, at any range.
-- [ ] Sight of the prey refreshes the bar to full rather than incrementing it.
-- [ ] With no sight, the bar empties in `TUN-PURSUIT-DURATION` and not in some multiple of it —
+- [x] Sight of the prey refreshes the bar to full rather than incrementing it. **The duty cycle
+      is what proves it**: a hunter looking once per `window - 1` holds a chase open over ten
+      cycles, and one looking once per `window` loses it every time. The second assertion is the
+      one an incrementing bar fails; the single-threshold test the story warned about passes
+      against all three rules.
+- [x] With no sight, the bar empties in `TUN-PURSUIT-DURATION` and not in some multiple of it —
       the timer is in net ticks and uses `Tuning.ticks()`, not `step_ticks()` (trap 9).
-- [ ] A blend entered **out of** the hunter's sight conceals the prey; a blend entered **under**
-      unbroken sight does not, and the flag clears the moment sight breaks.
+- [x] A blend entered **out of** the hunter's sight conceals the prey; a blend entered **under**
+      unbroken sight does not, and the flag clears the moment sight breaks. **The rule is on the
+      board**; the caller that decides `under_sight` is `SYS-DETECTION`'s and is not built.
 - [ ] When the bar empties, the hunter is removed and reinserted through the same
       `ContractCycle` calls a respawn uses, with `Reason.ESCAPE`, announced after
       `TUN-CONTRACT-REASSIGN-DELAY`.
@@ -187,6 +229,18 @@ it invites somebody to re-pick the row.
       payout is `SYS-SCORE`'s and is not this story's** — this story emits, US-0064 pays.
 - [ ] A chase survives the hunter's tier falling back to Anonymous; only a kill, a death, a
       disconnect or the timer ends one.
+
+## What is left, and it is most of the story
+
+| Piece | Where | Note |
+|---|---|---|
+| Open a chase on the prey-warning condition | `DetectionSystem._consider_warning` | The condition is already computed there; the chase is one call beside the warning |
+| Refresh on sight | `DetectionSystem._advance_the_lock` | **The cast must move.** The pursuit cone is 90° against the lock's 25°, so the raycast has to be taken when the *wider* test admits and the lock then reuses it. Still one query site and still at most one cast per hunter — but the per-tick count **will rise**, and US-0097's "raycasts unchanged" criterion is written against a narrower reading than the tunables it also specifies. Measure and report rather than claim |
+| The blend clause's caller | `SYS-BLEND` → `note_blend_began` | Needs the hunter's sight at the tick the blend begins |
+| Empty → remove and reinsert | `ContractSystem` | Through the same `ContractCycle` calls a respawn uses, `Reason.ESCAPE` at index 4 |
+| `SCORE-ESCAPE` / `SCORE-CLOSECALL` | `KillScoring`'s shape | The tunables and the string names exist; nothing appends them |
+| `pursuit_fraction:u8` on the wire | `Snapshot` own-gameplay block | Both parties, naming neither |
+| The fuzz reaching an escape | `test_contract_cycle_fuzz.gd` | Extend the event mix, and **assert it generated at least one** |
 
 ## Test notes
 
