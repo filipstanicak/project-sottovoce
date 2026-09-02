@@ -17,11 +17,14 @@ extends RefCounted
 ## Transition through the pawn's **own machine**, so the graph validates the edge
 ## rather than the caller assuming it. Returns whether it happened.
 ##
-## **AN ILLEGAL EDGE IS REPORTED, NOT ASSERTED AWAY.** GDD-02 §3's normative
-## diagram has no `Drop -> Dead` and no `StunAnim -> Dead`, so a player killed
-## while falling or mid-stun-swing cannot enter `Dead` at all. That is a gap in the
-## diagram rather than in this code — ADR-0017 priced it and recommended closing
-## it, and did not — so the death still resolves and the pawn keeps walking.
+## **AN ILLEGAL EDGE IS REPORTED, NOT ASSERTED AWAY.** It used to be reachable:
+## GDD-02 §3 declared no `Drop -> Dead` and no `StunAnim -> Dead`, so a player
+## killed while falling or mid-stun-swing could not enter `Dead` — and
+## `KillSystem._land` announced the death anyway, leaving a victim who had been
+## scored, corpse-spawned and repaired around **still alive**, because
+## `CombatTargets.is_dead` reads `state_id`. Both edges landed 2026-09-02 and
+## `test_every_living_state_can_reach_dead` is what keeps every future state
+## honest.
 static func into(ctx: MatchContext, peer: int, to: StringName, priority: int) -> bool:
 	var pawn: PawnContext = ctx.pawn_contexts.get(peer)
 	var machine: PawnStateMachine = ctx.pawn_machines.get(peer)

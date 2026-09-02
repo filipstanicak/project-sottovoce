@@ -130,18 +130,43 @@ func test_a_victim_killed_while_falling_can_still_respawn() -> void:
 	)
 
 
-## **THE FAIL-SAFE, WHICH IS THE HALF THAT SURVIVES THE NEXT NEW STATE.** Both
-## edges exist now, so `_land`'s guard cannot fire — but the machine gained two
-## states in two days, and each one is a fresh chance to forget a `-> Dead` edge.
-## A kill that cannot be applied is refused loudly rather than announced.
-func test_a_kill_that_cannot_be_applied_is_not_announced() -> void:
-	var told: Array = []
-	_system.killed.connect(func(_k: int, _v: int, _a: Vector3) -> void: told.append(1))
-	var victim := _ctx.pawn_contexts[B] as PawnContext
-	# `Respawning` has exactly one edge out and it is not `Dead`. Standing in for
-	# whichever state somebody adds next without one.
-	victim.state_id = PawnStateId.RESPAWNING
-	_press(A)
-	_advance(Tuning.ticks(&"TUN-KILL-CORPSE-SPAWN-DELAY") + 2)
-	assert_eq(told.size(), 0, "a kill nothing could apply was still announced")
-	assert_eq(_system.kills_landed, 0, "a kill nothing could apply was still counted")
+## **EVERY STATE A LIVING PLAYER CAN BE IN MUST HAVE AN EDGE TO `Dead`.** This is
+## the invariant the two missing edges violated, and asserting it is worth far more
+## than asserting the two by name: the machine gained **two states in two days**,
+## and each one is a fresh chance to forget.
+##
+## **IT REPLACED A TEST THAT PROVED NOTHING, WHICH THE FALSIFICATION RUN FOUND.**
+## The first version poked a victim into `Respawning` and checked that no kill was
+## announced — and `_land` returns early on `CombatTargets.is_dead`, which counts
+## `Respawning`, so it never reached the guard it was testing. Deleting the guard
+## left it green. **A counterfactual that changes nothing is telling you the test
+## is measuring something else.**
+func test_every_living_state_can_reach_dead() -> void:
+	var missing: PackedStringArray = []
+	for id: StringName in PawnStateId.ALL:
+		if id == PawnStateId.DEAD or id == PawnStateId.RESPAWNING:
+			continue  # already dead; `CombatTargets.is_dead` counts both
+		if not PawnTransitions.allows(id, PawnStateId.DEAD):
+			missing.append(String(id))
+	missing.sort()
+	assert_eq(
+		missing.size(),
+		0,
+		(
+			"A living player in these states cannot be killed, and `KillSystem._land` "
+			+ "would announce the death anyway: "
+			+ ", ".join(missing)
+		)
+	)
+
+
+## The guard in `_land` is defence in depth for the day the assertion above is
+## added to and the edge is not. It cannot be exercised by example — every living
+## state has the edge — so what is asserted is that the refusal path exists at all.
+func test_the_kill_refuses_rather_than_announces_when_it_cannot_apply() -> void:
+	assert_true(
+		SourceScanner.code_contains(
+			"res://scripts/systems/combat/kill_system.gd", "if not CombatEntry.into("
+		),
+		"`_land` stopped checking whether the victim could actually enter Dead"
+	)

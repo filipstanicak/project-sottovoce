@@ -18,9 +18,13 @@
 ## **THE CONSEQUENCE IS SMALLER THAN IT LOOKS.** A hunter who commits to a kill
 ## during the prey's 0.7 s swing still lands it — not because this state yields,
 ## but because the kill resolves at its own contact frame against a victim who is
-## simply not in a state that refuses death. GDD-02 §3's diagram declares no
-## `StunAnim -> Dead` edge, which `KillSystem._enter` reports rather than asserts
-## past; that gap is the owner's and predates this state.
+## simply not in a state that refuses death.
+##
+## **AND UNTIL 2026-09-02 THIS STATE COULD NOT DIE AT ALL.** GDD-02 §3's diagram
+## declared no `StunAnim -> Dead`, so a prey killed mid-swing was scored,
+## corpse-spawned and repaired around while `CombatTargets.is_dead` still answered
+## **false**. The edge exists now; `test_every_living_state_can_reach_dead` is what
+## keeps it and every future state honest.
 ##
 ## Never-do #13 forbids weakening stun to make hunting feel better. Nothing here
 ## may grow a cancel, a shorter duration or a wider window without an ADR.

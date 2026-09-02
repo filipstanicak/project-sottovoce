@@ -383,8 +383,7 @@ func _land(ctx: MatchContext, killer: int, victim: int) -> void:
 	var at := pawn.position
 	# **A KILL THAT CANNOT BE APPLIED MUST NOT BE ANNOUNCED.** This ran
 	# unconditionally, so a victim in a state with no `-> Dead` edge was told they
-	# died and **stayed alive** — `is_dead` reads `state_id`. Both missing edges are
-	# added; this stays because the next state is a fresh chance to forget one.
+	# died and **stayed alive**. See `test_every_living_state_can_reach_dead`.
 	if not CombatEntry.into(ctx, victim, PawnStateId.DEAD, PawnState.PRIORITY_FATAL):
 		Log.warn("kill NOT applied: %s has no edge to Dead" % pawn.state_id, &"combat")
 		return
