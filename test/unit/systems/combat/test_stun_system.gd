@@ -261,6 +261,47 @@ func test_nobody_can_stun_a_player_who_is_not_hunting_them() -> void:
 	)
 
 
+## **US-0061's NINTH CRITERION, OPEN SINCE M4 AND CLOSED BY US-0070.** It read
+## *"a player mid-Lunge is stunnable for the entire wind-up and dash"* and could
+## not be run, because `ABIL-LUNGE` did not exist and there was no state to be
+## mid-. GDD-04 §3.4 calls this the ability's whole counterplay — *"a prepared
+## defender ALWAYS beats a Lunge"* — and design law 5 the reason.
+##
+## **THE WAY IT STAYS TRUE IS THAT NOTHING GREW A CASE FOR IT.**
+## `StunSystem._is_stunnable` names three states and `Lunging` is not among them;
+## `LungingState.is_interruptible` returns true. Both are absences, which is
+## exactly what a test has to pin, because an absence is what a later reader
+## deletes by accident.
+func test_a_hunter_mid_lunge_is_stunnable() -> void:
+	_a_hunt()
+	var machine := _ctx.pawn_machines[HUNTER] as PawnStateMachine
+	var hunter := _ctx.pawn_contexts[HUNTER] as PawnContext
+	hunter.velocity = Vector3(0.0, 0.0, -1.0) * LungingState.dash_speed()
+	assert_true(
+		machine.transition(hunter, PawnStateId.LUNGING, PawnState.PRIORITY_COMBAT),
+		"the fixture could not put the hunter into a dash"
+	)
+	_press(PREY)
+	_advance()
+	assert_eq(_landed.size(), 1, "a lunging hunter could not be stunned")
+	assert_eq(_state(HUNTER), PawnStateId.STUNNED, "the dash outran the stun")
+
+
+## The wind-up half of the same criterion, and it is true for a duller reason:
+## `TUN-LUNGE-WINDUP` is spent in a **locomotion** state, which was always
+## stunnable. Asserted anyway, because "the wind-up is stunnable" is the half a
+## reader would assume rather than check.
+func test_a_hunter_winding_up_a_lunge_is_stunnable() -> void:
+	_a_hunt()
+	assert_true(
+		PawnStateId.is_locomotion(_state(HUNTER)),
+		"the wind-up stopped being spent in a locomotion state"
+	)
+	_press(PREY)
+	_advance()
+	assert_eq(_landed.size(), 1, "a hunter winding up a Lunge could not be stunned")
+
+
 func test_a_pursuer_behind_the_prey_is_out_of_cone() -> void:
 	_a_hunt()
 	(_ctx.pawn_contexts[HUNTER] as PawnContext).position = Vector3(0.0, 0.0, -2.0)
