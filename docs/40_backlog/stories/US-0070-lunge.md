@@ -24,6 +24,25 @@ A six-metre committed dash that auto-initiates a kill on arrival.
 
 The "I have been made, commit now" button.
 
+> **THE AUTO-KILL WORKED AND ITS BAND WAS A METRE NARROWER THAN THIS STORY SAYS.**
+> Reported from the controls 2026-09-02 as *"the autokill on lunge does not work"*.
+> Measured on a real server with `tools/lunge_arrival_probe.tscn`: it landed, and the
+> approach at which it stopped landing was **7.5 m** rather than the 8.7 m
+> `TUN-LUNGE-DISTANCE` + `KillRules.reach` gives it. **`_verdict_for` rewound the
+> arrival like a press**, and `RewindClamp`'s floor is 100 ms at any ping — 0.9 m of
+> the hunter's own travel at 9 m/s, taken off a 2.85 m reach, and worse with a worse
+> connection. Fixed: an arrival is judged in the present. The criteria below are
+> unchanged and were all true; the *range* they were true over was not the
+> documented one.
+>
+> **THE OTHER HALF OF THE REPORT IS THIS STORY'S DESIGN, NOT A DEFECT.** The dash is
+> a fixed 5.85 m and unsteerable, and GDD-04 §3.4 and `TUN-LUNGE-AUTO-KILL` both say
+> the kill fires if the dash **ends** in range — so a lunge from under about 5.5 m
+> passes *through* the contract and leaves them behind the hunter, outside
+> `TUN-KILL-FACING-CONE`. Measured at a 4.0 m approach: the contract is 1.85 m away,
+> inside reach, and refused `OUT_OF_CONE`. **The usable band is roughly 5.5-8.7 m**,
+> and nothing tells a player that. Raised as owner decision 8.
+
 ## Acceptance criteria
 
 - [x] 30 s cooldown, 0.25 s wind-up, 6 m at 9 m/s, +40 suspicion applied at wind-up.

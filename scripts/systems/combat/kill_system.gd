@@ -92,6 +92,12 @@ var arrivals_judged: int = 0
 var arrivals_landed: int = 0
 var arrivals_whiffed: int = 0
 
+## **WHY THE LAST ARRIVAL MISSED.** A whiff reaches nobody by design — GDD-04
+## §3.4 prices a miss at `TUN-LUNGE-WHIFF-STAGGER` and nothing else — which is
+## right for the player and leaves a developer unable to tell *overshot* from
+## *behind you*. Recorded for the reason the counters beside it exist.
+var last_whiff: KillVerdict.V = KillVerdict.V.ALLOWED
+
 var _ctx: MatchContext
 
 ## peer -> the buttons that peer's last applied command held. **This system's own
@@ -233,18 +239,18 @@ func _judge_one(ctx: MatchContext, peer: int, ordinal: int) -> void:
 		arrivals_judged += 1
 	else:
 		presses_judged += 1
-	var outcome := _verdict_for(ctx, peer)
+	var outcome := _verdict_for(ctx, peer, arrival)
 	var verdict: KillVerdict.V = outcome[0]
 	var target := int(outcome[1])
 	if not KillVerdict.is_allowed(verdict):
 		if arrival:
-			_whiff(ctx, peer)
+			_whiff(ctx, peer, verdict)
 		else:
 			_reject(ctx, peer, verdict, target)
 		return
 	if not contest.claim(target, peer, ctx.tick, ordinal):
 		if arrival:
-			_whiff(ctx, peer)
+			_whiff(ctx, peer, KillVerdict.V.LOST_CONTEST)
 		else:
 			_stagger(ctx, peer, target)
 		return
@@ -255,18 +261,21 @@ func _judge_one(ctx: MatchContext, peer: int, ordinal: int) -> void:
 
 ## The miss. **No points and no suspicion beyond the +40 the press already cost**
 ## — the spent cooldown and 1.2 s in the open are the whole price.
-func _whiff(ctx: MatchContext, peer: int) -> void:
+func _whiff(ctx: MatchContext, peer: int, why: KillVerdict.V) -> void:
 	arrivals_whiffed += 1
+	last_whiff = why
 	if lockouts != null:
 		lockouts.stagger(peer, ctx.tick + maxi(Tuning.ticks(&"TUN-LUNGE-WHIFF-STAGGER"), 1))
-	_stagger_pawn(ctx, peer, &"TUN-LUNGE-WHIFF-STAGGER")
+	CombatEntry.stagger(ctx, peer, &"TUN-LUNGE-WHIFF-STAGGER")
 
 
-func _verdict_for(ctx: MatchContext, peer: int) -> Array:
+## **A PRESS IS JUDGED AGAINST WHAT ITS PRESSER SAW; AN ARRIVAL AGAINST WHAT IS
+## THERE.** `KillRewind.present_world` holds the reasoning and the measurement.
+func _verdict_for(ctx: MatchContext, peer: int, now: bool = false) -> Array:
 	if _is_busy(ctx, peer):
 		return [KillVerdict.V.BUSY, ContractCycle.NOBODY]
-	var at_tick := RewindClamp.tick_for(ctx.tick, Net.rtt_ms(peer))
-	var world := rewind.world_for(ctx, peer, at_tick)
+	var at_tick := ctx.tick if now else RewindClamp.tick_for(ctx.tick, Net.rtt_ms(peer))
+	var world := rewind.present_world(ctx, peer) if now else rewind.world_for(ctx, peer, at_tick)
 	var here := world.position_of(peer)
 	# **THE CASTER'S OWN CLOUD COUNTS.** An area denial that exempted whoever threw
 	# it would be a kill setup rather than a denial.
@@ -319,19 +328,8 @@ func _stagger(ctx: MatchContext, peer: int, victim: int) -> void:
 	# nobody's, so the player who won the race can see that they did.
 	#
 	# **NET TICKS ABOVE, STEP TICKS HERE.** Same wall time, two domains — trap 9.
-	_stagger_pawn(ctx, peer, &"TUN-KILL-CONTEST-STAGGER")
+	CombatEntry.stagger(ctx, peer, &"TUN-KILL-CONTEST-STAGGER")
 	contest_resolved.emit(peer, victim)
-
-
-## Put `peer` into `Staggered` for the duration `tunable` names. **The total is
-## written before the transition**, or `StaggeredState` falls back to its ceiling
-## and the punishment runs long — the safe direction, and still not the right one.
-func _stagger_pawn(ctx: MatchContext, peer: int, tunable: StringName) -> void:
-	var pawn: PawnContext = ctx.pawn_contexts.get(peer)
-	if pawn == null:
-		return
-	pawn.arm_stagger(Tuning.step_ticks(tunable))
-	CombatEntry.into(ctx, peer, PawnStateId.STAGGERED, PawnState.PRIORITY_COMBAT)
 
 
 ## **THE BONUSES ARE CAPTURED HERE AND PAID AT THE CONTACT FRAME**, because

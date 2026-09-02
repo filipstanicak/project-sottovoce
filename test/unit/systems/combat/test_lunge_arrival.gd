@@ -167,3 +167,73 @@ func test_an_arrival_beats_a_press_made_in_the_same_tick() -> void:
 	assert_eq(_state(A), PawnStateId.KILL_ANIM, "the presser took the claim off the lunger")
 	assert_ne(_state(C), PawnStateId.KILL_ANIM, "both killers committed to the same victim")
 	assert_lt(KillSystem.ARRIVAL_ORDINAL, 0, "the arrival ordinal stopped being below every press")
+
+
+# --- the present ----------------------------------------------------------
+
+
+## A hunter standing at the origin whose lag-comp history holds them `behind`
+## metres back down the dash line — which is what a dash actually looks like in
+## the ring, and what **every fixture above hides** by recording the pawn where it
+## already stands.
+func _dashed_in(behind: float, gap: float) -> void:
+	_place(A, Vector3(0.0, 0.0, -behind))
+	_place(B, Vector3(0.0, 0.0, gap))
+	_ctx.announced_contracts[A] = B
+	_fill_the_ring(8)
+	(_ctx.pawn_contexts[A] as PawnContext).position = Vector3.ZERO
+	_ctx.auto_kill_arrivals.append(A)
+
+
+## **AN ARRIVAL IS JUDGED AGAINST WHAT IS THERE, NOT AGAINST WHAT ANYBODY SAW.**
+## US-0070, fixed 2026-09-02 after *"the autokill on lunge does not work"*.
+##
+## Lag compensation honours the moment an attacker **decided**, and an arrival has
+## no such moment — the server decides it at the end of a dash the client is only
+## predicting. `RewindClamp` has a floor of `TUN-NET-LAGCOMP-MIN` 100 ms even at
+## zero ping, and at `TUN-LUNGE-SPEED` 9 m/s that is 0.9 m of the **hunter's own
+## travel** taken off a 2.85 m reach. Measured on a real server before the fix: the
+## auto-kill band ended at a 7.5 m approach against the 8.7 m the design gives it,
+## and it shrank further the worse the hunter's connection.
+##
+## 2.5 m in the present and 3.4 m in the past, against a reach of 2.85 — so the two
+## rules disagree and this test can tell which one ran.
+func test_an_arrival_is_judged_in_the_present_and_not_at_the_rewound_tick() -> void:
+	_dashed_in(0.9, 2.5)
+	_advance()
+	assert_eq(
+		_system.arrivals_landed,
+		1,
+		(
+			"the arrival was judged against the rewound world, so the hunter's own dash "
+			+ "was subtracted from their reach"
+		)
+	)
+
+
+## The counterfactual: the same geometry moved out of reach in **both** frames must
+## still whiff, or the assertion above is satisfied by a system that never refuses.
+func test_the_present_judgement_still_refuses_a_dash_that_ended_short() -> void:
+	_dashed_in(0.9, 4.0)
+	_advance()
+	assert_eq(_system.arrivals_landed, 0, "a dash that ended out of reach killed anyway")
+	assert_eq(_system.last_whiff, KillVerdict.V.OUT_OF_RANGE, "the whiff recorded the wrong reason")
+
+
+## **A WHIFF REACHES NOBODY BY DESIGN**, so the reason is recorded rather than
+## sent: GDD-04 §3.4 prices a miss at `TUN-LUNGE-WHIFF-STAGGER` and nothing else,
+## which is right for the player and leaves a developer unable to tell *overshot*
+## from *behind you*. Both are real and they are the two ways this ability fails.
+func test_a_dash_that_ended_past_its_target_records_the_cone_rather_than_the_range() -> void:
+	_place(A, Vector3.ZERO)
+	_place(B, Vector3(0.0, 0.0, -1.85))
+	_ctx.announced_contracts[A] = B
+	_fill_the_ring(8)
+	_ctx.auto_kill_arrivals.append(A)
+	_advance()
+	assert_eq(_system.arrivals_whiffed, 1, "a contract left behind the hunter was killed")
+	assert_eq(
+		_system.last_whiff,
+		KillVerdict.V.OUT_OF_CONE,
+		"a target 1.85 m away and behind the hunter was refused for the wrong reason"
+	)

@@ -844,6 +844,23 @@ func rewind_ticks(peer: int) -> int:
     return int(round(clamped / 1000.0 * Tuning.net.server_tick_hz))
 ```
 
+**A REWIND HONOURS A MOMENT SOMEBODY OBSERVED, SO AN ACTION NOBODY OBSERVED IS
+NOT REWOUND.** Amended 2026-09-02. `ABIL-LUNGE`'s auto-kill is decided by the
+**server**, at the end of a dash the client is merely predicting — there is no
+"what the attacker saw when they pressed" to align with, because the attacker
+made no press. It is judged against the world as it is, through
+`KillRewind.present_world`, which does not touch the ring and is therefore not a
+third rewind call site under ADR-0010.
+
+**AND THE FLOOR IS WHY THIS MATTERED RATHER THAN BEING MERELY UNTIDY.** `raw_ms`
+is clamped at `lagcomp_min_ms` **100 ms even at zero ping**, which is right for a
+press — every client draws remotes that far behind whatever its connection — and
+at `TUN-LUNGE-SPEED` 9 m/s it is 0.9 m of the **hunter's own travel**, subtracted
+from a 2.85 m reach. Measured on a real server before the fix: the auto-kill band
+ended at a 7.5 m approach against the 8.7 m `TUN-LUNGE-DISTANCE` + reach gives
+it, and it narrowed further the worse the hunter's connection. **A rule whose
+range depends on ping is not the rule `TUN-KILL-RANGE` documents.**
+
 ### 8.2 What is rewound
 
 | Entity | Rewound? | Why |
