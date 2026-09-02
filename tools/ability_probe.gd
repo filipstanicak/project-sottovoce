@@ -103,6 +103,16 @@ func _lunge(abilities: AbilitySystem, ctx: MatchContext) -> void:
 			dash_frames += 1
 		elif dash_frames == 0:
 			seen_windup = true
+	_report_lunge(seen_windup, dash_frames, from, pawn, abilities)
+
+
+## What the dash was, said separately from doing it. **Split for the length
+## guard**, and the seam is the same one `hud_probe.gd` draws: above is *press and
+## watch*, here is *tell somebody*.
+func _report_lunge(
+	seen_windup: bool, dash_frames: int, from: Vector3, pawn: PawnContext, abilities: AbilitySystem
+) -> void:
+	var data := Tuning.ability_data(Ids.ABIL_LUNGE)
 	print("  the wind-up was spent OUT of the dash state: ", seen_windup)
 	print("  the pawn entered Lunging: ", dash_frames > 0)
 	print("  held it %d step ticks of %d" % [dash_frames, LungingState.dash_ticks()])
@@ -113,13 +123,14 @@ func _lunge(abilities: AbilitySystem, ctx: MatchContext) -> void:
 	print("  suspicion now: %.1f" % pawn.suspicion)
 	print("  cooldown ticks left: %d" % abilities.cooldown_ticks(PEER, 1))
 	print("")
-	print("EXPECT: a wind-up outside the dash state, then Lunging, then roughly")
+	print("EXPECT: a wind-up outside the dash state, then Lunging held its full")
 	print(
 		(
-			"        %.1f m of travel, ending Staggered (no contract to kill) at %.0f suspicion."
-			% [data.distance, data.suspicion_cost]
+			"        %d ticks, about 5.85 m of travel (the last tick is spent"
+			% LungingState.dash_ticks()
 		)
 	)
+	print("        stopping dead), and Staggered — a whiff, with no contract to kill.")
 
 
 ## Press slot 0 and watch for `TUN-CINDERFALL-CAST-TIME` plus a margin.

@@ -331,6 +331,42 @@ duration stored rather than derived, the player steering the dash, the dash owni
 its position, a stun unable to reach it, a miss charged as a rejected press, a
 press outranking a committed dash, and a stunned lunger whiffed as well.
 
+**AND A LIVE SERVER FOUND TWO THINGS EVERY TEST MISSED.**
+`tools/ability_probe.tscn` presses slot 1 on the real `server_root.tscn` now:
+
+```bash
+godot --headless --path . res://tools/ability_probe.tscn
+```
+
+- **A PEER THAT NEVER SENDS INPUT IS NEVER STEPPED.** The first probe joined a
+  peer, pressed, and watched the pawn enter `Lunging`, travel **0.00 m** and stay
+  there — which reads exactly like a dash that does not work. US-0028's own rule:
+  *"Nothing is repeated for a peer that has never sent one — a pawn that has not
+  yet moved must not start."* **A probe that does not send input measures a pawn
+  nobody is simulating**, trap 13's family. It drives like a client now.
+- **THE DASH OVERSHOT ITS OWN TUNABLE BY 21 %: 7.27 m AGAINST 6.0.** The state
+  held its forty ticks exactly and the pawn then left at 9 m/s and **coasted**
+  while `IdleState` decelerated it. `TUN-LUNGE-DISTANCE` says *"closes the gap and
+  nothing more"*, and the extra metre is spent **after** the auto-kill is judged.
+  `LungingState.exit` zeroes the horizontal velocity now. **No unit test could see
+  it** — they assert the state and its velocity, and the overshoot is in the
+  pawn's total displacement after the state has ended.
+
+**AND THE FIX FOR THE REMAINING 2.5 % WAS TRIED AND REVERTED, WHICH IS THE MORE
+USEFUL HALF.** The timer is incremented before `step()` runs and the ending call
+sets no velocity, so the pawn moves on `dash_ticks() - 1` steps: **5.85 m**,
+exactly 39 × 0.15. Ending one step later delivers the full 6.0 **and makes the
+state outlive `AbilityEffect`'s window by one net tick** — `LungeEffect.end` fires
+while the pawn is still `Lunging`, refuses to queue an arrival, and **the whole
+resolution is silently dropped**: no kill, no whiff, no stagger. The probe
+measured that too, ending `Idle` where it should end `Staggered`. **One clock and
+2.5 % short beats two clocks and exact**, and
+`test_the_dash_ends_inside_its_own_effect_window` is what stops the next person
+trying it.
+
+**MEASURED, REPRODUCIBLE ACROSS RUNS: 40 step ticks of 40, 5.85 m of a tuned 6.0,
+ending `Staggered` with no contract to kill.**
+
 **WHAT NOBODY CAN SEE IS THE DASH ITSELF.** There are no animation clips on either
 rig, so a Lunge is a pawn that moves very fast with no wind-up pose, no shout and
 no dust — the same absence Cinderfall's cloud has. `ANIM-LUNGE-WINDUP`,
