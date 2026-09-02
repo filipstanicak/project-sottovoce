@@ -22,11 +22,12 @@ signal state_changed(from: StringName, to: StringName)
 ## by `step()` rather than crashing, because a half-registered machine during M1
 ## is a normal intermediate condition.
 ##
-## **ALL FIFTEEN EXIST AS OF US-0062.** `Dead` arrived with `SYS-KILL` (US-0060),
-## `StunAnim` with `SYS-STUN` (US-0061) and `Respawning` with `SYS-SPAWN`, which
-## is also what finally gave `Dead` an exit: the graph's only edge out of it is
+## **ALL FIFTEEN EXIST.** `Dead` arrived with `SYS-KILL` (US-0060), `StunAnim`
+## with `SYS-STUN` (US-0061) and `Respawning` with `SYS-SPAWN`, which is also
+## what finally gave `Dead` an exit: the graph's only edge out of it is
 ## `Dead -> Respawning`, and until that state was registered a killed player
-## stayed dead for the rest of the match.
+## stayed dead for the rest of the match. `Staggered` is ADR-0017's, added
+## 2026-09-01 for the three `TUN-*-STAGGER` rules that had nowhere to live.
 const REGISTERED: Array[GDScript] = [
 	preload("res://scripts/pawn/states/idle_state.gd"),
 	preload("res://scripts/pawn/states/blend_walk_state.gd"),
@@ -42,6 +43,7 @@ const REGISTERED: Array[GDScript] = [
 	preload("res://scripts/pawn/states/stunned_state.gd"),
 	preload("res://scripts/pawn/states/dead_state.gd"),
 	preload("res://scripts/pawn/states/respawning_state.gd"),
+	preload("res://scripts/pawn/states/staggered_state.gd"),
 ]
 
 ## id -> PawnState. ONE INSTANCE PER STATE, shared by every pawn.

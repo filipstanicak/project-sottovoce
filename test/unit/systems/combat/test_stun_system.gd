@@ -246,6 +246,19 @@ func test_nobody_can_stun_a_player_who_is_not_hunting_them() -> void:
 	_advance()
 	assert_eq(_landed.size(), 0, "a stranger standing in front of the prey was stunned")
 	assert_eq(_state(STRANGER), PawnStateId.IDLE, "the wrong target was affected")
+	# **AND THE FLAILER PAYS IN A STATE, NOT ONLY IN A LOCKOUT** (ADR-0017).
+	# `TUN-STUN-INVALID-STAGGER`'s own note is that flailing must be *strictly
+	# worse than doing nothing* — which was false while the punishment blocked
+	# presses and left the flailer free to sprint out of the space.
+	assert_eq(_state(PREY), PawnStateId.STAGGERED, "a flail cost the flailer no tempo")
+	# **THE TOTAL IS WRITTEN BEFORE THE TRANSITION, OR THE STATE FALLS BACK TO ITS
+	# CEILING** — the safe direction, and still not the right one. This is what
+	# goes red if the two lines are ever reordered.
+	assert_eq(
+		(_ctx.pawn_contexts[PREY] as PawnContext).stagger_ticks,
+		Tuning.step_ticks(&"TUN-STUN-INVALID-STAGGER"),
+		"the flail stagger ran on somebody else's clock"
+	)
 
 
 func test_a_pursuer_behind_the_prey_is_out_of_cone() -> void:
