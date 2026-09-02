@@ -110,23 +110,38 @@ func test_the_tell_precedes_the_cloud_by_the_whole_wind_up() -> void:
 	assert_eq(told.size(), 1, "the tell fired twice for one cast")
 
 
+## **THE PROPERTY WITHOUT AN ABILITY ATTACHED TO IT, WHICH IS WHY THIS ONE CANNOT
+## DRIFT.** *"Return false to end early"* is `AbilityEffect`'s own contract and a
+## no-op's honest lifetime is one tick. Asserting it against the base class means
+## no shipped ability's `effect_script` can ever make this test quietly stop
+## measuring anything — which is what happened twice to the one below.
+func test_the_base_effect_ends_itself_on_its_first_tick() -> void:
+	assert_false(
+		AbilityEffect.new().tick(_ctx, MatchContext.net_dt()),
+		"AbilityEffect.tick stopped meaning 'end early', which every effect overrides against"
+	)
+
+
 func test_a_no_op_effect_ends_inside_the_tick_it_began() -> void:
 	# `end()` must still run — an effect that began and never ended would leak a row
 	# per cast for the match.
 	#
-	# **IT CASTS LUNGE, AND IT CAST CINDERFALL UNTIL US-0067.** Cinderfall has a real
-	# effect now, so this file kept passing while measuring nothing: after one tick a
-	# Cinderfall is mid-wind-up, which reports inactive for a completely different
-	# reason. `ABIL-LUNGE` is the ability whose `effect_script` is still null, which
-	# is what this test is about.
+	# **THIS TEST HAS BEEN RE-HOMED TWICE AND THAT IS THE FINDING.** It cast
+	# Cinderfall until US-0067 and Lunge until US-0070, and each time the ability
+	# gained an `effect_script` the file **kept passing while measuring nothing** —
+	# a real effect mid-wind-up reports inactive for a completely different reason.
+	# Keying a property of the *base class* on whichever shipped ability happens to
+	# lack an override is the drift; the test above is the version that cannot.
+	# **US-0069 will move it a third time**, and should delete it instead.
 	assert_null(
-		Tuning.ability_data(Ids.ABIL_LUNGE).effect_script,
-		"Lunge gained an effect; move this test to whichever ability still has none"
+		Tuning.ability_data(Ids.ABIL_SECONDFACE).effect_script,
+		"Second Face gained an effect; delete this and keep the base-class test above"
 	)
-	_cast(A, 1)
+	_system.loadout[A] = [Ids.ABIL_SECONDFACE]
+	_cast(A, 0)
 	assert_eq(_system.activations, 1)
 	assert_false(
-		_system.is_effect_active(A, Ids.ABIL_LUNGE),
+		_system.is_effect_active(A, Ids.ABIL_SECONDFACE),
 		"a base AbilityEffect stayed live past the tick it started"
 	)
 

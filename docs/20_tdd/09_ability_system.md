@@ -250,7 +250,7 @@ generated, not hand-authored.
 | A new snapshot field | Cooldowns are indexed by slot, not by ability |
 | UI changes | `AbilitySlots` renders from `AbilityData` |
 | Audio wiring | `tell_sfx` is a `SFX-` ID resolved by the `Audio` autoload |
-| A new pawn state | Effects manipulate the existing state machine. **AMENDED 2026-09-01 (ADR-0017): this row read "only Lunge needs a dash, which already exists" and NO DASH EXISTS** — trap 14's shape in a technical table, and the claim is exactly what stopped anybody checking. `Staggered` was added for the three `TUN-*-STAGGER` rules, one of which is Lunge's whiff; whether the **dash itself** needs a state is US-0070's to answer, and the row no longer answers it for them |
+| A new pawn state | Effects manipulate the existing state machine. **AMENDED 2026-09-01 (ADR-0017): this row read "only Lunge needs a dash, which already exists" and NO DASH EXISTS** — trap 14's shape in a technical table, and the claim is exactly what stopped anybody checking. `Staggered` was added for the three `TUN-*-STAGGER` rules, one of which is Lunge's whiff; whether the **dash itself** needs a state is US-0070's to answer, and the row no longer answers it for them. **ANSWERED 2026-09-02: it does.** `Lunging` is the sixteenth state, at wire index 15. Not for tidiness — an effect lives in `scripts/systems/`, stripped from every client export, so a 6 m dash driven from one is 6 m the client never predicted. **A future ability that MOVES a pawn needs a state; one that only changes the world does not** |
 
 ### 5.2 The checklist that is still required
 

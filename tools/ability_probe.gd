@@ -50,7 +50,87 @@ func _run() -> void:
 		return
 
 	await _throw(abilities, ctx)
+	await _lunge(abilities, ctx)
 	get_tree().quit()
+
+
+## **A PEER THAT NEVER SENDS INPUT IS NEVER STEPPED, AND THE FIRST VERSION OF THE
+## LUNGE PROBE DID NOT KNOW THAT.** It joined a peer, pressed the ability and
+## watched: the pawn entered `Lunging`, travelled **0.00 m** and stayed there
+## forever, which reads exactly like a dash that does not work.
+##
+## It is US-0028's own rule, in `MatchDirector._repeat_last`: *"Nothing is repeated
+## for a peer that has never sent one — there is no intent to extend, and a pawn
+## that has not yet moved must not start."* `LungingState` is driven by
+## `PawnMotion` at the `pawn` stage and nothing was driving it. **A probe that does
+## not send input measures a pawn nobody is simulating**, which is trap 13's family
+## — an instrument reporting a zero it cannot distinguish from a real one.
+func _send_a_command(seq: int) -> void:
+	var director := _root.get("director") as MatchDirector
+	if director != null:
+		director.enqueue_input(PEER, InputCommand.empty(seq + 1))
+
+
+## **PRESS SLOT 1 AND WATCH THE PAWN MOVE.** US-0070.
+##
+## The unit tests drive `AbilitySystem` and `LungingState` directly and cannot see
+## the wiring: that `server_root` equips Lunge at all, that the `abilities` stage
+## runs before `combat` so an arrival is drained in the tick it is queued, and that
+## `MatchDirector._substep_pawns` steps the state at the input rate. This is the
+## gap US-0074 lost a whole integration run to.
+func _lunge(abilities: AbilitySystem, ctx: MatchContext) -> void:
+	var pawn: PawnContext = ctx.pawn_contexts.get(PEER)
+	if pawn == null:
+		print("REFUSING: the joined peer has no pawn, so there is nothing to dash.")
+		return
+	var from := pawn.position
+	var data := Tuning.ability_data(Ids.ABIL_LUNGE)
+	# **AIMED AT THE DISTRICT CENTRE, NOT BLINDLY AT +Z.** A spawn point is by design
+	# near the map's edge and `VetraioGround` derives a parapet on every floor edge,
+	# so a blind direction dashes into a wall and reports a short travel that reads
+	# exactly like a dash that does not work. The first version did, at 1.15 m of 6.
+	var toward := (Vector3(60.0, from.y, 60.0) - from).normalized()
+	abilities.report_request(PEER, 1, from, toward * data.distance)
+	print("")
+	print("--- ABIL-LUNGE ---")
+	print("pressed at ", from, " aiming ", toward)
+	var seen_windup := false
+	var dash_frames := 0
+	for step: int in 90:
+		_send_a_command(step)
+		await get_tree().physics_frame
+		if pawn.state_id == PawnStateId.LUNGING:
+			dash_frames += 1
+		elif dash_frames == 0:
+			seen_windup = true
+	_report_lunge(seen_windup, dash_frames, from, pawn, abilities)
+
+
+## What the dash was, said separately from doing it. **Split for the length
+## guard**, and the seam is the same one `hud_probe.gd` draws: above is *press and
+## watch*, here is *tell somebody*.
+func _report_lunge(
+	seen_windup: bool, dash_frames: int, from: Vector3, pawn: PawnContext, abilities: AbilitySystem
+) -> void:
+	var data := Tuning.ability_data(Ids.ABIL_LUNGE)
+	print("  the wind-up was spent OUT of the dash state: ", seen_windup)
+	print("  the pawn entered Lunging: ", dash_frames > 0)
+	print("  held it %d step ticks of %d" % [dash_frames, LungingState.dash_ticks()])
+	print(
+		"  travelled %.2f m against a tuned %.1f" % [from.distance_to(pawn.position), data.distance]
+	)
+	print("  ended in state: ", pawn.state_id)
+	print("  suspicion now: %.1f" % pawn.suspicion)
+	print("  cooldown ticks left: %d" % abilities.cooldown_ticks(PEER, 1))
+	print("")
+	print("EXPECT: a wind-up outside the dash state, then Lunging held its full")
+	print(
+		(
+			"        %d ticks, about 5.85 m of travel (the last tick is spent"
+			% LungingState.dash_ticks()
+		)
+	)
+	print("        stopping dead), and Staggered — a whiff, with no contract to kill.")
 
 
 ## Press slot 0 and watch for `TUN-CINDERFALL-CAST-TIME` plus a margin.

@@ -290,7 +290,7 @@ func _reject(ctx: MatchContext, peer: int, verdict: StunVerdict.V, target: int) 
 		var pawn: PawnContext = ctx.pawn_contexts.get(peer)
 		if pawn != null:
 			pawn.arm_stagger(Tuning.step_ticks(&"TUN-STUN-INVALID-STAGGER"))
-			_enter(ctx, peer, PawnStateId.STAGGERED, PawnState.PRIORITY_COMBAT)
+			CombatEntry.into(ctx, peer, PawnStateId.STAGGERED, PawnState.PRIORITY_COMBAT)
 		if ctx.impulses != null:
 			ctx.impulses.queue(peer, Tuning.combat.stun_invalid_suspicion)
 	if StunVerdict.plays_a_whiff(verdict):
@@ -308,8 +308,8 @@ func _land(ctx: MatchContext, stunner: int, target: int) -> void:
 	var exile := lockout_ticks(_has_second_wind(ctx, target))
 	if lockouts != null:
 		lockouts.exile(target, stunner, ctx.tick + exile)
-	_enter(ctx, target, PawnStateId.STUNNED, PawnState.PRIORITY_COMBAT)
-	_enter(ctx, stunner, PawnStateId.STUN_ANIM, PawnState.PRIORITY_COMBAT)
+	CombatEntry.into(ctx, target, PawnStateId.STUNNED, PawnState.PRIORITY_COMBAT)
+	CombatEntry.into(ctx, stunner, PawnStateId.STUN_ANIM, PawnState.PRIORITY_COMBAT)
 	stuns_landed += 1
 	stunned.emit(stunner, target, exile)
 
@@ -321,17 +321,3 @@ func _land(ctx: MatchContext, stunner: int, target: int) -> void:
 ## than a rule to re-derive.
 static func _has_second_wind(_ctx: MatchContext, _peer: int) -> bool:
 	return false
-
-
-## Put a pawn into a state through its own machine, so the graph validates the
-## edge rather than this system assuming it. **An illegal edge is reported, not
-## asserted away** — `KillSystem._enter`'s rule, and the same missing edges apply.
-func _enter(ctx: MatchContext, peer: int, to: StringName, priority: int) -> bool:
-	var pawn: PawnContext = ctx.pawn_contexts.get(peer)
-	var machine: PawnStateMachine = ctx.pawn_machines.get(peer)
-	if pawn == null or machine == null:
-		return false
-	if not machine.is_valid_edge(pawn.state_id, to):
-		Log.warn("no %s -> %s edge in GDD-02 §3" % [pawn.state_id, to], &"pawn")
-		return false
-	return machine.transition(pawn, to, priority)

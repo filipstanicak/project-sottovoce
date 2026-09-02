@@ -234,6 +234,144 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 *Updated 2026-08-27 (ADR-0016, the M4 gate). Keep this section current — it is the first thing a
 fresh session reads, and a stale one is worse than none.*
 
+## US-0070 IS DONE, SIX OF SIX: THE PANIC BUTTON WORKS, AND ITS TELL HAD NO READER
+
+**Press F and 0.25 s later you dash 6 m at 9 m/s in the direction you were
+aiming, steering none of it.** Arrive within reach of your contract and the kill
+**auto-initiates**; arrive short and you stand in the open for 1.2 s, Noticed,
+unable to act. `ABIL-LUNGE` is the second ability in this game that changes the
+world, and the first that moves the player.
+
+**`TUN-LUNGE-WINDUP` 0.25 s WAS IN `lunge.tres` AND NOTHING READ IT.**
+`AbilitySystem._cast_ticks` read `AbilityData.cast_time` alone, and its own
+docstring said *"Lunge has no `cast_time` at all"* — **true of the field and
+false of the ability**. The wind-up lives in `AbilityData.windup`, which had no
+reader anywhere in the project.
+
+**SO A LUNGE WOULD HAVE BURST ON THE PRESS TICK WITH NO TELEGRAPH**, which
+deletes design law 3's *perceivable chance to read it* and with it this ability's
+whole counterplay: GDD-04 §3.4 prices it as *"0.92 s of telegraphed, unsteerable
+approach against a 0.7 s stun"*, and without the wind-up it is 0.67 s and
+undodgeable. `ANIM-LUNGE-WINDUP` was authored against the same 0.25 s and would
+have had nothing to play over. **Trap 14, and the comment is what stopped anybody
+checking.** `AbilityRules.windup_of` takes whichever of the two fields an ability
+populates — `reach_of`'s own rule in a second place — and Whisperbolt's 1.00 s
+would have had the identical problem.
+
+**AND THE DASH'S DURATION IS DERIVED RATHER THAN STORED.** 6.0 m over 9.0 m/s is
+0.67 s, which is what ANIMATION_SPEC §3.3 already calls `ANIM-LUNGE-DASH`'s
+*derived* length. A `duration` row in the `.tres` would be a third number that
+can contradict the first two.
+
+**`Lunging` IS THE SIXTEENTH PAWN STATE, AND THE REASON IS PREDICTION RATHER THAN
+TIDINESS.** ADR-0017 left this question to this story and set the rule it had to
+follow. `AbilityEffect` lives in `scripts/systems/`, stripped from every client
+export — so a dash driven from there is **6 m the client never predicted**,
+corrected on all twenty of its ticks at 0.3 m each, on the most decisive action in
+the game.
+
+**THE LOCKED DIRECTION IS `ctx.velocity`, SO THERE IS NO NEW FIELD AND NO NEW WIRE
+ROW.** `own_velocity` is already full floats in the own-pawn block precisely
+because it is what prediction reconciles against, and `own_state` and
+`own_state_timer` carry the rest. **That matters more than it looks:
+`PredictedState.apply_to` assigns `state_id` directly and never runs `enter()`**,
+so anything captured on entry would be captured on the server alone and a client
+forced into the state would dash in a direction it invented. Asserted by entering
+the state the way a reconciliation does — fields set, no transition.
+
+**IT DOES NOT DRIVE ITS OWN POSITION, WHICH IS THE OPPOSITE CALL FROM `Vault`,
+`Climb` AND `Drop`.** Those own theirs because the probes **measured** what they
+traverse, and `PawnMotion` skips `move_and_slide()` for them entirely. A dash is
+aimed at open ground nobody measured, so owning its position would send a player
+**through a wall** at 9 m/s. A grazed wall deflects it instead, which is what
+every movement state does and is not steering — no input is read at all.
+
+**AN ARRIVAL IS A PRESS THE PLAYER DID NOT HAVE TO MAKE.** The first version gave
+the auto-kill its own `_resolve_arrivals` and `_judge_arrival`, duplicating the
+verdict, the contest claim and the ordering — the *rule implemented twice* this
+project keeps finding, and **the file-length guard is how it was noticed** at 448
+lines. It joins `_requests` with `ARRIVAL_ORDINAL` -1, which sorts ahead of every
+press in the tick: `KillContest` resolves by who committed first, and a Lunge
+committed 0.92 s ago.
+
+**THE ONE DIFFERENCE AN ARRIVAL MAKES IS WHAT A REFUSAL COSTS.** `_reject` charges
+`TUN-SUSPICION-GAIN-FAILED-KILL` +30, right for somebody who pressed at nothing
+and wrong for somebody who spent a 30 s cooldown, +40 suspicion and a 6 m
+telegraph to arrive a metre short. A miss is `TUN-LUNGE-WHIFF-STAGGER` and nothing
+else — asserted, including that the impulse queue stays empty.
+
+**AND STUNNING A LUNGER DOES NOT ALSO WHIFF THEM.** `LungeEffect.end` queues an
+arrival only when the pawn came back to locomotion, which is the one exit
+`LungingState` takes on its own. A stagger on top would price the prey's read
+twice.
+
+**TWO RULES WERE WRITTEN TWICE AND THE LENGTH GUARD FOUND BOTH.** `_enter` was
+fourteen identical lines in `KillSystem` and `StunSystem`, including the same
+warning text — `CombatEntry.into` is the one home. The rewind moved to
+`KillRewind`, and **the arch guard naming ADR-0010's two rewind call sites fired
+on it, correctly.** Widening a filename allowlist is how a guard gets hollowed
+out, so the rule is restated as **ownership**: exactly one class may hold a
+`KillRewind`, asserted, which is strictly stronger than the list it replaced.
+
+**US-0061's NINTH CRITERION IS CLOSED AFTER FOUR MILESTONES.** *"A player
+mid-Lunge is stunnable for the entire wind-up and dash"* could not be run because
+there was no state to be mid-. The wind-up is spent in a locomotion state;
+`LungingState` is interruptible and absent from `_is_stunnable`'s three
+exclusions. **Both halves are absences, and an absence is what a later reader
+deletes by accident**, so both are asserted.
+
+**AND A TEST FIXTURE WAS WRONG IN A WAY WORTH KEEPING.** `test_lunge_effect.gd`
+first ticked only the ability system, so the dash never ended and no arrival was
+queued — **the fixture was wrong and the guard was right**: `LungingState` is
+driven at the `pawn` stage. That is US-0067's *one clock, not two* lesson, and it
+is asserted deliberately now rather than left as a fixture detail.
+
+**EIGHT PLANTED DEFECTS, ALL RED**: the wind-up losing its reader again, the
+duration stored rather than derived, the player steering the dash, the dash owning
+its position, a stun unable to reach it, a miss charged as a rejected press, a
+press outranking a committed dash, and a stunned lunger whiffed as well.
+
+**AND A LIVE SERVER FOUND TWO THINGS EVERY TEST MISSED.**
+`tools/ability_probe.tscn` presses slot 1 on the real `server_root.tscn` now:
+
+```bash
+godot --headless --path . res://tools/ability_probe.tscn
+```
+
+- **A PEER THAT NEVER SENDS INPUT IS NEVER STEPPED.** The first probe joined a
+  peer, pressed, and watched the pawn enter `Lunging`, travel **0.00 m** and stay
+  there — which reads exactly like a dash that does not work. US-0028's own rule:
+  *"Nothing is repeated for a peer that has never sent one — a pawn that has not
+  yet moved must not start."* **A probe that does not send input measures a pawn
+  nobody is simulating**, trap 13's family. It drives like a client now.
+- **THE DASH OVERSHOT ITS OWN TUNABLE BY 21 %: 7.27 m AGAINST 6.0.** The state
+  held its forty ticks exactly and the pawn then left at 9 m/s and **coasted**
+  while `IdleState` decelerated it. `TUN-LUNGE-DISTANCE` says *"closes the gap and
+  nothing more"*, and the extra metre is spent **after** the auto-kill is judged.
+  `LungingState.exit` zeroes the horizontal velocity now. **No unit test could see
+  it** — they assert the state and its velocity, and the overshoot is in the
+  pawn's total displacement after the state has ended.
+
+**AND THE FIX FOR THE REMAINING 2.5 % WAS TRIED AND REVERTED, WHICH IS THE MORE
+USEFUL HALF.** The timer is incremented before `step()` runs and the ending call
+sets no velocity, so the pawn moves on `dash_ticks() - 1` steps: **5.85 m**,
+exactly 39 × 0.15. Ending one step later delivers the full 6.0 **and makes the
+state outlive `AbilityEffect`'s window by one net tick** — `LungeEffect.end` fires
+while the pawn is still `Lunging`, refuses to queue an arrival, and **the whole
+resolution is silently dropped**: no kill, no whiff, no stagger. The probe
+measured that too, ending `Idle` where it should end `Staggered`. **One clock and
+2.5 % short beats two clocks and exact**, and
+`test_the_dash_ends_inside_its_own_effect_window` is what stops the next person
+trying it.
+
+**MEASURED, REPRODUCIBLE ACROSS RUNS: 40 step ticks of 40, 5.85 m of a tuned 6.0,
+ending `Staggered` with no contract to kill.**
+
+**WHAT NOBODY CAN SEE IS THE DASH ITSELF.** There are no animation clips on either
+rig, so a Lunge is a pawn that moves very fast with no wind-up pose, no shout and
+no dust — the same absence Cinderfall's cloud has. `ANIM-LUNGE-WINDUP`,
+`ANIM-LUNGE-DASH` and `ANIM-LUNGE-WHIFF` are all specified and none exists.
+
 ## ADR-0017: A FAILED ACTION LEAVES YOU `Staggered`. FIFTEEN STATES AGAIN.
 
 **Owner decision 3 is settled and it was the highest-value one left.** Lose a kill
@@ -1093,16 +1231,10 @@ PLANNED.** Probability and impact unchanged — no new evidence about fun either
 
 **CHECKED 2026-08-29, BEFORE WRITING ANY CODE, AND IT CHANGED WHAT M5 LOOKS LIKE.**
 
-- **US-0070 (Lunge) IS UNBLOCKED AS OF 2026-09-01 (ADR-0017).** Its whiff has a
-  state: `Staggered`, entered by writing `PawnContext.arm_stagger` and transitioning,
-  and **interruptible**, which is what makes GDD-04 §3.4's *"stun it"* counterplay pay
-  off. **Whether the DASH itself needs a state is still that story's question**, and
-  TDD-09 §5.1 no longer answers it for them — that row said *"only Lunge needs a dash,
-  which already exists"* and **no dash exists**, trap 14's shape in a technical table,
-  amended by the ADR. If it needs one it is **appended** to `PawnStateId.ALL`, never
-  inserted: that array's order is the wire and `Staggered` consumed index 14.
-  Overloading `Drop` stays priced and rejected — US-0061's *"a player mid-Lunge is
-  stunnable"* would then make everybody mid-gap-jump stunnable.
+- **US-0070 (Lunge) IS DONE, 2026-09-02.** Six of six. The dash got its own state
+  (`Lunging`, wire index 15) because 6 m of unpredicted movement is 6 m of rubber-band —
+  the question ADR-0017 delegated, answered. It also closed **US-0061's ninth
+  criterion**, open since M4.
 - **US-0071 (passives and loadout) IS HALF BLOCKED.** Four of its six criteria are
   the three passives and are buildable; the other two are *"loadouts lock at
   countdown"* and *"the lobby buffer is cleared"*, which need `SYS-MATCH` (US-0079)
@@ -1124,13 +1256,14 @@ can be **survived**.
 **THAT DECISION IS TAKEN: ADR-0017 ADDED THE STATE ON 2026-09-01**, and it was the
 single highest-value unblock — it releases **US-0070 (Lunge)**, which releases
 **US-0071's `depends_on`** and its four buildable criteria, and it closes the three
-staggers that had no state to live in since M4. **US-0070 is now the buildable M5
-story**, with one design question of its own left in it (does the dash need a state, or
-does it ride `drives_position` from an existing one).
+staggers that had no state to live in since M4. **US-0070 was the buildable M5 story
+and it is DONE, 2026-09-02** — the dash got its own state, which is the design question
+that paragraph left open, answered.
 
-**WHAT STILL SITS BEHIND SOMETHING ELSE**: US-0071's other two criteria (M6's lobby and
-countdown), US-0075 (no sound file exists in the repository at all), US-0069 (no client
-draws a persona), and decision 1, moving `SYS-MATCH` forward.
+**WHAT STILL SITS BEHIND SOMETHING ELSE**: US-0071's three passives are buildable now and
+its other two criteria need M6's lobby and countdown; US-0075 has no sound file in the
+repository at all; US-0069 swaps an identity no client draws; and US-0077's results screen
+needs a match to end, which is decision 1.
 
 ## US-0097 IS DONE. WHAT FOLLOWS IS THE RULE ITSELF, BUILT AT #184 AND #185
 
@@ -4534,13 +4667,13 @@ US-0024 measures it against clips that do not exist.
 | | |
 |---|---|
 | CI | 7 jobs. **Running again as of 2026-08-07 after a two-day outage** — run `31200490320`, all seven green. The seven commits merged during the outage were never through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | **50 arch + 182 unit + 33 integration scripts**, holding 201 + 1549 + 242 tests and 1 163 + 29 421 + 676 assertions (measured 2026-09-02 from a `git archive HEAD` extraction, all three green; the extraction predates the ANIMATION_SPEC commit by one documentation row and one generated `const`, and arch was re-run green after it) — the assertion count tripled at US-0049, because `test_contract_cycle_fuzz.gd` checks the invariant after every one of 10 000 events. **Nine are `pending` by design** — **eight in the unit suite and one in the integration suite**, which reports that an NPC aimed into the void never gives up. The island `pending` beside it **turned green by itself** when the alley mouths were built, which is what a `pending` naming its own blocker is for. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite measured **183.8 s** on 2026-09-02 and again on 2026-09-01, **174.6 s** twice on 2026-08-28 and **183.5 s** the day before that, with **no test removed** — **three readings within 0.1 s of each other now, so the 174.6 s pair is the outlier rather than the figure** — so the 9 s is machine variance and neither number should be quoted as *the* figure; what is real is that the suite sits within a few seconds of its limit either way. The 180 s it is 'allowed' is **enforced nowhere** — TEST_PLAN §3, TEST_PLAN §10 and TDD-12 §17 all assert it and no job checks it, which is the M4 gate's fourth drift finding. `test_the_m4_loop_resolves.gd` cost 13.1 s of that and is the first test ever to run M4's systems together. It was 162-172 s, up from 87.7 s at M2 — **under 9 s of headroom left, and the next integration test has to justify itself hard against that**. `test_server_tick_budget.gd` cost 9.8 s of it and is a gate line; the one before it, the 2 s pass A/B, samples ninety ticks **twice** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **The six are**: `test_upstream_bandwidth.gd` reporting the 145 % upstream miss, `test_crowd_bandwidth.gd` the 112 % downstream projection, `test_crowd_wire_cost.gd` the 112 % it actually costs, **`test_spawn_points.gd` twice — GDD-05 §2.7 rule 6's nine unoccluded spawn pairs and rule 8's S3 4, S4 1, S5 6 of 8 seats** — and `test_clone_animation_parity.gd` the missing clip library. **Two entries this row carried are gone because their findings closed**: `test_circuit_separation.gd`'s 0.51 m circuits (re-authored, now 21.20 m) and `test_cull_radius_price.gd`'s flat curve, which asserts rather than pends. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
+| Tests | **50 arch + 185 unit + 33 integration scripts**, holding 201 + 1549 + 242 tests and 1 163 + 29 421 + 676 assertions (measured 2026-09-02 from a `git archive HEAD` extraction, all three green; the extraction predates the ANIMATION_SPEC commit by one documentation row and one generated `const`, and arch was re-run green after it) — the assertion count tripled at US-0049, because `test_contract_cycle_fuzz.gd` checks the invariant after every one of 10 000 events. **Nine are `pending` by design** — **eight in the unit suite and one in the integration suite**, which reports that an NPC aimed into the void never gives up. The island `pending` beside it **turned green by itself** when the alley mouths were built, which is what a `pending` naming its own blocker is for. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite measured **183.8 s** on 2026-09-02 and again on 2026-09-01, **174.6 s** twice on 2026-08-28 and **183.5 s** the day before that, with **no test removed** — **three readings within 0.1 s of each other now, so the 174.6 s pair is the outlier rather than the figure** — so the 9 s is machine variance and neither number should be quoted as *the* figure; what is real is that the suite sits within a few seconds of its limit either way. The 180 s it is 'allowed' is **enforced nowhere** — TEST_PLAN §3, TEST_PLAN §10 and TDD-12 §17 all assert it and no job checks it, which is the M4 gate's fourth drift finding. `test_the_m4_loop_resolves.gd` cost 13.1 s of that and is the first test ever to run M4's systems together. It was 162-172 s, up from 87.7 s at M2 — **under 9 s of headroom left, and the next integration test has to justify itself hard against that**. `test_server_tick_budget.gd` cost 9.8 s of it and is a gate line; the one before it, the 2 s pass A/B, samples ninety ticks **twice** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **The six are**: `test_upstream_bandwidth.gd` reporting the 145 % upstream miss, `test_crowd_bandwidth.gd` the 112 % downstream projection, `test_crowd_wire_cost.gd` the 112 % it actually costs, **`test_spawn_points.gd` twice — GDD-05 §2.7 rule 6's nine unoccluded spawn pairs and rule 8's S3 4, S4 1, S5 6 of 8 seats** — and `test_clone_animation_parity.gd` the missing clip library. **Two entries this row carried are gone because their findings closed**: `test_circuit_separation.gd`'s 0.51 m circuits (re-authored, now 21.20 m) and `test_cull_radius_price.gd`'s flat curve, which asserts rather than pends. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
 | Tuning | **296** tunables across 14 resource classes; all **37** cross-field invariants assert. **Six were added on 2026-08-29 for US-0097's escape verb** — four `TUN-PURSUIT-*` on `ContractTuning` (a pursuit ends by removing and reinserting a contract, so §7 is its section and no new resource was needed) and `TUN-SCORE-ESCAPE`/`-CLOSECALL` on `ScoringTuning`. **Invariant 34 fired on its first run against the story's own proposed value**: `TUN-PURSUIT-DURATION` is `warn_radius / blend_walk` = 10.7143, US-0097 wrote **10.7**, and that asks the prey for 1.402 m/s — fractionally faster than a blend walk, in exactly the direction the invariant forbids. Shipped at **10.72**, with the tolerance tightened to a true floor rather than widened to admit it. **A rounded derivation is not a derivation.** **`TUN-COMPASS-CONE-FULL-RADIUS` 20.0 m was added on 2026-08-27** — where the Compass arc becomes a whole ring — and **invariant 33 is the reason it is not a chosen number**: it pins the radius equal to `TUN-COMPASS-LOCK-RANGE`, so the arc stops pointing exactly where the lock starts working, and separately outside the validated kill reach. It was **set three times in one day and only ever by somebody playing it** — 4.0 m derived from the half-width alone, 6.0 m at `TUN-SUSPICION-OPEN-RADIUS`, then 20.0 — and the second is the one worth remembering, because it was **derived and still wrong**. **`TUN-SCORE-HALFSEEN` +50 was added on 2026-08-27** by the fidelity re-audit — the stealth ladder had no middle rung, so a kill at **Noticed** and one at **Exposed** scored identically; invariant 32 keeps it strictly descending and strictly positive, and the `> 0` clause is the load-bearing half because every ordering check passes over a zero. `TuningInvariantsScore` was split out when that pushed the file past 400 lines — tech is how the game is *transmitted*, score is what it *pays*, and what is left is how it *plays*, with one entry point still. **Four scoring values were re-priced on 2026-08-26 (ADR-0013)** — `TUN-SCORE-SILENT` 100 → 200, `TUN-SCORE-PATIENT` 150 → 100, `TUN-SCORE-FOCUS` 100 → 150, `TUN-SCORE-RECKLESS` −50 → **0**, and invariant 18 rewritten from an ordering to a floor — split across `TuningInvariants` and `TuningInvariantsTech` since the first file hit 400 lines, with one entry point still. **Eight IDs are deprecated** and recorded in TUNABLES §19 — never reused |
 | Autoloads | All eight. `Tuning` precomputes 89 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |
 | Boot | Branches on `--server`; 7 CLI flags parsed in pure Core; 5 export presets |
 | Map | `MAP-VETRAIO` greybox, 120 × 120 m. Client loads 28 meshes, server loads none. **The street surface is exactly `STREET_Y`** — floors used to straddle their declared height, putting every walkable top 0.1 m high, which made the 0.9 m stalls unvaultable and three spawn points float over nothing. **Lit as of US-0091** — one key light and a sky, because nothing in the project had ever created either and the district rendered near-black. **The navmesh is baked at build time and committed** (US-0041): **255 polygons across 12 floors and 14 blocks**, with a derived `H_VAULT` parapet on every floor edge that borders a drop, and it sits **0.400 m above the street**, which is why steering applies gravity rather than trusting the snap |
-| Pawn | **15 states declared** — fifteen at M0, fourteen when **the Jog rung was removed in US-0090** (`Jog` is a retired ID absent from `ALL`), and fifteen again since **ADR-0017 added `Staggered`** on 2026-09-01 for the three `TUN-*-STAGGER` rules that had nowhere to live. **`ALL`'s order is the WIRE and is append-only** — `Snapshot.state_index` indexes into it, `Staggered` consumed index 14, and `test_pawn_state_count.gd` refuses an insertion before it. Transition edges asserted against the normative diagram. **All fifteen implemented**: five locomotion + `Vault`, `Climb`, `Drop`, `KillAnim`, `StunAnim`, `Stunned`, `Blended`, `Dead`, `Respawning`, `Staggered`. **`Dead` has an exit at last.** **`Staggered` is interruptible where the other three combat states are not** — never-do #13, since a whiffed lunger would otherwise be in a stunnable locomotion state — and **it keeps the camera**, because taking it is `Stunned`'s signature. **Two states still cannot die at all**: the diagram has no `Drop -> Dead` and no `StunAnim -> Dead`, which `KillSystem._enter` reports rather than asserting past |
+| Pawn | **16 states declared** — fifteen at M0, fourteen when **the Jog rung was removed in US-0090** (`Jog` is a retired ID absent from `ALL`), fifteen again since **ADR-0017 added `Staggered`** on 2026-09-01 for the three `TUN-*-STAGGER` rules that had nowhere to live, and **sixteen since US-0070's `Lunging`** — the committed dash, which is a state because 6 m of unpredicted movement is 6 m of rubber-band. **`ALL`'s order is the WIRE and is append-only** — `Snapshot.state_index` indexes into it, `Staggered` holds index 14 and `Lunging` holds 15, and `test_pawn_state_count.gd` refuses an insertion before either. Transition edges asserted against the normative diagram. **All fifteen implemented**: five locomotion + `Vault`, `Climb`, `Drop`, `KillAnim`, `StunAnim`, `Stunned`, `Blended`, `Dead`, `Respawning`, `Staggered`, `Lunging`. **`Dead` has an exit at last.** **`Staggered` is interruptible where the other three combat states are not** — never-do #13, since a whiffed lunger would otherwise be in a stunnable locomotion state — and **it keeps the camera**, because taking it is `Stunned`'s signature. **Two states still cannot die at all**: the diagram has no `Drop -> Dead` and no `StunAnim -> Dead`, which `KillSystem._enter` reports rather than asserting past |
 | Traversal | **Complete.** Probes cast, all seven §7.2 cases resolve from real geometry, both forgiveness windows open, and vault, mantle, climb, drop and gap jump all perform. **Case 7 hops as of US-0093** — an impulse, not a state, scaled by the speed rung and adding nothing horizontal. **The action buffer arms on the PRESS, not the hold** — arming from the held bit spent a traverse every frame a finger stayed down |
 | Crowd | 90 bodies pre-allocated, 78 active, each with a brain and a `CrowdContext` allocated beside it. One `SpatialHash` on `MatchContext`, rebuilt at the **top** of the crowd stage so the brains and every downstream system read the same grid — 0.0561 ms, allocating nothing. `CrowdDirector` ticks them at the `crowd` stage and translates the five flags `NpcBrain.step()` deliberately does not read into `handle()` calls; `Steering` moves the bodies from the **avoidance callback**, on the physics frame, and knows nothing about states — it takes a point and a speed. Repath is FIFO and capped at three a tick. **Four processions of four walk the map's circuits** (US-0043), each with a fifth slot no NPC may take, at a pace throttled by its worst straggler. **Banded by distance** as of US-0045 — 20/45/70 m, strides 1/3/15, staggered by index — and `CrowdBands` also scales each agent's `path_max_distance` by its band's stride (US-0041's last line), which is the one path query `RepathQueue` does not stagger. **All five states are reachable** as of US-0044: a sprinting player startles the crowd once a second, a wave propagates one hop at 0.4, and a corpse gathers six onlookers who walk to it and disperse before it fades. Violence has an entry point and no caller until M4. **On the wire as of US-0030/US-0031**: `SnapshotBuilder._fill_crowd` sends each observer the NPCs within `TUN-NET-NPC-CULL-RADIUS`, positionally and never visually, at `TUN-NET-NPC-RATE-LOD-HZ` beyond `TUN-NET-NPC-RATE-LOD-RADIUS` and staggered by `(tick + index) % stride`, delta-encoded per NPC against the client's **ack**. **Drawn on a client** as of US-0045 by `NpcView`, which culls at the same radius one margin wider, treats absence as "no update" rather than "gone", and dresses nobody. **Departure is a value, not silence** — one out-of-range record — and `CrowdWire.is_farewell()` holds that rule for both `NpcView` and `SnapshotAssembler`, which must agree on it: when only the view knew it, the assembler carried one goodbye forward into every later snapshot and the view created and freed a body from it once per tick. **Clone-parity layer 4 hangs off the same 2 s pass as the formations** (US-0047): `CloneBalance` holds the clones already near a player and fetches one when a persona is short, always to a map anchor and never at the player. **The floor is decided on clones that have ARRIVED**: crediting one still walking satisfied the minimum in expectation while the player was short in fact for the eighteen seconds of the journey |
 | Blend | `SYS-BLEND` is a pure `RefCounted` the suspicion system owns and resolves at **step 1 of its pass** — not a stage, because `MatchDirector` permits one system per stage and both TDD-07 §1's diagram and TDD-01 §4.1's rationale already file blend-pocket validity under stage 4. **All four kinds are built** — pocket and group at US-0053, the two prop blends at US-0054.
@@ -4572,8 +4705,9 @@ it comes from: its occupant leaves `present_slots` entirely and both combat syst
 | Camera | Real spring arm: 2.6 m, **pawn centred** (US-0092 — the 0.45 m offset never changed the composition, because the rig aims at the pawn's own axis; `INPUT-SHOULDER` retired with it), occlusion that pulls **in** and never sideways, `WORLD`-masked so a crowd cannot push it. The FOV ladder is bound to the **state**, never to `ctx.velocity`: the rung is a consequence of the decision, not of the physics that follows it. Crowd-scan narrows to 48° and grants nothing. **Positive pitch LOWERS the arm** — the rig looks *at* the pivot, so a raised arm looks down; it shipped inverted from US-0021 until somebody played it |
 | Input | 20 `InputMap` actions from 14 live `INPUT-` IDs — `INPUT-SHOULDER` is retired via `InputActions.DEPRECATED`, still in the corpus and bound to nothing, KBM + pad. Chain GDD-02 → `Ids` → `InputActions` → `project.godot`, guarded on every hop, both directions. **Sampled once per physics frame by `LocalPawnDriver`, the only caller** — see trap 12. The mouse is **captured** on boot; `INPUT-MENU` releases, a click takes it back. **Only a mapped gamepad holds the joypad bindings** — `PadSelection`, applied through the one `InputMap` writer, because a set of sim pedals was steering |
 
-**Forty-nine criteria are deliberately unticked**, each blocked by something real —
-regenerated on **2026-09-01**, when ADR-0017 closed US-0060's contest-stagger line. It went 47 → 56 → 48
+**Forty-eight criteria are deliberately unticked**, each blocked by something real —
+regenerated on **2026-09-02**, when US-0070 closed US-0061's ninth line after four
+milestones. It went 47 → 56 → 48
 in one day on 2026-08-27 and both moves are US-0063: running the M4 gate made it
 `in-progress`, so its nine unmet lines began counting, and **ADR-0016's split then
 closed six of them and re-homed the rest to US-0098** (a `draft`, so its ten do not
@@ -4605,7 +4739,7 @@ total=0; for f in docs/40_backlog/stories/*.md; do
 | US-0037 | match end below minimum players | `SYS-MATCH`'s, in M4. **The timeout criterion was ticked at the M2 gate** — a hard-killed client took the same `peer left` → `pawn freed` path across four real processes |
 | US-0056 | Focus tracking as a `has_los` consumer | **three of the four arrived and only Focus is left.** The Compass lock (US-0058), the witnessed-kill check (US-0060) and — as of ADR-0015, 2026-08-27 — **kill validation itself**. Focus is US-0064's |
 | US-0054 | the occupant can see nothing while inside | **no client renders a blend at all.** The server half is done — `blend_state` reaches the occupant's own snapshot block, which is what a widget will black the screen out from — and the widget is US-0073 in M5. A guard over zero call sites would be vacuously green |
-| US-0061 | a player mid-Lunge is stunnable | **`ABIL-LUNGE` is US-0070, so there is still no state to be mid-** — and US-0067 sharpened the question rather than answering it: every cast now has a wind-up, and **nothing but death interrupts one**. Whether a stun should is the sixth owner decision above. The way it stays true when the ability arrives is that `StunSystem._is_busy` and `_is_stunnable` never grow a case for it, and both name the criterion. Everything else in the story is built and falsified |
+| ~~US-0061~~ | **CLOSED 2026-09-02 by US-0070**, after four milestones. The old note read: **`ABIL-LUNGE` is US-0070, so there is still no state to be mid-** — and US-0067 sharpened the question rather than answering it: every cast now has a wind-up, and **nothing but death interrupts one**. Whether a stun should is the sixth owner decision above. The way it stays true when the ability arrives is that `StunSystem._is_busy` and `_is_stunnable` never grow a case for it, and both name the criterion. Everything else in the story is built and falsified |
 | US-0059 | the client-side rotation; the mono sting | **the server halves are done and neither client half exists.** A world bearing needs `CompassVM` to rotate it (US-0072, M5) — US-0057's seventh line, again — and the sting has **no call site at all**: `Audio.play()` is a stub until US-0075 and `EventBus` may hold no `func`, so a guard over zero call sites would be vacuously green |
 | US-0060 | NPCs rewound (**the movement stagger is DONE** — ADR-0017) | **both are reported rather than blocked.** ADR-0010's two reasons for rewinding NPCs are false of the built game, so a rewound crowd has no consumer and would cost ~100 KB of ring to be read by nothing. **The stagger criterion is TICKED as of 2026-09-01**: ADR-0017 added `Staggered`, so the loser enters a state for `TUN-KILL-CONTEST-STAGGER` 1.5 s of step ticks and the initiation lockout stays beside it as the rule the combat systems ask |
 | US-0057 | the cone's half-width, camera-relative | **the server's half is done and the drawn half does not exist.** `TUN-COMPASS-CONE-HALFWIDTH` is asserted wider than the wobble, so the true bearing is always inside the arc — but nothing renders an arc, because `CompassVM` and the HUD are US-0072/0073 in M5 |

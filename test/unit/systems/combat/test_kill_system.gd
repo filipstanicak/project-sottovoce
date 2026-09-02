@@ -384,7 +384,7 @@ func test_the_rewind_happens_once_per_judged_press() -> void:
 	# for every player standing still.
 	_two_players()
 	_advance(5)
-	assert_eq(_system.rewinds, 0, "the system rewound with nobody pressing anything")
+	assert_eq(_system.rewind.rewinds, 0, "the system rewound with nobody pressing anything")
 	_press(A)
 	_advance()
-	assert_eq(_system.rewinds, 1, "one press cost %d rewinds" % _system.rewinds)
+	assert_eq(_system.rewind.rewinds, 1, "one press cost %d rewinds" % _system.rewind.rewinds)

@@ -32,6 +32,12 @@ signal kill_rejected(killer: int, verdict: int, target: int)
 ## half.
 signal contest_resolved(loser: int, victim: int)
 
+## **BELOW ANY `received_ordinal`, WHICH IS HOW A LUNGE KEEPS ITS OWN CLAIM.**
+## That counter is monotonic from zero, so -1 is earlier than every press the
+## server can receive — and `KillContest` resolves ties by *who committed first*,
+## which for a dash was `TUN-LUNGE-WINDUP` plus the dash ago. US-0070.
+const ARRIVAL_ORDINAL := -1
+
 ## **WHO WAS FIRST**, by server receive order. Public so the wiring and the tests
 ## can read it; it holds no rule of its own.
 var contest := KillContest.new()
@@ -68,12 +74,23 @@ var scoring: KillScoring = null
 
 ## Rewinds performed since the match began. ADR-0010 allows two call sites in the
 ## whole project; the counter makes "how often" answerable rather than assumed.
-var rewinds: int = 0
+##
+## **THE REWIND ITSELF MOVED TO `KillRewind` AT US-0070**, when the auto-kill's
+## arrival path took this file past 400 lines. The counter is relayed rather than
+## duplicated, so there is still one number.
+var rewind := KillRewind.new()
 
 ## Presses judged and presses that landed — a rejection rate nobody can read is a
 ## feel problem nobody can diagnose.
 var presses_judged: int = 0
 var kills_landed: int = 0
+
+## **`ABIL-LUNGE`'s AUTO-KILL, COUNTED APART FROM PRESSES** (US-0070). GDD-04
+## §3.4's failure mode is Lunge above ~15 % of kills, and a rate nobody can read
+## is a rate nobody will check.
+var arrivals_judged: int = 0
+var arrivals_landed: int = 0
+var arrivals_whiffed: int = 0
 
 var _ctx: MatchContext
 
@@ -176,7 +193,23 @@ func pending_count() -> int:
 	return _pending.size()
 
 
+## **AN ARRIVAL IS A PRESS THE PLAYER DID NOT HAVE TO MAKE**, so it joins the same
+## queue and is judged by the same function. `ABIL-LUNGE`'s auto-kill (US-0070)
+## reaches this through `MatchContext.auto_kill_arrivals`, filled by `LungeEffect`
+## at the `abilities` stage one position earlier in the same tick.
+##
+## **A SECOND JUDGING PATH WAS WRITTEN FIRST AND WAS WRONG.** It duplicated the
+## verdict, the contest claim and the ordering, which is the *rule implemented
+## twice* this corpus keeps finding — and it made the file exceed 400 lines, which
+## is how it was noticed.
+##
+## `ARRIVAL_ORDINAL` sorts an arrival ahead of every press in the tick, which is
+## `KillContest`'s own *who committed first* applied across a tick boundary: a
+## Lunge committed 0.92 s ago and every press here was made after that.
 func _resolve_requests(ctx: MatchContext) -> void:
+	for peer: int in ctx.auto_kill_arrivals:
+		_requests.append([peer, ARRIVAL_ORDINAL])
+	ctx.auto_kill_arrivals.clear()
 	if _requests.is_empty():
 		return
 	_requests.sort_custom(_by_arrival)
@@ -189,27 +222,51 @@ static func _by_arrival(a: Array, b: Array) -> bool:
 	return int(a[1]) < int(b[1])
 
 
+## **THE ONE DIFFERENCE AN ARRIVAL MAKES IS WHAT A REFUSAL COSTS.** `_reject`
+## charges `TUN-SUSPICION-GAIN-FAILED-KILL` +30, which is right for somebody who
+## pressed at nothing and wrong for somebody who spent a 30 s cooldown, +40
+## suspicion and a 6 m telegraph to arrive a metre short — GDD-04 §3.4 prices a
+## miss at `TUN-LUNGE-WHIFF-STAGGER` and nothing else.
 func _judge_one(ctx: MatchContext, peer: int, ordinal: int) -> void:
-	presses_judged += 1
+	var arrival := ordinal == ARRIVAL_ORDINAL
+	if arrival:
+		arrivals_judged += 1
+	else:
+		presses_judged += 1
 	var outcome := _verdict_for(ctx, peer)
 	var verdict: KillVerdict.V = outcome[0]
 	var target := int(outcome[1])
 	if not KillVerdict.is_allowed(verdict):
-		_reject(ctx, peer, verdict, target)
+		if arrival:
+			_whiff(ctx, peer)
+		else:
+			_reject(ctx, peer, verdict, target)
 		return
 	if not contest.claim(target, peer, ctx.tick, ordinal):
-		_stagger(ctx, peer, target)
+		if arrival:
+			_whiff(ctx, peer)
+		else:
+			_stagger(ctx, peer, target)
 		return
+	if arrival:
+		arrivals_landed += 1
 	_begin(ctx, peer, target)
 
 
-## TDD-10 §3's gates, in the flowchart's own order: the cloud first, then the
-## rewind, then the rules.
+## The miss. **No points and no suspicion beyond the +40 the press already cost**
+## — the spent cooldown and 1.2 s in the open are the whole price.
+func _whiff(ctx: MatchContext, peer: int) -> void:
+	arrivals_whiffed += 1
+	if lockouts != null:
+		lockouts.stagger(peer, ctx.tick + maxi(Tuning.ticks(&"TUN-LUNGE-WHIFF-STAGGER"), 1))
+	_stagger_pawn(ctx, peer, &"TUN-LUNGE-WHIFF-STAGGER")
+
+
 func _verdict_for(ctx: MatchContext, peer: int) -> Array:
 	if _is_busy(ctx, peer):
 		return [KillVerdict.V.BUSY, ContractCycle.NOBODY]
 	var at_tick := RewindClamp.tick_for(ctx.tick, Net.rtt_ms(peer))
-	var world := _rewind(ctx, peer, at_tick)
+	var world := rewind.world_for(ctx, peer, at_tick)
 	var here := world.position_of(peer)
 	# **THE CASTER'S OWN CLOUD COUNTS.** An area denial that exempted whoever threw
 	# it would be a kill setup rather than a denial.
@@ -230,59 +287,17 @@ func _verdict_for(ctx: MatchContext, peer: int) -> Array:
 		return [KillVerdict.V.TARGET_PROTECTED, contract]
 	if CombatTargets.is_concealed(ctx.pawn_contexts.get(contract)):
 		return [KillVerdict.V.TARGET_CONCEALED, contract]
-	return KillRules.resolve(world, peer, contract, _living_others(ctx, peer), Tuning.combat, sight)
+	return KillRules.resolve(
+		world, peer, contract, KillRewind.living_others(ctx, peer), Tuning.combat, sight
+	)
 
 
-## **ONE OF THE TWO PLACES IN THIS PROJECT THAT REWINDS**, ADR-0010's compliance
-## line; `SYS-STUN` is the other. The radius is TDD-04 §8.3's optimisation — every
-## entity a kill could involve is inside `TUN-CINDERFALL-RADIUS + TUN-KILL-RANGE`
-## of the attacker, which is under ten rather than ninety-six.
-func _rewind(ctx: MatchContext, peer: int, at_tick: int) -> RewoundWorld:
-	var pawn: PawnContext = ctx.pawn_contexts.get(peer)
-	if pawn == null:
-		return RewoundWorld.new()
-	rewinds += 1
-	return ctx.lag_comp.rewind(at_tick, pawn.position, _rewind_radius())
-
-
-## Derived from two tunables rather than written as 7.5, so retuning either moves
-## it. It uses the *reach* rather than the bare range, so the validation grace
-## cannot fall outside the radius that was gathered for it.
-func _rewind_radius() -> float:
-	var cloud := 0.0
-	if Tuning.profile != null:
-		var data := Tuning.profile.abilities.get(Ids.ABIL_CINDERFALL) as AbilityData
-		cloud = data.radius if data != null else 0.0
-	return cloud + KillRules.reach(Tuning.combat)
-
-
-func _living_others(ctx: MatchContext, peer: int) -> PackedInt32Array:
-	var out := PackedInt32Array()
-	for other: int in ctx.pawn_contexts.keys():
-		if other == peer:
-			continue
-		if CombatTargets.is_dead(ctx.pawn_contexts[other] as PawnContext):
-			continue
-		out.append(other)
-	return out
-
-
-## Already killing, dead, stunned, or serving a contest stagger. **Costs nothing**
-## — the press was never going to be heard, and charging for it would let a
-## stagger compound itself.
+## `CombatTargets`' predicate, with the two facts only this system holds: its own
+## pending table and `CombatLockouts`. Kept as a method because
+## `KillReadiness.publish` takes it as a `Callable`.
 func _is_busy(ctx: MatchContext, peer: int) -> bool:
-	if _pending.has(peer):
-		return true
-	if lockouts != null and lockouts.is_staggered(peer, ctx.tick):
-		return true
-	var pawn: PawnContext = ctx.pawn_contexts.get(peer)
-	if pawn == null:
-		return true
-	if pawn.state_id == PawnStateId.KILL_ANIM or pawn.state_id == PawnStateId.STUNNED:
-		return true
-	if pawn.state_id == PawnStateId.STUN_ANIM:
-		return true
-	return CombatTargets.is_dead(pawn)
+	var staggered := lockouts != null and lockouts.is_staggered(peer, ctx.tick)
+	return CombatTargets.is_busy(ctx.pawn_contexts.get(peer), _pending.has(peer), staggered)
 
 
 func _reject(ctx: MatchContext, peer: int, verdict: KillVerdict.V, target: int) -> void:
@@ -316,7 +331,7 @@ func _stagger_pawn(ctx: MatchContext, peer: int, tunable: StringName) -> void:
 	if pawn == null:
 		return
 	pawn.arm_stagger(Tuning.step_ticks(tunable))
-	_enter(ctx, peer, PawnStateId.STAGGERED, PawnState.PRIORITY_COMBAT)
+	CombatEntry.into(ctx, peer, PawnStateId.STAGGERED, PawnState.PRIORITY_COMBAT)
 
 
 ## **THE BONUSES ARE CAPTURED HERE AND PAID AT THE CONTACT FRAME**, because
@@ -328,7 +343,7 @@ func _begin(ctx: MatchContext, killer: int, victim: int) -> void:
 	if scoring != null:
 		facts = scoring.facts_at(ctx, killer, victim)
 	_pending[killer] = [victim, contact, facts]
-	_enter(ctx, killer, PawnStateId.KILL_ANIM, PawnState.PRIORITY_COMBAT)
+	CombatEntry.into(ctx, killer, PawnStateId.KILL_ANIM, PawnState.PRIORITY_COMBAT)
 
 
 ## **THE CONTACT FRAME.** `TUN-KILL-CORPSE-SPAWN-DELAY` 0.9 s of the 1.4 s
@@ -366,28 +381,9 @@ func _land(ctx: MatchContext, killer: int, victim: int) -> void:
 	if pawn == null or CombatTargets.is_dead(pawn):
 		return
 	var at := pawn.position
-	_enter(ctx, victim, PawnStateId.DEAD, PawnState.PRIORITY_FATAL)
+	CombatEntry.into(ctx, victim, PawnStateId.DEAD, PawnState.PRIORITY_FATAL)
 	kills_landed += 1
 	killed.emit(killer, victim, at)
-
-
-## Put a pawn into a state through its own machine, so the graph validates the
-## edge rather than the caller assuming it.
-##
-## **AN ILLEGAL EDGE IS REPORTED, NOT ASSERTED AWAY.** GDD-02 §3's normative
-## diagram has no `Drop -> Dead` and no `StunAnim -> Dead`, so a player killed
-## while falling or mid-stun-swing cannot enter `Dead` at all. That is a gap in the
-## diagram rather than in this code; the death still resolves, and the pawn keeps
-## walking.
-func _enter(ctx: MatchContext, peer: int, to: StringName, priority: int) -> bool:
-	var pawn: PawnContext = ctx.pawn_contexts.get(peer)
-	var machine: PawnStateMachine = ctx.pawn_machines.get(peer)
-	if pawn == null or machine == null:
-		return false
-	if not machine.is_valid_edge(pawn.state_id, to):
-		Log.warn("no %s -> %s edge in GDD-02 §3" % [pawn.state_id, to], &"pawn")
-		return false
-	return machine.transition(pawn, to, priority)
 
 
 ## Suspicion is `SYS-SUSPICION`'s to hold; this only queues. The queue lives on a

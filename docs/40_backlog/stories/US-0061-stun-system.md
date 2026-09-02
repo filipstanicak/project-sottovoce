@@ -48,9 +48,12 @@ The prey's counterplay: freeze the pursuer, exile them, and force them Exposed.
 - [x] Stunning a non-pursuer: zero points, 2.0 s self-stagger, +20 suspicion, target UNAFFECTED.
       *"Zero points" is vacuous until `SYS-SCORE` exists (US-0064) — nothing appends a
       `ScoreEvent` yet, and this story deliberately fabricates none.*
-- [ ] A player mid-Lunge is stunnable for the entire wind-up and dash. **Blocked: `ABIL-LUNGE`
-      is M5, so there is no state to be mid-.** The way to keep this true when it arrives is for
-      `_is_busy` and `_is_stunnable` never to grow a case for it, and both name the criterion.
+- [x] A player mid-Lunge is stunnable for the entire wind-up and dash. **CLOSED 2026-09-02 by
+      US-0070**, after four milestones blocked on there being no state to be mid-. The wind-up is
+      spent in a locomotion state, which was always stunnable; `LungingState` is interruptible and
+      is absent from `_is_stunnable`'s three exclusions. **Both halves are asserted rather than
+      claimed**, because both are *absences* — and an absence is what a later reader deletes by
+      accident. `test_stun_system.gd` names this criterion at each.
 - [x] **A stun does NOT interrupt a committed kill.** ADR-0013: `KillAnimState` declines every
       COMBAT-priority request, so a stun landing after the hunter has pressed kill saves
       nobody. Built in US-0060; this story did not re-open it, and `KillSystem` still has no

@@ -27,6 +27,7 @@ const LOCO_EXITS: Array[StringName] = [
 	PawnStateId.STUNNED,
 	PawnStateId.DEAD,
 	PawnStateId.STAGGERED,
+	PawnStateId.LUNGING,
 ]
 
 ## Edges *within* the locomotion group. Escalation UPWARD is strict — there is no
@@ -63,6 +64,13 @@ const NON_LOCO: Dictionary = {
 	# addition, which never-do #13 forbids — and GDD-04 §3.4 names *"stun it"* as
 	# the counterplay to the ability whose whiff lands here.
 	PawnStateId.STAGGERED: [LOCO_MARKER, PawnStateId.STUNNED, PawnStateId.DEAD],
+	# **NO `Lunging -> Staggered` AND NO `Lunging -> KillAnim`, WHICH LOOK MISSING
+	# AND ARE NOT.** The dash ends into `Idle` at the `pawn` stage; `LungeEffect`
+	# reads that at the `abilities` stage and resolves at `combat` — so both the
+	# whiff stagger and the auto-kill are entered from **locomotion**, one stage
+	# later, through edges that already exist. Adding them here would declare two
+	# transitions nothing ever makes.
+	PawnStateId.LUNGING: [LOCO_MARKER, PawnStateId.STUNNED, PawnStateId.DEAD],
 }
 
 

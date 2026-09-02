@@ -196,10 +196,12 @@ into the acceleration curve.
 > Mermaid has no notation for a wildcard edge, so neither row had ever been drawn — which
 > made `Sprint → BlendWalk` illegal in the asserted table and the M1 feel gate unmeetable.
 
-Fifteen states. It was fifteen until the Jog rung was deprecated on 2026-08-12, fourteen
-after that, and fifteen again since **[ADR-0017](../00_meta/adr/ADR-0017-the-stagger-state.md)**
-added `Staggered` on 2026-09-01 — the state three `TUN-*-STAGGER` values had described since M0
-with nowhere to live. `Jog` is
+Sixteen states. Fifteen at M0, fourteen when the Jog rung was deprecated on 2026-08-12,
+fifteen again when **[ADR-0017](../00_meta/adr/ADR-0017-the-stagger-state.md)** added
+`Staggered` on 2026-09-01 — the state three `TUN-*-STAGGER` values had described since M0 with
+nowhere to live — and **sixteen since US-0070 added `Lunging`**, the committed dash. ADR-0017
+delegated that second question to US-0070 and set the rule it had to follow: **appended to
+`PawnStateId.ALL`, never inserted**, because that array's order is the wire. `Jog` is
 retained as a retired ID that nothing reaches ([`../30_bible/NAMING_AND_IDS.md`](../30_bible/NAMING_AND_IDS.md)
 §2.3). This diagram is **normative**: the transition table in
 `PawnStateMachine.TRANSITIONS` is asserted against it by `test_pawn_transitions.gd`
@@ -256,6 +258,11 @@ stateDiagram-v2
     Staggered --> Stunned: stunned while staggered
     Staggered --> Dead: killed while staggered
 
+    Loco --> Lunging: ABIL-LUNGE burst, direction locked
+    Lunging --> Loco: distance covered or stopped by geometry
+    Lunging --> Stunned: stunned mid-dash
+    Lunging --> Dead: killed mid-dash
+
     Loco --> Stunned: stunned by prey
     Vault --> Stunned: stunned
     Climb --> Stunned: stunned
@@ -294,12 +301,18 @@ requested at priority *P* may interrupt a state whose `is_interruptible()` is fa
 | **Stunned** | Stunned by prey | `TUN-STUN-FREEZE` 4.0 s | No below FATAL | COMBAT | forced to `TUN-SUSPICION-MAX` |
 | **Dead** | Kill resolved against you | Corpse spawned | No | FATAL | n/a |
 | **Staggered** | A committed action **failed**: a lost kill contest, a refused stun, or (US-0070) a whiffed Lunge. **Never entered by input** | `PawnContext.stagger_ticks` elapsed — `TUN-KILL-CONTEST-STAGGER` 1.5 s, `TUN-STUN-INVALID-STAGGER` 2.0 s or `TUN-LUNGE-WHIFF-STAGGER` 1.2 s, whichever caused it | **Yes.** A stagger stun could not reach would be a weakening dressed as an addition (never-do #13), and GDD-04 §3.4 names *"stun it"* as Lunge's counterplay | COMBAT | none of its own — the action that caused it already charged. **Added 2026-09-01, ADR-0017.** **`Stunned` is done to you by another player; `Staggered` is done to you by your own failed action** — that one line is the whole distinction, and it is why this state **keeps the camera**: taking it is the stun's signature and nothing else may borrow it |
+| **Lunging** | `ABIL-LUNGE`'s burst, `TUN-LUNGE-WINDUP` 0.25 s after the press. The direction is the server's **clamped aim** and is locked; no input is read for the whole state | `TUN-LUNGE-DISTANCE` 6.0 m covered at `TUN-LUNGE-SPEED` 9.0 m/s — 0.67 s, **derived and never stored** — or the pawn stopped by geometry | **Yes.** `TUN-LUNGE-STUNNABLE`, US-0061's ninth criterion, and GDD-04 §3.4's *"a prepared defender ALWAYS beats a Lunge"*. A dash that declined a stun would invert design law 5 | COMBAT | none of its own — `TUN-LUNGE-SUSPICION` +40 is charged at the press, so you are Noticed before the dash begins. **Added by US-0070.** **It does NOT drive its own position**, which is the opposite call from `Vault`, `Climb` and `Drop`: those are planned arcs against geometry the probes measured, and a dash aimed at open ground that owned its position would travel **through a wall** at 9 m/s. It sets a velocity and lets the body answer — and `own_velocity` is the locked direction, which is why the state needs no field of its own and no row on the wire |
 
 > **Corrected 2026-08-05: fifteen, not fourteen.** Six places in the corpus said
 > "fourteen states" while this table and the normative diagram above both list fifteen.
 > **True a second time, for a different reason, since 2026-09-01**: the count fell to fourteen
 > when `Jog` was deprecated and ADR-0017's `Staggered` restored it. A number that has been right,
 > wrong, right, wrong and right again is the reason `test_pawn_state_count.gd` exists.
+>
+> **AND SIXTEEN SINCE US-0070's `Lunging`.** The order of the rows below `Dead` is the order of
+> `PawnStateId.ALL`, **which is the wire** — `Snapshot.state_index` encodes `state_id` as an
+> index into it, so a name inserted in the middle silently remaps every remote pawn's animation
+> to a different state. `Staggered` holds index 14 and `Lunging` holds 15. Append only.
 > §3 states the diagram is normative, so the prose was corrected rather than the table.
 > `StunAnim` (you performing a stun) and `Stunned` (you being stunned) are distinct
 > states with different priorities and exit conditions; neither is redundant.
