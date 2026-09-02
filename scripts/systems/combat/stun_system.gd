@@ -281,6 +281,16 @@ func _reject(ctx: MatchContext, peer: int, verdict: StunVerdict.V, target: int) 
 		var ticks := maxi(Tuning.ticks(&"TUN-STUN-INVALID-STAGGER"), 1)
 		if lockouts != null:
 			lockouts.stagger(peer, ctx.tick + ticks)
+		# **ADR-0017.** Until this state existed, "flailing is strictly worse than
+		# doing nothing" was false: the lockout blocks presses and a flailer could
+		# still sprint out of the space they had just announced themselves in. Two
+		# seconds of buttons is not two seconds of exposure.
+		#
+		# **NET TICKS ABOVE, STEP TICKS HERE** — same wall time, two domains, trap 9.
+		var pawn: PawnContext = ctx.pawn_contexts.get(peer)
+		if pawn != null:
+			pawn.arm_stagger(Tuning.step_ticks(&"TUN-STUN-INVALID-STAGGER"))
+			_enter(ctx, peer, PawnStateId.STAGGERED, PawnState.PRIORITY_COMBAT)
 		if ctx.impulses != null:
 			ctx.impulses.queue(peer, Tuning.combat.stun_invalid_suspicion)
 	if StunVerdict.plays_a_whiff(verdict):

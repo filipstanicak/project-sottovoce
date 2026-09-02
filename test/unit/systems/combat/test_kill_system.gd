@@ -288,7 +288,19 @@ func test_the_first_arrival_kills_and_the_second_is_staggered() -> void:
 	_press(C)
 	_advance()
 	assert_eq(_state(A), PawnStateId.KILL_ANIM, "the first arrival did not get the kill")
-	assert_eq(_state(C), PawnStateId.IDLE, "both killers committed to the same victim")
+	# **THIS ASSERTION READ `IDLE` UNTIL ADR-0017, UNDER THIS FUNCTION'S OWN NAME.**
+	# There was no stagger state for the loser to be in, so the test asserted the
+	# absence of one while calling itself `..._the_second_is_staggered` — trap 3's
+	# reading hazard inside a test name, third instance in this corpus.
+	assert_eq(_state(C), PawnStateId.STAGGERED, "the contest loser was not staggered")
+	assert_ne(_state(C), PawnStateId.KILL_ANIM, "both killers committed to the same victim")
+	# The total is written before the transition, or `StaggeredState` falls back to
+	# its ceiling and the loser serves the *flail's* two seconds for a lost race.
+	assert_eq(
+		(_ctx.pawn_contexts[C] as PawnContext).stagger_ticks,
+		Tuning.step_ticks(&"TUN-KILL-CONTEST-STAGGER"),
+		"the contest stagger ran on somebody else's clock"
+	)
 	assert_eq(losers, [C], "the contest loser was not announced")
 
 

@@ -26,6 +26,7 @@ const LOCO_EXITS: Array[StringName] = [
 	PawnStateId.STUN_ANIM,
 	PawnStateId.STUNNED,
 	PawnStateId.DEAD,
+	PawnStateId.STAGGERED,
 ]
 
 ## Edges *within* the locomotion group. Escalation UPWARD is strict — there is no
@@ -57,6 +58,11 @@ const NON_LOCO: Dictionary = {
 	PawnStateId.STUN_ANIM: [LOCO_MARKER],
 	PawnStateId.STUNNED: [LOCO_MARKER, PawnStateId.DEAD],
 	PawnStateId.DEAD: [PawnStateId.RESPAWNING],
+	# **STUNNABLE AND KILLABLE, AND THE FIRST IS THE ONE WITH AN ARGUMENT.**
+	# ADR-0017: a stagger stun could not reach would be a weakening dressed as an
+	# addition, which never-do #13 forbids — and GDD-04 §3.4 names *"stun it"* as
+	# the counterplay to the ability whose whiff lands here.
+	PawnStateId.STAGGERED: [LOCO_MARKER, PawnStateId.STUNNED, PawnStateId.DEAD],
 }
 
 

@@ -35,6 +35,21 @@ var state_id: StringName = PawnStateId.RESPAWNING
 ## `Tuning.step_ticks` for the four that shipped that way.
 var state_timer_ticks: int = 0
 
+## How many **step** ticks a `Staggered` lasts, written by whichever system put
+## the pawn there. ADR-0017.
+##
+## **THE DEFAULT IS A CEILING, NOT A PREDICTION.** All three entries are server
+## knowledge — whether a stun was valid, who won a contest, whether a dash landed
+## — so a client is forced into this state by a snapshot and is never told the
+## total, only the elapsed. Defaulting to the longest of the three means a
+## client's stagger can only ever end **late**, never early, and the server's
+## next snapshot ends it. That is UI_UX_SPEC §3.3's rule — information newer than
+## the simulation is forbidden, older is fine — applied to a state.
+##
+## **DERIVED RATHER THAN A FOURTH TUNABLE**, which could be set to a value the
+## first three contradict.
+var stagger_ticks: int = 0
+
 # --- Traversal (PREDICTED) ---
 var probe_result: ProbeResult = ProbeResult.new()
 var traverse_buffer_ticks: int = 0
@@ -122,12 +137,25 @@ func has_body() -> bool:
 
 ## Reset for a fresh life. Called on respawn; suspicion goes to zero because
 ## GDD-02 §3.1 says a life never begins already accruing it.
+## Arm a stagger. **The argument is in STEP ticks and the name says so**, because
+## the two systems that call this hold every other combat deadline in NET ticks
+## and the two are both plausible integers — trap 9, at the one seam where the
+## domains meet. `Tuning.step_ticks(&"TUN-...-STAGGER")` is the right converter;
+## `Tuning.ticks()` would halve the punishment silently.
+##
+## Clamped to at least one, so a tunable rounded to zero still costs a tick
+## rather than producing a state that ends on the step it began.
+func arm_stagger(step_ticks: int) -> void:
+	stagger_ticks = maxi(step_ticks, 1)
+
+
 func reset_for_spawn(at: Vector3, facing: float) -> void:
 	position = at
 	velocity = Vector3.ZERO
 	yaw = facing
 	grounded = true
 	state_timer_ticks = 0
+	stagger_ticks = 0
 	suspicion = 0.0
 	tier = 0
 	active_sources = 0

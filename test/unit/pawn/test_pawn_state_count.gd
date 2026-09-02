@@ -32,7 +32,23 @@ func test_the_table_scan_found_the_rows() -> void:
 
 
 func test_there_are_fifteen_states() -> void:
-	assert_eq(PawnStateId.ALL.size(), 14, "GDD-02 §3.1 lists fourteen states")
+	assert_eq(PawnStateId.ALL.size(), 15, "GDD-02 §3.1 lists fifteen states")
+
+
+## **`ALL`'s ORDER IS THE PROTOCOL AND `Staggered` MUST STAY LAST.**
+## `Snapshot.state_index` encodes `state_id` as an index into this array, so
+## inserting a name before an existing one silently remaps every remote pawn's
+## animation to a different state — plausible at every position, and it would read
+## as a rendering fault. Appending is the only safe edit, and this is what refuses
+## an insertion.
+func test_the_wire_order_is_append_only() -> void:
+	assert_eq(PawnStateId.ALL[0], PawnStateId.RESPAWNING, "index 0 moved")
+	assert_eq(PawnStateId.ALL[13], PawnStateId.DEAD, "index 13 moved")
+	assert_eq(
+		PawnStateId.ALL[14],
+		PawnStateId.STAGGERED,
+		"ADR-0017 consumed index 14; a state inserted before it remaps the wire"
+	)
 
 
 func test_code_and_the_normative_table_agree() -> void:

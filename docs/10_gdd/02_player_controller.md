@@ -196,7 +196,10 @@ into the acceleration curve.
 > Mermaid has no notation for a wildcard edge, so neither row had ever been drawn — which
 > made `Sprint → BlendWalk` illegal in the asserted table and the M1 feel gate unmeetable.
 
-Fourteen states — fifteen were declared until the Jog rung was deprecated, and `Jog` is
+Fifteen states. It was fifteen until the Jog rung was deprecated on 2026-08-12, fourteen
+after that, and fifteen again since **[ADR-0017](../00_meta/adr/ADR-0017-the-stagger-state.md)**
+added `Staggered` on 2026-09-01 — the state three `TUN-*-STAGGER` values had described since M0
+with nowhere to live. `Jog` is
 retained as a retired ID that nothing reaches ([`../30_bible/NAMING_AND_IDS.md`](../30_bible/NAMING_AND_IDS.md)
 §2.3). This diagram is **normative**: the transition table in
 `PawnStateMachine.TRANSITIONS` is asserted against it by `test_pawn_transitions.gd`
@@ -248,6 +251,11 @@ stateDiagram-v2
     Loco --> StunAnim: INPUT-STUN + pursuer in range
     StunAnim --> Loco: TUN-STUN-ANIM-DURATION 0.7 s
 
+    Loco --> Staggered: contest lost / stun refused / Lunge whiff
+    Staggered --> Loco: stagger elapsed
+    Staggered --> Stunned: stunned while staggered
+    Staggered --> Dead: killed while staggered
+
     Loco --> Stunned: stunned by prey
     Vault --> Stunned: stunned
     Climb --> Stunned: stunned
@@ -285,9 +293,13 @@ requested at priority *P* may interrupt a state whose `is_interruptible()` is fa
 | **StunAnim** | `INPUT-STUN` + pursuer in range and ≥ Noticed | 0.7 s | No below FATAL | COMBAT | none if valid; `TUN-STUN-INVALID-SUSPICION` +20 if not. **Built US-0061.** Its first version returned `true` from `is_interruptible`, reasoned from ADR-0013 being "one state wide" — this column is normative and the inference was not |
 | **Stunned** | Stunned by prey | `TUN-STUN-FREEZE` 4.0 s | No below FATAL | COMBAT | forced to `TUN-SUSPICION-MAX` |
 | **Dead** | Kill resolved against you | Corpse spawned | No | FATAL | n/a |
+| **Staggered** | A committed action **failed**: a lost kill contest, a refused stun, or (US-0070) a whiffed Lunge. **Never entered by input** | `PawnContext.stagger_ticks` elapsed — `TUN-KILL-CONTEST-STAGGER` 1.5 s, `TUN-STUN-INVALID-STAGGER` 2.0 s or `TUN-LUNGE-WHIFF-STAGGER` 1.2 s, whichever caused it | **Yes.** A stagger stun could not reach would be a weakening dressed as an addition (never-do #13), and GDD-04 §3.4 names *"stun it"* as Lunge's counterplay | COMBAT | none of its own — the action that caused it already charged. **Added 2026-09-01, ADR-0017.** **`Stunned` is done to you by another player; `Staggered` is done to you by your own failed action** — that one line is the whole distinction, and it is why this state **keeps the camera**: taking it is the stun's signature and nothing else may borrow it |
 
 > **Corrected 2026-08-05: fifteen, not fourteen.** Six places in the corpus said
 > "fourteen states" while this table and the normative diagram above both list fifteen.
+> **True a second time, for a different reason, since 2026-09-01**: the count fell to fourteen
+> when `Jog` was deprecated and ADR-0017's `Staggered` restored it. A number that has been right,
+> wrong, right, wrong and right again is the reason `test_pawn_state_count.gd` exists.
 > §3 states the diagram is normative, so the prose was corrected rather than the table.
 > `StunAnim` (you performing a stun) and `Stunned` (you being stunned) are distinct
 > states with different priorities and exit conditions; neither is redundant.

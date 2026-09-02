@@ -297,7 +297,26 @@ func _reject(ctx: MatchContext, peer: int, verdict: KillVerdict.V, target: int) 
 func _stagger(ctx: MatchContext, peer: int, victim: int) -> void:
 	if lockouts != null:
 		lockouts.stagger(peer, ctx.tick + maxi(Tuning.ticks(&"TUN-KILL-CONTEST-STAGGER"), 1))
+	# **THE LOCKOUT IS THE RULE AND THE STATE IS THE TELL** (ADR-0017). The lockout
+	# answers *may this player initiate* and must stay, because both combat systems
+	# have to answer that with no state machine in reach — every unit fixture. What
+	# the state adds is that `state_id` is on the wire and `CombatLockouts` is on
+	# nobody's, so the player who won the race can see that they did.
+	#
+	# **NET TICKS ABOVE, STEP TICKS HERE.** Same wall time, two domains — trap 9.
+	_stagger_pawn(ctx, peer, &"TUN-KILL-CONTEST-STAGGER")
 	contest_resolved.emit(peer, victim)
+
+
+## Put `peer` into `Staggered` for the duration `tunable` names. **The total is
+## written before the transition**, or `StaggeredState` falls back to its ceiling
+## and the punishment runs long — the safe direction, and still not the right one.
+func _stagger_pawn(ctx: MatchContext, peer: int, tunable: StringName) -> void:
+	var pawn: PawnContext = ctx.pawn_contexts.get(peer)
+	if pawn == null:
+		return
+	pawn.arm_stagger(Tuning.step_ticks(tunable))
+	_enter(ctx, peer, PawnStateId.STAGGERED, PawnState.PRIORITY_COMBAT)
 
 
 ## **THE BONUSES ARE CAPTURED HERE AND PAID AT THE CONTACT FRAME**, because
