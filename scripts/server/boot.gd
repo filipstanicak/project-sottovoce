@@ -26,6 +26,8 @@ func _ready() -> void:
 
 	if config.seed_value >= 0:
 		Log.info("seed %d (deterministic)" % config.seed_value, &"boot")
+	for warning: String in config.warnings():
+		Log.warn(warning, &"boot")
 
 	if config.is_server:
 		_start_server(config)

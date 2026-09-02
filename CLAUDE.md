@@ -5033,8 +5033,11 @@ view.
     `test_protocol_docs_sync.gd` from M0 — **two deliberately duplicated
     documents, drifting unguarded for two milestones, under a note telling every
     reader they were checked.** Written 2026-08-15; no drift had accumulated,
-    which was luck rather than process. `test/metrics/` is likewise declared,
-    empty, and **not run by CI**, so a suite placed there would never execute.
+    which was luck rather than process. **`test/metrics/` was the same shape and is
+    gone as of 2026-09-02** — declared in TDD-02 from M0, holding a `.gdkeep`, and
+    named in `TEST_PLAN` §9's *before every PR* list. Its assertions had been written
+    into `test/unit/core/map/` all along, so the coverage was real and the directory
+    was theatre.
     **The claim is worse than the absence**, because the claim is what stops
     anybody checking by hand.
 15. **AN UNASSERTED `str.replace` REPORTS SUCCESS BY DOING NOTHING.** Most edits

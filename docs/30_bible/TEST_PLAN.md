@@ -271,15 +271,31 @@ insufficient**, and pretending otherwise is how a game ships technically correct
 
 ## 9. Running the suites
 
+> **THESE WERE FOUR COMMANDS THAT RAN ZERO TESTS.** Without `-ginclude_subdirs` GUT
+> scans only the top level of `-gdir`, finds no `test_*.gd` — every suite here is
+> nested — and prints *"On the one hand nothing failed, on the other hand nothing did
+> anything"*, which is a **success shape**. `.ci/run_gut.sh` counts the scripts on disk
+> and refuses to pass over a short run, which is why it is the documented form.
+
 ```bash
 # Before every commit — must stay under 45 s or it will not be run
-godot --headless -s addons/gut/gut_cmdln.gd -gdir=res://test/unit -gexit
-godot --headless -s addons/gut/gut_cmdln.gd -gdir=res://test/arch -gexit
+.ci/run_gut.sh test/unit unit
+.ci/run_gut.sh test/arch arch
 
 # Before every PR
-godot --headless -s addons/gut/gut_cmdln.gd -gdir=res://test/integration -gexit
-godot --headless -s addons/gut/gut_cmdln.gd -gdir=res://test/metrics -gexit
+.ci/run_gut.sh test/integration integration
 ```
+
+By hand, if you must — **`-ginclude_subdirs` is not optional**:
+
+```bash
+godot --headless -s addons/gut/gut_cmdln.gd -gdir=res://test/unit -ginclude_subdirs -gexit
+```
+
+**`test/metrics` is gone** (2026-09-02). The map-geometry assertions it was declared to
+hold — boundary bands, dead ends, widths, density, circuit separation — were written into
+`test/unit/core/map/` instead and have run in CI all along; the directory held a `.gdkeep`
+and nothing else, so this command pointed at an empty folder on top of missing the flag.
 
 ---
 

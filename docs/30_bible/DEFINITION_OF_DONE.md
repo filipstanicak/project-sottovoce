@@ -36,7 +36,7 @@ Copy into the PR description and tick as you go.
 
 - [ ] Tests written that **would have caught the bug this story was about**.
 - [ ] New Core or Systems files have a matching test file (`test_test_mirrors_source.gd`).
-- [ ] `godot --headless -s addons/gut/gut_cmdln.gd -gdir=res://test/unit -gexit` passes.
+- [ ] `.ci/run_gut.sh test/unit unit` passes.
 - [ ] `... -gdir=res://test/arch -gexit` passes.
 - [ ] Integration suite passes if the change touches net, pawn, crowd or scoring.
 - [ ] **No test skipped, weakened or deleted.** If an architecture test fails, the change is

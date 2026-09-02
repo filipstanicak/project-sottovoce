@@ -44,6 +44,11 @@ var tuning_profile: String = "default"
 var seed_value: int = -1
 
 ## Dump the ScoreEvent log and telemetry on match end.
+##
+## **PARSED, VALIDATED AND READ BY NOTHING.** `boot.gd` warns when it is given, so
+## a facilitator does not plan a session around an export that will not appear.
+## The blocker is upstream of the writer: `TelemetrySink` is a stub and 28 of
+## GDD-07 §8's 29 events have no emitter.
 var record_path: String = ""
 
 ## Flags that were not recognised. Reported rather than ignored: a typo'd
@@ -106,6 +111,37 @@ func problems(min_players: int, tuning_max: int) -> Array[String]:
 		out.append("--connect expects ip:port, got '%s'" % connect_address)
 	for flag: String in unknown:
 		out.append("unrecognised flag %s" % flag)
+	return out
+
+
+## **A FLAG THAT IS VALID AND WILL NOT DO ANYTHING.** Separate from `problems()`
+## because the two mean opposite things: a problem says *the launch is not what you
+## asked for* and refuses to start, where a warning says *the launch is exactly
+## what you asked for and one thing will be missing*. Refusing would stop a
+## playtest that is otherwise fine.
+##
+## **`--record` IS PARSED, VALIDATED, STORED AND READ BY NOTHING**, while
+## `docs/40_backlog/playtests/README.md` tells a facilitator to *"attach the
+## telemetry export"* — so a silent flag costs a session its evidence and nobody
+## finds out until it is over.
+##
+## **THE BLOCKER IS UPSTREAM OF THE FILE WRITER.** `TelemetrySink.append` and
+## `flush` are stubs and 28 of GDD-07 §8's 29 events have no emitter, so an
+## implemented `--record` would export one event kind and read as a working export
+## of an empty match.
+func warnings() -> Array[String]:
+	var out: Array[String] = []
+	if not record_path.is_empty():
+		out.append(
+			(
+				(
+					"--record %s does nothing: it is read by no code. TelemetrySink is a stub "
+					+ "and 28 of 29 telemetry events have no emitter. Do not plan a playtest "
+					+ "around the export."
+				)
+				% record_path
+			)
+		)
 	return out
 
 

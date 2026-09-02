@@ -86,3 +86,25 @@ func test_the_live_tuning_agrees_with_the_test_constants() -> void:
 	# above is testing numbers the game no longer uses.
 	assert_eq(Tuning.match_rules.min_players, MIN_PLAYERS, "TUN-LOBBY-MIN-PLAYERS moved")
 	assert_eq(Tuning.match_rules.max_players, MAX_PLAYERS, "TUN-LOBBY-MAX-PLAYERS moved")
+
+
+# ------------------------------------- flags that are valid and inert --
+
+
+## **A WARNING IS NOT A PROBLEM, AND THE DIFFERENCE IS WHETHER TO START.**
+## `problems()` says *the launch is not what you asked for* and `boot.gd` refuses;
+## this says *the launch is exactly what you asked for and one thing will be
+## missing*. Refusing here would stop a playtest that is otherwise fine.
+func test_record_is_valid_and_warns_that_it_does_nothing() -> void:
+	var c := LaunchConfig.parse(["--server", "--record", "user://run.json"], 6)
+	assert_eq(c.record_path, "user://run.json", "--record stopped parsing")
+	assert_eq(c.problems(2, 6).size(), 0, "--record is a valid flag and must not refuse the launch")
+	assert_eq(c.warnings().size(), 1, "--record is read by nothing and said so to nobody")
+
+
+## **THE SILENT CASE IS THE ONE THAT COSTS A SESSION.**
+## `docs/40_backlog/playtests/README.md` tells a facilitator to attach the
+## telemetry export; without this they find out it does not exist afterwards.
+func test_a_launch_without_record_warns_about_nothing() -> void:
+	var c := LaunchConfig.parse(["--server"], 6)
+	assert_eq(c.warnings().size(), 0, "a clean command line produced a warning")
