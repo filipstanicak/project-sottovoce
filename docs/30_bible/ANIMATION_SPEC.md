@@ -151,6 +151,7 @@ Beyond the parity set. These are player-only and need no clone equivalent.
 | `ANIM-STUN-DELIVER` | **0.70 s** | `TUN-STUN-ANIM-DURATION` | |
 | `ANIM-STUN-RECEIVE` | **4.00 s** | `TUN-STUN-FREEZE` | Held, then recovery |
 | `ANIM-STUN-INVALID` | **2.00 s** | `TUN-STUN-INVALID-STAGGER` | Deliberately graceless — flailing should look like flailing |
+| `ANIM-CONTEST-LOSE` | **1.50 s** | `TUN-KILL-CONTEST-STAGGER` | **ADDED 2026-09-01 (ADR-0017).** The third stagger, and the one this table was missing: `ANIM-STUN-INVALID` and `ANIM-LUNGE-WHIFF` were both already here against their own tunables, and the contest loser had nothing to play. Found by giving all three a shared home — `Staggered` — rather than by reading the table. **Derived like its two siblings**, so no duration was invented. Read as *beaten to it* rather than as flailing: the loser committed correctly and was second |
 | `ANIM-CINDERFALL-THROW` | **0.45 s** | `TUN-CINDERFALL-CAST-TIME` | |
 | `ANIM-WHISPERBOLT-WINDUP` | **1.00 s** | `TUN-WHISPERBOLT-WINDUP` | **The most important tell in the game.** Static, unmistakable throwing pose |
 | `ANIM-WHISPERBOLT-RELEASE` | 0.3 s | | |
@@ -247,10 +248,23 @@ stateDiagram-v2
     Loco --> Blended: state_id == Blended
     Blended --> Loco: state_id changed
     Loco --> Combat: state_id in {KillAnim, StunAnim, Stunned}
+    Loco --> Recovery: state_id == Staggered
+    Recovery --> Loco: state timer
     Combat --> Loco: clip end
     Loco --> Dead: state_id == Dead
     Dead --> [*]
 ```
+
+**`Recovery` IS SEPARATE FROM `Combat` BECAUSE ITS EXIT IS A TIMER, NOT A CLIP END.**
+`Staggered` (ADR-0017) lasts `PawnContext.stagger_ticks` — 1.5 s, 2.0 s or 1.2 s depending
+on which of the three rules entered it — so one node with one clip length cannot serve it,
+and the three clips above are different lengths on purpose. Folding it into `Combat` would
+make the graph claim an exit condition the state does not have.
+
+**AND ITS CLIP MUST NOT READ AS `ANIM-STUN-RECEIVE`.** `Stunned` is done to you by another
+player and `Staggered` is done to you by your own failed action; a spectator who cannot tell
+them apart cannot tell whether the prey earned it. The three recovery clips are graceless in
+three different ways, and that is the distinction rather than a flourish.
 
 ### 5.1 The idle cycler runs identically on clones
 
