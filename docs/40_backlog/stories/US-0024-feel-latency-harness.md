@@ -276,7 +276,8 @@ it is now settled at the controls rather than in a document.
   makes this a deferral rather than an omission.
 - **No prediction.** Criterion 2's "with prediction active" needs US-0032, in M2. Today's client
   simulates rather than predicts, which is the same code path minus reconciliation.
-- **Nothing in `test/metrics/`.** The folder is declared in TDD-02 and empty, and **CI does not
+- ~~**Nothing in `test/metrics/`.**~~ **RESOLVED 2026-09-02: the folder is gone.** Its assertions had been written into `test/unit/core/map/` from the start and had run in CI all along; what was empty was the directory, not the coverage. The original note follows.
+  The folder is declared in TDD-02 and empty, and **CI does not
   run it** — a harness placed there would never execute. That is the fourth declared-but-not-real
   thing this milestone has turned up; it is recorded here rather than fixed, because wiring a new
   suite into CI is not this story's scope.

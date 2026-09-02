@@ -171,7 +171,7 @@ depends_on: [TDD-01-ARCHITECTURE, ADR-0005, ADR-0009]
 |---|---|
 | `test/unit/` | Mirrors `scripts/` one-for-one. A test file's path is its subject's path with `test_` prefixed |
 | `test/integration/` | The headless 3-client harness; join/leave, prediction, full-match runs |
-| `test/metrics/` | Map geometry assertions — boundary bands, dead ends, widths, density, circuit separation |
+| `test/unit/core/map/` | Map geometry assertions — boundary bands, dead ends, widths, density, circuit separation. **This table said `test/metrics/` until 2026-09-02 and that directory was empty**: the assertions were written here instead and have run in CI all along. `test_map_metrics.gd`, `test_map_widths.gd`, `test_map_dead_ends.gd`, `test_circuit_separation.gd`, `test_the_district_is_enclosed.gd`, `test_spawn_points.gd` |
 | `test/arch/` | The layer-rule guards, autoload inventory, EventBus statelessness, docs-sync |
 
 `test/arch/` is separated deliberately: those tests protect the *architecture* rather than
@@ -373,5 +373,5 @@ The architecture-guard tests (§9) are source scans over a few hundred files and
 |---|---|---|---|
 | 1 | Should `scripts/pawn/` be a subfolder of `core/` given its determinism requirement? It is *nearly* pure — it reads `Tuning` and touches `CharacterBody3D`. | Keep separate. It extends `Node`, so it fails the Core purity test, and weakening that test to accommodate it would weaken the most valuable rule in the project. | M1 |
 | 2 | `data/` versus `assets/` for `.tres` files — the split is "defines gameplay" vs "is content", which is clear for tuning and murky for `PersonaData` (which references meshes). | `PersonaData` is in `data/` because it is authored by design, not by art, and it is diffable text. The mesh it points at is in `assets/`. | — |
-| 3 | Should `test/metrics/` (map geometry assertions) live with the map data instead? It is arguably content validation rather than code testing. | Keep in `test/`. It runs in CI as a test and fails the build; putting it elsewhere would make that surprising. | M1 |
+| 3 | Should `test/metrics/` (map geometry assertions) live with the map data instead? It is arguably content validation rather than code testing. | Keep in `test/`. It runs in CI as a test and fails the build; putting it elsewhere would make that surprising. **Resolved differently in practice and the table did not notice**: the assertions went into `test/unit/core/map/`, `test/metrics/` stayed empty from M0 to 2026-09-02, and the answer's own claim — *"it runs in CI"* — was true of the files and false of the directory. | M1 |
 | 4 | The server export excludes `assets/` — but the map's collision and navmesh live in `scenes/map/`, which references meshes. Does the server need any mesh data at all? | Needs resolving at M2. Likely answer: collision shapes and the navmesh bake are separate resources under `data/maps/`, so the server needs no visual mesh. If that proves false, the exclusion list narrows and the §6 proof weakens. | M2 |

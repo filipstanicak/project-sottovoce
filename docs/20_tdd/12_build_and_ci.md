@@ -490,9 +490,9 @@ behaviour, they run as source scans rather than by executing code, and they are 
 likely to be deleted by someone who does not understand why they exist.
 
 ```bash
-godot --headless -s addons/gut/gut_cmdln.gd -gdir=res://test/unit  -gexit
-godot --headless -s addons/gut/gut_cmdln.gd -gdir=res://test/arch  -gexit
-godot --headless -s addons/gut/gut_cmdln.gd -gdir=res://test/integration -gexit
+.ci/run_gut.sh test/unit unit
+.ci/run_gut.sh test/arch arch
+.ci/run_gut.sh test/integration integration
 ```
 
 ### 7.1 The integration harness

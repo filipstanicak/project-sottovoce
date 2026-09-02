@@ -7,7 +7,7 @@ Every session records **all twelve questions** from
 writing** — never aloud in the group, because the first answer spoken shapes every answer after
 it.
 
-Attach the telemetry export (`--record`) alongside. It carries the tuning profile hash, so the
+~~Attach the telemetry export (`--record`) alongside.~~ **`--record` DOES NOTHING AS OF 2026-09-02 and the boot warns when you pass it.** It is parsed and read by nothing, and the blocker is upstream of the writer: `TelemetrySink` is a stub and 28 of GDD-07 §8's 29 events have no emitter, so an implemented flag would export one event kind. **Record the twelve answers by hand and do not plan a session around the file.** When it exists it will carry the tuning profile hash, so the
 session stays interpretable after values change.
 
 ## Template

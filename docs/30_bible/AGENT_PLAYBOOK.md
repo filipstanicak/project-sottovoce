@@ -104,8 +104,8 @@ invisible to the agent because it feels like being helpful.
 ### 2.3 Step 5 — the gates
 
 ```bash
-godot --headless -s addons/gut/gut_cmdln.gd -gdir=res://test/unit -gexit
-godot --headless -s addons/gut/gut_cmdln.gd -gdir=res://test/arch -gexit
+.ci/run_gut.sh test/unit unit
+.ci/run_gut.sh test/arch arch
 gdlint scripts/ test/ tools/
 gdformat --check scripts/ test/ tools/
 ```

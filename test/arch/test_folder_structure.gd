@@ -36,7 +36,6 @@ const REQUIRED: Array[String] = [
 	"res://test/unit",
 	"res://test/arch",
 	"res://test/integration",
-	"res://test/metrics",
 ]
 
 
