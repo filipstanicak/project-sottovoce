@@ -13,6 +13,13 @@
 ## because gameplay ordering matters and a bus makes ordering invisible
 ## (ADR-0006 rule 5, asserted by test_layer_dependencies).
 ##
+## **EVERY PLAYER-SHAPED PARAMETER HERE IS A WIRE SLOT, NEVER A PEER ID.** A
+## client has no peer ids at all — `SlotTable` exists because Godot hands out
+## random 32-bit ids and `NETWORK_PROTOCOL` §4 declares a byte. Three of these
+## signals were declared taking `peer`, `killer`, `victim`, which reads as
+## something a client could never supply; renamed 2026-09-02 when the bridge was
+## finally wired to them.
+##
 ## Each signal's docstring ends with its EVT- ID, the documentation identity in
 ## SIGNAL_AND_EVENT_BUS.md §3.
 extends Node
@@ -108,7 +115,7 @@ signal prey_warning_triggered(bearing: float, bucket: int)
 ## Any ability started within its tell radius. This is the tell channel that
 ## reaches a victim who was not looking at the caster (design law 3).
 ## EVT-ABILITY-STARTED
-signal ability_started(peer: int, ability: StringName, origin: Vector3)
+signal ability_started(caster_slot: int, ability: StringName, origin: Vector3)
 
 ## Own ability request was refused, with a DenyReason.
 ## EVT-ABILITY-DENIED
@@ -120,12 +127,12 @@ signal compass_pulsed
 
 ## You killed, or you died. Never anyone else's kill: there is no global feed.
 ## EVT-KILL-RESOLVED
-signal kill_resolved(killer: int, victim: int)
+signal kill_resolved(killer_slot: int, victim_slot: int)
 
 ## You stunned, or were stunned. valid distinguishes a landed stun from a refused
 ## one, because a stun is worth as much as a kill (design law 5).
 ## EVT-STUN-RESOLVED
-signal stun_resolved(stunner: int, target: int, valid: bool)
+signal stun_resolved(stunner_slot: int, target_slot: int, valid: bool)
 
 ## An audio event flagged captionable fired. direction of zero means
 ## non-positional. The key indexes data/strings/en.csv — never a literal.
