@@ -22,6 +22,14 @@ extends GutTest
 
 const ROOTS: Array[String] = ["res://docs", "res://"]
 const RUNNER := "gut_cmdln"
+
+## **A LINE IS ONLY A COMMAND IF IT INVOKES SOMETHING.** Without this the guard
+## trips on its own documentation — every sentence naming `gut_cmdln` while
+## explaining the rule is a match — which is the shape `SourceScanner` solves for
+## GDScript by stripping comments, and it fired on this file's own checkpoint
+## entry the first time it ran. Narrowing to *invocations* is what the guard is
+## about, not a weakening of it.
+const INVOCATION := "godot "
 const REQUIRED := "-ginclude_subdirs"
 
 
@@ -62,7 +70,7 @@ func test_the_scan_finds_the_commands_it_is_about() -> void:
 	var found := 0
 	for path: String in _markdown():
 		for line: String in SourceScanner.read(path).split("\n"):
-			if line.contains(RUNNER):
+			if line.contains(RUNNER) and line.contains(INVOCATION):
 				found += 1
 	assert_gt(found, 0, "no documented GUT command was found at all — this guard checks nothing")
 
@@ -75,7 +83,9 @@ func test_no_documented_gut_command_silently_runs_nothing() -> void:
 		var lines := SourceScanner.read(path).split("\n")
 		for i: int in lines.size():
 			var line: String = lines[i]
-			if not line.contains(RUNNER) or line.contains(REQUIRED):
+			if not line.contains(RUNNER) or not line.contains(INVOCATION):
+				continue
+			if line.contains(REQUIRED):
 				continue
 			offenders.append("%s:%d — %s" % [path, i + 1, line.strip_edges()])
 	offenders.sort()
