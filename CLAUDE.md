@@ -234,6 +234,79 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 *Updated 2026-08-27 (ADR-0016, the M4 gate). Keep this section current — it is the first thing a
 fresh session reads, and a stale one is worse than none.*
 
+## THE LUNGE AUTO-KILL WAS JUDGED IN THE PAST, AND ITS BAND WAS A METRE SHORT
+
+**REPORTED FROM THE CONTROLS: *"the autokill on lunge does not work"*.** It does
+work — measured landing on a real server — and **two separate things made it fail
+far more often than the design says it should**, one a defect and one this game's
+own documented rule. Neither was visible to the player or to any test.
+
+**THE DEFECT: AN ARRIVAL WAS LAG-COMPENSATED LIKE A PRESS.** `_verdict_for`
+rewound the world by `RewindClamp` for every judgement, and **an arrival is not a
+press**. Lag compensation exists to honour *what the attacker saw when they
+decided*; the auto-kill is decided by the **server**, at the end of a dash the
+client is only predicting, so there is no observation to align with. Worse,
+`RewindClamp`'s floor is `TUN-NET-LAGCOMP-MIN` **100 ms at any ping at all** —
+correct for a press, because every client draws remotes that far behind — and at
+`TUN-LUNGE-SPEED` 9 m/s that is **0.9 m of the hunter's own travel subtracted from
+a 2.85 m reach.**
+
+**MEASURED, AND THE BOUNDARY MOVED EXACTLY WHERE THE ARITHMETIC SAYS.**
+`tools/lunge_arrival_probe.tscn` stands the caster's own contract a chosen
+distance down the dash line on the real `server_root.tscn` and presses:
+
+| Approach | Before | After |
+|---|---|---|
+| 7.5 m | landed | landed |
+| 8.0 m | **whiffed** (rewound gap 2.90 against a 2.85 reach) | landed |
+| 8.7 m | whiffed | **landed** — 5.85 m of dash + 2.85 m of reach, exactly |
+
+**So the band ended at 7.5 m against the 8.7 m the tuning gives it, and it
+narrowed further the worse your connection was.** A rule whose range depends on
+ping is not the rule `TUN-KILL-RANGE` documents. `KillRewind.present_world` is the
+fix; it does not touch the ring, so ADR-0010's two rewind call sites are still
+two.
+
+**THE OTHER HALF IS THE DESIGN, AND SAYING SO IS THE POINT.** The dash is a fixed
+5.85 m and unsteerable, and GDD-04 §3.4 and `TUN-LUNGE-AUTO-KILL` **both** say the
+kill fires if the dash *ends* within range and cone. So a lunge from closer than
+about 5.5 m goes straight **through** the contract and leaves them **behind** the
+hunter. Measured at a 4.0 m approach: the contract is **1.85 m away — inside the
+2.85 m reach — and refused `OUT_OF_CONE`.** The usable band is roughly
+**5.5 m to 8.7 m**, a ring in the middle of a 6 m dash, and it is at close range
+that a panicking hunter presses the panic button. **Owner decision 8**, because
+changing it changes what two documented rows promise.
+
+**AND A WHIFF REACHES NOBODY, WHICH IS WHY THIS TOOK AN AFTERNOON.** `_reject`
+emits `kill_rejected`; `_whiff` deliberately emits nothing, because GDD-04 §3.4
+prices a miss at `TUN-LUNGE-WHIFF-STAGGER` *and nothing else* — right for the
+player, and it left *overshot*, *behind you* and *wrong target* indistinguishable
+to everybody including a developer. `KillSystem.last_whiff` records the verdict
+now, for the reason the three `arrivals_*` counters beside it exist.
+
+**MY OWN INSTRUMENT WAS WRONG FIRST AGAIN, AND IN THE SAME DIRECTION.** The probe
+drove both pawns with `InputCommand.empty()` — **yaw 0, facing +Z** — while
+dashing toward −X, and reported a whiff at a live gap of **0.15 m**, which reads
+exactly like an auto-kill that never fires. **The cone is read from the pawn's
+yaw, not from the dash direction**, and the two are only the same because a real
+player aims with the camera they then keep still. One line of instrument, and it
+would have been reported as a defect in the arrival path.
+
+**THE SEAM WAS PROVEN BY NOBODY, WHICH IS THE THIRD TIME THIS WEEK.**
+`test_lunge_effect.gd` proves the effect queues an arrival;
+`test_lunge_arrival.gd` **appends to that queue by hand** and proves `SYS-KILL`
+judges it. Neither runs the two together, so the hop from the `abilities` stage to
+the `combat` stage was covered by no test — and every fixture in the arrival file
+fills the lag-comp ring with the pawn's *current* position, which is precisely
+what hides a rewind defect. It fills it with the pawn a dash *behind* now.
+
+**AND THE STAGGER WAS WRITTEN A THIRD TIME.** `arm_stagger` plus
+`CombatEntry.into(STAGGERED)` were two adjacent lines in `KillSystem._whiff`,
+`KillSystem._stagger` and `StunSystem`'s invalid swing. `CombatEntry.stagger` is
+the one home — found because this change pushed `kill_system.gd` to 408 lines and
+**the length guard is what asks the question**, for the second time in three
+stories.
+
 ## PRESSING F DID NOTHING, AND IT HAD NEVER DONE ANYTHING
 
 **REPORTED FROM THE CONTROLS: *"absolutely nothing happens when i press f"*.**
@@ -1547,9 +1620,9 @@ distance when it empties is one nobody observed.
 file. Both parties already *perceived* an escape through channels that existed;
 what the field added is the anticipatory half.
 
-## SIX THINGS WAIT ON THE OWNER, AND NONE BLOCKS M5
+## SEVEN THINGS WAIT ON THE OWNER, AND NONE BLOCKS M5
 
-*Seven rows, six live: decision 3 was settled by ADR-0017 on 2026-09-01 and is struck
+*Eight rows, seven live: decision 3 was settled by ADR-0017 on 2026-09-01 and is struck
 through rather than deleted, and decision 7 is the divergence that same ADR found.*
 
 1. **Move `SYS-MATCH` (US-0079) M6 → M5?** The only single-story lever that pulls
@@ -1577,6 +1650,22 @@ through rather than deleted, and decision 7 is the divergence that same ADR foun
    depends on it. **Reported rather than acted on.** My recommendation is to keep it:
    it is a good rule, the divergence is a *feature the reference lacks* rather than one
    it contradicts, and removing it would delete a mechanic for fidelity's own sake.
+8. **SHOULD THE LUNGE AUTO-KILL BE JUDGED OVER THE DASH RATHER THAN AT ITS END?**
+   Raised 2026-09-02 by *"the autokill on lunge does not work"*. GDD-04 §3.4 and
+   `TUN-LUNGE-AUTO-KILL` both say the kill fires if the dash **ends** in range and
+   cone, and the dash is a fixed 5.85 m — so lunging from under ~5.5 m passes
+   through the contract and refuses `OUT_OF_CONE` at a measured 1.85 m gap, inside
+   a 2.85 m reach. **The usable band is ~5.5-8.7 m** and nothing on screen says so.
+   **My recommendation is to judge the arrival at the closest approach along the
+   dash** — *you dashed through them* — which is server-side only, needs no change
+   to the client's prediction of a fixed-length dash, and makes the panic button
+   work at the range panic happens. It amends two documented rows, which is why it
+   is here. The alternatives are to leave it and teach the range through a HUD
+   indicator, or to end the dash on arrival — that last one is the tempting one and
+   **it is the wrong one**: the dash is client-predicted, so stopping it early is
+   up to 2.85 m of rubber-band on the most decisive action in the game, which is
+   the whole reason US-0070 gave it a state.
+
 6. **Does a stun cancel an ability's wind-up?** US-0067 gave every cast a
    `TUN-<ABIL>-CAST-TIME`, and nothing interrupts one but death. GDD-04 §3.1 names
    the counter to Cinderfall as **patience**, not a stun, so adding one would

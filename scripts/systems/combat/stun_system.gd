@@ -289,8 +289,7 @@ func _reject(ctx: MatchContext, peer: int, verdict: StunVerdict.V, target: int) 
 		# **NET TICKS ABOVE, STEP TICKS HERE** — same wall time, two domains, trap 9.
 		var pawn: PawnContext = ctx.pawn_contexts.get(peer)
 		if pawn != null:
-			pawn.arm_stagger(Tuning.step_ticks(&"TUN-STUN-INVALID-STAGGER"))
-			CombatEntry.into(ctx, peer, PawnStateId.STAGGERED, PawnState.PRIORITY_COMBAT)
+			CombatEntry.stagger(ctx, peer, &"TUN-STUN-INVALID-STAGGER")
 		if ctx.impulses != null:
 			ctx.impulses.queue(peer, Tuning.combat.stun_invalid_suspicion)
 	if StunVerdict.plays_a_whiff(verdict):

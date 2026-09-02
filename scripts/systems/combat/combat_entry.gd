@@ -25,6 +25,27 @@ extends RefCounted
 ## `CombatTargets.is_dead` reads `state_id`. Both edges landed 2026-09-02 and
 ## `test_every_living_state_can_reach_dead` is what keeps every future state
 ## honest.
+## **A STAGGER IS A DURATION AND A TRANSITION, AND IT WAS WRITTEN THREE TIMES.**
+## ADR-0017 gave the three `TUN-*-STAGGER` rules a state to live in and left the
+## arming at each call site — `KillSystem._whiff`, `KillSystem._stagger` and
+## `StunSystem`'s invalid swing, the same two lines each. The third copy is where
+## this project has learned to stop.
+##
+## **THE TOTAL IS WRITTEN BEFORE THE TRANSITION**, or `StaggeredState` falls back
+## to its ceiling — the max of the three — and the punishment runs long. That is
+## the safe direction and still not the right one.
+##
+## **STEP TICKS, NOT NET TICKS.** The state timer advances inside `step()` at
+## 60 Hz while the lockout beside it counts net ticks; trap 9, at the one seam
+## where the two domains meet.
+static func stagger(ctx: MatchContext, peer: int, tunable: StringName) -> void:
+	var pawn: PawnContext = ctx.pawn_contexts.get(peer)
+	if pawn == null:
+		return
+	pawn.arm_stagger(Tuning.step_ticks(tunable))
+	into(ctx, peer, PawnStateId.STAGGERED, PawnState.PRIORITY_COMBAT)
+
+
 static func into(ctx: MatchContext, peer: int, to: StringName, priority: int) -> bool:
 	var pawn: PawnContext = ctx.pawn_contexts.get(peer)
 	var machine: PawnStateMachine = ctx.pawn_machines.get(peer)

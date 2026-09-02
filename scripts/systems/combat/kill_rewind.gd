@@ -32,6 +32,40 @@ func world_for(ctx: MatchContext, peer: int, at_tick: int) -> RewoundWorld:
 	return ctx.lag_comp.rewind(at_tick, pawn.position, radius())
 
 
+## **THE WORLD AS IT IS, FOR A JUDGEMENT NOBODY OBSERVED.** US-0070, 2026-09-02.
+##
+## `ABIL-LUNGE`'s auto-kill is **not a press**. Lag compensation exists to honour
+## *what the attacker saw on their screen when they decided*, and an arrival has no
+## such moment: the server decides it, at the end of a dash the client is merely
+## predicting. Rewinding it aligns with an observation that was never made.
+##
+## **AND IT COST THREE QUARTERS OF A METRE OF A 2.85 m REACH, AT ZERO PING.**
+## `RewindClamp` has a floor of `TUN-NET-LAGCOMP-MIN` 100 ms because every client
+## draws remotes that far behind — true of a press, and the dash is the fastest
+## movement in this game, so 100 ms is 0.9 m of the *hunter's own travel* subtracted
+## from their reach. Measured on a real server: an arrival landed at a 2.40 m
+## rewound gap and was refused at 2.90 m, against a reach of 2.85 — so the auto-kill
+## band ended at a 7.5 m approach where the design says 8.7, and it shrank further
+## the worse the hunter's connection. **A rule whose range depends on ping is not
+## the rule `TUN-KILL-RANGE` documents.**
+##
+## **THIS DOES NOT TOUCH THE RING AND IS NOT COUNTED**, so ADR-0010's two rewind
+## call sites are still two.
+func present_world(ctx: MatchContext, peer: int) -> RewoundWorld:
+	var pawn: PawnContext = ctx.pawn_contexts.get(peer)
+	if pawn == null:
+		return RewoundWorld.new()
+	var world := RewoundWorld.new()
+	world.tick = ctx.tick
+	var reach := radius()
+	for other: int in ctx.pawn_contexts.keys():
+		var it: PawnContext = ctx.pawn_contexts[other]
+		if it == null or pawn.position.distance_to(it.position) > reach:
+			continue
+		world.add(other, it.position, it.yaw)
+	return world
+
+
 ## TDD-04 §8.3's optimisation: every entity a kill could involve is inside
 ## `TUN-CINDERFALL-RADIUS + TUN-KILL-RANGE` of the attacker, which is under ten
 ## metres rather than ninety-six.
