@@ -234,6 +234,87 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 *Updated 2026-08-27 (ADR-0016, the M4 gate). Keep this section current — it is the first thing a
 fresh session reads, and a stale one is worse than none.*
 
+## PRESSING F DID NOTHING, AND IT HAD NEVER DONE ANYTHING
+
+**REPORTED FROM THE CONTROLS: *"absolutely nothing happens when i press f"*.**
+It was right, and the cause is one missing line of client code under three
+completed stories.
+
+**`NET-C2S-ABILITY-REQUEST` HAD EVERYTHING EXCEPT A CALLER.** The RPC on `Net`,
+its row in `Authority`, its channel in `Messages`, its hop in `RpcRouter`, its
+`server_root` wiring into `SYS-ABILITY` — and behind that five validations, an
+integer-tick cooldown, the suspicion cost, the reliable tell broadcast,
+`CinderfallEffect`, `LungeEffect` and the `Lunging` state. **Nothing on the client
+ever sent the message.** Q and F did literally nothing through US-0066, US-0067
+and US-0070.
+
+**AND NO TEST COULD HAVE SEEN IT, WHICH IS THE PART WORTH KEEPING.** The unit
+suites drive `AbilitySystem` directly — correctly, because that is how you test a
+system without a wire — and `tools/ability_probe.tscn` boots the real server and
+calls `report_request` **in-process**, deliberately, for the same reason. **The
+missing hop is exactly between the two.** It is the gap US-0074 lost a whole
+integration run to, in its purest form: every piece proven, the seam between them
+proven by nobody.
+
+**A STORY CAN BE HONESTLY COMPLETE AND ITS FEATURE STILL UNREACHABLE.** US-0066's
+eight criteria are each true of the system and each tested against it. None of
+them names the client hop, so none of them was wrong — and the ability was
+unusable. The criteria are **not** being unticked; the story carries the note
+instead.
+
+**THE SEND LIVES IN `InputSender`, NOT `Net`.** An RPC resolves by **node path**,
+so `c2s_ability_request` has to stay on the autoload that exists at the same path
+on every peer — US-0030's lesson, when the whole authority chokepoint was
+unreachable because the router was not at a shared path. What does not have to
+live there is the four lines that call it, and `net.gd` is at **398 of its 400**:
+its own comment has said since M4 that *"the C2S doorway below could move the same
+way if this file grows again"*.
+
+**ON THE PRESS EDGE, NOT THE HOLD.** `InputCommand.buttons` is held state at
+60 Hz; a held F would be sixty casts a second, each refused by the cooldown and
+each a reliable packet. `InputBits.newly_pressed` already existed for this.
+
+**AND THE AIM IS SENT LONG SO THE SERVER'S OWN CLAMP DECIDES.**
+`AbilityRules.aim` treats the direction's **length** as the requested distance and
+clamps it to the ability's reach — and a client cannot know which ability is in
+which slot, because the loadout is the server's. The cost is that **a player
+cannot aim a throw short**, which matters only for Cinderfall and is owed when a
+HUD indicator exists. `CameraArm.forward` is the conversion, because a second
+yaw-to-vector convention is the defect the Compass shipped with.
+
+**VERIFIED OVER A REAL WIRE, BECAUSE NOTHING ELSE COULD.**
+`tools/bot_client.gd` takes `--ability <slot>` now: it presses the real action on
+a real client joined to a real server and reports what came back.
+
+```bash
+godot --headless -- --server --port 27077 --max-players 6
+godot --headless --path . res://tools/bot_client.tscn -- --connect 127.0.0.1:27077 --bot 1 --ability 1
+```
+
+Measured: **`ability requests sent 0 -> 1`**, then **`states seen after the press:
+Lunging, Idle   suspicion 53.0 -> 65.0`**. The dash happened and the server
+charged for it.
+
+**MY OWN INSTRUMENT WAS WRONG FIRST, IN THE USUAL DIRECTION.** It read
+`PawnContext.suspicion` and reported `0.0 -> 0.0`, which reads exactly like a cost
+that never applied — **a client never writes that field at all**; suspicion is
+server state and `HudBridge` takes it straight off the snapshot. It reads
+`EVT-SUSPICION-VALUE-CHANGED` now. Trap 4's family, caught before it was reported.
+
+**AND `gdlint` AND `gdformat` BOTH PASSED OVER A SCRIPT WITH NO `extends`.** An
+edit dropped `class_name InputSender` and `extends Node`; both tools reported
+clean and only loading the script in Godot said *"Function get_node_or_null() not
+found in base self"*. **The lint pass is not a parse check** — run the suite, not
+just the linter.
+
+**THE OTHER C2S MESSAGE WITH NO SENDER IS NOT A BREAK.**
+`NET-C2S-BLEND-REQUEST` is a **second** doorway for a verb that already works: a
+blend press rides `InputBits.BLEND` into `PawnContext.blend_requested`, which
+`SuspicionSystem` reads at the `suspicion` stage. The RPC and
+`RpcRouter.blend_requested` are wired to nothing in `server_root`. **Reported, not
+deleted** — a `NET-` id is merged and removing a protocol message is the owner's
+call — and named in the guard's exemption list so it stays visible.
+
 ## TEN DOCUMENTED WAYS OF RUNNING THE SUITES RAN ZERO TESTS
 
 **`DEFINITION_OF_DONE.md`'s PRE-COMMIT LINE SAID A COMMAND *"PASSES"*, AND IT DID —
@@ -4809,7 +4890,7 @@ US-0024 measures it against clips that do not exist.
 | | |
 |---|---|
 | CI | 7 jobs. **Running again as of 2026-08-07 after a two-day outage** — run `31200490320`, all seven green. The seven commits merged during the outage were never through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | **51 arch + 187 unit + 33 integration scripts**, holding 201 + 1549 + 242 tests and 1 163 + 29 421 + 676 assertions (measured 2026-09-02 from a `git archive HEAD` extraction, all three green; the extraction predates the ANIMATION_SPEC commit by one documentation row and one generated `const`, and arch was re-run green after it) — the assertion count tripled at US-0049, because `test_contract_cycle_fuzz.gd` checks the invariant after every one of 10 000 events. **Nine are `pending` by design** — **eight in the unit suite and one in the integration suite**, which reports that an NPC aimed into the void never gives up. The island `pending` beside it **turned green by itself** when the alley mouths were built, which is what a `pending` naming its own blocker is for. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite measured **183.8 s** on 2026-09-02 and again on 2026-09-01, **174.6 s** twice on 2026-08-28 and **183.5 s** the day before that, with **no test removed** — **three readings within 0.1 s of each other now, so the 174.6 s pair is the outlier rather than the figure** — so the 9 s is machine variance and neither number should be quoted as *the* figure; what is real is that the suite sits within a few seconds of its limit either way. The 180 s it is 'allowed' is **enforced nowhere** — TEST_PLAN §3, TEST_PLAN §10 and TDD-12 §17 all assert it and no job checks it, which is the M4 gate's fourth drift finding. `test_the_m4_loop_resolves.gd` cost 13.1 s of that and is the first test ever to run M4's systems together. It was 162-172 s, up from 87.7 s at M2 — **under 9 s of headroom left, and the next integration test has to justify itself hard against that**. `test_server_tick_budget.gd` cost 9.8 s of it and is a gate line; the one before it, the 2 s pass A/B, samples ninety ticks **twice** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **The six are**: `test_upstream_bandwidth.gd` reporting the 145 % upstream miss, `test_crowd_bandwidth.gd` the 112 % downstream projection, `test_crowd_wire_cost.gd` the 112 % it actually costs, **`test_spawn_points.gd` twice — GDD-05 §2.7 rule 6's nine unoccluded spawn pairs and rule 8's S3 4, S4 1, S5 6 of 8 seats** — and `test_clone_animation_parity.gd` the missing clip library. **Two entries this row carried are gone because their findings closed**: `test_circuit_separation.gd`'s 0.51 m circuits (re-authored, now 21.20 m) and `test_cull_radius_price.gd`'s flat curve, which asserts rather than pends. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
+| Tests | **52 arch + 187 unit + 33 integration scripts**, holding 201 + 1549 + 242 tests and 1 163 + 29 421 + 676 assertions (measured 2026-09-02 from a `git archive HEAD` extraction, all three green; the extraction predates the ANIMATION_SPEC commit by one documentation row and one generated `const`, and arch was re-run green after it) — the assertion count tripled at US-0049, because `test_contract_cycle_fuzz.gd` checks the invariant after every one of 10 000 events. **Nine are `pending` by design** — **eight in the unit suite and one in the integration suite**, which reports that an NPC aimed into the void never gives up. The island `pending` beside it **turned green by itself** when the alley mouths were built, which is what a `pending` naming its own blocker is for. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite measured **183.8 s** on 2026-09-02 and again on 2026-09-01, **174.6 s** twice on 2026-08-28 and **183.5 s** the day before that, with **no test removed** — **three readings within 0.1 s of each other now, so the 174.6 s pair is the outlier rather than the figure** — so the 9 s is machine variance and neither number should be quoted as *the* figure; what is real is that the suite sits within a few seconds of its limit either way. The 180 s it is 'allowed' is **enforced nowhere** — TEST_PLAN §3, TEST_PLAN §10 and TDD-12 §17 all assert it and no job checks it, which is the M4 gate's fourth drift finding. `test_the_m4_loop_resolves.gd` cost 13.1 s of that and is the first test ever to run M4's systems together. It was 162-172 s, up from 87.7 s at M2 — **under 9 s of headroom left, and the next integration test has to justify itself hard against that**. `test_server_tick_budget.gd` cost 9.8 s of it and is a gate line; the one before it, the 2 s pass A/B, samples ninety ticks **twice** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **The six are**: `test_upstream_bandwidth.gd` reporting the 145 % upstream miss, `test_crowd_bandwidth.gd` the 112 % downstream projection, `test_crowd_wire_cost.gd` the 112 % it actually costs, **`test_spawn_points.gd` twice — GDD-05 §2.7 rule 6's nine unoccluded spawn pairs and rule 8's S3 4, S4 1, S5 6 of 8 seats** — and `test_clone_animation_parity.gd` the missing clip library. **Two entries this row carried are gone because their findings closed**: `test_circuit_separation.gd`'s 0.51 m circuits (re-authored, now 21.20 m) and `test_cull_radius_price.gd`'s flat curve, which asserts rather than pends. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
 | Tuning | **296** tunables across 14 resource classes; all **37** cross-field invariants assert. **Six were added on 2026-08-29 for US-0097's escape verb** — four `TUN-PURSUIT-*` on `ContractTuning` (a pursuit ends by removing and reinserting a contract, so §7 is its section and no new resource was needed) and `TUN-SCORE-ESCAPE`/`-CLOSECALL` on `ScoringTuning`. **Invariant 34 fired on its first run against the story's own proposed value**: `TUN-PURSUIT-DURATION` is `warn_radius / blend_walk` = 10.7143, US-0097 wrote **10.7**, and that asks the prey for 1.402 m/s — fractionally faster than a blend walk, in exactly the direction the invariant forbids. Shipped at **10.72**, with the tolerance tightened to a true floor rather than widened to admit it. **A rounded derivation is not a derivation.** **`TUN-COMPASS-CONE-FULL-RADIUS` 20.0 m was added on 2026-08-27** — where the Compass arc becomes a whole ring — and **invariant 33 is the reason it is not a chosen number**: it pins the radius equal to `TUN-COMPASS-LOCK-RANGE`, so the arc stops pointing exactly where the lock starts working, and separately outside the validated kill reach. It was **set three times in one day and only ever by somebody playing it** — 4.0 m derived from the half-width alone, 6.0 m at `TUN-SUSPICION-OPEN-RADIUS`, then 20.0 — and the second is the one worth remembering, because it was **derived and still wrong**. **`TUN-SCORE-HALFSEEN` +50 was added on 2026-08-27** by the fidelity re-audit — the stealth ladder had no middle rung, so a kill at **Noticed** and one at **Exposed** scored identically; invariant 32 keeps it strictly descending and strictly positive, and the `> 0` clause is the load-bearing half because every ordering check passes over a zero. `TuningInvariantsScore` was split out when that pushed the file past 400 lines — tech is how the game is *transmitted*, score is what it *pays*, and what is left is how it *plays*, with one entry point still. **Four scoring values were re-priced on 2026-08-26 (ADR-0013)** — `TUN-SCORE-SILENT` 100 → 200, `TUN-SCORE-PATIENT` 150 → 100, `TUN-SCORE-FOCUS` 100 → 150, `TUN-SCORE-RECKLESS` −50 → **0**, and invariant 18 rewritten from an ordering to a floor — split across `TuningInvariants` and `TuningInvariantsTech` since the first file hit 400 lines, with one entry point still. **Eight IDs are deprecated** and recorded in TUNABLES §19 — never reused |
 | Autoloads | All eight. `Tuning` precomputes 89 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |
