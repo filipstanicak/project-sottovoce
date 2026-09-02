@@ -40,6 +40,12 @@ const DEAD := &"Dead"
 ## distinction between two states whose names sit one letter apart.
 const STAGGERED := &"Staggered"
 
+## **US-0070.** The committed dash — `TUN-LUNGE-DISTANCE` at `TUN-LUNGE-SPEED`,
+## with the direction locked and no input read. It is a state rather than an
+## effect writing a position because 6 m of unpredicted movement is 6 m of
+## rubber-band; see `LungingState`.
+const LUNGING := &"Lunging"
+
 ## **THIS ORDER IS THE WIRE, AND IT IS APPEND-ONLY.** `Snapshot.state_index`
 ## encodes `state_id` as an index into this array, so inserting a name in the
 ## middle silently remaps every remote pawn's animation to a different state —
@@ -65,6 +71,7 @@ const ALL: Array[StringName] = [
 	STUNNED,
 	DEAD,
 	STAGGERED,
+	LUNGING,
 ]
 
 ## The locomotion sub-machine. GDD-02 §3 draws these inside `state "Locomotion"`,

@@ -152,6 +152,22 @@ var crowd_hash := SpatialHash.new()
 ## server half of `SYS-COMPASS` lives there, because TDD-07 §1's diagram makes the
 ## bearing and the lock steps 9 and 10 of the detection pass — and read by
 ## `SnapshotBuilder`. A missing reading means *no contract*, never due north.
+## **AN ABILITY THAT ENDS IN A KILL, WAITING FOR THE SYSTEM THAT OWNS KILLS.**
+## `ABIL-LUNGE`'s `auto_kill` flag (US-0070): `LungeEffect` appends the caster at
+## the `abilities` stage and `SYS-KILL` drains it at `combat`, one stage later in
+## the same tick.
+##
+## **THE EFFECT DOES NOT DECIDE WHETHER THE KILL LANDS**, which is the whole
+## reason this is a queue rather than a call. Range, cone, the announced contract,
+## the cloud and the contest are `KillRules`' and `KillSystem`'s, and an effect
+## that pre-checked any of them would be that rule written a second time — the
+## copy that drifts. What crosses is *"this player arrived"*, and nothing else.
+##
+## **NAMED FOR THE FLAG AND NOT FOR THE ABILITY.** `AbilityData.auto_kill` is a
+## field any ability may set; a queue called `lunge_arrivals` would have to be
+## renamed by the second one.
+var auto_kill_arrivals: Array[int] = []
+
 var compass := CompassBoard.new()
 
 ## **WHAT EACH OBSERVER SEES OF EACH SUBJECT, THIS TICK.** Filled by

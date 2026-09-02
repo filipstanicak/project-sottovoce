@@ -39,10 +39,20 @@ const CLIENT_SUPPLIED := "acked_tick"
 ## rewound world by somebody who never read the mixed policy.
 ##
 ## `SYS-STUN` is US-0061, so today only the first of these exists.
+## **STILL EXACTLY TWO VERBS; ONE OF THEM MOVED FILE AT US-0070.**
+## `KillSystem`'s rewind is `KillRewind`'s now — the file passed 400 lines when
+## `ABIL-LUNGE`'s arrival path landed in it. **This list is not the guarantee**;
+## `test_only_the_kill_system_holds_the_kill_rewind` below is, because a list of
+## filenames is exactly what a third system would get itself added to.
 const REWIND_CALL_SITES: Array[String] = [
-	"res://scripts/systems/combat/kill_system.gd",
+	"res://scripts/systems/combat/kill_rewind.gd",
 	"res://scripts/systems/combat/stun_system.gd",
 ]
+
+## The one class allowed to hold a `KillRewind`. Extracting the rewind into its
+## own file would otherwise turn ADR-0010's two-caller rule into a doorway
+## anything could walk through.
+const REWIND_OWNERS: Array[String] = ["res://scripts/systems/combat/kill_system.gd"]
 
 
 func test_no_combat_code_reads_a_client_supplied_number() -> void:
@@ -156,4 +166,38 @@ func test_the_ordinal_never_reaches_the_wire() -> void:
 	assert_false(
 		protocol.contains("received_ordinal"),
 		"the arrival ordinal is being serialised — a client can now choose its own place in a race"
+	)
+
+
+## **WIDENING AN ALLOWLIST IS HOW A GUARD GETS HOLLOWED OUT, SO THIS IS THE HALF
+## THAT REPLACES WHAT THE WIDENING COST.** `KillRewind` was extracted from
+## `KillSystem` at US-0070 and the list above had to name the new file. That alone
+## would let any system rewind by holding one — so the rule is restated as
+## *ownership* rather than as a filename: exactly one class may construct it, and
+## it is the one ADR-0010 names.
+func test_only_the_kill_system_holds_the_kill_rewind() -> void:
+	var holders: PackedStringArray = []
+	var scanned := 0
+	for root: String in ["res://scripts/core", "res://scripts/systems", "res://scripts/net"]:
+		for path: String in SourceScanner.gd_files(root):
+			scanned += 1
+			if path.ends_with("kill_rewind.gd"):
+				continue  # the definition, not a holder
+			for row: Array in SourceScanner.code_lines(path):
+				if String(row[1]).contains("KillRewind.new("):
+					holders.append("%s:%d" % [path, int(row[0])])
+	assert_gt(scanned, 2, "the scan found almost no files — the paths are stale")
+	assert_gt(holders.size(), 0, "nothing holds a KillRewind at all — this guard checks nothing")
+	var strangers: PackedStringArray = []
+	for holder: String in holders:
+		if not REWIND_OWNERS.has(holder.substr(0, holder.rfind(":"))):
+			strangers.append(holder)
+	assert_eq(
+		strangers.size(),
+		0,
+		(
+			"Something other than KillSystem holds a KillRewind. ADR-0010 allows two "
+			+ "rewinding verbs and this is how a third would get one: "
+			+ ", ".join(strangers)
+		)
 	)

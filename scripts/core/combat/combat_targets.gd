@@ -22,5 +22,29 @@ static func is_dead(pawn: PawnContext) -> bool:
 ##
 ## **Read off the pawn**, whose `blend_state` is written at the `suspicion` stage
 ## and read here at `combat`, three stages later in the same tick.
+## **CAN THIS PLAYER START ANYTHING RIGHT NOW.** GDD-03 §10, US-0060, moved here
+## at US-0070 when `KillSystem` passed its 400 lines.
+##
+## Already killing, dead, stunned, mid-stun-swing, or serving a stagger.
+## **Costs nothing** — the press was never going to be heard, and charging for it
+## would let a stagger compound itself.
+##
+## **THE TWO NON-PAWN FACTS ARE ARGUMENTS RATHER THAN LOOKUPS**, which is what
+## keeps this in Core: `committed` is the caller's own pending table and
+## `staggered` is `CombatLockouts`', and a predicate that reached for either could
+## not be asked a question in a test.
+##
+## **AN ABSENT PAWN IS BUSY**, because the safe answer to *"may this player act"*
+## for somebody who is not in the world is no.
+static func is_busy(pawn: PawnContext, committed: bool, staggered: bool) -> bool:
+	if committed or staggered or pawn == null:
+		return true
+	if pawn.state_id == PawnStateId.KILL_ANIM or pawn.state_id == PawnStateId.STUNNED:
+		return true
+	if pawn.state_id == PawnStateId.STUN_ANIM:
+		return true
+	return is_dead(pawn)
+
+
 static func is_concealed(pawn: PawnContext) -> bool:
 	return pawn != null and pawn.blend_state == BlendKind.Kind.PROP_CONCEAL

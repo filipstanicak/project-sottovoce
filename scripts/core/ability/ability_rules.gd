@@ -68,6 +68,50 @@ static func _usable(direction: Vector3, facing: Vector3) -> Vector3:
 	return direction.normalized()
 
 
+## **HOW LONG THIS ABILITY WINDS UP FOR, AND IT IS NOT ALWAYS `cast_time`.**
+##
+## `AbilityData` is one class holding four abilities' fields and each populates
+## only its own — `reach_of`'s rule, in a second place. Cinderfall and Second Face
+## carry `TUN-<ABIL>-CAST-TIME` in `cast_time`; **Lunge carries
+## `TUN-LUNGE-WINDUP` 0.25 s in `windup`**, and so would Whisperbolt's 1.00 s.
+##
+## **UNTIL US-0070 NOTHING READ `windup` AT ALL, AND `AbilitySystem._cast_ticks`
+## SAID SO IN A COMMENT: *"Lunge has no `cast_time` at all"*.** True of the field
+## and false of the ability — trap 14's shape, and the claim is what stopped
+## anybody checking. A Lunge would have burst on the **press tick with no
+## telegraph**, which deletes design law 3's perceivable chance to react and with
+## it GDD-04 §3.4's whole counterplay: *"a prepared defender ALWAYS beats a
+## Lunge — 0.92 s of telegraphed, unsteerable approach"*. Without the wind-up it
+## is 0.67 s and undodgeable.
+##
+## **`max` RATHER THAN A BRANCH ON THE ABILITY ID**, because a rule that names an
+## ability is one that has to be edited when a fifth arrives.
+static func windup_of(data: AbilityData) -> float:
+	if data == null:
+		return 0.0
+	return maxf(maxf(data.cast_time, 0.0), maxf(data.windup, 0.0))
+
+
+## **HOW LONG THE EFFECT LIVES, AND FOR A DASH IT IS DERIVED RATHER THAN STORED.**
+##
+## Cinderfall and Second Face declare a `duration`. Lunge does not and must not: a
+## dash lasts exactly `TUN-LUNGE-DISTANCE` over `TUN-LUNGE-SPEED` — **0.67 s from
+## 6.0 m at 9.0 m/s** — and a fourth number in the `.tres` could be set to a value
+## the first two contradict. ANIMATION_SPEC §3.3 already calls `ANIM-LUNGE-DASH`'s
+## 0.67 s *derived* for the same reason.
+##
+## Zero means instantaneous, which `AbilitySystem` gives one tick so `end()` has
+## somewhere to run.
+static func duration_of(data: AbilityData) -> float:
+	if data == null:
+		return 0.0
+	if data.duration > 0.0:
+		return data.duration
+	if data.distance > 0.0 and data.speed > 0.0:
+		return data.distance / data.speed
+	return 0.0
+
+
 ## How far this ability's aim may reach. **`AbilityData` is one class holding four
 ## abilities' fields**, so each populates only its own and the non-zero one is this
 ## ability's reach: Cinderfall throws, Lunge dashes, Second Face acts on the self

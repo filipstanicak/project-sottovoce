@@ -230,17 +230,21 @@ func _effect_for(data: AbilityData) -> AbilityEffect:
 ## panic button, long enough to be a visible tell"*, and a cast that resolved on the
 ## press tick would broadcast a warning about something that had already happened.
 ##
-## **ZERO IS A LEGAL ANSWER AND IS THE COMMON ONE.** Lunge has no `cast_time` at
-## all; the branch in `_commit` begins those on the press tick, so an ability
-## without a wind-up costs no extra tick and needs no case of its own.
+## **ZERO IS A LEGAL ANSWER AND THIS FUNCTION USED TO GIVE IT TO LUNGE WRONGLY.**
+## It read `data.cast_time` alone and its comment said *"Lunge has no `cast_time`
+## at all"* — true of the field, false of the ability. `TUN-LUNGE-WINDUP` 0.25 s
+## lives in `AbilityData.windup` and **had no reader anywhere**, so a Lunge would
+## have burst on the press tick with no telegraph at all. `AbilityRules.windup_of`
+## carries the rule and says what it cost. US-0070.
 func _cast_ticks(data: AbilityData) -> int:
-	return int(round(maxf(data.cast_time, 0.0) * Tuning.net.server_tick))
+	return int(round(AbilityRules.windup_of(data) * Tuning.net.server_tick))
 
 
 ## An ability with no duration is instantaneous and lives exactly one tick, which
-## is what gives `end()` somewhere to run.
+## is what gives `end()` somewhere to run. **A dash's duration is derived from its
+## own distance and speed rather than stored** — see `AbilityRules.duration_of`.
 func _duration_ticks(data: AbilityData) -> int:
-	return int(round(maxf(data.duration, 0.0) * Tuning.net.server_tick))
+	return int(round(AbilityRules.duration_of(data) * Tuning.net.server_tick))
 
 
 ## **THE BURST.** The effect starts, the crowd scatters, and the duration begins
