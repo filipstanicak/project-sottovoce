@@ -111,6 +111,43 @@ correctly.** Widening a filename allowlist is how a guard gets hollowed out, so 
 restated as *ownership*: exactly one class may hold a `KillRewind`, which is strictly
 stronger than the list it replaced.
 
+### The probe found two things every test missed, and one of them I then made worse
+
+`tools/ability_probe.tscn` presses slot 1 on a **real `server_root.tscn`** now. The unit
+tests drive `AbilitySystem` and `LungingState` directly and cannot see the wiring — that
+`server_root` equips Lunge at all, that `abilities` runs before `combat`, that
+`MatchDirector._substep_pawns` steps the state.
+
+**A PEER THAT NEVER SENDS INPUT IS NEVER STEPPED, AND THE FIRST PROBE DID NOT KNOW.** It
+joined a peer, pressed, and watched the pawn enter `Lunging`, travel **0.00 m** and stay
+there forever — which reads exactly like a dash that does not work. It is US-0028's own
+rule in `MatchDirector._repeat_last`: *"Nothing is repeated for a peer that has never sent
+one — a pawn that has not yet moved must not start."* **A probe that does not send input
+measures a pawn nobody is simulating**, which is trap 13's family. It drives like a client
+now.
+
+**AND THE DASH OVERSHOT ITS OWN TUNABLE BY 21 %: 7.27 m AGAINST 6.0.** The state held its
+forty ticks exactly and the pawn then *left at 9 m/s and coasted* while `IdleState`
+decelerated it. `TUN-LUNGE-DISTANCE` says *"closes the gap and nothing more"*, and the
+extra metre is spent **after** the auto-kill is judged — so it buys the lunger nothing and
+slides a whiffed one further into the open, while `Staggered` is meant to leave them
+*standing* in it. `LungingState.exit` zeroes the horizontal velocity now. **No unit test
+could see it**: they assert the state and its velocity, and the overshoot is in the pawn's
+total displacement after the state has ended.
+
+**THEN I TRIED TO MAKE IT EXACTLY 6.0 m AND CREATED A WORSE DEFECT.** The timer is
+incremented before `step()` runs and the ending call sets no velocity, so the pawn moves on
+`dash_ticks() - 1` steps and covers **5.85 m** — exactly 39 × 0.15. Ending one step later
+delivers the full 6.0 and makes the state **outlive `AbilityEffect`'s own window by one net
+tick**, so `LungeEffect.end` fires while the pawn is still `Lunging`, refuses to queue an
+arrival, and **the entire resolution is silently dropped**: no kill, no whiff, no stagger.
+The probe measured that too, ending `Idle` where it should end `Staggered`.
+
+**ONE CLOCK AND 2.5 % SHORT BEATS TWO CLOCKS AND EXACT.** Reverted, documented at both
+ends, and `test_the_dash_ends_inside_its_own_effect_window` is the assertion that stops
+anybody trying it again. The shortfall errs toward the ability being **weaker**, which is
+the safe direction for the one verb designed to bypass the approach phase.
+
 ### And a fixture was wrong in a way worth keeping
 
 `test_lunge_effect.gd` first ticked only the ability system, so the dash never ended and no

@@ -53,6 +53,27 @@ func id() -> StringName:
 	return PawnStateId.LUNGING
 
 
+## **A COMMITTED DASH STOPS DEAD, AND THE PROBE IS WHAT FOUND THAT IT DID NOT.**
+## `tools/ability_probe.tscn` measured a live server at **7.27 m against a tuned
+## 6.0** — the state held its forty ticks exactly, and the pawn then left at
+## `TUN-LUNGE-SPEED` 9.0 m/s and **coasted** while `IdleState` decelerated it.
+##
+## `TUN-LUNGE-DISTANCE`'s own row says *"closes the 'they saw me and turned' gap
+## **and nothing more**"*, and 21 % more is more. Worse, the extra metre is spent
+## **after** the auto-kill has been judged, so it buys the lunger nothing and
+## simply slides a whiffed one further into the open — while `Staggered` is
+## supposed to leave them *standing* in it.
+##
+## **NO UNIT TEST COULD SEE THIS**, because they assert the state and its velocity
+## and the overshoot is in the pawn's total displacement, measured after the state
+## has ended. It took driving a real server.
+##
+## **`y` IS LEFT ALONE**: a dash off a ledge must still fall, and gravity is
+## `PawnMotion`'s.
+func exit(ctx: PawnContext) -> void:
+	ctx.velocity = Vector3(0.0, ctx.velocity.y, 0.0)
+
+
 func interrupt_priority() -> int:
 	return PRIORITY_COMBAT
 
@@ -108,6 +129,24 @@ func step(ctx: PawnContext, _input: InputCommand, _delta: float) -> StringName:
 	# `PawnMotion` applies gravity to an ungrounded body and this state has no
 	# opinion about the vertical.
 	ctx.velocity = Vector3(held.x, ctx.velocity.y, held.z)
+	# **A DASH DELIVERS 5.85 m OF A TUNED 6.0, AND THE 0.15 m IS THE COST OF
+	# STOPPING DEAD.** `PawnStateMachine.step` increments the timer *before* this
+	# runs, and on the call that ends the dash `exit()` zeroes the velocity before
+	# `PawnMotion` moves anything — so the pawn moves on `dash_ticks() - 1` steps.
+	# Measured on a live server at **5.85 m, reproducible to two decimals**, which
+	# is exactly 39 × 0.15.
+	#
+	# **`>` WAS TRIED AND IS MUCH WORSE.** It delivers the full 6.0 m and makes the
+	# state outlive `AbilityEffect`'s own window by one net tick — so `LungeEffect.end`
+	# fires while the pawn is still `Lunging`, refuses to queue an arrival, and
+	# **the entire resolution is silently dropped**: no kill, no whiff, no stagger.
+	# The probe measured that too, ending in `Idle` where it should end `Staggered`.
+	# US-0067's *two clocks and the defect lives in the gap*, created and then
+	# reverted rather than shipped.
+	#
+	# **ONE CLOCK AND 2.5 % SHORT BEATS TWO CLOCKS AND EXACT**, and the shortfall
+	# errs toward the ability being weaker, which is the safe direction for the one
+	# verb designed to bypass the approach phase.
 	if ctx.state_timer_ticks >= dash_ticks():
 		return PawnStateId.IDLE
 	return STAY

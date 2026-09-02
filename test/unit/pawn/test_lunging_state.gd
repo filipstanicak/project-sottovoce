@@ -173,6 +173,45 @@ func test_a_pawn_dropped_into_the_state_still_dashes() -> void:
 	assert_almost_eq(flat.length(), LungingState.dash_speed(), 0.01, "it lost the locked speed")
 
 
+## **THE STATE MUST NOT OUTLIVE `AbilityEffect`'s OWN WINDOW**, which is what makes
+## the 0.15 m shortfall in `dash_ticks()` the right trade. Ending one step later
+## delivers the full 6.0 m and makes `LungeEffect.end` fire while the pawn is still
+## `Lunging` — no arrival, no kill, no whiff, the whole resolution silently gone.
+## Measured on a live server, both ways.
+func test_the_dash_ends_inside_its_own_effect_window() -> void:
+	var net_ticks_of_state := float(LungingState.dash_ticks()) / Tuning.net.client_input_rate
+	var effect_window := AbilityRules.duration_of(Tuning.ability_data(Ids.ABIL_LUNGE))
+	assert_lte(
+		net_ticks_of_state,
+		effect_window + 0.0001,
+		"the dash outlives its effect, so nothing will resolve it"
+	)
+
+
+## **THE DASH STOPS DEAD, AND A LIVE SERVER IS WHAT FOUND THAT IT DID NOT.**
+## `tools/ability_probe.tscn` measured **7.27 m against a tuned 6.0**: the state
+## held its forty ticks exactly and the pawn then left at 9 m/s and coasted while
+## `IdleState` decelerated it. `TUN-LUNGE-DISTANCE` says *"closes the gap and
+## nothing more"*, and the extra metre is spent after the auto-kill has been
+## judged — so it buys the lunger nothing and slides a whiffed one further into
+## the open, while `Staggered` is supposed to leave them standing in it.
+func test_the_dash_stops_dead_rather_than_coasting() -> void:
+	_dash()
+	_step(LungingState.dash_ticks())
+	assert_eq(_ctx.state_id, PawnStateId.IDLE, "the dash never ended")
+	var flat := Vector3(_ctx.velocity.x, 0.0, _ctx.velocity.z)
+	assert_almost_eq(flat.length(), 0.0, 0.001, "the dash coasted out of its own distance")
+
+
+## The same on every exit, not only the timer's — a stunned lunger must not slide.
+func test_being_stunned_out_of_a_dash_also_stops_the_pawn() -> void:
+	_dash()
+	_step(2)
+	_machine.transition(_ctx, PawnStateId.STUNNED, PawnState.PRIORITY_COMBAT)
+	var flat := Vector3(_ctx.velocity.x, 0.0, _ctx.velocity.z)
+	assert_almost_eq(flat.length(), 0.0, 0.001, "a stunned lunger kept sliding")
+
+
 ## Nothing about the vertical is this state's business: `PawnMotion` applies
 ## gravity to an ungrounded body, so a dash off a ledge must still fall.
 func test_the_vertical_is_left_alone() -> void:
