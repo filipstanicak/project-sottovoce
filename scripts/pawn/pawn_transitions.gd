@@ -52,11 +52,18 @@ const NON_LOCO: Dictionary = {
 	PawnStateId.RESPAWNING: [PawnStateId.IDLE],
 	PawnStateId.VAULT: [LOCO_MARKER, PawnStateId.STUNNED, PawnStateId.DEAD],
 	PawnStateId.CLIMB: [LOCO_MARKER, PawnStateId.DROP, PawnStateId.STUNNED, PawnStateId.DEAD],
-	PawnStateId.DROP: [LOCO_MARKER],
+	# **`Drop -> Dead` AND `StunAnim -> Dead` WERE MISSING UNTIL 2026-09-02, AND IT
+	# WAS NOT COSMETIC.** `KillSystem._land` emitted `killed` and counted the kill
+	# whether or not the transition was legal, so a victim killed mid-fall or
+	# mid-swing was announced dead, had the cycle repaired around them, had a corpse
+	# spawned — and `CombatTargets.is_dead` still answered **false**, because it
+	# reads `state_id`. An undead victim is a live target their killer's successor
+	# is still hunting. Reported as *"the pawn keeps walking"* since US-0060.
+	PawnStateId.DROP: [LOCO_MARKER, PawnStateId.DEAD],
 	PawnStateId.BLENDED:
 	[LOCO_MARKER, PawnStateId.KILL_ANIM, PawnStateId.STUNNED, PawnStateId.DEAD],
 	PawnStateId.KILL_ANIM: [LOCO_MARKER, PawnStateId.STUNNED, PawnStateId.DEAD],
-	PawnStateId.STUN_ANIM: [LOCO_MARKER],
+	PawnStateId.STUN_ANIM: [LOCO_MARKER, PawnStateId.DEAD],
 	PawnStateId.STUNNED: [LOCO_MARKER, PawnStateId.DEAD],
 	PawnStateId.DEAD: [PawnStateId.RESPAWNING],
 	# **STUNNABLE AND KILLABLE, AND THE FIRST IS THE ONE WITH AN ARGUMENT.**
