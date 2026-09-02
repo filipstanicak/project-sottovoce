@@ -75,10 +75,24 @@ ADR-0013's audit did not flag, and it is **reported here rather than acted on**:
 `TUN-` ID and a merged rule, and changing either is the owner's. Nothing in this ADR depends on
 it — the state is needed by the other two tunables and by Lunge regardless.
 
-Sources: [Multiplayer Perks — Assassin's Creed Wiki](https://assassinscreed.fandom.com/wiki/Multiplayer_Perks),
-[Brotherhood multiplayer abilities strategy — Top Tier Tactics](https://www.toptiertactics.com/3648/assassins-creed-brotherhood-multiplayer-abilities-strategy-part-3/),
-[Revelations multiplayer hands-on — GameSpot](https://www.gamespot.com/articles/assassins-creed-revelations-multiplayer-hands-on/1100-6326669/),
-[Revelations multiplayer — Kotaku](https://kotaku.com/assassins-creed-revelations-altered-multiplayer-mode-r-5811909).
+**THE CITATIONS ARE NOT IN THIS FILE, AND THAT IS NEVER-DO #5 RATHER THAN AN OMISSION.**
+Four sources were read before either paragraph above was written — a franchise wiki's perks
+page, a strategy site's ability guide, and two press hands-on pieces about the sequel's
+multiplayer. **Every one of them names the reference in its title, its URL or both**, so
+reproducing them here would put the franchise name in the repository, which CI fails hard on.
+This is ADR-0013's own handling: the full fidelity audit *"names the reference in every row and
+therefore lives outside the repo, in the owner's design notes"*, and the same rule governs a
+citation.
+
+**THE LINKS WERE GIVEN TO THE OWNER IN CHAT AND BELONG IN THE DESIGN NOTES.** What is recorded
+here is what the sources *said*, which is the part a future reader needs and the part that
+carries no franchise term.
+
+**AND THE FIRST VERSION OF THIS FILE GOT IT WRONG.** It carried four markdown links and
+`ip-guard` refused the build — the guard working exactly as designed, on the one class of
+mistake review here has never caught. Worth knowing before the next ADR needs a source: the
+standing instruction to always cite an in-game reference and never-do #5 collide, and the
+resolution is **chat and the owner's notes, never a file**.
 
 ## Decision
 
