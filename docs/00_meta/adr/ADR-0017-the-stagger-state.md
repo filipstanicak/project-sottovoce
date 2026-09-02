@@ -182,6 +182,11 @@ statement.
 
 ## What is NOT decided here
 
+> **CLOSED 2026-09-02, AND THE RECOMMENDATION UNDERSTATED IT.** Both edges are in, and
+> the defect was not cosmetic: `KillSystem._land` announced the kill whether or not the
+> transition was legal, so the victim was scored, corpse-spawned and repaired around while
+> `CombatTargets.is_dead` still answered **false**. What follows is the original text.
+
 **The two missing `Dead` edges stay missing.** GDD-02 §3's diagram has no `Drop -> Dead` and no
 `StunAnim -> Dead`, so a player killed while falling or mid-stun-swing cannot enter `Dead`;
 `KillSystem._enter` reports it and the pawn keeps walking. `Staggered -> Dead` **is** added here,

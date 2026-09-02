@@ -270,6 +270,8 @@ stateDiagram-v2
     Stunned --> Loco: TUN-STUN-FREEZE 4.0 s
 
     Loco --> Dead: killed
+    Drop --> Dead: killed mid-fall
+    StunAnim --> Dead: killed mid-swing
     Blended --> Dead: killed
     Vault --> Dead: killed
     Climb --> Dead: killed

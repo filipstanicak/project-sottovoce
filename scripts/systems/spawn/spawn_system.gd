@@ -76,11 +76,13 @@ func tick(ctx: MatchContext) -> void:
 ## harmless on every tick after it — a pawn already in `Respawning` is not a legal
 ## `from`, so the machine refuses and nothing happens.
 ##
-## **AN ILLEGAL EDGE IS REPORTED, NOT ASSERTED PAST**, exactly as
-## `KillSystem._enter` does: GDD-02 §3's diagram has no `Drop -> Dead` and no
-## `StunAnim -> Dead`, so a player killed while falling never reached `Dead` and
-## will not reach `Respawning` either. The timer still runs and they are still
-## placed; what they lose is the five seconds of being untargetable.
+## **AN ILLEGAL EDGE IS REPORTED, NOT ASSERTED PAST**, exactly as `CombatEntry`
+## does. **The one case that used to reach it is closed**: GDD-02 §3 declared no
+## `Drop -> Dead` and no `StunAnim -> Dead` until 2026-09-02, so a player killed
+## while falling never reached `Dead` and therefore never reached `Respawning` —
+## losing their five seconds of `TUN-RESPAWN-INVULN` on top of not dying at all.
+## Both edges exist now and `test_the_missing_dead_edges.gd` asserts the second
+## hop as well as the first.
 func _enter_respawning(ctx: MatchContext, peer: int) -> void:
 	var pawn: PawnContext = ctx.pawn_contexts.get(peer)
 	if pawn == null or pawn.state_id != PawnStateId.DEAD:

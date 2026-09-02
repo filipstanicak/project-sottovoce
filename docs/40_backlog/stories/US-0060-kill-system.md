@@ -168,7 +168,7 @@ would be a second authority over how long death lasts, in code that is replayed 
 prediction reconciliation.
 
 **TWO STATES CANNOT DIE AT ALL, AND THAT IS THE DIAGRAM.** GDD-02 §3's normative diagram has
-no `Drop -> Dead` and no `StunAnim -> Dead`, so a player killed while falling or mid-stun-swing
+no `Drop -> Dead` and no `StunAnim -> Dead` **until 2026-09-02**, so a player killed while falling or mid-stun-swing
 cannot enter `Dead`. `KillSystem._enter` reports the missing edge rather than asserting past
 it: the death still resolves and the pawn keeps walking. Amending the diagram is design prose
 and is the owner's.
