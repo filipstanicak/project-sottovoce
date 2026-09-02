@@ -25,6 +25,17 @@ AbilityEffect base class.
 
 ## Acceptance criteria
 
+> **NO CLIENT COULD REACH ANY OF THIS UNTIL 2026-09-02.** Every criterion below was true
+> of `SYS-ABILITY` and **none of them was reachable by pressing a key**:
+> `NET-C2S-ABILITY-REQUEST` had its RPC, its authority row, its channel, its router hop
+> and its `server_root` wiring, and **nothing on the client ever called it**. Q and F did
+> literally nothing through this story, US-0067 and US-0070. Found by the owner pressing
+> F; `test_every_c2s_message_has_a_sender.gd` is the guard.
+>
+> **The criteria are not being untickd**, because each is true of the system and was
+> tested against it. What was missing is a hop no criterion here names — which is the
+> lesson: **a story can be honestly complete and its feature still unreachable.**
+
 - [x] Five validations: equipped, cooldown, global cooldown, legal pawn state, aim range.
       `AbilityRules.check` is pure and answers with **the first rung that fails**,
       which is also the order a player would want to hear: *you do not have that*
