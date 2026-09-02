@@ -250,7 +250,7 @@ generated, not hand-authored.
 | A new snapshot field | Cooldowns are indexed by slot, not by ability |
 | UI changes | `AbilitySlots` renders from `AbilityData` |
 | Audio wiring | `tell_sfx` is a `SFX-` ID resolved by the `Audio` autoload |
-| A new pawn state | Effects manipulate the existing state machine; only Lunge needs a dash, which already exists |
+| A new pawn state | Effects manipulate the existing state machine. **AMENDED 2026-09-01 (ADR-0017): this row read "only Lunge needs a dash, which already exists" and NO DASH EXISTS** — trap 14's shape in a technical table, and the claim is exactly what stopped anybody checking. `Staggered` was added for the three `TUN-*-STAGGER` rules, one of which is Lunge's whiff; whether the **dash itself** needs a state is US-0070's to answer, and the row no longer answers it for them |
 
 ### 5.2 The checklist that is still required
 

@@ -56,13 +56,15 @@ animation.
 - [x] Contests inside 0.4 s resolve by SERVER RECEIVE TICK, never client time.
       A same-tick tie breaks on an **arrival ordinal** stamped in
       `MatchDirector.enqueue_input` — see the notes.
-- [ ] The loser staggers 1.5 s with no points and no lockout.
-      **No points and no lockout are true; the stagger is an initiation lockout rather than
-      a movement one.** GDD-02 §3's normative diagram declares fifteen states and none of
-      them is a stagger, so there is nothing to transition into — and three separate rules
-      need one (`TUN-KILL-CONTEST-STAGGER`, `TUN-STUN-INVALID-STAGGER`,
-      `TUN-LUNGE-WHIFF-STAGGER`). Adding a sixteenth state amends a normative diagram and
-      is the owner's.
+- [x] The loser staggers 1.5 s with no points and no lockout. **TRUE AS OF 2026-09-01
+      (ADR-0017), AND IT WAS HALF TRUE FOR FIVE STORIES.** No points and no lockout were
+      always true; the stagger was an **initiation** lockout rather than a movement one,
+      because GDD-02 §3's diagram declared no stagger state and adding one amends a
+      normative document. The owner settled it: `Staggered` is the fifteenth state, the
+      loser is put in it for `TUN-KILL-CONTEST-STAGGER` 1.5 s of **step** ticks, and
+      `test_kill_system.gd` asserts both the state and the clock. **The lockout stays
+      beside it** — it answers *may this player initiate*, which both combat systems must
+      answer with no state machine in reach.
 - [x] 1.4 s animation; victim dies at the 0.9 s contact frame.
       Counted in **net** ticks by the system and in **step** ticks by `KillAnimState`, and
       the two are asserted to agree in wall time — trap 9, in the one place it would decide
