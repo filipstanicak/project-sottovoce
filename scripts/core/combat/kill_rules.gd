@@ -110,6 +110,47 @@ static func resolve(
 	return [KillVerdict.V.ALLOWED, target]
 
 
+## **AN ARRIVAL IS A CORRIDOR, NOT A CONE.** `ABIL-LUNGE`, 2026-09-03. Measured on
+## a real server: at a 6 m approach **two degrees of aim error whiffed**, contract
+## 0.26 m away, refused `OUT_OF_CONE`. A cone is an **angle**, so the ground it
+## covers shrinks to nothing as you close — 2.85 m at the reach, 26 cm where a dash
+## ends — which made arriving *accurately* harder, not easier. Same flaw the
+## Compass arc had (`CompassMath.cone_halfwidth_for`).
+##
+## **`within_cone` IS LEFT ALONE**: its docstring says a target beside the killer
+## being refused is the intent, and a press is made at a chosen moment. This is the
+## arrival's rule, not a change to every kill in the game.
+##
+## **The contract alone, no strangers**: an arrival's refusal costs the same
+## whatever the reason, so nothing a nearer body could change (GDD-03 §9.2).
+static func resolve_swept(
+	world: RewoundWorld, killer: int, from: Vector3, contract: int, t: CombatTuning, sees: Callable
+) -> Array:
+	var here := world.position_of(killer)
+	if here == Vector3.INF:
+		return [KillVerdict.V.BUSY, ContractCycle.NOBODY]
+	if contract == ContractCycle.NOBODY:
+		return [KillVerdict.V.NO_CONTRACT, ContractCycle.NOBODY]
+	var at := world.position_of(contract)
+	if at == Vector3.INF:
+		return [KillVerdict.V.NO_TARGET, contract]
+	if CompassMath.distance_to(closest_on_segment(from, here, at), at) > reach(t):
+		return [KillVerdict.V.OUT_OF_RANGE, contract]
+	if not can_see(sees, here, at):
+		return [KillVerdict.V.OUT_OF_SIGHT, contract]
+	return [KillVerdict.V.ALLOWED, contract]
+
+
+## The point on segment `a`-`b` nearest to `p`. Public so the probe can print the
+## same number the rule decided on.
+static func closest_on_segment(a: Vector3, b: Vector3, p: Vector3) -> Vector3:
+	var span := b - a
+	var length2 := span.length_squared()
+	if length2 <= 0.000001:
+		return a
+	return a + span * clampf((p - a).dot(span) / length2, 0.0, 1.0)
+
+
 ## The nearest player inside both the range and the cone, or `NOBODY`.
 ##
 ## **NEAREST, NOT FIRST.** Iteration order over peers is join order, so taking the

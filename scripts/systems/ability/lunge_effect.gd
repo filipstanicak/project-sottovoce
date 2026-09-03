@@ -27,6 +27,13 @@ extends AbilityEffect
 
 var _caster: int = ContractCycle.NOBODY
 
+## Where the dash began. **The arrival is judged over the corridor it travelled**
+## (`KillRules.resolve_swept`), and the origin is recorded rather than derived from
+## the final yaw because `LungingState` keeps the camera: a player who turned
+## mid-dash would otherwise have their corridor drawn along a heading they were not
+## travelling.
+var _from: Vector3 = Vector3.ZERO
+
 ## `end()` **must be idempotent** — the base says so, and a caster who dies
 ## mid-dash triggers both the death sweep and the expiry already scheduled for the
 ## same tick. Queueing the arrival twice would ask `SYS-KILL` for two kills.
@@ -46,6 +53,7 @@ func begin(ctx: MatchContext, caster: int, aim: AimData) -> void:
 	# direction and `AbilityRules.aim` has already clamped its length; what it
 	# cannot do is stop somebody aiming at the sky, and a dash with a vertical
 	# component would be a jump nobody tuned.
+	_from = pawn.position
 	var flat := Vector3(aim.direction.x, 0.0, aim.direction.z)
 	if flat.length() < 0.001:
 		return
@@ -85,4 +93,4 @@ func end(ctx: MatchContext) -> void:
 	var pawn: PawnContext = ctx.pawn_contexts.get(_caster)
 	if pawn == null or not PawnStateId.is_locomotion(pawn.state_id):
 		return
-	ctx.auto_kill_arrivals.append(_caster)
+	ctx.auto_kill_arrivals.append([_caster, _from])

@@ -69,7 +69,15 @@ func _arrived_at(metres: float) -> void:
 	_place(B, Vector3(0.0, 0.0, metres))
 	_ctx.announced_contracts[A] = B
 	_fill_the_ring(8)
-	_ctx.auto_kill_arrivals.append(A)
+	_ctx.auto_kill_arrivals.append([A, _origin_of(A)])
+
+
+## **THE DASH ORIGIN THE ARRIVAL IS JUDGED OVER.** `LungeEffect` records it at the
+## burst; a fixture that appends by hand has to supply it, and supplying the pawn's
+## *current* position models a dash of zero length — which is the corridor
+## degenerating to a point, i.e. exactly the old endpoint rule.
+func _origin_of(peer: int) -> Vector3:
+	return (_ctx.pawn_contexts[peer] as PawnContext).position
 
 
 func _advance(ticks: int = 1) -> void:
@@ -137,7 +145,7 @@ func test_a_dash_that_arrives_at_a_stranger_whiffs() -> void:
 	_place(B, Vector3(0.0, 0.0, 40.0))
 	_ctx.announced_contracts[A] = B
 	_fill_the_ring(8)
-	_ctx.auto_kill_arrivals.append(A)
+	_ctx.auto_kill_arrivals.append([A, _origin_of(A)])
 	_advance()
 	assert_eq(_system.arrivals_whiffed, 1, "a dash into a stranger was allowed to kill")
 	assert_eq(_state(C), PawnStateId.IDLE, "the stranger was affected")
@@ -158,7 +166,7 @@ func test_an_arrival_beats_a_press_made_in_the_same_tick() -> void:
 	_ctx.announced_contracts[A] = B
 	_ctx.announced_contracts[C] = B
 	_fill_the_ring(8)
-	_ctx.auto_kill_arrivals.append(A)
+	_ctx.auto_kill_arrivals.append([A, _origin_of(A)])
 	var command := InputCommand.new()
 	command.buttons = InputBits.KILL
 	command.received_ordinal = 0
@@ -182,7 +190,7 @@ func _dashed_in(behind: float, gap: float) -> void:
 	_ctx.announced_contracts[A] = B
 	_fill_the_ring(8)
 	(_ctx.pawn_contexts[A] as PawnContext).position = Vector3.ZERO
-	_ctx.auto_kill_arrivals.append(A)
+	_ctx.auto_kill_arrivals.append([A, _origin_of(A)])
 
 
 ## **AN ARRIVAL IS JUDGED AGAINST WHAT IS THERE, NOT AGAINST WHAT ANYBODY SAW.**
@@ -220,20 +228,39 @@ func test_the_present_judgement_still_refuses_a_dash_that_ended_short() -> void:
 	assert_eq(_system.last_whiff, KillVerdict.V.OUT_OF_RANGE, "the whiff recorded the wrong reason")
 
 
-## **A WHIFF REACHES NOBODY BY DESIGN**, so the reason is recorded rather than
-## sent: GDD-04 §3.4 prices a miss at `TUN-LUNGE-WHIFF-STAGGER` and nothing else,
-## which is right for the player and leaves a developer unable to tell *overshot*
-## from *behind you*. Both are real and they are the two ways this ability fails.
-func test_a_dash_that_ended_past_its_target_records_the_cone_rather_than_the_range() -> void:
-	_place(A, Vector3.ZERO)
-	_place(B, Vector3(0.0, 0.0, -1.85))
+## Places `B` `metres` along the dash line, with the hunter having travelled the
+## full `TUN-LUNGE-DISTANCE` from behind them — a corridor, not a point.
+func _dashed_through(metres: float) -> void:
+	var run := LungingState.dash_distance()
+	_place(A, Vector3(0.0, 0.0, run))
+	_place(B, Vector3(0.0, 0.0, metres))
 	_ctx.announced_contracts[A] = B
 	_fill_the_ring(8)
-	_ctx.auto_kill_arrivals.append(A)
+	_ctx.auto_kill_arrivals.append([A, Vector3.ZERO])
+
+
+## **A CONTRACT THE DASH WENT *THROUGH* IS KILLED.** Changed 2026-09-03, and this
+## test asserted the opposite until then — that a contract left 1.85 m behind the
+## hunter whiffed `OUT_OF_CONE`, which was true of the endpoint rule and was the
+## defect: at a 4.0 m approach the contract ended **inside** the 2.85 m reach and
+## was refused for being behind. `KillRules.resolve_swept` judges the corridor the
+## dash travelled, which is what the reference does — it resolves against whoever
+## the dash connects with — and it is why decision 8's overshoot hole is closed.
+func test_a_contract_the_dash_passed_through_is_killed() -> void:
+	_dashed_through(LungingState.dash_distance() - 1.85)
 	_advance()
-	assert_eq(_system.arrivals_whiffed, 1, "a contract left behind the hunter was killed")
-	assert_eq(
-		_system.last_whiff,
-		KillVerdict.V.OUT_OF_CONE,
-		"a target 1.85 m away and behind the hunter was refused for the wrong reason"
-	)
+	assert_eq(_system.arrivals_landed, 1, "the dash went through the contract and did not kill")
+
+
+## **AND THE CORRIDOR IS NOT A LICENCE.** A contract off to one side by more than
+## the reach is still a miss, or the rule would be *dash anywhere near them*.
+func test_a_contract_beside_the_corridor_still_whiffs() -> void:
+	var run := LungingState.dash_distance()
+	_place(A, Vector3(0.0, 0.0, run))
+	_place(B, Vector3(KillRules.reach(Tuning.combat) + 1.0, 0.0, run * 0.5))
+	_ctx.announced_contracts[A] = B
+	_fill_the_ring(8)
+	_ctx.auto_kill_arrivals.append([A, Vector3.ZERO])
+	_advance()
+	assert_eq(_system.arrivals_whiffed, 1, "a contract beside the whole dash was killed")
+	assert_eq(_system.last_whiff, KillVerdict.V.OUT_OF_RANGE, "the whiff recorded the wrong reason")

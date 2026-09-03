@@ -413,7 +413,7 @@ Shared rules first, then per ability. Cooldowns are authoritative on the server 
 | `TUN-LUNGE-WINDUP` | 0.25 | s | 0.15–0.4 | Short, but present, and audible. The tell. |
 | `TUN-LUNGE-STUNNABLE` | true | bool | — | For the entire wind-up and dash. The dash is loud and telegraphed; it must lose to a prepared defender. This is `TUN-STUN-VS-LUNGE-WINDOW`. |
 | `TUN-LUNGE-SUSPICION` | 40.0 | pts | — | Equals `TUN-SUSPICION-GAIN-LOUD-ABILITY`. You are Noticed the instant you press it, and if the kill lands you take `SCORE-RECKLESS` unless you were near-clean beforehand. |
-| `TUN-LUNGE-AUTO-KILL` | true | bool | — | If the dash ends within `TUN-KILL-RANGE` and cone of the contract, the kill auto-initiates. It is one button, not two, because it is the panic button. |
+| `TUN-LUNGE-AUTO-KILL` | true | bool | — | If the dash passes within `TUN-KILL-RANGE` of the contract **anywhere along its path**, the kill auto-initiates. It is one button, not two, because it is the panic button. **Amended 2026-09-03**: it was *ends within range and cone*, and the cone was degenerate at the distance a dash ends at — 2 degrees of aim error whiffed at a 6 m approach, measured. `KillRules.resolve_swept`. |
 | `TUN-LUNGE-WHIFF-STAGGER` | 1.2 | s | 0.8–2.0 | Missing leaves you standing in the open, Noticed, unable to act. |
 | `TUN-LUNGE-STARTLE-RADIUS` | 7.0 | m | 5–10 | NPCs scatter from the dash path. You have drawn an arrow to yourself. |
 | `TUN-LUNGE-TELL-AUDIO-RADIUS` | 20.0 | m | 14–28 | The shout and footfall carry this far. Promoted from prose. |

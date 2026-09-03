@@ -41,11 +41,26 @@ var _yaw: float = 0.0
 ## editing the file: the dash is a fixed length and unsteerable, so *too close* is
 ## a failure mode as real as too far.
 func _stand_off() -> float:
+	return _arg("--standoff", STAND_OFF)
+
+
+## **DEGREES THE CONTRACT SITS OFF THE DASH LINE**, `-- --offaxis <deg>`. Every
+## sweep before this one placed the prey **exactly** on the line, which is the one
+## thing a real player cannot do: they aim with a camera, at a body they have to
+## pick out of identical capsules, and the Compass is a **full ring** inside
+## `TUN-COMPASS-CONE-FULL-RADIUS` 20 m so it offers no bearing at all at this
+## range. If the auto-kill tolerates only a degree or two, the band measured in
+## metres was never the binding constraint.
+func _off_axis() -> float:
+	return _arg("--offaxis", 0.0)
+
+
+func _arg(name: String, fallback: float) -> float:
 	var args := OS.get_cmdline_user_args()
 	for i: int in args.size():
-		if args[i] == "--standoff" and i + 1 < args.size():
+		if args[i] == name and i + 1 < args.size():
 			return float(args[i + 1])
-	return STAND_OFF
+	return fallback
 
 
 func _ready() -> void:
@@ -103,12 +118,46 @@ func _place(ctx: MatchContext, peer: int, at: Vector3) -> void:
 		pawn.position = at
 
 
+## Put the prey down the dash line and let the ring see it there. **Split out for
+## the function-length guard**, and the seam is honest: above is *decide the
+## geometry*, here is *make the world hold it*.
+func _stand_prey(ctx: MatchContext, from: Vector3, off: Vector3) -> void:
+	_place(ctx, PREY, from + off * _stand_off())
+	# The lag-comp ring must hold the prey where it now stands, or the rewind
+	# resolves against where the body was before it was moved.
+	for _i: int in 20:
+		await _drive()
+	var prey: PawnContext = ctx.pawn_contexts.get(PREY)
+	# **DID THE PREY STAY WHERE IT WAS PUT?** `_place` writes a body's position
+	# directly, so a point inside a building is ejected by physics — and the run then
+	# reports an 11 m gap and `NO_TARGET`, which reads exactly like a rule that
+	# cannot see its target. Three sweep rows were misread that way before this line.
+	var meant := from + off * _stand_off()
+	if prey.position.distance_to(meant) > 0.5:
+		print(
+			(
+				(
+					"INSTRUMENT: the prey was ejected from %s to %s — this spawn puts it in "
+					% [str(meant), str(prey.position)]
+				)
+				+ "geometry, so the row below measures the level and not the rule."
+			)
+		)
+	print(
+		(
+			"standing the prey %.2f m down the dash line at %s"
+			% [from.distance_to(prey.position), str(prey.position)]
+		)
+	)
+
+
 func _press(abilities: AbilitySystem, kills: KillSystem, ctx: MatchContext) -> void:
 	var hunter: PawnContext = ctx.pawn_contexts.get(HUNTER)
 	var contract := int(ctx.announced_contracts.get(HUNTER, ContractCycle.NOBODY))
 	print("")
 	print("--- THE LUNGE ARRIVAL, ON A REAL SERVER ---")
 	print("hunter %d   announced contract %d   (prey is %d)" % [HUNTER, contract, PREY])
+	print("stand-off %.2f m   off-axis %.1f deg" % [_stand_off(), _off_axis()])
 	if contract != PREY:
 		print("REFUSING: the two-player cycle did not announce the prey as the contract.")
 		return
@@ -116,18 +165,9 @@ func _press(abilities: AbilitySystem, kills: KillSystem, ctx: MatchContext) -> v
 	var toward := (Vector3(60.0, from.y, 60.0) - from).normalized()
 	# `CameraArm.forward(yaw)` is `(sin yaw, 0, cos yaw)`, so this is its inverse.
 	_yaw = atan2(toward.x, toward.z)
-	_place(ctx, PREY, from + toward * _stand_off())
-	# The lag-comp ring must hold the prey where it now stands, or the rewind
-	# resolves against where the body was before it was moved.
-	for _i: int in 20:
-		await _drive()
-	var prey: PawnContext = ctx.pawn_contexts.get(PREY)
-	print(
-		(
-			"standing the prey %.2f m down the dash line at %s"
-			% [from.distance_to(prey.position), str(prey.position)]
-		)
-	)
+	# The hunter dashes along `toward`; the prey stands `_off_axis()` degrees off it.
+	var off := toward.rotated(Vector3.UP, deg_to_rad(_off_axis()))
+	await _stand_prey(ctx, from, off)
 	var before := [kills.arrivals_judged, kills.arrivals_landed, kills.arrivals_whiffed]
 	var data := Tuning.ability_data(Ids.ABIL_LUNGE)
 	abilities.report_request(HUNTER, 1, from, toward * data.distance)
