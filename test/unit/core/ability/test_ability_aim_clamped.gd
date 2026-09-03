@@ -84,10 +84,17 @@ func test_the_reach_comes_from_whichever_field_this_ability_populates() -> void:
 	var lunge: AbilityData = Tuning.ability_data(Ids.ABIL_LUNGE)
 	assert_not_null(cinderfall, "the shipped profile has no Cinderfall")
 	assert_not_null(lunge, "the shipped profile has no Lunge")
-	assert_eq(AbilityRules.reach_of(cinderfall), cinderfall.throw_range, "Cinderfall throws")
 	assert_eq(AbilityRules.reach_of(lunge), lunge.distance, "Lunge dashes")
-	assert_gt(AbilityRules.reach_of(cinderfall), 0.0, "Cinderfall reaches nowhere")
 	assert_gt(AbilityRules.reach_of(lunge), 0.0, "Lunge reaches nowhere")
+	# **CINDERFALL POPULATES NEITHER FIELD SINCE 2026-09-03**, so the convention
+	# holds by producing zero rather than by producing `throw_range`: the reference
+	# deploys it at the caster's feet and its sequel is what added a throw
+	# (ADR-0013). This assertion used to read `> 0.0` and was correct then.
+	assert_eq(cinderfall.throw_range, 0.0, "Cinderfall can be thrown again")
+	assert_eq(cinderfall.distance, 0.0, "Cinderfall grew a dash distance")
+	assert_eq(
+		AbilityRules.reach_of(cinderfall), 0.0, "Cinderfall can be aimed away from the caster"
+	)
 
 
 func test_a_missing_ability_reaches_nowhere_rather_than_erroring() -> void:

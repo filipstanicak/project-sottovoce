@@ -54,26 +54,23 @@ func _run() -> void:
 func _sequence(view: CinderfallView) -> void:
 	var here := _pawn_position()
 	var data := Tuning.ability_data(Ids.ABIL_CINDERFALL)
-	# Thrown the full `TUN-CINDERFALL-THROW-RANGE` ahead, because a cloud at the
-	# caster's feet is the one case that looks right however the aim is handled.
-	EventBus.ability_started.emit(
-		1, Ids.ABIL_CINDERFALL, here, here + Vector3(0, 0, data.throw_range)
-	)
+	# **AIMED LONG AND CLAMPED TO THE FEET.** `TUN-CINDERFALL-THROW-RANGE` is 0.0
+	# since 2026-09-03, so `AbilityRules.aim` puts every cast underfoot however far
+	# the client asked — and this probe asks for the old 8 m deliberately, because a
+	# probe that aims at zero would look right even if the throw came back.
+	var asked := here + Vector3(0.0, 0.0, 8.0)
+	var landed := here + AbilityRules.aim(here, asked - here, Vector3.FORWARD, 0.0).direction * 0.0
+	EventBus.ability_started.emit(1, Ids.ABIL_CINDERFALL, here, landed)
+	print("asked for a throw to ", asked, "   it lands at ", landed)
 	await _shot("windup", "NO cloud — the pot is still in the air", data.cast_time * 0.4)
 	print("clouds during the wind-up: ", view.live_count())
-	await _shot(
-		"burst", "a %.0f m ash sphere with a ring on the ground at its edge" % data.radius, 0.4
-	)
+	# **THE CAMERA IS INSIDE IT, AND THAT IS THE POINT NOW.** The arm sits 2.6 m
+	# behind the pawn and the cloud is `TUN-CINDERFALL-RADIUS` 5.0 m, so a caster is
+	# always within their own smoke — the ability blinds whoever uses it.
+	await _shot("burst", "the caster INSIDE their own ash — the district must be unreadable", 0.4)
 	print("clouds after the burst:    ", view.live_count())
-	await _shot("gone", "NOTHING — the cloud is out", data.duration)
+	await _shot("gone", "NOTHING — the cloud is out and the street is back", data.duration)
 	print("clouds after the duration: ", view.live_count())
-
-	# **SEEN FROM INSIDE, WHICH IS THE PLAYER WHO MOST NEEDS IT**: they cannot
-	# initiate a kill and nobody can see them, and a back-face-culled sphere would
-	# show them an empty street.
-	EventBus.ability_started.emit(1, Ids.ABIL_CINDERFALL, here, here)
-	await _shot("inside", "the frame FILLED with ash — not an empty street", data.cast_time + 0.3)
-	print("clouds standing inside one: ", view.live_count())
 
 
 func _pawn_position() -> Vector3:
