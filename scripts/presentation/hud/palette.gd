@@ -62,6 +62,32 @@ extends Resource
 @export var text_dim: Color = Color(0.93, 0.94, 0.95, 0.62)
 @export var plate: Color = Color(0.05, 0.06, 0.07, 0.45)
 
+## **THE CINDER CLOUD (US-0067, drawn 2026-09-03) — AND THE FIRST ENTRY HERE THAT
+## IS NOT THE HUD.** §7's rule is *"all colour comes from a `Palette` resource"*,
+## and a second home for colour is the duplicated-rule shape this project keeps
+## finding, so a world effect a player must **read** belongs here rather than
+## beside itself. The cloud's edge is a gameplay boundary — GDD-04 §3.1 prices the
+## counter to this ability as *wait at the cloud's edge* — so §7.1's colourblind
+## variants have to be able to move it.
+##
+## **NEAR-NEUTRAL, LIKE THE COMPASS, BECAUSE ASH ENCODES NOTHING IN HUE.** There is
+## nothing here to be colourblind to; the edge is separated from the volume by
+## alpha and by being a ring, not by colour.
+##
+## **THIS IS THE ALPHA OF ONE SHELL, NOT OF THE CLOUD.** `CinderfallView` draws
+## `SHELLS` of them, so what a viewer sees through is `CinderfallView.density()` —
+## which is the point: a volume is as opaque as the amount of it you are looking
+## through, and at the edge that is one layer.
+##
+## **THE ALPHA SHIPPED AT 0.72 AND THE DISTRICT WAS PERFECTLY READABLE THROUGH IT.**
+## Found by looking, as the vignette's own alpha was. `TUN-CINDERFALL-BLOCKS-LOS`
+## makes every sight query through this cloud fail, so a translucent one **promises
+## less concealment than the rule grants** — and a player who can see straight
+## through their own cover learns not to trust it, which costs the ability its
+## whole purpose. The drawing is now as opaque as the rule is.
+@export var cinderfall: Color = Color(0.26, 0.25, 0.24, 0.72)
+@export var cinderfall_edge: Color = Color(0.13, 0.12, 0.12, 1.0)
+
 ## The Exposed vignette. §4.2: the only full-screen effect in the game, and
 ## **deliberately ugly** — it is the visual language of failure.
 ##

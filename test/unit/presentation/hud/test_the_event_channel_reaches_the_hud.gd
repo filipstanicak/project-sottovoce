@@ -73,8 +73,8 @@ func _on_warning(bearing: float, bucket: int) -> void:
 	_warnings.append([bearing, bucket])
 
 
-func _on_started(caster_slot: int, ability: StringName, origin: Vector3) -> void:
-	_started.append([caster_slot, ability, origin])
+func _on_started(caster_slot: int, ability: StringName, origin: Vector3, at: Vector3) -> void:
+	_started.append([caster_slot, ability, origin, at])
 
 
 func _on_denied(slot: int, reason: int) -> void:
@@ -134,15 +134,45 @@ func test_a_prey_warning_reaches_the_bus() -> void:
 	assert_eq(int(_warnings[0][1]), 7, "the bucket did not survive")
 
 
-## **THE DIRECTION IS DROPPED.** `EVT-ABILITY-STARTED`'s payload is caster, ability
-## and **origin** — the tell says *something happened there*, and where it was
-## aimed is the caster's business.
-func test_an_ability_tell_reaches_the_bus_without_its_aim() -> void:
-	Net.events.ability_started.emit(2, Ids.ABIL_CINDERFALL, Vector3(1, 0, 2), Vector3(0, 0, 1))
+## **WHERE IT LANDED SURVIVES; WHO IT WAS AIMED AT IS NOT IN THE PAYLOAD AT ALL.**
+##
+## US-0090 dropped the aim outright and this narrows that, deliberately. The old
+## rule — *a tell says something happened there* — was written when nothing drew
+## anything, and it made `ABIL-CINDERFALL` **undrawable**: the cloud lands up to
+## `TUN-CINDERFALL-THROW-RANGE` 8 m away, so a client given only the thrower's feet
+## would put cover where there is none. A player standing in an invisible cloud,
+## unable to initiate a kill and told nothing about why, is a worse information
+## failure than the one the old rule prevented.
+##
+## The replacement is a property rather than an omission, and it is the one
+## never-do #12 is actually about: **the payload names nobody.** Asserted
+## structurally below, so a later author cannot add a target slot to it quietly.
+func test_an_ability_tell_reaches_the_bus_with_where_it_landed() -> void:
+	Net.events.ability_started.emit(2, Ids.ABIL_CINDERFALL, Vector3(1, 0, 2), Vector3(0, 0, 6))
 	assert_eq(_started.size(), 1, "the one broadcast in this game was dropped at the bridge")
 	assert_eq(_started[0][0], 2, "the caster slot did not survive")
 	assert_eq(_started[0][1], Ids.ABIL_CINDERFALL, "the ability did not survive")
 	assert_eq(_started[0][2], Vector3(1, 0, 2), "the origin did not survive")
+	assert_eq(_started[0][3], Vector3(1, 0, 8), "the landing point was not origin + aim")
+
+
+## **THE STRUCTURAL HALF.** Two points and no people: a target's slot, peer,
+## persona or tier must never appear here, and the way to keep that true is to
+## assert the shape rather than to remember the rule.
+func test_the_tell_payload_names_nobody_but_its_caster() -> void:
+	var found := {}
+	for entry: Dictionary in EventBus.get_signal_list():
+		if entry["name"] == "ability_started":
+			found = entry
+	assert_false(found.is_empty(), "EVT-ABILITY-STARTED is gone from the bus")
+	var names: Array = []
+	for argument: Dictionary in found["args"]:
+		names.append(String(argument["name"]))
+	assert_eq(
+		names,
+		["caster_slot", "ability", "origin", "at"],
+		"EVT-ABILITY-STARTED grew or lost a field — a target's identity must not be one"
+	)
 
 
 func test_an_ability_denial_reaches_the_bus() -> void:

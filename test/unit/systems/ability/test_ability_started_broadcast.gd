@@ -146,10 +146,20 @@ func test_a_no_op_effect_ends_inside_the_tick_it_began() -> void:
 	)
 
 
+## **EVERY CLIENT MUST DRAW THE SAME THING**, and the request is the one number in
+## the pipeline that is the client's. Broadcasting it would put the tell somewhere
+## the effect is not — a cloud at 8 m with a tell 40 m away.
+##
+## **THIS USED TO ASSERT A LENGTH OF 1.0, WHICH PROVED THE OPPOSITE OF WHAT IT
+## SAID.** A normalised vector is the same vector whatever was requested, so the
+## test named the clamp and measured something a clamp cannot affect — and the
+## normalisation it was pinning is what made `ABIL-CINDERFALL` undrawable, since a
+## unit direction cannot tell a bystander where an 8 m throw landed.
+##
+## The convention is now the same in both directions: **the vector's length is the
+## distance** — requested on the way in (`AbilityRules.aim` reads it that way),
+## granted on the way out. `NET-S2C-ABILITY-STARTED`'s `dir` is still three floats.
 func test_the_tell_carries_the_clamped_aim_rather_than_the_request() -> void:
-	# **EVERY CLIENT MUST DRAW THE SAME THING**, and the request is the one number
-	# in the pipeline that is the client's. Broadcasting it would put the tell
-	# somewhere the effect is not — a cloud at 8 m with a tell 40 m away.
 	var seen: Array[Vector3] = []
 	_system.ability_started.connect(
 		func(_p: int, _a: StringName, _o: Vector3, direction: Vector3) -> void:
@@ -158,7 +168,9 @@ func test_the_tell_carries_the_clamped_aim_rather_than_the_request() -> void:
 	_system.report_request(A, 0, Vector3.ZERO, Vector3(0.0, 0.0, 40.0))
 	_system.tick(_ctx, MatchContext.net_dt())
 	assert_eq(seen.size(), 1)
-	assert_almost_eq(seen[0].length(), 1.0, 0.0001, "the tell carried an unnormalised direction")
+	var reach := Tuning.ability_data(Ids.ABIL_CINDERFALL).throw_range
+	assert_almost_eq(seen[0].length(), reach, 0.0001, "the tell did not carry the granted distance")
+	assert_lt(seen[0].length(), 40.0, "the request reached the wire unclamped")
 
 
 func test_a_denial_names_its_slot_and_its_reason() -> void:

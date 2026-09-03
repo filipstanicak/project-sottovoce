@@ -174,7 +174,14 @@ func _commit(
 	_start_cooldown(ctx, peer, slot, data)
 	if data.suspicion_cost > 0.0:
 		ctx.impulses.queue(peer, data.suspicion_cost)
-	ability_started.emit(peer, ability, aim.origin, aim.direction)
+	# **THE GRANTED AIM, NOT A UNIT VECTOR.** `AbilityRules.aim` reads the *length*
+	# of the direction a client sends as the distance it wanted; answering with a
+	# normalised one leaves every other client unable to say where the throw landed
+	# without re-deriving the clamp — which works today only because `InputSender`
+	# cannot aim short, and would break in silence the day it can. Same convention
+	# both ways: the vector's length is the distance. `NET-S2C-ABILITY-STARTED`'s
+	# `dir` is still three floats, so the row's width is untouched.
+	ability_started.emit(peer, ability, aim.origin, aim.point - aim.origin)
 	var row := LiveAbility.new(_effect_for(data), ability, aim, ctx.tick + _cast_ticks(data))
 	var live: Array = _live.get(peer, [])
 	live.append(row)

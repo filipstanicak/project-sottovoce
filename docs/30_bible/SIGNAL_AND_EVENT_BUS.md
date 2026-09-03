@@ -77,13 +77,35 @@ Both are **past tense**. The bus reports what *has happened*, never what *should
 |---|---|---|---|---|
 | `EVT-SCORE-EVENT-APPENDED` | `score_event_appended(event: RefCounted)` | A **`ScoreReport`**, not a `ScoreEvent`. **Amended US-0074.** A `ScoreEvent` is server-side, immutable and built by one constructor that derives its own multiplier from its own tick; a client cannot build one faithfully and must not try, because re-deriving what a kill was worth is a client deciding gameplay state. What crosses the wire is `ScoreWire`'s decoding: kind, points already multiplied, and the feed group. The parameter is typed `RefCounted` because `EventBus` may hold no `class` | `NET-S2C-SCORE-EVENT` arrives, forwarded by `HudBridge` | `ScoreFeedVm` (**built US-0074**), `Audio` (US-0075) |
 | `EVT-PREY-WARNING-TRIGGERED` | `prey_warning_triggered(bearing: float, bucket: int)` | A **world** bearing in radians, wobble already applied, and a `Quantise.BUCKET_STEP` distance bucket. **Nothing that names anybody** | Pursuer within 15 m **and** ≥ Noticed | `CompassVm`, `Audio`, `CaptionOverlay` |
-| `EVT-ABILITY-STARTED` | `ability_started(caster_slot: int, ability: StringName, origin: Vector3)` | a **wire slot**, never a peer id | Any ability starts within tell radius. **The aim direction is dropped at the bridge**: a tell says *something happened there*, and forwarding where it was pointed would let a VFX author draw an arrow at the target | VFX, `Audio`, `CaptionOverlay` |
+| `EVT-ABILITY-STARTED` | `ability_started(caster_slot: int, ability: StringName, origin: Vector3, at: Vector3)` | a **wire slot**, never a peer id | Any ability starts within tell radius. **`at` is where the ability landed, added 2026-09-03** — see §3.4. The payload names **nobody but its caster**, which is asserted structurally rather than remembered | `CinderfallView`, `Audio`, `CaptionOverlay` |
 | `EVT-ABILITY-DENIED` | `ability_denied(slot: int, reason: int)` | `DenyReason` | Own request refused | `AbilitySlotVM`, `Audio` |
 | `EVT-COMPASS-PULSED` | `compass_pulsed()` | — | Each pulse period elapses | `Audio` |
 | `EVT-KILL-RESOLVED` | `kill_resolved(killer_slot: int, victim_slot: int)` | **wire slots**, never peer ids | You killed, or you died | `ScoreFeedVM`, `Audio`, death card |
 | `EVT-STUN-RESOLVED` | `stun_resolved(stunner_slot: int, target_slot: int, valid: bool)` | **wire slots**, never peer ids. The lockout `NET-S2C-STUN-RESULT` carries is dropped until a widget draws one | You stunned, or were stunned | `TierVM`, `Audio` |
 | `EVT-CAPTION` | `caption(key: StringName, direction: Vector2)` | String key; zero vector = non-positional | Any audio event flagged `Cap`. **STILL NO EMITTER, and the blocker is real**: captions are produced by the audio dispatcher (US-0075), which has no sound file in the repository to dispatch | `CaptionOverlay` |
 | `EVT-CONNECTION-CHANGED` | `connection_changed(state: int, reason: int)` | | Connect, disconnect, timeout. **STILL NO EMITTER, deliberately**: `Net` already carries `handshake_completed`, `handshake_rejected` and `peer_left`, and the only documented consumer is a menu system that does not exist (US-0078, M6). Wiring it now would be a third copy of connection state with no reader | Menus |
+
+### 3.4 `EVT-ABILITY-STARTED` says where it landed, and may never say who
+
+**AMENDED 2026-09-03.** This signal carried the caster, the ability and the **origin** only,
+and the bridge dropped the aim outright — *"a tell says something happened there, and forwarding
+where it was pointed would let a VFX author draw an arrow at the target"*.
+
+**That rule was written when nothing drew anything, and it made the one ability that changes
+the world undrawable.** A cinder cloud lands up to `TUN-CINDERFALL-THROW-RANGE` **8 m** from the
+thrower, so a consumer given only the origin puts cover where there is none and leaves none
+where there is cover. `ABIL-CINDERFALL` blocks line of sight and forbids kill initiation, and a
+player standing inside an invisible one is told nothing at all about why the reticle has stopped
+offering — **a larger information failure than the one the old rule prevented.**
+
+**The replacement is a property rather than an omission, and it is stronger.** The payload
+carries two *points* and names **nobody**: no slot, peer, persona or tier of a target appears in
+it, which is what never-do #12 is actually about. `test_the_tell_payload_names_nobody_but_its_caster`
+asserts the argument list itself, so a later author cannot add a target quietly.
+
+**And the wire needed no new field.** `NET-S2C-ABILITY-STARTED`'s `dir` was a *unit* vector; it
+now carries the **granted** distance in its length, which is the same convention
+`AbilityRules.aim` already reads the client's request with. Three floats either way.
 
 ### 3.3 `EVT-PREY-WARNING-TRIGGERED` says where, and may never say who
 
