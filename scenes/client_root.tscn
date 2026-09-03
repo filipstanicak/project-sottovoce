@@ -1,4 +1,4 @@
-[gd_scene load_steps=14 format=3 uid="uid://bs0ttovclientroot"]
+[gd_scene load_steps=15 format=3 uid="uid://bs0ttovclientroot"]
 
 [ext_resource type="PackedScene" path="res://scenes/map/map_vetraio.tscn" id="1_map"]
 [ext_resource type="PackedScene" path="res://scenes/pawn/pawn_local.tscn" id="2_pawn"]
@@ -11,6 +11,7 @@
 [ext_resource type="Script" path="res://scripts/net/client/reconciler.gd" id="9_reconciler"]
 [ext_resource type="Script" path="res://scripts/presentation/npc_view.gd" id="10_npcview"]
 [ext_resource type="Script" path="res://scripts/presentation/hud/hud_root.gd" id="11_hud"]
+[ext_resource type="Script" path="res://scripts/presentation/vfx/cinderfall_view.gd" id="12_cinder"]
 
 [sub_resource type="ProceduralSkyMaterial" id="Sky_greybox"]
 sky_horizon_color = Color(0.65, 0.65, 0.67, 1)
@@ -66,6 +67,13 @@ environment = SubResource("Env_greybox")
 transform = Transform3D(0.866, -0.404, 0.295, 0, 0.590, 0.807, -0.5, -0.699, 0.511, 0, 30, 0)
 light_energy = 1.2
 shadow_enabled = true
+
+; The only ability that changes the world, drawn at last (US-0067 built it in
+; August and nothing rendered it for a month). It sits under World rather than
+; under ClientNet because it is a thing in the district, not a mirror of
+; replicated state: it listens to EVT-ABILITY-STARTED like any other consumer.
+[node name="CinderfallView" type="Node3D" parent="World"]
+script = ExtResource("12_cinder")
 
 [node name="Mirrors" type="Node" parent="."]
 

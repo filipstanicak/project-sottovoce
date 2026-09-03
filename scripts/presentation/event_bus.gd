@@ -115,7 +115,7 @@ signal prey_warning_triggered(bearing: float, bucket: int)
 ## Any ability started within its tell radius. This is the tell channel that
 ## reaches a victim who was not looking at the caster (design law 3).
 ## EVT-ABILITY-STARTED
-signal ability_started(caster_slot: int, ability: StringName, origin: Vector3)
+signal ability_started(caster_slot: int, ability: StringName, origin: Vector3, at: Vector3)
 
 ## Own ability request was refused, with a DenyReason.
 ## EVT-ABILITY-DENIED

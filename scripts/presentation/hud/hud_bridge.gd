@@ -193,10 +193,23 @@ func _on_prey_warned(bearing_radians: float, bucket: int) -> void:
 ## **THE AIM IS DROPPED.** `EVT-ABILITY-STARTED` is a *tell*: something happened
 ## there. Where it was pointed is the caster's business, and a bus carrying it
 ## would let a VFX author draw an arrow at the thing it was aimed at.
+## **WHERE IT LANDED IS FORWARDED; WHO IT WAS AIMED AT NEVER IS.** US-0090 dropped
+## the aim outright, on the reasoning that *a tell says something happened there*.
+## That rule was written when nothing drew anything and it was too broad: a
+## Cinderfall's aim point is **ground**, and 0.45 s later it is a 5 m object every
+## player in the street can see, so withholding it made the one ability that
+## changes the world undrawable — a larger information failure than the one it
+## prevented, since a player standing in an invisible cloud is told nothing about
+## why their kill is refused.
+##
+## The narrowed property is stronger than the rule it replaces and is asserted:
+## **the bus says where an ability landed and never who**. There is no slot, peer,
+## persona or tier of a target anywhere in this payload, which is what never-do #12
+## is actually about.
 func _on_ability_started(
-	caster_slot: int, ability: StringName, origin: Vector3, _direction: Vector3
+	caster_slot: int, ability: StringName, origin: Vector3, direction: Vector3
 ) -> void:
-	EventBus.ability_started.emit(caster_slot, ability, origin)
+	EventBus.ability_started.emit(caster_slot, ability, origin, origin + direction)
 
 
 func _on_ability_denied(slot: int, why: int) -> void:

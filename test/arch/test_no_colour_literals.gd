@@ -15,6 +15,11 @@ extends GutTest
 
 const HUD := "res://scripts/presentation/hud"
 
+## **A SECOND ROOT, ADDED WITH THE DIRECTORY RATHER THAN AFTER IT.** `Palette` grew
+## past the HUD when `CinderfallView` needed the cloud's colour, and a guard that
+## only knows about the old home is one a new home quietly escapes.
+const VFX := "res://scripts/presentation/vfx"
+
 ## `Color(` is the constructor and `Color.` reaches a named constant like
 ## `Color.RED`. Both bypass the palette; both are the thing §7 forbids.
 const FORBIDDEN: Array[String] = ["Color(", "Color."]
@@ -31,13 +36,15 @@ func test_the_scan_reaches_the_hud_at_all() -> void:
 	# **THE VACUOUS-SUCCESS GUARD.** Every assertion below passes over an empty
 	# file list, which is exactly how `ip-guard` and `asset-inventory` reported
 	# clean over zero of 739 files for two milestones.
-	var files := SourceScanner.gd_files(HUD)
-	assert_gt(files.size(), 5, "the HUD scan found %d files, so it is not scanning" % files.size())
+	var files := _scanned()
+	assert_gt(
+		files.size(), 5, "the colour scan found %d files, so it is not scanning" % files.size()
+	)
 
 
 func test_no_widget_names_a_colour() -> void:
 	var violations: PackedStringArray = []
-	for path: String in SourceScanner.gd_files(HUD):
+	for path: String in _scanned():
 		if _is_allowed(path):
 			continue
 		# **`code_lines` RETURNS `[line_number, text]` PAIRS, NOT STRINGS**, and it
@@ -75,7 +82,7 @@ func test_every_widget_actually_holds_a_palette() -> void:
 	# Drawing nothing, or drawing with an engine default, satisfies "names no
 	# colour literal" while defeating the rule entirely.
 	var checked := 0
-	for path: String in SourceScanner.gd_files(HUD):
+	for path: String in _scanned():
 		if _is_allowed(path) or not path.ends_with("_widget.gd"):
 			continue
 		checked += 1
@@ -84,6 +91,14 @@ func test_every_widget_actually_holds_a_palette() -> void:
 			"%s draws without a palette" % path.get_file()
 		)
 	assert_gte(checked, 4, "only %d widgets were checked; expected at least four" % checked)
+
+
+## Every file the palette rule covers: the HUD, and the world effects a player has
+## to read.
+func _scanned() -> PackedStringArray:
+	var out := SourceScanner.gd_files(HUD)
+	out.append_array(SourceScanner.gd_files(VFX))
+	return out
 
 
 func _is_allowed(path: String) -> bool:

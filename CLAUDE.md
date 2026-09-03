@@ -234,6 +234,94 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 *Updated 2026-08-27 (ADR-0016, the M4 gate). Keep this section current — it is the first thing a
 fresh session reads, and a stale one is worse than none.*
 
+## THE CINDER CLOUD IS DRAWN, AND LOOKING AT IT FOUND TWO THINGS NO TEST COULD
+
+**`ABIL-CINDERFALL` HAS CHANGED THE WORLD SINCE US-0067 AND NOTHING HAS EVER
+DRAWN IT.** A cloud blocks every line of sight through it and forbids kill
+initiation inside it — including the caster's own — and on a client it was an
+*absence* of information: the Compass stops pointing, the reticle stops offering,
+and nothing on screen says why. `CinderfallView` is the first thing in
+`scripts/presentation/vfx/`.
+
+**THE DRAWN CLOUD IS THE GAMEPLAY VOLUME, EXACTLY.** Same centre, same
+`TUN-CINDERFALL-RADIUS`, same `TUN-CINDERFALL-DURATION`, no fade and no generous
+edge. GDD-04 §3.1 names the counter to this ability as **patience** — *wait at the
+cloud's edge* — and **a player cannot wait at an edge the game draws somewhere
+other than where it tests**, so every softening would take away the counterplay it
+looks like it is decorating.
+
+**AND IT IS NOT DRAWN FOR THE LAG-COMPENSATION GRACE.**
+`CinderfallVolumes.expire` deliberately keeps a burnt-out cloud for
+`RewindClamp.max_ticks()` longer so a kill validated in the past still meets one
+that was up when the attacker pressed. That window is **validation, not cover**:
+drawing it would promise up to 200 ms of concealment no live query grants.
+
+**NOTHING ON THE WIRE HAD TO CHANGE, AND ONE ASSERTION DID.** `HudBridge` dropped
+the aim outright at US-0090, on the reasoning that *a tell says something happened
+there*. **That rule was written when nothing drew anything and it made this
+ability undrawable**: a cloud lands up to `TUN-CINDERFALL-THROW-RANGE` 8 m away, so
+a consumer given only the thrower's feet puts cover where there is none. The
+narrowed rule is **stronger** than the one it replaces — *the bus says where an
+ability landed and never who* — and it is asserted structurally, on the signal's
+own argument list, so a target cannot be added to it quietly.
+
+**THE WIRE'S `dir` WAS A UNIT VECTOR AND IS NOW THE GRANTED DISTANCE.**
+`AbilityRules.aim` already reads the *client's* direction length as the requested
+distance; answering in a different convention left every other client unable to
+say where a throw landed without re-deriving the server's clamp — **which works
+only while a client cannot aim short**, and would have broken in silence the day
+that was fixed. Three floats either way, so `NET-S2C-ABILITY-STARTED`'s width is
+untouched.
+
+**AND THE TEST THAT PINNED THAT NORMALISATION PROVED THE OPPOSITE OF WHAT IT
+SAID.** `test_the_tell_carries_the_clamped_aim_rather_than_the_request` asserted a
+length of **1.0** — and a normalised vector is the same vector whatever was
+requested, so the test named the clamp and measured the one quantity a clamp
+cannot affect. It asserts the granted 8 m now, and that the requested 40 never
+reached the wire.
+
+**THEN SOMEBODY LOOKED AT IT, AND THAT IS WHERE THE REAL DEFECTS WERE.**
+`tools/cinderfall_probe.tscn` boots the real client and emits the tell on the bus
+— no server, no wire, so what it proves is the drawing:
+
+```bash
+godot --path . res://tools/cinderfall_probe.tscn
+```
+
+- **THE DISTRICT WAS PERFECTLY READABLE THROUGH A CLOUD WHOSE WHOLE RULE IS THAT
+  NOTHING CAN BE SEEN THROUGH IT.** At alpha 0.72 the buildings, the ground and
+  the horizon all came through. A drawing that **promises less concealment than
+  the rule grants** teaches a player not to trust their own cover, which costs the
+  ability its purpose. Same family as the vignette's alpha, found the same way.
+- **AND ONE SHELL IS NOT A VOLUME, WHICH IS THE HALF THAT RAISING THE ALPHA WOULD
+  HAVE HIDDEN.** A translucent sphere tints only what is **beyond** it, so from
+  *inside* one the ground at your feet came through untouched and the cloud read
+  as absent — exactly where it matters most, since somebody standing in a cloud
+  cannot initiate a kill and cannot be seen. It is **`SHELLS` nested spheres**
+  now, so opacity follows how much ash stands between you and what you are looking
+  at: solid from outside, dense from the middle, **and thin at the edge, which is
+  right** — an edge you cannot see past is not a place to wait.
+
+**MY OWN INSTRUMENT WAS WRONG FIRST, FOR THE THIRD TIME THIS SESSION.** The probe
+counted **frames** and waited 46 of them for a 0.45 s wind-up on the assumption of
+60 fps; this machine renders far faster, so it sampled before the pot landed and
+reported **0 clouds at the burst and 1 after the duration** — which reads exactly
+like a view that draws everything one beat late. It waits in seconds now.
+
+**THE PALETTE OUTGREW THE HUD, AND THAT IS A DECISION RATHER THAN A DRIFT.**
+`Palette`'s docstring said *every colour the HUD draws*; the cloud's edge is a
+**gameplay boundary** and §7.1's colourblind variants have to be able to move it,
+so it lives there rather than beside itself — a second home for colour is the
+duplicated-rule shape this project keeps finding. `test_no_colour_literals.gd`
+scans `scripts/presentation/vfx/` as well, added **with** the directory rather
+than after it.
+
+**WHAT IS STILL NOT DRAWN.** A **Lunge** has no wind-up pose, no shout and no
+dust — but its effect is a body moving at 9 m/s, which the client already draws,
+and GDD-04 §3.4 names exactly that as its visual tell. `ANIM-LUNGE-WINDUP`,
+`ANIM-LUNGE-DASH` and `ANIM-LUNGE-WHIFF` remain specified and absent, along with
+every other clip in this project.
+
 ## THE LUNGE AUTO-KILL WAS JUDGED IN THE PAST, AND ITS BAND WAS A METRE SHORT
 
 **REPORTED FROM THE CONTROLS: *"the autokill on lunge does not work"*.** It does
@@ -971,9 +1059,12 @@ seven, and the full unit suite reported 1 463 passing over **174 of 175**. The f
 it dropped held this story's own new assertion. **Only `.ci/run_gut.sh`'s script
 count could see it** — trap 10's family, seventh instance.
 
-**NOTHING DRAWS THE CLOUD.** There is no VFX pass and `tell_vfx` is null for every
-ability, so on a client a Cinderfall is an *absence* of information — the Compass
-stops pointing and the reticle stops offering, with nothing on screen to say why.
+**THE CLOUD IS DRAWN AS OF 2026-09-03** — `CinderfallView`, and it is the first
+thing in `scripts/presentation/vfx/`. It draws the **gameplay volume exactly**:
+same centre, same `TUN-CINDERFALL-RADIUS`, same `TUN-CINDERFALL-DURATION`, no fade
+and no generous edge, because GDD-04 §3.1 prices the counter as *wait at the
+cloud's edge* and an edge drawn anywhere else is a counterplay that lies. See the
+section at the top of this file.
 
 ## M4 IS COMPLETE. M5 HAS STARTED AT THE HUD, AND A KILL IS NOW PAID FOR ON SCREEN.
 
@@ -5021,7 +5112,7 @@ US-0024 measures it against clips that do not exist.
 | | |
 |---|---|
 | CI | 7 jobs. **Running again as of 2026-08-07 after a two-day outage** — run `31200490320`, all seven green. The seven commits merged during the outage were never through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | **52 arch + 187 unit + 33 integration scripts**, holding 201 + 1549 + 242 tests and 1 163 + 29 421 + 676 assertions (measured 2026-09-02 from a `git archive HEAD` extraction, all three green; the extraction predates the ANIMATION_SPEC commit by one documentation row and one generated `const`, and arch was re-run green after it) — the assertion count tripled at US-0049, because `test_contract_cycle_fuzz.gd` checks the invariant after every one of 10 000 events. **Nine are `pending` by design** — **eight in the unit suite and one in the integration suite**, which reports that an NPC aimed into the void never gives up. The island `pending` beside it **turned green by itself** when the alley mouths were built, which is what a `pending` naming its own blocker is for. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite measured **183.8 s** on 2026-09-02 and again on 2026-09-01, **174.6 s** twice on 2026-08-28 and **183.5 s** the day before that, with **no test removed** — **three readings within 0.1 s of each other now, so the 174.6 s pair is the outlier rather than the figure** — so the 9 s is machine variance and neither number should be quoted as *the* figure; what is real is that the suite sits within a few seconds of its limit either way. The 180 s it is 'allowed' is **enforced nowhere** — TEST_PLAN §3, TEST_PLAN §10 and TDD-12 §17 all assert it and no job checks it, which is the M4 gate's fourth drift finding. `test_the_m4_loop_resolves.gd` cost 13.1 s of that and is the first test ever to run M4's systems together. It was 162-172 s, up from 87.7 s at M2 — **under 9 s of headroom left, and the next integration test has to justify itself hard against that**. `test_server_tick_budget.gd` cost 9.8 s of it and is a gate line; the one before it, the 2 s pass A/B, samples ninety ticks **twice** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **The six are**: `test_upstream_bandwidth.gd` reporting the 145 % upstream miss, `test_crowd_bandwidth.gd` the 112 % downstream projection, `test_crowd_wire_cost.gd` the 112 % it actually costs, **`test_spawn_points.gd` twice — GDD-05 §2.7 rule 6's nine unoccluded spawn pairs and rule 8's S3 4, S4 1, S5 6 of 8 seats** — and `test_clone_animation_parity.gd` the missing clip library. **Two entries this row carried are gone because their findings closed**: `test_circuit_separation.gd`'s 0.51 m circuits (re-authored, now 21.20 m) and `test_cull_radius_price.gd`'s flat curve, which asserts rather than pends. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
+| Tests | **52 arch + 188 unit + 33 integration scripts**, holding 201 + 1549 + 242 tests and 1 163 + 29 421 + 676 assertions (measured 2026-09-02 from a `git archive HEAD` extraction, all three green; the extraction predates the ANIMATION_SPEC commit by one documentation row and one generated `const`, and arch was re-run green after it) — the assertion count tripled at US-0049, because `test_contract_cycle_fuzz.gd` checks the invariant after every one of 10 000 events. **Nine are `pending` by design** — **eight in the unit suite and one in the integration suite**, which reports that an NPC aimed into the void never gives up. The island `pending` beside it **turned green by itself** when the alley mouths were built, which is what a `pending` naming its own blocker is for. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite measured **183.8 s** on 2026-09-02 and again on 2026-09-01, **174.6 s** twice on 2026-08-28 and **183.5 s** the day before that, with **no test removed** — **three readings within 0.1 s of each other now, so the 174.6 s pair is the outlier rather than the figure** — so the 9 s is machine variance and neither number should be quoted as *the* figure; what is real is that the suite sits within a few seconds of its limit either way. The 180 s it is 'allowed' is **enforced nowhere** — TEST_PLAN §3, TEST_PLAN §10 and TDD-12 §17 all assert it and no job checks it, which is the M4 gate's fourth drift finding. `test_the_m4_loop_resolves.gd` cost 13.1 s of that and is the first test ever to run M4's systems together. It was 162-172 s, up from 87.7 s at M2 — **under 9 s of headroom left, and the next integration test has to justify itself hard against that**. `test_server_tick_budget.gd` cost 9.8 s of it and is a gate line; the one before it, the 2 s pass A/B, samples ninety ticks **twice** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **The six are**: `test_upstream_bandwidth.gd` reporting the 145 % upstream miss, `test_crowd_bandwidth.gd` the 112 % downstream projection, `test_crowd_wire_cost.gd` the 112 % it actually costs, **`test_spawn_points.gd` twice — GDD-05 §2.7 rule 6's nine unoccluded spawn pairs and rule 8's S3 4, S4 1, S5 6 of 8 seats** — and `test_clone_animation_parity.gd` the missing clip library. **Two entries this row carried are gone because their findings closed**: `test_circuit_separation.gd`'s 0.51 m circuits (re-authored, now 21.20 m) and `test_cull_radius_price.gd`'s flat curve, which asserts rather than pends. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
 | Tuning | **296** tunables across 14 resource classes; all **37** cross-field invariants assert. **Six were added on 2026-08-29 for US-0097's escape verb** — four `TUN-PURSUIT-*` on `ContractTuning` (a pursuit ends by removing and reinserting a contract, so §7 is its section and no new resource was needed) and `TUN-SCORE-ESCAPE`/`-CLOSECALL` on `ScoringTuning`. **Invariant 34 fired on its first run against the story's own proposed value**: `TUN-PURSUIT-DURATION` is `warn_radius / blend_walk` = 10.7143, US-0097 wrote **10.7**, and that asks the prey for 1.402 m/s — fractionally faster than a blend walk, in exactly the direction the invariant forbids. Shipped at **10.72**, with the tolerance tightened to a true floor rather than widened to admit it. **A rounded derivation is not a derivation.** **`TUN-COMPASS-CONE-FULL-RADIUS` 20.0 m was added on 2026-08-27** — where the Compass arc becomes a whole ring — and **invariant 33 is the reason it is not a chosen number**: it pins the radius equal to `TUN-COMPASS-LOCK-RANGE`, so the arc stops pointing exactly where the lock starts working, and separately outside the validated kill reach. It was **set three times in one day and only ever by somebody playing it** — 4.0 m derived from the half-width alone, 6.0 m at `TUN-SUSPICION-OPEN-RADIUS`, then 20.0 — and the second is the one worth remembering, because it was **derived and still wrong**. **`TUN-SCORE-HALFSEEN` +50 was added on 2026-08-27** by the fidelity re-audit — the stealth ladder had no middle rung, so a kill at **Noticed** and one at **Exposed** scored identically; invariant 32 keeps it strictly descending and strictly positive, and the `> 0` clause is the load-bearing half because every ordering check passes over a zero. `TuningInvariantsScore` was split out when that pushed the file past 400 lines — tech is how the game is *transmitted*, score is what it *pays*, and what is left is how it *plays*, with one entry point still. **Four scoring values were re-priced on 2026-08-26 (ADR-0013)** — `TUN-SCORE-SILENT` 100 → 200, `TUN-SCORE-PATIENT` 150 → 100, `TUN-SCORE-FOCUS` 100 → 150, `TUN-SCORE-RECKLESS` −50 → **0**, and invariant 18 rewritten from an ordering to a floor — split across `TuningInvariants` and `TuningInvariantsTech` since the first file hit 400 lines, with one entry point still. **Eight IDs are deprecated** and recorded in TUNABLES §19 — never reused |
 | Autoloads | All eight. `Tuning` precomputes 89 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |

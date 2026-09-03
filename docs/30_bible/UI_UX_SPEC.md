@@ -271,6 +271,13 @@ crosshair, and `test_crosshair_truth.gd` asserts agreement across 500 randomised
 All colour comes from a `Palette` resource injected into every widget. **No widget names a colour
 literal** (`test_no_colour_literals.gd`).
 
+**AMENDED 2026-09-03: THIS COVERS WORLD EFFECTS A PLAYER HAS TO READ, NOT ONLY THE HUD.** The
+first one is `ABIL-CINDERFALL`'s cloud (`CinderfallView`), and it belongs here for §7.1's reason
+rather than for tidiness: GDD-04 §3.1 makes the counter to that ability *wait at the cloud's
+edge*, so a colourblind variant has to be able to move that edge. A second home for colour is
+the duplicated-rule shape this project keeps finding. The guard scans
+`scripts/presentation/hud/` **and** `scripts/presentation/vfx/`.
+
 ### 7.1 The four palettes
 
 | Palette | For |
