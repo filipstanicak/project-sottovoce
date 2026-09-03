@@ -55,22 +55,11 @@ var _errors: PackedFloat32Array = PackedFloat32Array()
 var _seq: int = 0
 var _move := Vector2.ZERO
 var _recent: Array[bool] = []
-var _bucket: int = CompassBoard.NO_CONTRACT
 
-## Remaining cooldown ticks per ability slot, `EVT-ABILITY-COOLDOWN-CHANGED`.
-var _cooldowns: Array[int] = [0, 0]
-
-## `[reason, msec, slot]` of the last refusal, `EVT-ABILITY-DENIED`.
-var _denial: Array = [0, 0.0, 0]
-
-## `[killer_slot, victim_slot, msec]` of the last kill this player was part of.
-var _kill: Array = [0, 0, 0.0]
+## Everything this overlay knows about the match rather than the wire.
+var _gameplay := GameplayReadout.new()
 
 
-## Built by `LocalPawnDriver`, like `feel_readout.gd`, for the export reason above.
-## The reconciler is found rather than passed: it is a sibling in the client scene
-## and the driver has no reference to it, deliberately — the driver does not know
-## reconciliation exists.
 static func attach(to: Node, driver: LocalPawnDriver) -> Node:
 	var readout: CanvasLayer = (load("res://scripts/debug/net_readout.gd") as GDScript).new()
 	readout.name = "NetReadout"
@@ -88,14 +77,11 @@ func _ready() -> void:
 	_label.add_theme_font_size_override("font_size", 13)
 	add_child(_label)
 	_reconciler = _find_reconciler(get_tree().get_root())
+	_gameplay.attach(get_tree().get_root())
 	if _reconciler != null:
 		_reconciler.connect("corrected", Callable(self, "_on_corrected"))
 	if _driver != null:
 		_driver.command_sampled.connect(_on_command)
-	EventBus.compass_updated.connect(_on_compass)
-	EventBus.ability_cooldown_changed.connect(_on_cooldown)
-	EventBus.ability_denied.connect(_on_denied)
-	EventBus.kill_resolved.connect(_on_kill)
 
 
 ## **EVERY COMPARISON, NOT ONLY THE ONES THAT SNAPPED.** `replays` counts
@@ -147,101 +133,10 @@ func _lines() -> Array[String]:
 	out.append("  bias    %s   over %d" % [_framed(_bias()), _corrections.size()])
 	out.append("  ground  %s" % _ground_line())
 	out.append("  wire    %d refused   %d held" % [_refused(), _held()])
-	out.append("  compass %s" % _compass_line())
-	out.append("  ability %s" % _ability_line())
-	out.append("  combat  %s" % _combat_line())
+	out.append_array(_gameplay.lines())
 	return out
 
 
-## **THE RANGE TO THE CONTRACT, IN THE BUCKET THE SERVER SENT.** Debug only, and
-## `scripts/debug/` is excluded from all three release presets — a player is told
-## *nearer*, never *how far* (GDD-03 §8.5), and the Compass widget draws no text at
-## all so it cannot leak one.
-##
-## **IT EXISTS BECAUSE `TUN-COMPASS-CONE-FULL-RADIUS` WAS SET TWICE FROM A GUESS.**
-## Both times the judgement was "I have to stand right next to them", and both
-## times the only way to price it was to estimate the distance off a screenshot —
-## once from apparent capsule height, to ±2.5 m. This turns the next judgement into
-## a reading. It prints the bucket, the arc it produces, and how far the ring still
-## is, so a report can say *the ring should close here* and mean a number.
-func _compass_line() -> String:
-	if _bucket == CompassBoard.NO_CONTRACT:
-		return "no contract"
-	var metres := Quantise.bucket_to_distance(_bucket)
-	var half := CompassMath.cone_halfwidth_for(metres, Tuning.compass)
-	var closes := CompassMath.full_ring_distance(Tuning.compass)
-	var state := "FULL RING" if half >= 179.9 else "%.0f m to full" % (metres - closes)
-	return "%.1f m   arc %.0f deg   %s" % [metres, half * 2.0, state]
-
-
-## **THE THREE QUESTIONS SOMEBODY PRESSING A KEY THAT SEEMS TO DO NOTHING HAS**:
-## did the press reach the server, was it refused and why, and did anything
-## resolve. All three were answerable only by reading a server log.
-##
-## **`remaining` IS WHAT IT SAYS, DESPITE THE WIRE FIELD BEING CALLED
-## `cooldown_a_tick`.** `AbilitySystem.cooldown_ticks` returns `ready_at - now`
-## clamped at zero, so this is a countdown and not a deadline — checked rather than
-## inferred from the name, because dividing a deadline by the tick rate would have
-## printed a plausible and completely wrong number.
-func _on_cooldown(slot: int, remaining: int) -> void:
-	if slot >= 0 and slot < _cooldowns.size():
-		_cooldowns[slot] = remaining
-
-
-func _on_denied(slot: int, reason: int) -> void:
-	_denial = [reason, float(Time.get_ticks_msec()), slot]
-
-
-func _on_kill(killer_slot: int, victim_slot: int) -> void:
-	_kill = [killer_slot, victim_slot, float(Time.get_ticks_msec())]
-
-
-## **THE KEY, READ FROM `InputMap` RATHER THAN WRITTEN AS "Q".** A label that goes
-## stale the first time somebody rebinds is a label that lies, and `INPUT-ABILITY-*`
-## are both rebindable.
-func _key_for(slot: int) -> String:
-	var id: StringName = Ids.INPUT_ABILITY_1 if slot == 0 else Ids.INPUT_ABILITY_2
-	for event: InputEvent in InputMap.action_get_events(InputActions.action_name(id)):
-		if event is InputEventKey:
-			return OS.get_keycode_string((event as InputEventKey).physical_keycode)
-	return "slot%d" % slot
-
-
-func _ability_line() -> String:
-	var parts: PackedStringArray = []
-	for slot: int in _cooldowns.size():
-		var left := float(_cooldowns[slot]) / maxf(Tuning.net.server_tick, 1.0)
-		var state := "ready" if _cooldowns[slot] <= 0 else "%.1fs" % left
-		parts.append("%s %s" % [_key_for(slot), state])
-	if int(_denial[0]) > 0:
-		parts.append(
-			"denied %s %s" % [AbilityDenial.Why.keys()[int(_denial[0])], _ago(float(_denial[1]))]
-		)
-	return "   ".join(parts)
-
-
-## **A KILL YOU WERE PART OF, WHICHEVER END.** `EVT-KILL-RESOLVED` reaches the two
-## players involved and nobody else, so this line is silent for a match somebody
-## else is deciding — which is the design, not a gap in the instrument.
-func _combat_line() -> String:
-	if float(_kill[2]) <= 0.0:
-		return "no kill resolved yet"
-	return "slot %d killed slot %d   %s" % [int(_kill[0]), int(_kill[1]), _ago(float(_kill[2]))]
-
-
-func _ago(msec: float) -> String:
-	return "%.1fs ago" % ((float(Time.get_ticks_msec()) - msec) / 1000.0)
-
-
-func _on_compass(_bearing: float, bucket: int, _lock: float) -> void:
-	_bucket = bucket
-
-
-## **THE TYPICAL DISAGREEMENT, WHICH IS THE NUMBER THAT WAS MISSING.** Under
-## `TUN-NET-RECONCILE-THRESHOLD` nothing snaps and nothing was counted, so a client
-## sitting persistently just inside the threshold looked identical to one in
-## perfect agreement. p95 is the honest summary; a mean hides the spikes that are
-## the whole complaint.
 func _error_line() -> String:
 	if _errors.is_empty():
 		return "-"

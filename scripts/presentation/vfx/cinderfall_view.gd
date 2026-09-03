@@ -170,3 +170,23 @@ func _material(colour: Color) -> StandardMaterial3D:
 ## it, because nothing in the game may ask a drawing a question.
 func live_count() -> int:
 	return _live.size()
+
+
+func pending_count() -> int:
+	return _pending.size()
+
+
+## Seconds of cloud left, longest first, or 0.0 with none up.
+##
+## **ONE CLOCK, WHICH IS WHY THE DEBUG READOUT ASKS RATHER THAN COUNTING.** A
+## second timer beside this one would be `TUN-CINDERFALL-DURATION` implemented
+## twice, and the defect would live in the gap — US-0067's own lesson, where the
+## effect and the volume kept two clocks and the effect died 0.45 s early.
+##
+## **AND IT IS FOR A JUDGEMENT, NOT FOR THE PLAYER.** `scripts/debug/` is out of
+## all three release presets; a player is never told how long their own cover has.
+func seconds_left() -> float:
+	var most := 0.0
+	for row: Array in _live:
+		most = maxf(most, float(row[1]))
+	return most

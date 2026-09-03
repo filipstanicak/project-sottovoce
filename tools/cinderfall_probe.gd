@@ -23,6 +23,9 @@ const SETTLE := 60
 var _root: Node = null
 var _shots: Array[String] = []
 
+## The drawn cloud, in `--live` mode only.
+var _view: CinderfallView = null
+
 
 func _ready() -> void:
 	_run()
@@ -44,11 +47,45 @@ func _run() -> void:
 		print("REFUSING: client_root.tscn has no CinderfallView, so there is nothing to draw.")
 		get_tree().quit(1)
 		return
+	if _live():
+		_sandbox(view)
+		return
 	await _sequence(view)
 	print("")
 	for line: String in _shots:
 		print("  ", line)
 	get_tree().quit()
+
+
+## **`-- --live` LEAVES IT RUNNING SO A PERSON CAN JUDGE THE DURATION.**
+## `TUN-CINDERFALL-DURATION` 4.0 s is the one number in this ability that cannot be
+## derived, and it has to be *felt* from inside the cloud — but
+## `TUN-CINDERFALL-COOLDOWN` is 45 s, so a real match offers about ten casts in
+## eight minutes with three quarters of a minute of waiting between each. That is
+## not a rate anybody can form a judgement at.
+##
+## This emits the tell straight onto the bus with **no server, no cooldown and no
+## suspicion**, so the ability can be cast as often as it takes. What it therefore
+## does **not** prove is any of the pipeline — the wind-up, the cost, the startle
+## wave and the kill block are `tools/ability_probe.tscn`'s, on a real server.
+func _sandbox(view: CinderfallView) -> void:
+	_view = view
+	print("")
+	print("--- LIVE: press the ability-1 key to drop a cloud on yourself ---")
+	print("    No server and no cooldown. The debug overlay's `cinder` line counts")
+	print("    it down; walk to the ring and back while it does.")
+	set_process_input(true)
+
+
+func _input(event: InputEvent) -> void:
+	if _view == null or not event.is_action_pressed(InputActions.action_name(Ids.INPUT_ABILITY_1)):
+		return
+	var here := _pawn_position()
+	EventBus.ability_started.emit(1, Ids.ABIL_CINDERFALL, here, here)
+
+
+func _live() -> bool:
+	return OS.get_cmdline_user_args().has("--live")
 
 
 func _sequence(view: CinderfallView) -> void:

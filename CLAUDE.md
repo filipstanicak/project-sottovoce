@@ -234,6 +234,64 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 *Updated 2026-08-27 (ADR-0016, the M4 gate). Keep this section current — it is the first thing a
 fresh session reads, and a stale one is worse than none.*
 
+## MAKING THE ONE NUMBER I CANNOT DERIVE CHEAP TO JUDGE
+
+**`TUN-CINDERFALL-DURATION` 4.0 s IS THE LAST UNSETTLED VALUE IN THIS ABILITY, AND
+IT HAS TO BE FELT FROM INSIDE THE CLOUD.** The cloud is centred on the caster since
+2026-09-03, so a cast now costs four seconds of not being able to read the street —
+a price that was set when it could be thrown eight metres away. Nothing about that
+is derivable; it is a judgement, and the owner has taken it.
+
+**SO TWO INSTRUMENTS, BECAUSE THE JUDGEMENT WAS EXPENSIVE TO MAKE.**
+
+- **The debug overlay counts the cloud down**: `cinder up, 3.9 s of 4.0 left`. It
+  **asks `CinderfallView`** rather than running a timer of its own — a second clock
+  beside the first is `TUN-CINDERFALL-DURATION` implemented twice, which is exactly
+  the gap US-0067's effect and volume kept and where that defect lived.
+- **`tools/cinderfall_probe.tscn -- --live` leaves the client running with no
+  cooldown**, so the ability can be cast as often as it takes:
+
+```bash
+godot --path . res://tools/cinderfall_probe.tscn -- --live
+```
+
+  `TUN-CINDERFALL-COOLDOWN` is **45 s**, so a real match offers about ten casts in
+  eight minutes with three quarters of a minute between each — not a rate anybody
+  forms a judgement at. **What it therefore does not prove is the pipeline**: no
+  server, no wind-up, no suspicion cost, no startle wave and no kill block. Those
+  are `tools/ability_probe.tscn`'s, and the sandbox says so rather than implying
+  otherwise.
+
+**AND THE READOUT SPLIT, BECAUSE ITS NAME STOPPED BEING TRUE.** `net_readout.gd`
+was printing the Compass range, both cooldowns, the last refusal, the last kill and
+the cloud — **none of which is the wire** — and it passed 400 lines saying so.
+`GameplayReadout` is the seam and the name is the argument: everything in it is a
+fact about the match, and nothing in it knows what an ack or a reconciliation is.
+277 + 195 lines.
+
+**WHAT THE ANSWER TO THE STUN QUESTION WAS, AND THE ARITHMETIC THAT DECIDED IT.**
+Asked whether Cinderfall should become the reference's version — thin, small, and
+it **stuns** everyone inside rather than blocking sight. Recommended **no**, and
+the reason that settled it was not taste: our rule blocks kill *initiation* tested
+against the **killer's** position, so a hunter outside the cloud can still reach
+`KillRules.reach` 2.85 m into it. The genuinely protected core is
+`radius - reach` = **5.0 - 2.85 = 2.15 m**. At the reference's ~1.6 m radius that
+core is **negative** — anyone could reach straight in and the kill-block would mean
+nothing. **Their cloud can be that small precisely because it stuns instead of
+blocking kills; the two are a package and half of it is incoherent.** That reversed
+my own instinct, which was to shrink the radius toward the reference.
+
+**THE OTHER TWO REASONS ARE ON THE RECORD RATHER THAN IN A CHAT LOG.** A
+see-through cloud would let a hunter watch their prey clearly and be refused a kill
+they can plainly see, which is the illegibility this whole session has been
+removing. And an area stun with no cone, no range, no tier gate and no
+pursuer-only rule makes the **deliberate** stun redundant — the one that costs a
+correct read of an approach — which is never-do #13's spirit even though it is an
+addition rather than a weakening. The sources call the reference's smoke its best
+and most ubiquitous ability, used *"for assassinations as well"*; GDD-04 §3.1's own
+failure-mode row names that outcome. **ADR-0013 says the reference wins unless the
+owner rules for the divergence, and this is a case to rule for it.**
+
 ## TWO DEGREES. THE LUNGE'S CONE WAS DEGENERATE AND THE OWNER FOUND IT THREE TIMES
 
 **REPORTED FROM THE CONTROLS, WITH NUMBERS THIS TIME: *"compass was 6, F went to
