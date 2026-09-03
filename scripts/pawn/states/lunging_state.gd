@@ -159,6 +159,19 @@ static func dash_speed() -> float:
 	return 0.0 if data == null else maxf(data.speed, 0.0)
 
 
+## **HOW FAR THE DASH ACTUALLY TRAVELS**, which is not `TUN-LUNGE-DISTANCE`: the
+## state moves on `dash_ticks() - 1` steps because the timer is incremented before
+## `step()` runs and the ending call sets no velocity, so 6.0 m tuned comes out as
+## **5.85 m** measured. US-0070 tried ending one step later and reverted it — that
+## makes the state outlive `AbilityEffect`'s window and the whole resolution is
+## silently dropped.
+##
+## **PUBLIC BECAUSE `SYS-KILL` JUDGES THE ARRIVAL OVER THIS CORRIDOR** and a caller
+## that re-derived it would agree with a state that had drifted.
+static func dash_distance() -> float:
+	return dash_speed() * float(maxi(dash_ticks() - 1, 0)) / maxf(Tuning.net.client_input_rate, 1.0)
+
+
 ## How long the dash lasts, in **step** ticks. **Derived from the distance and the
 ## speed, never stored** — `AbilityRules.duration_of`'s rule, and a fourth number
 ## here could be set to a value the first two contradict.

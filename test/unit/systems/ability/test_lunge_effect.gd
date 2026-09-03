@@ -202,7 +202,23 @@ func test_a_completed_dash_queues_exactly_one_arrival() -> void:
 	_advance(60)
 	assert_eq(_state(), PawnStateId.IDLE, "the dash never ended")
 	assert_eq(_ctx.auto_kill_arrivals.size(), 1, "a completed dash asked for no kill")
-	assert_eq(_ctx.auto_kill_arrivals[0], A, "somebody else's arrival was queued")
+	var row: Array = _ctx.auto_kill_arrivals[0]
+	assert_eq(int(row[0]), A, "somebody else's arrival was queued")
+	# **THE DASH ORIGIN RIDES WITH THE ARRIVAL**, because `SYS-KILL` judges it over
+	# the corridor travelled rather than at the endpoint — and it is recorded at the
+	# burst rather than derived from the final yaw, since `LungingState` keeps the
+	# camera and a player may have turned.
+	#
+	# **THE CORRIDOR'S LENGTH CANNOT BE ASSERTED HERE**, and saying so is the point:
+	# `LungingState.drives_position()` is false, so a pawn only travels when
+	# `PawnMotion` runs `move_and_slide()` — which a unit fixture has no physics for.
+	# The origin is therefore the pawn's own position, and the 5.85 m a real dash
+	# covers is measured by `tools/lunge_arrival_probe.tscn` on a live server.
+	assert_eq(
+		row[1] as Vector3,
+		(_ctx.pawn_contexts[A] as PawnContext).position,
+		"the arrival did not carry the position the dash began at"
+	)
 
 
 ## **THE ARRIVAL WAITS FOR THE DASH, NOT FOR A CLOCK OF ITS OWN** — US-0067's

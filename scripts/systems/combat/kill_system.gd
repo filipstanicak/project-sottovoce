@@ -109,6 +109,9 @@ var _held: Dictionary = {}
 ## `[peer, ordinal]` per press received this tick, resolved in arrival order.
 var _requests: Array = []
 
+## peer -> where this tick's dash began, for `KillRules.resolve_swept`.
+var _dash_from: Dictionary = {}
+
 ## killer -> `[victim, contact_tick]` for a kill in flight.
 var _pending: Dictionary = {}
 
@@ -185,6 +188,7 @@ func teardown() -> void:
 		lockouts.clear()
 	_held.clear()
 	_requests.clear()
+	_dash_from.clear()
 	_pending.clear()
 
 
@@ -213,8 +217,9 @@ func pending_count() -> int:
 ## `KillContest`'s own *who committed first* applied across a tick boundary: a
 ## Lunge committed 0.92 s ago and every press here was made after that.
 func _resolve_requests(ctx: MatchContext) -> void:
-	for peer: int in ctx.auto_kill_arrivals:
-		_requests.append([peer, ARRIVAL_ORDINAL])
+	for row: Array in ctx.auto_kill_arrivals:
+		_requests.append([int(row[0]), ARRIVAL_ORDINAL])
+		_dash_from[int(row[0])] = row[1] as Vector3
 	ctx.auto_kill_arrivals.clear()
 	if _requests.is_empty():
 		return
@@ -222,6 +227,7 @@ func _resolve_requests(ctx: MatchContext) -> void:
 	for request: Array in _requests:
 		_judge_one(ctx, int(request[0]), int(request[1]))
 	_requests.clear()
+	_dash_from.clear()
 
 
 static func _by_arrival(a: Array, b: Array) -> bool:
@@ -277,25 +283,20 @@ func _verdict_for(ctx: MatchContext, peer: int, now: bool = false) -> Array:
 	var at_tick := ctx.tick if now else RewindClamp.tick_for(ctx.tick, Net.rtt_ms(peer))
 	var world := rewind.present_world(ctx, peer) if now else rewind.world_for(ctx, peer, at_tick)
 	var here := world.position_of(peer)
-	# **THE CASTER'S OWN CLOUD COUNTS.** An area denial that exempted whoever threw
-	# it would be a kill setup rather than a denial.
-	if here != Vector3.INF and ctx.cinderfall.contains_at(here, at_tick):
-		return [KillVerdict.V.IN_CINDERFALL, ContractCycle.NOBODY]
 	var contract := int(ctx.announced_contracts.get(peer, ContractCycle.NOBODY))
-	# **THE EXILE IS CHECKED BEFORE THE GEOMETRY AND AFTER THE REWIND**, so a
-	# locked-out hunter is refused for the reason that is true rather than for
-	# being out of range by a centimetre. `TUN-STUN-LOCKOUT` is what makes a stun
-	# counterplay instead of a four-second delay (GDD-03 §10.2).
-	if lockouts != null and lockouts.is_exiled(peer, contract, ctx.tick):
-		return [KillVerdict.V.LOCKED_OUT, contract]
-	# **`TUN-RESPAWN-INVULN`, checked against the CONTRACT rather than the killer.**
-	# A player still in `Respawning` is already refused by `_living_others`; this is
-	# the second after that, when they are back in `Idle` and standing somewhere
-	# they did not choose.
-	if lockouts != null and lockouts.is_protected(contract, ctx.tick):
-		return [KillVerdict.V.TARGET_PROTECTED, contract]
-	if CombatTargets.is_concealed(ctx.pawn_contexts.get(contract)):
-		return [KillVerdict.V.TARGET_CONCEALED, contract]
+	# **EVERY REFUSAL THAT NEEDS NO GEOMETRY**, in the order that reports the reason
+	# which is true rather than the one that is nearest — see `KillGates`.
+	var gate := KillGates.check(ctx, peer, contract, here, at_tick, lockouts)
+	if gate != KillVerdict.V.ALLOWED:
+		var named := contract if KillGates.names_the_contract(gate) else ContractCycle.NOBODY
+		return [gate, named]
+	if now:
+		# **THE CORRIDOR, NOT THE CONE.** A cone is an angle and a dash ends within
+		# centimetres, where two degrees of aim error reads as an 86 degree bearing.
+		# `KillRules.resolve_swept` says why, and it was measured.
+		return KillRules.resolve_swept(
+			world, peer, _dash_from.get(peer, here) as Vector3, contract, Tuning.combat, sight
+		)
 	return KillRules.resolve(
 		world, peer, contract, KillRewind.living_others(ctx, peer), Tuning.combat, sight
 	)

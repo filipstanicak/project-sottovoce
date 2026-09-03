@@ -43,6 +43,16 @@ The "I have been made, commit now" button.
 > inside reach, and refused `OUT_OF_CONE`. **The usable band is roughly 5.5-8.7 m**,
 > and nothing tells a player that. Raised as owner decision 8.
 
+> **AND THE COMPLAINT WAS NOT THE BAND, IT WAS THE CONE (2026-09-03).** After the
+> rewind fix the owner reported the auto-kill still failing at a **measured 6 m**
+> with the press accepted and no kill resolved. Swept on a live server:
+> **two degrees of aim error whiffed**, contract 0.26 m away, `OUT_OF_CONE`. A cone
+> is an angle, so the ground it covers shrinks to nothing as you close — 2.85 m at
+> the reach, 26 cm where a dash ends — which made arriving *accurately* harder.
+> `KillRules.resolve_swept` judges the **corridor the dash travelled** instead;
+> tolerance at 6 m went from ±2 degrees to at least ±25. This also closes owner
+> decision 8: a contract the dash went **through** now dies.
+
 ## Acceptance criteria
 
 - [x] 30 s cooldown, 0.25 s wind-up, 6 m at 9 m/s, +40 suspicion applied at wind-up.

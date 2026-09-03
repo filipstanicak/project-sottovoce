@@ -234,6 +234,82 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 *Updated 2026-08-27 (ADR-0016, the M4 gate). Keep this section current — it is the first thing a
 fresh session reads, and a stale one is worse than none.*
 
+## TWO DEGREES. THE LUNGE'S CONE WAS DEGENERATE AND THE OWNER FOUND IT THREE TIMES
+
+**REPORTED FROM THE CONTROLS, WITH NUMBERS THIS TIME: *"compass was 6, F went to
+cooldown, combat did not resolve a kill"*.** That is a press the server accepted
+and an arrival it refused, at exactly the distance my own probe said lands — and
+it is the third report of this ability failing.
+
+**MY PROBE PLACED THE PREY EXACTLY ON THE DASH LINE, WHICH IS THE ONE THING A
+PLAYER CANNOT DO.** Sweeping the *angle* instead of the distance found it at once,
+at a 6 m approach:
+
+| Aim error | Gap at arrival | Before | After |
+|---|---|---|---|
+| 0° | 0.15 m | kill | kill |
+| **2°** | **0.26 m** | **whiff `OUT_OF_CONE`** | kill |
+| 10° | 1.04 m | whiff | kill |
+| 25° | 2.6 m | whiff | kill |
+| 45° | 4.54 m | whiff | whiff `OUT_OF_RANGE` |
+
+**TWO DEGREES OF TOLERANCE, AND THE CAUSE IS INVERTED FROM EVERY INTUITION: A CONE
+IS AN ANGLE, SO THE GROUND IT COVERS SHRINKS TO NOTHING AS YOU CLOSE.** At the
+2.85 m reach a 60° cone spans 2.85 m; at the 0.26 m a dash actually ends at it
+spans 26 cm, because a 0.26 m lateral offset at 0.26 m range is an **86° bearing**.
+**Arriving accurately made the test harder rather than easier.**
+
+**THIS PROJECT HAS ALREADY FIXED THIS EXACT FLAW ONCE.** The Compass shipped with a
+fixed 12° arc that spanned 1.06 m at kill range — *"narrower than two people
+standing side by side, so it picks one, for free"* — and
+`CompassMath.cone_halfwidth_for` fixed it by covering **ground rather than an
+angle**. Nobody connected the two, because a *press* is made while approaching,
+where a cone is fine.
+
+**`within_cone` IS DELIBERATELY UNTOUCHED, AND ITS OWN DOCSTRING IS WHY.** It says
+a target *beside* the killer being refused is the **intent** — so widening the
+shared rule would change every kill in the game to fix one ability, and a press is
+made at a moment the player chose. `KillRules.resolve_swept` is the arrival's own
+rule: **did the dash pass within reach of the contract at any point along its
+path.**
+
+**WHICH SETTLES OWNER DECISION 8, AND NOT THE WAY EITHER CANDIDATE PROPOSED.**
+Neither the lateral steering nor the closest-approach judgement was needed: a
+contract the dash went **through** is on the corridor, so the close-range overshoot
+closes as a side effect. The reference agrees — its version *"resolves against
+whoever it connects with"*.
+
+**THE ARRIVAL CARRIES ITS OWN ORIGIN RATHER THAN DERIVING ONE.**
+`ctx.auto_kill_arrivals` holds `[peer, dash origin]` now, recorded by `LungeEffect`
+at the burst. Deriving the corridor from the final yaw would draw it along a
+heading the player was not travelling, because `LungingState` keeps the camera.
+
+**AND IT JUDGES THE CONTRACT ALONE, WHERE A PRESS JUDGES THE NEAREST BODY.** An
+arrival's refusal costs the same whatever the reason — `_whiff` charges nothing —
+so there is nothing a nearer stranger could change, and GDD-03 §9.2 already says
+the crowd hides by being confusing rather than solid.
+
+**`KillGates` IS THE SPLIT THIS FORCED, AND THE SEAM IS HONEST.** `kill_system.gd`
+went to 410 lines and `_verdict_for` past six returns. Everything in the new class
+is a fact about the **situation** — a cloud, an exile, an invulnerability, a hiding
+place — and nothing in it knows where anybody stands relative to anybody else.
+Third file this session the length guard has usefully split.
+
+**TWO OF MY OWN TESTS WERE WRONG AND ONE OF THEM WAS WRONG ON PURPOSE.**
+`test_a_dash_that_ended_past_its_target_records_the_cone_rather_than_the_range` —
+written yesterday — asserted that a contract 1.85 m behind you whiffs. It now
+kills, which is the change; it is rewritten as
+`test_a_contract_the_dash_passed_through_is_killed` with a counterfactual beside
+it. And a fixture asserted the corridor was 5.85 m long in a **unit** test, where
+`drives_position()` is false and no physics runs, so the pawn never travels — the
+length is the probe's to measure and the test says so.
+
+**AND THREE SWEEP ROWS WERE MY INSTRUMENT AGAIN.** Rows reporting an 11 m gap and
+`NO_TARGET` were the probe writing a body's position **inside a building**, which
+physics then ejects. It says so now rather than looking like a rule that cannot see
+its target. Fourth instrument error this session, and the fourth caught before it
+was reported as a defect.
+
 ## THE CLOUD BURSTS ON YOU NOW, AND THE ABILITIES HAVE A READOUT
 
 **REPORTED FROM THE CONTROLS: *"the smoke from q should detonate around me… in the
@@ -1767,9 +1843,9 @@ distance when it empties is one nobody observed.
 file. Both parties already *perceived* an escape through channels that existed;
 what the field added is the anticipatory half.
 
-## SEVEN THINGS WAIT ON THE OWNER, AND NONE BLOCKS M5
+## SIX THINGS WAIT ON THE OWNER, AND NONE BLOCKS M5
 
-*Eight rows, seven live: decision 3 was settled by ADR-0017 on 2026-09-01 and is struck
+*Eight rows, six live: decision 8 was settled on 2026-09-03 and is struck through; decision 3 was settled by ADR-0017 on 2026-09-01 and is struck
 through rather than deleted, and decision 7 is the divergence that same ADR found.*
 
 1. **Move `SYS-MATCH` (US-0079) M6 → M5?** The only single-story lever that pulls
@@ -1797,7 +1873,7 @@ through rather than deleted, and decision 7 is the divergence that same ADR foun
    depends on it. **Reported rather than acted on.** My recommendation is to keep it:
    it is a good rule, the divergence is a *feature the reference lacks* rather than one
    it contradicts, and removing it would delete a mechanic for fidelity's own sake.
-8. **SHOULD THE LUNGE AUTO-KILL BE JUDGED OVER THE DASH RATHER THAN AT ITS END?**
+8. ~~**SHOULD THE LUNGE AUTO-KILL BE JUDGED OVER THE DASH RATHER THAN AT ITS END?**~~ **SETTLED 2026-09-03: yes, over the corridor** (`KillRules.resolve_swept`), and neither candidate below was the reason. Sweeping the *angle* rather than the distance found the real defect — **two degrees of aim tolerance at a 6 m approach**, because a cone is an angle and the ground it covers shrinks to nothing as you close. The corridor closes the overshoot as a side effect, so **the lateral steering was not needed** and GDD-04 §3.4's *unsteerable* clause stands. Struck through rather than deleted; the original reasoning follows, and the two divergences it raised are still live.
    Raised 2026-09-02 by *"the autokill on lunge does not work"*. GDD-04 §3.4 and
    `TUN-LUNGE-AUTO-KILL` both say the kill fires if the dash **ends** in range and
    cone, and the dash is a fixed 5.85 m — so lunging from under ~5.5 m passes

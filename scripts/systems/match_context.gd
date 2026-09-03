@@ -166,7 +166,10 @@ var crowd_hash := SpatialHash.new()
 ## **NAMED FOR THE FLAG AND NOT FOR THE ABILITY.** `AbilityData.auto_kill` is a
 ## field any ability may set; a queue called `lunge_arrivals` would have to be
 ## renamed by the second one.
-var auto_kill_arrivals: Array[int] = []
+## `[peer, dash origin]` per arrival, filled by `LungeEffect` at the `abilities`
+## stage and drained by `SYS-KILL` at `combat` in the same tick. The origin is here
+## because the arrival is judged over the **corridor** the dash travelled.
+var auto_kill_arrivals: Array = []
 
 var compass := CompassBoard.new()
 
