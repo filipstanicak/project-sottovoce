@@ -234,6 +234,38 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 *Updated 2026-08-27 (ADR-0016, the M4 gate). Keep this section current — it is the first thing a
 fresh session reads, and a stale one is worse than none.*
 
+## THE DENSITY IS RIGHT AND THE DURATION IS 6.0 s, JUDGED AT THE CONTROLS
+
+**BOTH CINDERFALL QUESTIONS ARE ANSWERED, AND ONE OF THEM IS A RULED DIVERGENCE.**
+The owner played it: *"the density is good"*, and the duration goes **4.0 → 6.0 s**
+— which is what the instruments below were built for, and the whole of their
+return.
+
+**THE REFERENCE'S NUMBERS, SOURCED BEFORE CHANGING OURS.** Its smoke comes in three
+variants and all three cool down in **60 s**: base 3.2 m / **3 s**, Strong 4 m /
+3 s, Long Lasting 3.2 m / **4 s**. **So ours already sat at the reference's
+upgraded value**, the owner's condition was met, and 6.0 is 1.5× its best.
+
+**IT IS THE TOP OF THE BAND**, which is worth knowing before somebody reaches for
+7: `AbilityData.duration`'s `@export_range` and TUNABLES both say **3–6**, so the
+next increase is an ADR rather than a value.
+
+**AND THE COST IS TWICE THE REFERENCE'S UPTIME, WHICH IS SAID RATHER THAN LEFT TO
+BE FOUND.** 6 s per 45 s is **13.3 %** against the reference's 4 s per 60 s at
+**6.7 %** — and GDD-04 §3.1's *Failure mode* row names duration growth as exactly
+the corner-camping risk, with the symptom *"players deploying it pre-emptively
+rather than reactively"*. **The counterweight if that shows up is
+`TUN-CINDERFALL-COOLDOWN` 45 → 60**, which is *also* the reference's own value and
+lands at 10 %. Recommended rather than done: the owner asked for one change.
+
+**AND INVARIANT 12 ALREADY FORBADE THE OTHER HALF OF THE FIDELITY QUESTION.**
+`TUN-CINDERFALL-RADIUS >= 2 × TUN-KILL-RANGE` — *"the cloud must actually deny a
+kill attempt, not merely obscure one"* — holds at **exactly** its floor, 5.0 = 2 ×
+2.5. So shrinking the radius toward the reference's 3.2 m was never a value change
+available to anybody; the arithmetic I derived independently yesterday was already
+in the corpus as a cross-field rule. **Read §17 before deriving a constraint —
+sixth time this file has recorded that lesson.**
+
 ## MAKING THE ONE NUMBER I CANNOT DERIVE CHEAP TO JUDGE
 
 **`TUN-CINDERFALL-DURATION` 4.0 s IS THE LAST UNSETTLED VALUE IN THIS ABILITY, AND
