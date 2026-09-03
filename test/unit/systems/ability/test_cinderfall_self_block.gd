@@ -101,3 +101,41 @@ func test_the_block_ends_with_the_cloud() -> void:
 		_ctx.cinderfall.contains_at(Vector3.ZERO, _ctx.tick),
 		"the cloud still forbids kills after TUN-CINDERFALL-DURATION"
 	)
+
+
+## **THE CLOUD BURSTS ON THE CASTER, HOWEVER FAR THEY AIMED.** Amended 2026-09-03
+## (ADR-0013): `TUN-CINDERFALL-THROW-RANGE` is **0.0**, because the reference
+## deploys this ability at the player's own feet and only its *sequel* added a
+## throw. `AbilityRules.aim` clamps the requested distance to the ability's reach,
+## so a client aiming 40 m — which `InputSender` does on every cast, deliberately,
+## so the server's clamp decides — still lands it underfoot.
+##
+## **AIMED LONG, NOT AT ZERO**, which is the half that matters: a fixture throwing
+## `Vector3.ZERO` proves the aim is unusable rather than that it is clamped, and
+## `AbilityRules._usable` falls back to the caster's facing for exactly that input.
+func test_the_cloud_bursts_on_the_caster_however_far_they_aimed() -> void:
+	_system.report_request(CASTER, 0, Vector3.ZERO, Vector3(0.0, 0.0, 40.0))
+	_system.tick(_ctx, MatchContext.net_dt())
+	_advance(Tuning.ticks(&"TUN-CINDERFALL-CAST-TIME") + 1)
+	assert_eq(
+		_ctx.cinderfall.count_at(_ctx.tick), 1, "the long aim was refused rather than clamped"
+	)
+	assert_true(
+		_ctx.cinderfall.contains_at(Vector3.ZERO, _ctx.tick),
+		"the caster is outside their own cloud, so it was thrown rather than dropped"
+	)
+	# The far end of where a throw used to reach must now be clear, or the clamp
+	# moved the centre without removing the throw.
+	assert_false(
+		_ctx.cinderfall.contains_at(Vector3(0.0, 0.0, 8.0), _ctx.tick),
+		"the cloud still covers the old throw range, so it did not land on the caster"
+	)
+
+
+## **AND THE REACH IS ZERO RATHER THAN THE FIELD BEING IGNORED.**
+## `AbilityRules.reach_of` falls through to `distance` when `throw_range` is zero,
+## and Cinderfall populates neither — so this asserts the fall-through lands on
+## nothing rather than on Lunge's 6 m by accident.
+func test_cinderfall_reaches_nowhere() -> void:
+	assert_eq(AbilityRules.reach_of(_data()), 0.0, "Cinderfall can still be aimed away from you")
+	assert_eq(_data().throw_range, 0.0, "TUN-CINDERFALL-THROW-RANGE is not the shipped 0.0")

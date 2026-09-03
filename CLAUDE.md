@@ -234,6 +234,62 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 *Updated 2026-08-27 (ADR-0016, the M4 gate). Keep this section current — it is the first thing a
 fresh session reads, and a stale one is worse than none.*
 
+## THE CLOUD BURSTS ON YOU NOW, AND THE ABILITIES HAVE A READOUT
+
+**REPORTED FROM THE CONTROLS: *"the smoke from q should detonate around me… in the
+original the smoke only surrounds the player"*.** Sourced rather than taken on
+trust, and it is right: the reference deploys its smoke **at the player's own
+feet**, and the *sequel* is what added throwing it. Under ADR-0013 the reference
+wins, so `TUN-CINDERFALL-THROW-RANGE` is **8.0 → 0.0** and the cast is clamped to
+the caster's own position.
+
+**IT NEEDED NO CODE.** `AbilityRules.aim` already clamps the requested distance to
+the ability's reach, and `reach_of` returns `throw_range` — so zero makes every
+cast land underfoot however far a client aims, which `InputSender` deliberately
+does. The `@export_range` band had to open from `5–12` to `0–12` to admit the
+value, and **the ID stays live rather than deprecated**: it is still read, and
+restoring the sequel's throw is this one number.
+
+**THE CASTER IS NOW ALWAYS INSIDE THEIR OWN CLOUD, AND THAT IS A FEEL CHANGE
+RATHER THAN A DETAIL.** `TUN-CINDERFALL-RADIUS` is 5.0 m and the camera arm is
+2.6 m, so a caster spends the full `TUN-CINDERFALL-DURATION` 4 s unable to read
+the street. That is exactly what the ability now *is* — GDD-04 §3.1's *Why it
+exists* row already calls it the escape — but it was priced when the cloud could
+be thrown eight metres away.
+
+**AND THE REFERENCE'S CLOUD IS FAR SMALLER: ABOUT 3.2 m ACROSS AGAINST OUR 10.**
+Sourced in the same pass. A self-centred cloud at three times the radius blinds
+its caster for four seconds where the reference's is a puff you step out of.
+**Reported rather than acted on** — `TUN-CINDERFALL-RADIUS` is a merged value that
+GDD-04 §3.1's failure-mode row is written against, and it is the owner's.
+
+**THE ABILITIES HAVE A DEBUG READOUT, WHICH IS THE OTHER HALF OF THE REPORT.**
+`net_readout.gd` gains two lines answering the three questions somebody pressing a
+key that seems to do nothing actually has:
+
+```
+ability Q ready   F 12.4s   denied ON_COOLDOWN 1.2s ago
+combat  slot 3 killed slot 5   0.8s ago
+```
+
+**The key names are read from `InputMap`, never written as "Q"** — both
+`INPUT-ABILITY-*` are rebindable and a label that goes stale is a label that lies.
+Debug only: `scripts/debug/` is out of all three release presets, so a player is
+never told a cooldown they should be counting themselves.
+
+**AND THE FIELD IS A COUNTDOWN DESPITE BEING CALLED `cooldown_a_tick`.**
+`AbilitySystem.cooldown_ticks` returns `ready_at - now` clamped at zero. Checked
+rather than inferred from the name — dividing a *deadline* by the tick rate would
+have printed a plausible and completely wrong number, which is this session's
+recurring failure in a new place.
+
+**TWO GUARDS CAUGHT ME, BOTH CORRECTLY.** `test_ids_match_glossary.gd` refused
+**`ANIM-CINDERFALL-CAST`** — an ID I minted by writing prose in the GDD, when
+`ANIM-CINDERFALL-THROW` already exists and is merged. And
+`test_the_reach_comes_from_whichever_field_this_ability_populates` asserted
+Cinderfall's reach was above zero, which was correct until this change and is now
+the assertion that pins it at zero.
+
 ## THE CINDER CLOUD IS DRAWN, AND LOOKING AT IT FOUND TWO THINGS NO TEST COULD
 
 **`ABIL-CINDERFALL` HAS CHANGED THE WORLD SINCE US-0067 AND NOTHING HAS EVER

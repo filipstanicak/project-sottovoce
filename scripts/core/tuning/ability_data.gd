@@ -44,8 +44,13 @@ extends Resource
 ## You may place it ahead of you or at your feet. Placing it ahead is the aggressive use (deny a
 ## chaser's line); at your feet is the escape.
 ## Used by: Cinderfall.
-## TUN-CINDERFALL-THROW-RANGE
-@export_range(5.0, 12.0, 0.1) var throw_range: float = 0.0
+## TUN-CINDERFALL-THROW-RANGE. **ZERO IS THE SHIPPED VALUE AND THE BAND HAD TO
+## OPEN TO ADMIT IT** (2026-09-03, ADR-0013): the reference deploys this ability at
+## the caster's own feet and only its *sequel* added a throw, so the cloud is
+## self-centred here. The row is kept live rather than deprecated because it is
+## still read — `AbilityRules.reach_of` returns it — and restoring a throw is a
+## one-value change if the owner ever wants the sequel's version.
+@export_range(0.0, 12.0, 0.1) var throw_range: float = 0.0
 
 ## Twice TUN-KILL-RANGE. Covers a doorway or an alley mouth, not a plaza.
 ## Used by: Cinderfall.
