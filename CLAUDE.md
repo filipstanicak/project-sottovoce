@@ -1656,15 +1656,57 @@ through rather than deleted, and decision 7 is the divergence that same ADR foun
    cone, and the dash is a fixed 5.85 m — so lunging from under ~5.5 m passes
    through the contract and refuses `OUT_OF_CONE` at a measured 1.85 m gap, inside
    a 2.85 m reach. **The usable band is ~5.5-8.7 m** and nothing on screen says so.
-   **My recommendation is to judge the arrival at the closest approach along the
-   dash** — *you dashed through them* — which is server-side only, needs no change
-   to the client's prediction of a fixed-length dash, and makes the panic button
-   work at the range panic happens. It amends two documented rows, which is why it
-   is here. The alternatives are to leave it and teach the range through a HUD
-   indicator, or to end the dash on arrival — that last one is the tempting one and
-   **it is the wrong one**: the dash is client-predicted, so stopping it early is
-   up to 2.85 m of rubber-band on the most decisive action in the game, which is
-   the whole reason US-0070 gave it a state.
+   **MY RECOMMENDATION CHANGED ON 2026-09-03, AND WHAT CHANGED IT IS THE
+   REFERENCE.** I first recommended judging the arrival at the closest approach
+   along the dash — *you dashed through them* — which is server-side only and
+   invents a rule. **Asked whether this ability exists in the reference at all, I
+   sourced it instead of recalling it, and it does: the reference's equivalent of
+   `ABIL-LUNGE` keeps a small amount of lateral control through the dash.** That is
+   almost certainly the mechanism that makes it usable at close range there, and it
+   is the same failure measured here at 4.0 m. Under ADR-0013 the reference wins
+   where a rule here diverges.
+
+   **So the recommendation is now: give the dash a little lateral steering**, and
+   it is the *cheaper* of the two as well as the faithful one. Steering lives in
+   `LungingState`, is deterministic, stays inside `scripts/pawn/`, and is predicted
+   by the client exactly as the rest of the dash already is — where a swept
+   judgement is server-only rule work that no document anywhere describes.
+
+   **THE COST IS REAL AND IT IS THE OWNER'S TO PAY.** GDD-04 §3.4 prices the
+   counterplay as *"0.92 s of telegraphed, **unsteerable** approach against a 0.7 s
+   stun"*, so steering trades away part of the prey's read. **It is not never-do
+   #13**, which forbids weakening *stun*: a steered dash is stunnable for its whole
+   wind-up and dash exactly as an unsteerable one is. It is a design trade, which is
+   why it is here rather than done.
+
+   The alternatives are unchanged: leave it and teach the band through a HUD
+   indicator, or the swept judgement above. **Ending the dash on arrival stays the
+   wrong answer** — the dash is client-predicted, so stopping it early is up to
+   2.85 m of rubber-band on the most decisive action in the game, which is the whole
+   reason US-0070 gave it a state.
+
+   **THE SAME CHECK FOUND TWO MORE DIVERGENCES, REPORTED RATHER THAN ACTED ON.**
+   The reference's version resolves against **whoever it connects with** — a kill on
+   your contract *and* a **stun on a pursuer** who is hunting you; one of its unlock
+   challenges is stunning your pursuer with it. Ours does nothing at all if you
+   arrive at your pursuer, so **half the ability is missing and it is the defensive
+   half** — which is design law 5's own territory and, being a strengthening of the
+   prey, is not forbidden by anything. It also bashes civilians it runs through,
+   where ours passes through the crowd untouched apart from the startle wave.
+
+   **AND WHAT NO SOURCE GIVES IS AS IMPORTANT AS WHAT THEY DO.** The distance, the
+   speed, the cooldown, whether the caster can be stunned mid-dash and what a miss
+   costs are **not sourceable** — so `TUN-LUNGE-DISTANCE` 6.0, `TUN-LUNGE-SPEED`
+   9.0, `TUN-LUNGE-COOLDOWN` 30 s, `TUN-LUNGE-STUNNABLE` and
+   `TUN-LUNGE-WHIFF-STAGGER` are **ours rather than fidelity**, and must not be
+   defended as faithful. Same honest limit the Compass ring radius hit, and the
+   reason that number came from somebody walking toward somebody instead.
+
+   **THE SOURCES ARE DELIBERATELY NOT IN THIS REPOSITORY.** Every one of them names
+   the franchise and `ip-guard` fails hard on that (never-do #5); §2.4 also makes
+   the reference's own name for this ability a discouraged term whose replacement is
+   **Lunge**. They live in the chat log and the owner's design notes, which is
+   already where ADR-0013's full audit table lives for exactly this reason.
 
 6. **Does a stun cancel an ability's wind-up?** US-0067 gave every cast a
    `TUN-<ABIL>-CAST-TIME`, and nothing interrupts one but death. GDD-04 §3.1 names

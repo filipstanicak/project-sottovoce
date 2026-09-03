@@ -170,6 +170,28 @@ abilities reward map and crowd knowledge, which is what this game is about.
 | **Why it exists** | **The "I have been made, commit now" button.** [`02_player_controller.md`](02_player_controller.md) §1.5 deliberately makes sprint awkward to enter, because sprint is for *planned* speed. Lunge is for *unplanned* speed: one press, no timing, when your target has turned and you have one second to decide whether to abandon the hunt or spend everything on it. It is the mechanically correct answer to panic, which means panic has an answer that is not "mash sprint". |
 | **Failure mode** | *If the distance grows or the cooldown shortens*, it becomes the primary opener and the approach phase collapses — the failure this whole design most fears. Symptom: `TEL-KILLS-BY-METHOD` showing Lunge above ~15 % of kills. *If it were not stunnable*, it would hard-counter the defensive play the game is built on, inverting Law 5. |
 
+> **THREE ROWS ABOVE ARE UNDER AN ADR-0013 FIDELITY QUESTION (raised 2026-09-03,
+> owner decision 8).** Sourced rather than recalled, after *"the autokill on lunge
+> does not work"* was measured to a usable band of roughly 5.5-8.7 m:
+>
+> - **Effect — *"you cannot steer mid-dash"*.** The reference keeps a **small
+>   amount of lateral control** through its equivalent dash, which is very likely
+>   what makes it usable at the close range this one fails at. Adding it trades away
+>   part of what the **Counterplay** row prices as an *unsteerable* approach. It does
+>   **not** touch never-do #13: a steered dash is stunnable throughout exactly as
+>   this one is.
+> - **Effect — the auto-resolution is a kill only.** The reference resolves against
+>   whoever the dash connects with: a **kill** on your contract and a **stun** on a
+>   pursuer. Arriving at your pursuer does nothing here, so the ability's defensive
+>   half is absent. Being a strengthening of the prey, nothing forbids it.
+> - **It also bashes civilians it runs through**, where this one only startles them.
+>
+> **The distance, speed, cooldown, stunnability and whiff cost are ours**, not
+> fidelity — no source gives them — and must not be defended as faithful.
+>
+> Sources name the franchise, so they are in the owner's design notes rather than
+> here (IP_GUARDRAILS §2, never-do #5).
+
 ---
 
 ### 3.5 The four in comparison
