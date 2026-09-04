@@ -250,6 +250,62 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 *Updated 2026-08-27 (ADR-0016, the M4 gate). Keep this section current — it is the first thing a
 fresh session reads, and a stale one is worse than none.*
 
+## THE TICK GATE FAILED A BUILD WITH NOTHING BEHIND IT AGAIN, ONE ESTIMATOR ALONG
+
+**AND THE CORRECTION IS MINE FROM YESTERDAY.** `test_server_tick_budget.gd` was
+changed on 2026-09-03 from asserting the **max** to asserting the **p99**, on the
+strength of three local runs, and this file published *"the p99 spans 9 % across
+the three and the max spans 99 %"*. On 2026-09-04 the p99 read **8.493 ms** on CI
+against a budget of 8.0, on a map change that does not touch the tick path.
+
+**THE SAME COMMIT, RE-RUN, NO EDIT OF ANY KIND:**
+
+| CI, one commit | mean | p95 | p99 | max |
+|---|---|---|---|---|
+| first run | 4.238 | 5.116 | **8.493 — FAILED** | 8.887 |
+| re-run | 3.937 | 4.328 | **4.893 — passed** | 5.977 |
+
+**74 % apart on the p99 with the code byte-identical**, which is the whole finding.
+
+**THREE QUIET RUNS ARE NOT A SPREAD.** Fourteen local runs on 2026-09-04 — seven on
+`main`, seven on the branch:
+
+| over 7 runs of `main` | low | high | spread |
+|---|---|---|---|
+| mean | 2.629 | 2.847 | **8 %** |
+| p95 | 3.059 | 3.788 | **24 %** |
+| p99 | 3.296 | 6.702 | **103 %** |
+
+**THE CAUSE IS ARITHMETIC, NOT LUCK.** `sorted[int(180 × 0.99)]` is index **178** —
+the **second-worst reading**. It forgives exactly one interrupted tick, and two
+interrupted ticks in 180 is an ordinary event on a shared runner. **A "p99" over
+180 samples is not a percentile; it is `second-worst` wearing a percentile's name.**
+The p95 is index 171, the tenth-worst, which is why it moves by a quarter where the
+p99 moves by double.
+
+**THE TARGET IS NOT LOWERED, BECAUSE THIS TEST WAS NEVER MEASURING IT.**
+PERFORMANCE_BUDGET §5.3 still wants p99 ≤ 8.0 ms and is right to — *"a game decided
+in 0.4 s contest windows is ruined by the 1 % of frames that hitch"*. Estimating a
+99th percentile needs far more than six seconds of ticks, and the suite is already
+over its 180 s limit. **The p99 belongs to a long server log; what six seconds of CI
+can honestly assert is the p95.** Both are printed every run with the tail ratios.
+
+**IT STILL CATCHES A REGRESSION AND THAT IS FALSIFIED RATHER THAN CLAIMED.**
+Dropped to a 2.0 ms budget it fails at a p95 of 2.757 and names the criterion. CI's
+worst observed p95 is 5.116 against 8.0 — **36 % of headroom, where the p99 had
+none.**
+
+**AND THIS IS THE THIRD TIME THE SAME LESSON HAS BEEN PAID FOR.**
+`test_crowd_perf.gd` learned it in August and moved to a p95. Yesterday this file
+wrote *"a lesson applied to one instance is a lesson half learned"* — and then
+applied it half way, moving one estimator instead of asking what 180 samples can
+support.
+
+**THE MAP CHANGE WAS EXONERATED BY MEASUREMENT, NOT BY THE RE-RUN.** Seven local
+runs per branch: mean 2.772 against 2.868 (+3.5 %, inside `main`'s own 8 % spread),
+p95 3.29 against 3.37, and the branch's p99 was **more** stable than `main`'s
+(3.61-4.51 against 3.30-6.70).
+
 ## THERE IS A BENCH NOW: `MAP-SANDBOX`, 40 m, AND `sandbox.bat`
 
 **ASKED FOR FROM THE CONTROLS: *"for testing and debugging wouldn't it be better
@@ -611,9 +667,13 @@ commit, nothing else changed:
 | run 2 | 2.909 | **5.554** | **1.91x** |
 | run 3 | 2.783 | 2.794 | 1.00x |
 
-**The p99 spans 9 % across the three and the max spans 99 %**, on a quiet desktop
-before CI is involved at all. An estimator that doubles between identical runs
-cannot tell a regression from a scheduler.
+**AND THE CONCLUSION DRAWN FROM THAT TABLE WAS WRONG — CORRECTED 2026-09-04, SEE
+THE SECTION AT THE TOP OF THIS FILE.** It read *"the p99 spans 9 % across the three
+and the max spans 99 %"*, which is true of these three runs and false of the
+estimator: **three quiet runs are not a spread.** Fourteen runs the next day put
+the p99's spread at **103 %**, and the p99 then failed a build with nothing behind
+it exactly as the max had. What survives from this section is that the **max** is
+unusable; what replaced it was not robust either.
 
 **AND THE NEW ASSERTION IS FALSIFIED RATHER THAN ASSUMED**: dropped to a 2.0 ms
 budget it fails at a p99 of 2.783 and names the criterion in the message.

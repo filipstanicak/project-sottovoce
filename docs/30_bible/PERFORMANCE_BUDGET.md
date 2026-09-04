@@ -204,12 +204,27 @@ godot -- --connect 127.0.0.1:27015
 | Frame time **p50 / p95 / p99** | `show budget` console overlay | p99 ≤ 16.6 ms |
 | Per-system frame time | Same overlay, per §1 | Each within its row |
 | Server tick time p99 | Server log | ≤ 8.0 ms |
+| Server tick time **p95** | `test_server_tick_budget.gd` | ≤ 8.0 ms — **the CI gate**, because 180 samples cannot estimate a p99. See the note below |
 | Bytes/s per client | `test_crowd_bandwidth.gd` | ≤ 96 kbit/s down |
 | Peak memory | OS monitor | ≤ 1.5 GB |
 | Allocations per frame | Godot profiler | **0 in `NpcBrain.step()` and `PawnState.step()`** |
 
 > **p99, not mean.** A game decided in 0.4 s contest windows is ruined by the 1 % of frames that
 > hitch, and a mean frame time hides them completely.
+
+> **AND A CI GATE CANNOT MEASURE A p99 IN SIX SECONDS — amended 2026-09-04.** The target above
+> is unchanged and right. What changed is the instrument: `test_server_tick_budget.gd` samples
+> **180 ticks**, and `sorted[int(180 × 0.99)]` is index 178 — the **second-worst reading**, not
+> the 99th percentile of anything. It forgives exactly one interrupted tick, and two interrupted
+> ticks in 180 is an ordinary event on a shared runner.
+>
+> Measured: across seven identical local runs the p99 spanned **103 %** (3.296 → 6.702 ms) where
+> the p95 spanned **24 %** and the mean **8 %**; and two CI runs of **one commit** read a p99 of
+> **8.493** and **4.893** — one failing the build, one passing it, with the code byte-identical.
+>
+> **So the gate asserts the p95 and prints the p99 and the max beside it.** The p99 ≤ 8.0 ms
+> target belongs to a long server log, where there are enough samples for the word to mean
+> something. This is the second gate to make this move: `test_crowd_perf.gd` made it first.
 
 ### 5.4 When a budget is missed
 
