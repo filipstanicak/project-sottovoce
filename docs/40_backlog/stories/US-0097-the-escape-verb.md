@@ -147,7 +147,7 @@ indistinguishable from a deliberate zero. They land together, with the implement
 | `TUN-PURSUIT-SIGHT-RANGE` | **25.0 m** | Must exceed `TUN-COMPASS-WARN-RADIUS`, or a chase could not be sustained at the range it opens at. |
 | `TUN-PURSUIT-SIGHT-CONE` | **90°** | Wider than `TUN-KILL-FACING-CONE` (60°) and than the lock cone (25°): you can see somebody without staring at them. |
 | `TUN-PURSUIT-CLOSECALL-RADIUS` | **5.0 m** | Inside `TUN-STUN-RANGE` × 1.5 — near enough that the prey could have been reached. |
-| `TUN-SCORE-ESCAPE` | **+100** | The reference's own value. One base kill: successfully surviving a hunt is worth what successfully ending one is, which is the same statement `TUN-SCORE-STUN` makes. |
+| `TUN-SCORE-ESCAPE` | **+100** | The reference's own value. One base kill: successfully surviving a hunt is worth what successfully ending one is. **The last clause of this row said "the same statement `TUN-SCORE-STUN` makes" and was true when written; ADR-0018 took the stun to 200 on 2026-09-03**, so the prey's teeth are deliberately priced apart now. This value did not move. |
 | `TUN-SCORE-CLOSECALL` | **+50** | The reference's own value. |
 
 **Proposed invariants**, to be added beside the existing 31:

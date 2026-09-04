@@ -140,9 +140,12 @@ extends Resource
 @export_range(75.0, 250.0, 0.1) var stun: float = 200.0
 
 ## Added 2026-08-29 (US-0097, ADR-0014). Your pursuer's chase timer emptied while you were the
-## prey. The reference's own value, and it lands equal to a base kill and to TUN-SCORE-STUN —
-## which is the same statement those two already make about each other: surviving a hunt is worth
-## what ending one is. Invariant 37.
+## prey. The reference's own value, and it lands equal to a base kill: surviving a hunt is worth
+## what ending one is. This row used to add "and to TUN-SCORE-STUN" and that stopped being true
+## on 2026-09-03, when ADR-0018 took the stun to 200 — the row directly above this one. The value
+## is unchanged and is not in question; ADR-0014 sourced it and got it exactly. What changed is
+## that the prey's three teeth are not priced alike: a read stun is the expensive one. Invariant
+## 37.
 ## TUN-SCORE-ESCAPE
 @export_range(75.0, 150.0, 0.1) var escape: float = 100.0
 

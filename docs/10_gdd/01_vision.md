@@ -230,7 +230,7 @@ Three personas, with what they want, what they can already do, and what will mak
 | **Skill ceiling expectation** | None. She wants one good moment per match to talk about. |
 | **Session length** | One session, 60 minutes, possibly never again. |
 | **What loses her** | Being unable to contribute. A game where the weakest player is a free 100 points for everyone else is a game she will not return to. |
-| **Design consequence** | `TUN-STUN-SCORE` = 100 exists partly for Mei: a player who does nothing but hide and stun their pursuer can score. `TUN-SCORE-DEATH-PENALTY` = 0 exists entirely for Mei: dying costs time, never points, so she can never be driven into a hole she cannot climb out of. |
+| **Design consequence** | `TUN-STUN-SCORE` = 200 exists partly for Mei: a player who does nothing but hide and stun their pursuer can score — and since ADR-0018 (2026-09-03) it pays **twice** a base kill's 100, so that floor strategy is worth more than the aggression it defends against. `TUN-SCORE-DEATH-PENALTY` = 0 exists entirely for Mei: dying costs time, never points, so she can never be driven into a hole she cannot climb out of. |
 
 **The audience shape this implies:** a game that is *trivially* playable badly and *deeply*
 playable well, where the skill gradient is in observation rather than execution. That is an
