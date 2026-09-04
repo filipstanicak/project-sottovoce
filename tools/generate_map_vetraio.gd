@@ -18,26 +18,8 @@ const COLLISION_OUT := "res://scenes/map/map_vetraio_collision.tscn"
 const DATA_OUT := "res://data/maps/map_vetraio.tres"
 const NAVMESH_OUT := "res://data/maps/map_vetraio_navmesh.tres"
 
-## How far a walkable slab hangs below the surface it declares. Thick enough that
-## nothing falls through it, and entirely beneath `FLOORS`' y so the surface is
-## exactly the number the layout table gives.
-const FLOOR_THICKNESS := 0.2
-
-## Desaturated greybox palette, GDD-05 §7.4. Deliberately avoids the saturated
-## identity hues the colour-language law reserves for personas and tells.
-## MAT-VOID is absent: it must never appear in a playtest build.
-const PALETTE := {
-	"MAT-GREY-FLOOR": Color(0.45, 0.45, 0.46),
-	"MAT-GREY-WALL": Color(0.62, 0.62, 0.63),
-	"MAT-CLIMB": Color(0.38, 0.48, 0.62),
-	"MAT-VAULT": Color(0.66, 0.62, 0.36),
-	"MAT-BLEND": Color(0.40, 0.58, 0.44),
-}
-
-var _materials: Dictionary = {}
-
-## False while building the collision-only variant the dedicated server loads.
-var _with_meshes := true
+## The shared plumbing: boxes, the bake settings, and a byte-stable scene write.
+var _build := MapBuild.new(true)
 
 
 ## **THE BAKE NEEDS A LIVE TREE, SO THE WHOLE RUN IS DEFERRED.** `_init()` fires
@@ -53,7 +35,6 @@ func _run() -> void:
 	await process_frame
 	DirAccess.make_dir_recursive_absolute("res://scenes/map")
 	DirAccess.make_dir_recursive_absolute("res://data/maps")
-	_build_materials()
 
 	var data := _write_everything()
 	if data == null:
@@ -70,13 +51,16 @@ func _run() -> void:
 ## no agent can path on: every query answers the origin and the whole crowd is placed
 ## at (0, 0, 0) — a missing node wearing a placement bug's clothes.
 func _write_everything() -> MapData:
-	if not _save_scene(_build_scene(true), SCENE_OUT):
+	if not MapBuild.save_scene(_build_scene(true), SCENE_OUT):
 		return null
 
-	var navmesh := _bake_navmesh()
+	var navmesh := MapBuild.bake(self, _build_scene(false), VetraioLayout.MAP_SIZE)
 	if navmesh == null:
 		return null
-	if not _save_scene(_build_scene(false, navmesh), COLLISION_OUT):
+	if ResourceSaver.save(navmesh, NAVMESH_OUT) != OK:
+		push_error("failed to save %s" % NAVMESH_OUT)
+		return null
+	if not MapBuild.save_scene(_build_scene(false, navmesh), COLLISION_OUT):
 		return null
 
 	var data := MapDataBuilder.build()
@@ -84,96 +68,6 @@ func _write_everything() -> MapData:
 		push_error("failed to save %s" % DATA_OUT)
 		return null
 	return data
-
-
-## The mesh's parameters, TDD-08 §7. Separate from the bake because "what the mesh
-## is" and "how it gets built" are two things.
-func _navmesh_settings() -> NavigationMesh:
-	var mesh := NavigationMesh.new()
-	# **CELL SIZE FIRST.** The agent dimensions are quantised against it — and
-	# **ceiled** — so assigning them the other way round quantises against Godot's
-	# default 0.25 and bakes a 0.4 m radius as 0.5. Only a warning says so.
-	mesh.cell_size = VetraioLayout.NAV_CELL_SIZE
-	mesh.cell_height = VetraioLayout.NAV_CELL_HEIGHT
-	mesh.agent_radius = VetraioLayout.NAV_AGENT_RADIUS
-	mesh.agent_height = VetraioLayout.NAV_AGENT_HEIGHT
-	mesh.agent_max_slope = VetraioLayout.NAV_MAX_SLOPE
-	mesh.agent_max_climb = VetraioLayout.NAV_MAX_CLIMB
-	mesh.geometry_parsed_geometry_type = NavigationMesh.PARSED_GEOMETRY_STATIC_COLLIDERS
-
-	# **THE STREET STRATUM AND NOTHING ABOVE IT.** Roofs, balconies and the
-	# campanile are excluded by never being offered to the baker, rather than by
-	# being carved out afterwards — a filter that runs second can be forgotten.
-	# The canal has no floor to bake in the first place.
-	mesh.filter_baking_aabb = AABB(
-		Vector3(-1.0, VetraioLayout.NAV_BAKE_FLOOR, -1.0),
-		Vector3(
-			VetraioLayout.MAP_SIZE + 2.0,
-			VetraioLayout.NAV_BAKE_CEILING - VetraioLayout.NAV_BAKE_FLOOR,
-			VetraioLayout.MAP_SIZE + 2.0
-		)
-	)
-	return mesh
-
-
-## **BAKED HERE, NOT AT RUNTIME.** TDD-08 §7: the geometry is static and the mesh is
-## never rebaked in a match. US-0012 recorded the bake as owed because it needs a
-## live tree, and this generator already runs inside one. Baking at startup would
-## cost every server seconds of a countdown it does not have, and would make a
-## **level** defect appear as a *networking* one — clients waiting on a hung server.
-func _bake_navmesh() -> NavigationMesh:
-	var mesh := _navmesh_settings()
-
-	# **PARSED EXPLICITLY RATHER THAN THROUGH A REGION.** `bake_navigation_mesh()`
-	# wants its source root in the scene tree in a way that nesting it under the
-	# region does not satisfy; the two-step API says what it needs out loud, which
-	# is the whole reason this is worth the extra line.
-	var source := _build_scene(false)
-	get_root().add_child(source)
-	var geometry := NavigationMeshSourceGeometryData3D.new()
-	NavigationServer3D.parse_source_geometry_data(mesh, geometry, source)
-	NavigationServer3D.bake_from_source_geometry_data(mesh, geometry)
-	get_root().remove_child(source)
-	source.free()
-
-	if mesh.get_polygon_count() == 0:
-		push_error("navmesh baked to zero polygons — the source geometry was not parsed")
-		return null
-	print("navmesh: %d polygons" % mesh.get_polygon_count())
-	if ResourceSaver.save(mesh, NAVMESH_OUT) != OK:
-		push_error("failed to save %s" % NAVMESH_OUT)
-		return null
-	return mesh
-
-
-func _save_scene(root: Node3D, path: String) -> bool:
-	var packed := PackedScene.new()
-	if packed.pack(root) != OK or ResourceSaver.save(packed, path) != OK:
-		push_error("failed to save %s" % path)
-		return false
-	return _strip_unique_ids(path)
-
-
-## Godot stamps every node with a RANDOM `unique_id` on save, so re-running the
-## generator produces a 300-line diff in which nothing changed. Stripping them
-## makes the committed scenes byte-stable, which is the only way "regenerate and
-## check git diff is empty" can be the verification it claims to be.
-func _strip_unique_ids(path: String) -> bool:
-	var file := FileAccess.open(path, FileAccess.READ)
-	if file == null:
-		push_error("could not reopen %s" % path)
-		return false
-	var text := file.get_as_text()
-	file.close()
-
-	var cleaned := RegEx.create_from_string(" unique_id=-?[0-9]+").sub(text, "", true)
-	var out := FileAccess.open(path, FileAccess.WRITE)
-	if out == null:
-		push_error("could not rewrite %s" % path)
-		return false
-	out.store_string(cleaned)
-	out.close()
-	return true
 
 
 func _report(data: MapData) -> void:
@@ -194,17 +88,8 @@ func _report(data: MapData) -> void:
 	)
 
 
-func _build_materials() -> void:
-	for key: String in PALETTE:
-		var mat := StandardMaterial3D.new()
-		mat.albedo_color = PALETTE[key]
-		mat.roughness = 0.9
-		mat.resource_name = key
-		_materials[key] = mat
-
-
 func _build_scene(with_meshes: bool = true, navmesh: NavigationMesh = null) -> Node3D:
-	_with_meshes = with_meshes
+	_build = MapBuild.new(with_meshes)
 	var root := Node3D.new()
 	root.name = "MapVetraio" if with_meshes else "MapVetraioCollision"
 
@@ -226,15 +111,7 @@ func _build_scene(with_meshes: bool = true, navmesh: NavigationMesh = null) -> N
 	root.add_child(canal)
 	canal.owner = root
 
-	# **THE REGION IS WHAT PUBLISHES THE MESH.** Without it the world's navigation
-	# map is empty and every `map_get_closest_point` answers the origin — so an
-	# agent cannot path and a placement snaps every NPC to (0, 0, 0).
-	if navmesh != null:
-		var region := NavigationRegion3D.new()
-		region.name = "NavRegion"
-		region.navigation_mesh = navmesh
-		root.add_child(region)
-		region.owner = root
+	MapBuild.add_region(root, navmesh)
 	return root
 
 
@@ -248,19 +125,30 @@ func _add_geometry(geometry: Node3D, root: Node3D) -> void:
 	# a pawn's feet, the 0.85 m waist probe passed over them, and traverse at a market
 	# stall did nothing at all.
 	for f: Array in VetraioLayout.FLOORS:
-		_add_box(
+		_build.add_box(
 			geometry,
 			root,
 			f[0],
-			Vector3(f[1], f[5] - FLOOR_THICKNESS, f[2]),
-			Vector3(f[3], FLOOR_THICKNESS, f[4]),
+			Vector3(f[1], f[5] - MapBuild.FLOOR_THICKNESS, f[2]),
+			Vector3(f[3], MapBuild.FLOOR_THICKNESS, f[4]),
 			f[6]
 		)
 	for b: Array in VetraioLayout.BLOCKS:
-		_add_box(geometry, root, b[0], Vector3(b[1], 0.0, b[2]), Vector3(b[3], b[5], b[4]), b[6])
+		_build.add_box(
+			geometry, root, b[0], Vector3(b[1], 0.0, b[2]), Vector3(b[3], b[5], b[4]), b[6]
+		)
 	_add_parapets(geometry, root)
+	_add_furniture(geometry, root)
+
+
+## The market stalls and the blend props: everything at `H_VAULT` that a player can
+## get over rather than round. Split from `_add_geometry` when moving the box
+## builder into `MapBuild` reflowed that function past the 40-line cap — and the
+## seam is honest rather than mechanical, because these two are the only solids on
+## the map a pawn interacts with instead of being stopped by.
+func _add_furniture(geometry: Node3D, root: Node3D) -> void:
 	for s: Array in VetraioLayout.STALLS:
-		_add_box(
+		_build.add_box(
 			geometry,
 			root,
 			s[0],
@@ -269,7 +157,7 @@ func _add_geometry(geometry: Node3D, root: Node3D) -> void:
 			"MAT-VAULT"
 		)
 	for p: Array in VetraioLayout.BLEND_PROPS:
-		_add_box(
+		_build.add_box(
 			geometry,
 			root,
 			"Prop_" + String(p[0]),
@@ -283,37 +171,4 @@ func _add_geometry(geometry: Node3D, root: Node3D) -> void:
 func _add_parapets(geometry: Node3D, root: Node3D) -> void:
 	for w: Array in VetraioGround.parapets():
 		var corner := Vector3(w[1], 0.0, w[2])
-		_add_box(geometry, root, w[0], corner, Vector3(w[3], w[5], w[4]), "MAT-VAULT")
-
-
-func _add_box(
-	parent: Node3D,
-	owner_node: Node3D,
-	node_name: String,
-	corner: Vector3,
-	size: Vector3,
-	material: String
-) -> void:
-	var body := StaticBody3D.new()
-	body.name = node_name
-	body.position = corner + size * 0.5
-	parent.add_child(body)
-	body.owner = owner_node
-
-	if _with_meshes:
-		var mesh := MeshInstance3D.new()
-		var box := BoxMesh.new()
-		box.size = size
-		mesh.mesh = box
-		mesh.material_override = _materials.get(material)
-		mesh.name = "Mesh"
-		body.add_child(mesh)
-		mesh.owner = owner_node
-
-	var shape := CollisionShape3D.new()
-	var box_shape := BoxShape3D.new()
-	box_shape.size = size
-	shape.shape = box_shape
-	shape.name = "Collision"
-	body.add_child(shape)
-	shape.owner = owner_node
+		_build.add_box(geometry, root, w[0], corner, Vector3(w[3], w[5], w[4]), "MAT-VAULT")

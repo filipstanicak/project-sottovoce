@@ -105,6 +105,7 @@ Use this when you are about to modify code and need to know which document is au
 | Any ability | `10_gdd/04_abilities.md` | `20_tdd/09_ability_system.md` |
 | NPC behaviour, crowd density | `10_gdd/03_social_stealth.md` §6 | `20_tdd/08_crowd_system.md` |
 | The map, blockout, metrics | `10_gdd/05_level_design.md` | `30_bible/ART_BIBLE.md` |
+| Reproducing a defect quickly | `30_bible/MAP_SANDBOX.md` | — |
 | HUD, score feed, menus | `10_gdd/06_ui_audio.md` | `30_bible/UI_UX_SPEC.md` |
 | Any sound | `10_gdd/06_ui_audio.md` §5 | `30_bible/AUDIO_BIBLE.md` |
 | Score values, bonuses, balance | `10_gdd/07_balance.md` | `50_tuning/BALANCE_MODEL.md` |
@@ -185,6 +186,7 @@ Operational documents, not essays. These are what make the project agent-legible
 | [`PERFORMANCE_BUDGET.md`](30_bible/PERFORMANCE_BUDGET.md) | The 16.6 ms frame split, memory, bandwidth, the profiling procedure. |
 | [`DEFINITION_OF_DONE.md`](30_bible/DEFINITION_OF_DONE.md) | The checklist every story must pass before merge. |
 | [`RISK_REGISTER.md`](30_bible/RISK_REGISTER.md) | Probability/impact/mitigation, including agent-drift and its docs-sync mitigation. |
+| [`MAP_SANDBOX.md`](30_bible/MAP_SANDBOX.md) | `MAP-SANDBOX`, the 40 m debug bench: how to run it, what is in it and why — and **§4, what must never be measured on it**. |
 
 ### 4.5 `40_backlog/`
 

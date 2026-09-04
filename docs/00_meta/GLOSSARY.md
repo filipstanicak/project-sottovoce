@@ -361,8 +361,21 @@ the base 100. The event still fires and is still shown, at zero, because the fee
 were seen* is the half that teaches.
 
 ### Rione Vetraio
-**MAP-VETRAIO.** The Glassmakers' Quarter — the single MVP map, a district of the fictional
-city of **Vessalia**. ~120 × 120 m playable, three vertical strata.
+**MAP-VETRAIO.** The Glassmakers' Quarter — **the only map the MVP ships**, a district of the
+fictional city of **Vessalia**. ~120 × 120 m playable, three vertical strata.
+
+### Sandbox
+**MAP-SANDBOX.** A 40 × 40 m walled courtyard that exists **only to reproduce defects**, added
+2026-09-04. Not a place, not part of the fiction, and not shipped: every release preset excludes
+it and `--map sandbox` is how you reach it. One block to break sightlines, one corner nook with a
+single 2 m mouth, two vaultable stalls, four spawn points 15 m apart.
+
+**It is deliberately not a small MAP-VETRAIO.** It has no zones, circuits, theatre spaces or
+blend props, and `SpawnRules` cannot give 40 m between a victim and their killer on a 40 m map,
+so every respawn on it takes the fallback. **Nothing about crowd density, spawn separation, clone
+parity or procession routing may be measured here** — those are properties of the district, and
+a number taken on the bench and quoted about the game is the shape of every retracted figure in
+this corpus.
 
 ---
 

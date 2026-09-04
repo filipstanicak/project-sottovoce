@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="MapData" format=3]
+
+[ext_resource type="Script" path="res://scripts/core/map_data.gd" id="1_xf11j"]
+[ext_resource type="Script" path="res://scripts/core/map_zone.gd" id="2_j82ew"]
+
+[resource]
+script = ExtResource("1_xf11j")
+id = &"MAP-SANDBOX"
+display_key = &"ui.map.sandbox"
+bounds = AABB(0, 0, 0, 40, 3, 40)
+spawn_points = Array[Vector3]([Vector3(5, 0, 5), Vector3(35, 0, 5), Vector3(5, 0, 35), Vector3(20, 0, 8)])
+circuit_periods = PackedFloat32Array()
+idle_anchors = Array[Vector3]([Vector3(5, 0, 5), Vector3(5, 0, 11), Vector3(5, 0, 17), Vector3(5, 0, 23), Vector3(5, 0, 29), Vector3(5, 0, 35), Vector3(11, 0, 5), Vector3(11, 0, 11), Vector3(11, 0, 17), Vector3(11, 0, 23), Vector3(11, 0, 29), Vector3(11, 0, 35), Vector3(17, 0, 5), Vector3(17, 0, 11), Vector3(17, 0, 29), Vector3(17, 0, 35), Vector3(23, 0, 5), Vector3(23, 0, 11), Vector3(23, 0, 29), Vector3(23, 0, 35), Vector3(29, 0, 5), Vector3(29, 0, 11), Vector3(29, 0, 17), Vector3(29, 0, 23), Vector3(29, 0, 29), Vector3(29, 0, 35), Vector3(35, 0, 5), Vector3(35, 0, 11), Vector3(35, 0, 17), Vector3(35, 0, 23), Vector3(35, 0, 29), Vector3(35, 0, 35)])

@@ -71,7 +71,11 @@ func _ready() -> void:
 	_panel.custom_minimum_size = Vector2(SIZE, SIZE)
 	_panel.draw.connect(_draw_map)
 	add_child(_panel)
-	_tint_the_world.call_deferred()
+	# The world tint repaints `VetraioLayout`'s own floor meshes by node name, so it
+	# is the district's or nothing — on another map there are no such nodes and it
+	# would silently find none.
+	if _map_name() == MapCatalogue.DEFAULT:
+		_tint_the_world.call_deferred()
 
 
 ## A hue per street-level floor, from its index rather than a table, so a floor
@@ -143,10 +147,24 @@ func _process(_delta: float) -> void:
 		_panel.queue_redraw()
 
 
-## North is up and the map is the district's own 120 m square, so a position reads
-## straight off `VetraioLayout` without a camera or a projection to get wrong.
+## **WHICH MAP THIS CLIENT ACTUALLY OPENED.** Added 2026-09-04 with `MAP-SANDBOX`.
+## Before it this overlay drew `VetraioLayout` unconditionally and scaled every
+## position by the district's 120 m — so on a 40 m bench it drew the wrong district
+## and put the player's dot in the wrong corner of it. **An instrument that is
+## wrong in a plausible direction is worse than no instrument**, which this corpus
+## has recorded three times and had not yet applied to itself.
+func _map_name() -> String:
+	return LaunchConfig.active.map_name if LaunchConfig.active != null else MapCatalogue.DEFAULT
+
+
+## North is up and the overlay is the map's own square, so a position reads straight
+## off the layout without a camera or a projection to get wrong.
+func _extent() -> float:
+	return SandboxLayout.MAP_SIZE if _map_name() == "sandbox" else VetraioLayout.MAP_SIZE
+
+
 func _to_map(at: Vector2) -> Vector2:
-	return at / VetraioLayout.MAP_SIZE * SIZE
+	return at / _extent() * SIZE
 
 
 func _draw_map() -> void:
@@ -158,7 +176,14 @@ func _draw_map() -> void:
 	_panel.draw_rect(Rect2(Vector2.ZERO, Vector2(SIZE, SIZE)), Color(1, 1, 1, 0.25), false, 1.0)
 
 
+## **A BENCH GETS A GROUND RECTANGLE AND NOTHING ELSE.** The hue-per-floor legend
+## and the block masses are `VetraioLayout`'s tables and are meaningless on another
+## map; drawing them anyway is what made this overlay lie. What stays true for every
+## map is the extent, the crowd and where you are standing.
 func _draw_floors() -> void:
+	if _map_name() != MapCatalogue.DEFAULT:
+		_panel.draw_rect(Rect2(Vector2.ZERO, Vector2(SIZE, SIZE)), Color(0.30, 0.32, 0.34))
+		return
 	for row: Array in _street_floors():
 		var at := _to_map(Vector2(float(row[1]), float(row[2])))
 		var span := _to_map(Vector2(float(row[3]), float(row[4])))
@@ -171,7 +196,8 @@ func _draw_floors() -> void:
 ## which is how the 60 x 6 m void between the piazza and the Loggia looked before
 ## the two mouths were cut, and how the strip CIRC-B walks off still looks.
 func _draw_blocks() -> void:
-	for row: Array in VetraioLayout.BLOCKS:
+	var rows: Array = SandboxLayout.BLOCKS if _map_name() == "sandbox" else VetraioLayout.BLOCKS
+	for row: Array in rows:
 		var at := _to_map(Vector2(float(row[1]), float(row[2])))
 		var span := _to_map(Vector2(float(row[3]), float(row[4])))
 		_panel.draw_rect(Rect2(at, span), Color(0.20, 0.19, 0.22))
