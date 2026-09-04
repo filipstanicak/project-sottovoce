@@ -85,6 +85,7 @@ const ARCH_WATERCARRIER := &"ARCH-WATERCARRIER"
 
 # --- MAP -----------------------------------------------------------------
 ## Maps.
+const MAP_SANDBOX := &"MAP-SANDBOX"
 const MAP_VETRAIO := &"MAP-VETRAIO"
 
 # --- EVT -----------------------------------------------------------------

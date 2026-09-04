@@ -153,6 +153,20 @@ godot --headless --path . res://tools/bot_client.tscn -- --connect 127.0.0.1:270
 # What the input layer reports with nobody touching the controls.
 # NEVER --headless: there is no windowing layer there to see a device. Trap 13.
 godot --path . -s res://tools/input_probe.gd
+
+# THE BENCH. A 40 m courtyard for reproducing something in ten seconds rather
+# than ten minutes. DEBUG ONLY - excluded from every export preset.
+# docs/30_bible/MAP_SANDBOX.md, and read its section 4 before quoting any number.
+sandbox.bat            REM a server, 1 hunting bot, 12 civilians, and you
+sandbox.bat 1 0        REM one bot and an EMPTY district
+
+# --map MUST be given to every process, INCLUDING each bot: a bot instantiates
+# the client root itself and never sees boot.gd, so without it the bot loads the
+# district while the server runs the courtyard.
+godot --headless --path . -- --server --port 27015 --map sandbox --crowd 12
+
+# Look at a map from above, with its spawn points marked. Windowed only.
+godot --path . res://tools/map_probe.tscn -- --map sandbox
 ```
 
 ---
@@ -235,6 +249,119 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 
 *Updated 2026-08-27 (ADR-0016, the M4 gate). Keep this section current — it is the first thing a
 fresh session reads, and a stale one is worse than none.*
+
+## THERE IS A BENCH NOW: `MAP-SANDBOX`, 40 m, AND `sandbox.bat`
+
+**ASKED FOR FROM THE CONTROLS: *"for testing and debugging wouldn't it be better
+to have a way smaller map, with just one or two bots?"*** Yes, and the week before
+it was the argument: every defect reported cost minutes of walking to reach the
+arrangement that showed it, and one of them — a hunting bot wedged in a corner —
+needed a corner of a known shape to be reproduced at all.
+
+```bash
+sandbox.bat            REM a server, 1 hunting bot, 12 civilians, and you
+sandbox.bat 1 0        REM one bot and an EMPTY district
+```
+
+**EVERY SOLID IN IT IS THERE FOR A NAMED REASON**, which is the difference between
+a bench and a doodle. Two spawns **15.3 m apart** so an encounter happens rather
+than being travelled to; a **centre block** so the Compass has something to point
+around and a chase can be broken at all; a **nook with one 2 m mouth**, which is
+the corner the bot walked into; two **stalls at `H_VAULT`**, the band whose only
+geometry in the district is a market stall and which hid the floor-height defect
+for three milestones.
+
+**AND `MAP_SANDBOX.md` §4 IS THE HALF THAT MATTERS: WHAT MUST NOT BE MEASURED ON
+IT.** `SpawnRules` wants 40 m between a victim and their killer, which a 40 m
+courtyard cannot give — so **every respawn here takes rule 7's fallback**. There
+are no zones, so no density; no circuits, so no processions. A number taken on the
+bench and quoted about the game is the shape of every retracted figure in this
+corpus, and this map makes that easy to do by accident.
+
+**THE MAP IS NO LONGER AN `ext_resource` IN THE ROOT SCENES.** It was one in both,
+plus a `const` in `server_root.gd` and a `load()` inside `LocalPawnDriver` — four
+places, and remembering three of them is a client that draws one place and stands
+in another. `MapCatalogue` is the one table, and `client_root.tscn` gained a script
+for it: it was the only root scene with none.
+
+**AND THE BOT NEEDED ITS OWN COMMAND LINE.** `bot_client.gd` instantiates the
+client root itself and never goes through `boot.gd`, so nothing had published its
+flags — the bot would have loaded the district while the server ran the courtyard,
+which reads as a broken navmesh rather than a wrong map. `LaunchConfig.active` is
+the seam, a **static rather than a ninth autoload** (never-do #15), and every
+reader falls back to the default because **null is the normal case in a test**:
+every test that boots a root scene does so directly.
+
+**THE PLUMBING IS SHARED AND THE BAKE SETTINGS ARE WHY.** `MapBuild` holds the box
+builder, the navmesh settings, the bake and the byte-stable scene write. A bench
+baked with a different agent radius, cell size or climb height is a bench the pawn
+traverses **differently**, so a defect reproduced on it would not be the defect.
+`generate_map_vetraio.gd` went 319 → 176 lines and **the district reproduces
+byte-identical**, which is the only reason that refactor was safe to make.
+
+**AND `NAV_AGENT_RADIUS` AND ITS FOUR SIBLINGS ARE IN THE WRONG CLASS**, which is
+visible only now there are two maps: they describe the **pawn**, not the district,
+and they live in `VetraioLayout` because there was one map when they were written.
+22 references across 8 files and no `TUN-` id among them — a rename with no design
+content, reported rather than folded into a map story.
+
+**THE DEBUG DISTRICT MAP WAS DRAWING THE WRONG DISTRICT.** `district_map.gd` read
+`VetraioLayout` unconditionally and scaled every position by the district's 120 m,
+so on a 40 m bench it drew the district and put the player's dot in the wrong
+corner of it. **An instrument wrong in a plausible direction is worse than no
+instrument** — recorded three times in this file and not yet applied to itself. It
+asks which map is open now, and a bench gets a ground rectangle, the blocks, the
+crowd and the player rather than a hue legend that means nothing.
+
+**AND MY OWN GUARD PASSED OVER THE ONE FILE THAT NAMED IT.**
+`test_sandbox_is_debug_only.gd` scanned for `"sandbox"` through
+`SourceScanner.code_contains`, which matches **case-sensitively** — so it walked
+straight past `SandboxLayout`, the identifier every real offender would use. It
+matches case-insensitively now, and `scripts/debug/` is exempt by construction
+rather than by listing: it is already excluded from all three release presets.
+Falsified against `SandboxLayout.MAP_SIZE` planted in `ContractSystem`.
+
+**AND LOOKING AT IT IS A TOOL NOW.** `tools/map_probe.tscn` boots the real client
+root, disables the camera rig, drops an orthographic eye over the map and marks
+every spawn point in red — a wall built from its centre rather than its corner, a
+floor that straddles its height, a nook whose mouth is on the wrong side are all
+instant in a picture and invisible in a coordinate list. All three have happened
+here.
+
+```bash
+godot --path . res://tools/map_probe.tscn -- --map sandbox
+```
+
+**ITS FIRST VERSION FREED THE PAWN TO GET IT OUT OF SHOT**, which took
+`LocalPawnDriver` down with it — *"the Object-derived class of argument 2
+(previously freed)"* on the next physics frame. The rig is **disabled** rather than
+freed now, and the pawn is left standing, which is worth seeing anyway.
+
+## THE TUNING CODEGEN NO LONGER REPRODUCES ITS OWN OUTPUT, ON CLEAN `main`
+
+**FOUND BY RUNNING IT FOR AN UNRELATED REASON** — `MAP-SANDBOX` needed an entry in
+`Ids`, which is generated. `python tools/tuning_codegen/run_all.py` on an untouched
+checkout produces a **different** `combat_tuning.gd`, `scoring_tuning.gd` and
+`ability_data.gd` from the ones committed.
+
+**AND TWO OF THE THREE DIFFERENCES DELETE LIVE FIELDS.** It drops
+`combat.score` (`TUN-STUN-SCORE`) and `scoring.stun` (`TUN-SCORE-STUN`) — and
+`tuning_invariants_score.gd` reads `p.scoring.stun` for **invariant 19**, the one
+ADR-0018 amended on 2026-09-03. **Regenerating today breaks the build.**
+
+**WHICH MAKES TRAP 1 FALSE AS WRITTEN.** It says these files are generated and
+hand-edits are silently reverted — so the documented instruction, followed
+literally, deletes two tunables. The third difference is the other half of the same
+story: `ability_data.gd`'s docstrings have been **hand-edited** since, which is
+exactly what trap 1 forbids, and regenerating would revert three genuinely useful
+notes about `TUN-CINDERFALL-THROW-RANGE`, `-DURATION` and `TUN-LUNGE-AUTO-KILL`.
+
+**REPORTED RATHER THAN FIXED, AND THE `ids.gd` CHANGE WAS TAKEN ALONE.** Whatever
+`parse_tunables.py` is doing with the two stun-score IDs is a question about the
+generator, not about this map; folding a tuning-class regeneration into a map story
+would put a build-breaking diff where nobody would look for it. **Nothing here
+regenerated the tuning classes** — `ids.gd` gained one line and the other three
+were restored from git.
 
 ## ADR-0019: A STUN COSTS THE PURSUER THE CONTRACT, AND HALF THE RULE WAS ALREADY THERE
 
@@ -5613,7 +5740,7 @@ US-0024 measures it against clips that do not exist.
 | | |
 |---|---|
 | CI | 7 jobs. **Running again as of 2026-08-07 after a two-day outage** — run `31200490320`, all seven green. The seven commits merged during the outage were never through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | **52 arch + 190 unit + 33 integration scripts**, holding 209 + 1639 + 243 tests and 1 214 + 29 613 + 679 assertions (measured 2026-09-04, all three green; the two new unit scripts are ADR-0019's — `test_the_stun_costs_the_contract.gd` and `test_match_consequences.gd`, which are the rule and the hop respectively. **The integration suite read 184.2 s against 183.8 s before this change**, so the wiring assertion added to `test_the_m4_loop_resolves.gd` costs about 0.4 s — it raises the signal rather than earning a stun, and deliberately does not settle through `TUN-CONTRACT-REASSIGN-DELAY`, which the first version did for **+3.8 s**) — the assertion count tripled at US-0049, because `test_contract_cycle_fuzz.gd` checks the invariant after every one of 10 000 events. **Nine are `pending` by design** — **eight in the unit suite and one in the integration suite**, which reports that an NPC aimed into the void never gives up. The island `pending` beside it **turned green by itself** when the alley mouths were built, which is what a `pending` naming its own blocker is for. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite measured **183.8 s** on 2026-09-02 and again on 2026-09-01, **174.6 s** twice on 2026-08-28 and **183.5 s** the day before that, with **no test removed** — **three readings within 0.1 s of each other now, so the 174.6 s pair is the outlier rather than the figure** — so the 9 s is machine variance and neither number should be quoted as *the* figure; what is real is that the suite sits within a few seconds of its limit either way. The 180 s it is 'allowed' is **enforced nowhere** — TEST_PLAN §3, TEST_PLAN §10 and TDD-12 §17 all assert it and no job checks it, which is the M4 gate's fourth drift finding. `test_the_m4_loop_resolves.gd` cost 13.1 s of that and is the first test ever to run M4's systems together. It was 162-172 s, up from 87.7 s at M2 — **under 9 s of headroom left, and the next integration test has to justify itself hard against that**. `test_server_tick_budget.gd` cost 9.8 s of it and is a gate line; the one before it, the 2 s pass A/B, samples ninety ticks **twice** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **The six are**: `test_upstream_bandwidth.gd` reporting the 145 % upstream miss, `test_crowd_bandwidth.gd` the 112 % downstream projection, `test_crowd_wire_cost.gd` the 112 % it actually costs, **`test_spawn_points.gd` twice — GDD-05 §2.7 rule 6's nine unoccluded spawn pairs and rule 8's S3 4, S4 1, S5 6 of 8 seats** — and `test_clone_animation_parity.gd` the missing clip library. **Two entries this row carried are gone because their findings closed**: `test_circuit_separation.gd`'s 0.51 m circuits (re-authored, now 21.20 m) and `test_cull_radius_price.gd`'s flat curve, which asserts rather than pends. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
+| Tests | **53 arch + 192 unit + 33 integration scripts**, holding 212 + 1659 + 243 tests and 1 226 + 29 686 + 679 assertions (measured 2026-09-04, all three green; the two new unit scripts are ADR-0019's — `test_the_stun_costs_the_contract.gd` and `test_match_consequences.gd`, which are the rule and the hop respectively. **The integration suite read 184.2 s against 183.8 s before this change**, so the wiring assertion added to `test_the_m4_loop_resolves.gd` costs about 0.4 s — it raises the signal rather than earning a stun, and deliberately does not settle through `TUN-CONTRACT-REASSIGN-DELAY`, which the first version did for **+3.8 s**) — the assertion count tripled at US-0049, because `test_contract_cycle_fuzz.gd` checks the invariant after every one of 10 000 events. **Nine are `pending` by design** — **eight in the unit suite and one in the integration suite**, which reports that an NPC aimed into the void never gives up. The island `pending` beside it **turned green by itself** when the alley mouths were built, which is what a `pending` naming its own blocker is for. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite measured **183.8 s** on 2026-09-02 and again on 2026-09-01, **174.6 s** twice on 2026-08-28 and **183.5 s** the day before that, with **no test removed** — **three readings within 0.1 s of each other now, so the 174.6 s pair is the outlier rather than the figure** — so the 9 s is machine variance and neither number should be quoted as *the* figure; what is real is that the suite sits within a few seconds of its limit either way. The 180 s it is 'allowed' is **enforced nowhere** — TEST_PLAN §3, TEST_PLAN §10 and TDD-12 §17 all assert it and no job checks it, which is the M4 gate's fourth drift finding. `test_the_m4_loop_resolves.gd` cost 13.1 s of that and is the first test ever to run M4's systems together. It was 162-172 s, up from 87.7 s at M2 — **under 9 s of headroom left, and the next integration test has to justify itself hard against that**. `test_server_tick_budget.gd` cost 9.8 s of it and is a gate line; the one before it, the 2 s pass A/B, samples ninety ticks **twice** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **The six are**: `test_upstream_bandwidth.gd` reporting the 145 % upstream miss, `test_crowd_bandwidth.gd` the 112 % downstream projection, `test_crowd_wire_cost.gd` the 112 % it actually costs, **`test_spawn_points.gd` twice — GDD-05 §2.7 rule 6's nine unoccluded spawn pairs and rule 8's S3 4, S4 1, S5 6 of 8 seats** — and `test_clone_animation_parity.gd` the missing clip library. **Two entries this row carried are gone because their findings closed**: `test_circuit_separation.gd`'s 0.51 m circuits (re-authored, now 21.20 m) and `test_cull_radius_price.gd`'s flat curve, which asserts rather than pends. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
 | Tuning | **296** tunables across 14 resource classes; all **37** cross-field invariants assert. **Six were added on 2026-08-29 for US-0097's escape verb** — four `TUN-PURSUIT-*` on `ContractTuning` (a pursuit ends by removing and reinserting a contract, so §7 is its section and no new resource was needed) and `TUN-SCORE-ESCAPE`/`-CLOSECALL` on `ScoringTuning`. **Invariant 34 fired on its first run against the story's own proposed value**: `TUN-PURSUIT-DURATION` is `warn_radius / blend_walk` = 10.7143, US-0097 wrote **10.7**, and that asks the prey for 1.402 m/s — fractionally faster than a blend walk, in exactly the direction the invariant forbids. Shipped at **10.72**, with the tolerance tightened to a true floor rather than widened to admit it. **A rounded derivation is not a derivation.** **`TUN-COMPASS-CONE-FULL-RADIUS` 20.0 m was added on 2026-08-27** — where the Compass arc becomes a whole ring — and **invariant 33 is the reason it is not a chosen number**: it pins the radius equal to `TUN-COMPASS-LOCK-RANGE`, so the arc stops pointing exactly where the lock starts working, and separately outside the validated kill reach. It was **set three times in one day and only ever by somebody playing it** — 4.0 m derived from the half-width alone, 6.0 m at `TUN-SUSPICION-OPEN-RADIUS`, then 20.0 — and the second is the one worth remembering, because it was **derived and still wrong**. **`TUN-SCORE-HALFSEEN` +50 was added on 2026-08-27** by the fidelity re-audit — the stealth ladder had no middle rung, so a kill at **Noticed** and one at **Exposed** scored identically; invariant 32 keeps it strictly descending and strictly positive, and the `> 0` clause is the load-bearing half because every ordering check passes over a zero. `TuningInvariantsScore` was split out when that pushed the file past 400 lines — tech is how the game is *transmitted*, score is what it *pays*, and what is left is how it *plays*, with one entry point still. **Four scoring values were re-priced on 2026-08-26 (ADR-0013)** — `TUN-SCORE-SILENT` 100 → 200, `TUN-SCORE-PATIENT` 150 → 100, `TUN-SCORE-FOCUS` 100 → 150, `TUN-SCORE-RECKLESS` −50 → **0**, and invariant 18 rewritten from an ordering to a floor — split across `TuningInvariants` and `TuningInvariantsTech` since the first file hit 400 lines, with one entry point still. **Eight IDs are deprecated** and recorded in TUNABLES §19 — never reused |
 | Autoloads | All eight. `Tuning` precomputes 89 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |

@@ -370,6 +370,15 @@ release presets exclude `scripts/debug/`, which is the only thing keeping the `D
 autoload out of players' hands. Every release preset also excludes `data/tuning/local/`, which
 this table did not originally require — a playtester's local override must never ship.
 
+**Amended 2026-09-04.** All **five** presets — the two debug clients included — also exclude
+`scripts/core/sandbox_layout.gd`, `scenes/map/map_sandbox*` and `data/maps/map_sandbox*`.
+`MAP-SANDBOX` is a 40 m bench for reproducing defects (`docs/30_bible/MAP_SANDBOX.md`) and is a
+broken *match*: no zones, no processions, and a `SpawnRules` fallback that fires on every
+respawn. **The debug presets exclude it too**, which the `scripts/debug/` line above does not:
+a debug client is still a build somebody plays. `test_sandbox_is_debug_only.gd` asserts the
+exclusion on every preset it can find — and refuses a run that found none, because a scan over
+zero presets passes perfectly.
+
 Two things here are **not** yet true:
 
 | Owed | Why not yet |
@@ -377,9 +386,16 @@ Two things here are **not** yet true:
 | The server preset excluding `assets/` except map collision and navmesh | There are no assets. The exclusion cannot be written meaningfully until the greybox map exists (US-0012 part 2). |
 | `test_headless_server_runs_without_presentation.gd` | `test_server_root_has_no_presentation.gd` asserts the *static* half — no visual node in the scene, and the presets excluding the layers. Proving the server **runs** without presentation needs an actual export, which needs a map to run. |
 
-`test_export_excludes.gd` parses `export_presets.cfg` and asserts every path above is listed —
-in particular that `addons/gut/` is excluded from all three, because a test framework inside a
-shipped build is both a size cost and an attack surface.
+`test_export_excludes.gd` is specified to parse `export_presets.cfg` and assert every path above
+is listed — in particular that `addons/gut/` is excluded from all three, because a test framework
+inside a shipped build is both a size cost and an attack surface.
+
+**IT DOES NOT EXIST** (checked 2026-09-04), and the sentence above read as though it did until
+this line was added — trap 14's shape, and the claim is what stops anybody checking. §10's test
+table has said `No — US-0088` all along, so the two halves of this document disagreed. What
+actually parses the presets today is the `export` CI job's two `grep` calls (§2) and
+`test_sandbox_is_debug_only.gd`, which asserts one exclusion across every preset it can find and
+refuses a run that found none.
 
 ---
 
@@ -412,9 +428,11 @@ func _start_server(port: int, max_players: int) -> void:
 | `--port` | 27015 | |
 | `--max-players` | 6 | `TUN-LOBBY-MAX-PLAYERS` |
 | `--connect <ip:port>` | — | Skip the menu; join directly. **The playtest flag** |
-| `--tuning <path>` | `default` | Alternative profile (server only) |
+| `--tuning <path>` | `default` | Alternative profile (server only). **PARSED AND READ BY NOTHING** — `data/tuning/` holds one directory and no code loads a second. `boot.gd` warns when it is given anything but `default`, because silently running the shipped numbers looks exactly like it worked (found 2026-09-04) |
 | `--seed <int>` | random | Deterministic clone roster, for reproducing a bug |
 | `--record <path>` | — | Dump the `ScoreEvent` log and telemetry on match end |
+| `--map <name>` | `vetraio` | Which map to open, by `MapCatalogue` key. `sandbox` is `MAP-SANDBOX`, a debug-only bench — see `docs/30_bible/MAP_SANDBOX.md`. **Every process needs it, including each bot**: a bot instantiates the client root itself and never sees `boot.gd`. An unknown name is refused at boot rather than fallen back from |
+| `--crowd <int>` | the tunable | How many civilians to place. `0` is a real answer — an empty district — so `-1` is the *unset* sentinel. Validated against `TUN-CROWD-COUNT-MAX`, not clamped. Added for the sandbox, where 78 civilians in a 40 m courtyard is a wall of people |
 
 ---
 

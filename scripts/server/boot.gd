@@ -16,7 +16,9 @@ const CLIENT_ROOT := "res://scenes/client_root.tscn"
 func _ready() -> void:
 	var config := LaunchConfig.parse(OS.get_cmdline_user_args(), Tuning.match_rules.max_players)
 
-	var problems := config.problems(Tuning.match_rules.min_players, Tuning.match_rules.max_players)
+	var problems := config.problems(
+		Tuning.match_rules.min_players, Tuning.match_rules.max_players, Tuning.crowd.count_max
+	)
 	if not problems.is_empty():
 		for p: String in problems:
 			Log.error(p, &"boot")
@@ -28,6 +30,13 @@ func _ready() -> void:
 		Log.info("seed %d (deterministic)" % config.seed_value, &"boot")
 	for warning: String in config.warnings():
 		Log.warn(warning, &"boot")
+
+	# **THE ONLY WRITER.** Both root scenes read the map name from here; see
+	# `LaunchConfig.active`. Set after validation, so a refused launch never
+	# publishes a command line nothing checked.
+	LaunchConfig.active = config
+	if config.map_name != MapCatalogue.DEFAULT:
+		Log.info("map %s" % config.map_name, &"boot")
 
 	if config.is_server:
 		_start_server(config)

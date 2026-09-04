@@ -159,7 +159,10 @@ func _physics_process(delta: float) -> void:
 
 
 func _spawn_position() -> Vector3:
-	var map := load("res://data/maps/map_vetraio.tres") as MapData
+	var chosen := (
+		LaunchConfig.active.map_name if LaunchConfig.active != null else MapCatalogue.DEFAULT
+	)
+	var map := load(MapCatalogue.data_path(chosen)) as MapData
 	if map == null or map.spawn_count() == 0:
 		return Vector3.ZERO
 	return map.spawn_points[clampi(spawn_index, 0, map.spawn_count() - 1)]

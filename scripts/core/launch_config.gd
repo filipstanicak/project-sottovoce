@@ -21,10 +21,25 @@ const VALUE_FLAGS := {
 	"--tuning": "tuning_profile",
 	"--seed": "seed_value",
 	"--record": "record_path",
+	"--map": "map_name",
+	"--crowd": "crowd_count",
 }
 
 ## Of those, the ones whose value is a number.
-const INT_FLAGS: Array[String] = ["--port", "--max-players", "--seed"]
+const INT_FLAGS: Array[String] = ["--port", "--max-players", "--seed", "--crowd"]
+
+## **WHAT THIS PROCESS WAS LAUNCHED WITH, WITH EXACTLY ONE WRITER.** `boot.gd`
+## assigns it after parsing and nothing else ever does.
+##
+## **IT IS A STATIC RATHER THAN A NINTH AUTOLOAD** (never-do #15), and rather than
+## an argument threaded through `change_scene_to_file`, which takes none. Both root
+## scenes need to know which map to open and `boot.gd` is gone by the time either
+## runs.
+##
+## **NULL IS THE NORMAL CASE IN A TEST**, because every test that instantiates a
+## root scene does so directly rather than through `boot.gd`. Readers must fall
+## back to the default rather than dereference it.
+static var active: LaunchConfig = null
 
 ## Server topology, headless.
 var is_server: bool = false
@@ -55,6 +70,22 @@ var seed_value: int = -1
 ## The blocker is upstream of the writer: `TelemetrySink` is a stub and 28 of
 ## GDD-07 §8's 29 events have no emitter.
 var record_path: String = ""
+
+## Which map to open, by `MapCatalogue` key. **DEBUG-ONLY MAPS ARE REACHABLE FROM
+## HERE AND THAT IS THE POINT**: `MAP-SANDBOX` is a bench and the flag is how you
+## get onto it. A shipped build cannot, because the export presets do not carry it.
+var map_name: String = MapCatalogue.DEFAULT
+
+## How many civilians to place, or **-1 for "whatever the tuning says"**. Not a
+## `TUN-` override in disguise: `--max-players` has taken a lobby size out of
+## `TUN-LOBBY-MAX-PLAYERS`'s hands since M0 for the same reason, and both are
+## validated against the tunable rather than clamped to it.
+##
+## **IT EXISTS FOR THE SANDBOX.** 78 civilians in a 40 m courtyard is a wall of
+## people; the bench wants a dozen, or none at all when the crowd is not what is
+## under test. -1 rather than 0 as the sentinel, because **0 is a real answer** —
+## `--crowd 0` is an empty district, which is a thing worth being able to ask for.
+var crowd_count: int = -1
 
 ## Flags that were not recognised. Reported rather than ignored: a typo'd
 ## `--max-player` silently running a 6-player lobby is the kind of thing that
@@ -99,7 +130,7 @@ func _apply(arg: String, value: String) -> bool:
 ## Validated rather than clamped. A silently corrected port is a server nobody
 ## can find, and a silently clamped player count is a lobby that quietly differs
 ## from the one written on the playtest sheet.
-func problems(min_players: int, tuning_max: int) -> Array[String]:
+func problems(min_players: int, tuning_max: int, max_crowd: int) -> Array[String]:
 	var out: Array[String] = []
 	if port < 1024 or port > 65535:
 		out.append("--port %d is outside 1024-65535" % port)
@@ -114,6 +145,10 @@ func problems(min_players: int, tuning_max: int) -> Array[String]:
 		out.append("--server and --connect are mutually exclusive")
 	if connect_address != "" and not connect_address.contains(":"):
 		out.append("--connect expects ip:port, got '%s'" % connect_address)
+	if not MapCatalogue.has(map_name):
+		out.append("--map %s is not a map. Known: %s" % [map_name, ", ".join(MapCatalogue.names())])
+	if crowd_count < -1 or crowd_count > max_crowd:
+		out.append("--crowd %d is outside 0-%d (TUN-CROWD-COUNT-MAX)" % [crowd_count, max_crowd])
 	for flag: String in unknown:
 		out.append("unrecognised flag %s" % flag)
 	return out

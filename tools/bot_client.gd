@@ -101,6 +101,14 @@ func _ready() -> void:
 	var address := _string_after(args, "--connect", "127.0.0.1:27015")
 	var host := address.get_slice(":", 0)
 	var port := int(address.get_slice(":", 1)) if address.contains(":") else 27015
+	# **A BOT NEVER GOES THROUGH `boot.gd`**, so nothing would have published its
+	# command line — and `ClientRoot` would fall back to the default map while the
+	# server it is joining runs another one. The bot then walks a district that is
+	# not there, which reads as a broken navmesh rather than a wrong map.
+	#
+	# `--bot` and `--ability` land in `unknown` here and that is harmless: nothing
+	# calls `problems()` on this, because a bot's command line is not a launch.
+	LaunchConfig.active = LaunchConfig.parse(args, Tuning.match_rules.max_players)
 	_root = (load(CLIENT_ROOT) as PackedScene).instantiate()
 	get_tree().get_root().add_child.call_deferred(_root)
 	print("bot %d joining %s:%d" % [_index, host, port])

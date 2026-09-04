@@ -1,6 +1,5 @@
-[gd_scene load_steps=15 format=3 uid="uid://bs0ttovserverroot"]
+[gd_scene load_steps=14 format=3 uid="uid://bs0ttovserverroot"]
 
-[ext_resource type="PackedScene" path="res://scenes/map/map_vetraio_collision.tscn" id="1_map"]
 [ext_resource type="Script" path="res://scripts/server/match_director.gd" id="2_director"]
 [ext_resource type="Script" path="res://scripts/net/server/rpc_router.gd" id="3_router"]
 [ext_resource type="Script" path="res://scripts/server/server_root.gd" id="4_root"]
@@ -69,7 +68,7 @@ script = ExtResource("13_kill")
 
 [node name="World" type="Node3D" parent="."]
 
-[node name="Map" parent="World" instance=ExtResource("1_map")]
+[node name="Map" type="Node3D" parent="World"]
 
 [node name="Pawns" type="Node3D" parent="World"]
 script = ExtResource("5_pawns")

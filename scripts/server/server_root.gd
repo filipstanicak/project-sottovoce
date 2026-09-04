@@ -9,7 +9,12 @@
 ## rather than discovering at runtime that nobody ticked it.
 extends Node
 
-const MAP := "res://data/maps/map_vetraio.tres"
+## **THE MAP THIS PROCESS WAS LAUNCHED WITH**, or the default when nothing set one
+## — which is every test that instantiates this scene directly rather than through
+## `boot.gd`. See `LaunchConfig.active`.
+var map_name: String = (
+	LaunchConfig.active.map_name if LaunchConfig.active != null else MapCatalogue.DEFAULT
+)
 
 ## Every message this server sends, and the one place a peer becomes a wire slot.
 var announcer: MatchAnnouncer = null
@@ -33,8 +38,26 @@ var _fallen_reported: int = 0
 @onready var abilities: AbilitySystem = $Systems/AbilitySystem
 
 
+## **THE GEOMETRY IS LOADED, NOT INSTANCED IN THE SCENE.** Both root scenes used to
+## carry the district as an `ext_resource`, which is one more place a second map has
+## to be remembered — and forgetting one of them is a server whose collision is one
+## map and whose `MapData` is another, which reads as every rule being subtly wrong
+## rather than as a wiring mistake. One catalogue, one name, both artefacts.
+##
+## **IT IS THE COLLISION VARIANT HERE**: the dedicated server needs to know where
+## the walls are and has no reason to hold a `MeshInstance3D` for each of them.
+## TDD-12 §3.
+##
+## Loaded in `_ready` rather than deferred, because every `_ready` completes before
+## the first physics frame — so a pawn never gets a frame with no floor under it.
+func _open_the_map() -> void:
+	director.ctx.map = load(MapCatalogue.data_path(map_name)) as MapData
+	var geometry := (load(MapCatalogue.server_scene(map_name)) as PackedScene).instantiate()
+	$World/Map.add_child(geometry)
+
+
 func _ready() -> void:
-	director.ctx.map = load(MAP) as MapData
+	_open_the_map()
 	pawns.setup(director.ctx)
 	announcer = MatchAnnouncer.new(director.ctx)
 	consequences = MatchConsequences.new(director.ctx)
@@ -116,10 +139,23 @@ func _seed_the_match() -> void:
 ## (`NET-C2S-LOADOUT` is M4's), so every persona is treated as in use. That is
 ## the safe direction: GDD-03 §6.3 rule 5 makes a player with no clones a marked
 ## man, and clones of an unplayed persona are explicitly harmless.
+## **HOW MANY CIVILIANS, AND `--crowd` MAY SAY.** The tunable is the answer unless
+## a launch overrode it — `--max-players` has taken the lobby size out of
+## `TUN-LOBBY-MAX-PLAYERS`'s hands since M0 for the same reason, and both are
+## validated at boot rather than clamped here.
+##
+## **THE SANDBOX IS WHY.** 78 civilians in a 40 m courtyard is a wall of people, and
+## a bench that cannot turn the crowd down cannot isolate anything from it.
+func crowd_count() -> int:
+	if LaunchConfig.active != null and LaunchConfig.active.crowd_count >= 0:
+		return LaunchConfig.active.crowd_count
+	return Tuning.crowd.count_default_6p
+
+
 func _stand_the_crowd_up() -> void:
 	crowd.preallocate()
 	var players: int = Tuning.match_rules.max_players
-	var count: int = Tuning.crowd.count_default_6p
+	var count: int = crowd_count()
 	crowd.activate(count, director.ctx.match_seed, CrowdRoster.PLAYABLE, players)
 	director.ctx.crowd = crowd
 	_place_the_crowd.call_deferred(count)
