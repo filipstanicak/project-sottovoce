@@ -83,15 +83,16 @@ static func _ladder_shape(p: TuningProfile) -> Array[String]:
 	return e
 
 
-## 19. **DEFENCE PAYS LIKE OFFENCE.** A stun is worth exactly a kill, which is
-## design law 5 written as a number: the prey must have teeth, and teeth that
-## scored less than a kill would make defending a way of losing slowly.
+## 19. **A STUN OUTSCORES A BASE KILL.** Amended 2026-09-03 (ADR-0018) from `==`:
+## the reference pays 200 against a base assassination's 100. **A floor, not a
+## ratio** — a stun must still lose to a well-made kill, and `== 2 x` would pin a
+## number no source gives.
 static func _payouts(p: TuningProfile) -> Array[String]:
 	var e: Array[String] = []
-	if not is_equal_approx(p.scoring.stun, p.scoring.contract):
+	if p.scoring.stun <= p.scoring.contract:
 		e.append(
 			(
-				"19. scoring.stun (%.0f) must EQUAL scoring.contract (%.0f)"
+				"19. scoring.stun (%.0f) must EXCEED scoring.contract (%.0f)"
 				% [p.scoring.stun, p.scoring.contract]
 			)
 		)

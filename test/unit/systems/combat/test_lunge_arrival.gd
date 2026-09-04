@@ -99,14 +99,14 @@ func test_a_dash_that_arrives_in_reach_kills() -> void:
 	# way.
 	_arrived_at(1.5)
 	_advance()
-	assert_eq(_system.arrivals_landed, 1, "an arrival inside kill range did not land")
+	assert_eq(_system.arrivals.landed, 1, "an arrival inside kill range did not land")
 	assert_eq(_state(A), PawnStateId.KILL_ANIM, "the auto-kill did not commit")
 
 
 func test_the_queue_is_drained_rather_than_replayed() -> void:
 	_arrived_at(1.5)
 	_advance(3)
-	assert_eq(_system.arrivals_judged, 1, "one arrival was judged more than once")
+	assert_eq(_system.arrivals.judged, 1, "one arrival was judged more than once")
 	assert_true(_ctx.auto_kill_arrivals.is_empty(), "the arrival queue was never cleared")
 
 
@@ -120,8 +120,8 @@ func test_the_queue_is_drained_rather_than_replayed() -> void:
 func test_a_dash_that_arrives_short_whiffs_and_is_not_charged_as_a_press() -> void:
 	_arrived_at(6.0)
 	_advance()
-	assert_eq(_system.arrivals_whiffed, 1, "an arrival out of reach did not whiff")
-	assert_eq(_system.arrivals_landed, 0, "an arrival out of reach killed anyway")
+	assert_eq(_system.arrivals.whiffed, 1, "an arrival out of reach did not whiff")
+	assert_eq(_system.arrivals.landed, 0, "an arrival out of reach killed anyway")
 	assert_eq(_ctx.impulses.pending(A), 0.0, "the miss was charged failed-kill suspicion")
 
 
@@ -147,7 +147,7 @@ func test_a_dash_that_arrives_at_a_stranger_whiffs() -> void:
 	_fill_the_ring(8)
 	_ctx.auto_kill_arrivals.append([A, _origin_of(A)])
 	_advance()
-	assert_eq(_system.arrivals_whiffed, 1, "a dash into a stranger was allowed to kill")
+	assert_eq(_system.arrivals.whiffed, 1, "a dash into a stranger was allowed to kill")
 	assert_eq(_state(C), PawnStateId.IDLE, "the stranger was affected")
 
 
@@ -210,7 +210,7 @@ func test_an_arrival_is_judged_in_the_present_and_not_at_the_rewound_tick() -> v
 	_dashed_in(0.9, 2.5)
 	_advance()
 	assert_eq(
-		_system.arrivals_landed,
+		_system.arrivals.landed,
 		1,
 		(
 			"the arrival was judged against the rewound world, so the hunter's own dash "
@@ -224,8 +224,12 @@ func test_an_arrival_is_judged_in_the_present_and_not_at_the_rewound_tick() -> v
 func test_the_present_judgement_still_refuses_a_dash_that_ended_short() -> void:
 	_dashed_in(0.9, 4.0)
 	_advance()
-	assert_eq(_system.arrivals_landed, 0, "a dash that ended out of reach killed anyway")
-	assert_eq(_system.last_whiff, KillVerdict.V.OUT_OF_RANGE, "the whiff recorded the wrong reason")
+	assert_eq(_system.arrivals.landed, 0, "a dash that ended out of reach killed anyway")
+	assert_eq(
+		_system.arrivals.last_whiff,
+		KillVerdict.V.OUT_OF_RANGE,
+		"the whiff recorded the wrong reason"
+	)
 
 
 ## Places `B` `metres` along the dash line, with the hunter having travelled the
@@ -249,7 +253,7 @@ func _dashed_through(metres: float) -> void:
 func test_a_contract_the_dash_passed_through_is_killed() -> void:
 	_dashed_through(LungingState.dash_distance() - 1.85)
 	_advance()
-	assert_eq(_system.arrivals_landed, 1, "the dash went through the contract and did not kill")
+	assert_eq(_system.arrivals.landed, 1, "the dash went through the contract and did not kill")
 
 
 ## **AND THE CORRIDOR IS NOT A LICENCE.** A contract off to one side by more than
@@ -262,5 +266,103 @@ func test_a_contract_beside_the_corridor_still_whiffs() -> void:
 	_fill_the_ring(8)
 	_ctx.auto_kill_arrivals.append([A, Vector3.ZERO])
 	_advance()
-	assert_eq(_system.arrivals_whiffed, 1, "a contract beside the whole dash was killed")
-	assert_eq(_system.last_whiff, KillVerdict.V.OUT_OF_RANGE, "the whiff recorded the wrong reason")
+	assert_eq(_system.arrivals.whiffed, 1, "a contract beside the whole dash was killed")
+	assert_eq(
+		_system.arrivals.last_whiff,
+		KillVerdict.V.OUT_OF_RANGE,
+		"the whiff recorded the wrong reason"
+	)
+
+
+# --- the pursuer -----------------------------------------------------------
+
+
+## **A DASH RESOLVES AGAINST WHOEVER IT CONNECTS WITH.** ADR-0018, owner decision
+## 9, and the reference's own behaviour: its equivalent ability kills the target it
+## reaches *and stuns a pursuer* it reaches, with one of its unlock challenges
+## being to stun your pursuer with it.
+##
+## Before this, arriving at the person hunting you did **nothing at all** — half
+## the ability was missing, and it was the defensive half.
+func _hunted_by(who: int, at: Vector3) -> void:
+	_place(who, at)
+	_ctx.announced_contracts[who] = A
+
+
+func test_a_dash_through_a_pursuer_stuns_them() -> void:
+	_place(A, Vector3.ZERO)
+	_place(B, Vector3(0.0, 0.0, 40.0))
+	_ctx.announced_contracts[A] = B
+	_hunted_by(C, Vector3(0.0, 0.0, -1.0))
+	(_ctx.pawn_contexts[C] as PawnContext).tier = SuspicionMath.Tier.EXPOSED
+	_fill_the_ring(8)
+	_ctx.auto_kill_arrivals.append([A, Vector3(0.0, 0.0, -3.0)])
+	_advance()
+	assert_eq(_state(C), PawnStateId.STUNNED, "the dash went through a pursuer and did nothing")
+	assert_eq(_state(A), PawnStateId.STUN_ANIM, "the lunger did not commit to the stun")
+
+
+## **A CONNECTION IS NOT A MISS.** GDD-04 §3.4 prices the whiff stagger for
+## arriving at *nothing*; a player who read an approach and spent a 30 s cooldown
+## on it has not arrived at nothing.
+func test_a_dash_that_stuns_pays_no_whiff_stagger() -> void:
+	_place(A, Vector3.ZERO)
+	_place(B, Vector3(0.0, 0.0, 40.0))
+	_ctx.announced_contracts[A] = B
+	_hunted_by(C, Vector3(0.0, 0.0, -1.0))
+	(_ctx.pawn_contexts[C] as PawnContext).tier = SuspicionMath.Tier.EXPOSED
+	_fill_the_ring(8)
+	_ctx.auto_kill_arrivals.append([A, Vector3(0.0, 0.0, -3.0)])
+	_advance()
+	assert_eq(_system.arrivals.whiffed, 0, "a dash that connected was charged as a miss")
+
+
+## **THE TIER GATE IS NOT WAIVED FOR THIS ROUTE.** `TUN-STUN-MIN-TIER` is what
+## makes *"an Anonymous hunter cannot be stunned — patience is genuinely safe"*
+## true, and an ability that stunned through it would delete that sentence rather
+## than add a tooth to design law 5.
+func test_a_dash_through_an_anonymous_pursuer_stuns_nobody() -> void:
+	_place(A, Vector3.ZERO)
+	_place(B, Vector3(0.0, 0.0, 40.0))
+	_ctx.announced_contracts[A] = B
+	_hunted_by(C, Vector3(0.0, 0.0, -1.0))
+	(_ctx.pawn_contexts[C] as PawnContext).tier = SuspicionMath.Tier.ANONYMOUS
+	_fill_the_ring(8)
+	_ctx.auto_kill_arrivals.append([A, Vector3(0.0, 0.0, -3.0)])
+	_advance()
+	assert_ne(_state(C), PawnStateId.STUNNED, "a careful pursuer was stunned by a dash")
+	assert_eq(_system.arrivals.whiffed, 1, "the dash neither stunned nor whiffed")
+
+
+## **A STRANGER IS NOT A PURSUER.** The target is found by reverse lookup on the
+## *announced* contracts, exactly as a pressed stun's is — a dash that stunned
+## whoever it touched would be an area denial with no read behind it.
+func test_a_dash_through_a_stranger_stuns_nobody() -> void:
+	_place(A, Vector3.ZERO)
+	_place(B, Vector3(0.0, 0.0, 40.0))
+	_place(C, Vector3(0.0, 0.0, -1.0))
+	(_ctx.pawn_contexts[C] as PawnContext).tier = SuspicionMath.Tier.EXPOSED
+	_ctx.announced_contracts[A] = B
+	_fill_the_ring(8)
+	_ctx.auto_kill_arrivals.append([A, Vector3(0.0, 0.0, -3.0)])
+	_advance()
+	assert_ne(_state(C), PawnStateId.STUNNED, "a stranger the dash passed was stunned")
+
+
+## **THE KILL IS ASKED FIRST**, which is the reference's own ordering: *a kill is
+## always prioritised over a stun*. A dash that reaches its contract and its
+## pursuer at once must kill.
+func test_a_dash_that_reaches_both_kills_rather_than_stuns() -> void:
+	_place(A, Vector3.ZERO)
+	_place(B, Vector3(0.0, 0.0, 1.0))
+	# **THE CONTRACT LINE IS THE TEST.** Its first version omitted it, so A had no
+	# contract at all, the kill was refused NO_CONTRACT and the stun ran — a fixture
+	# that staged no race under a name promising one.
+	_ctx.announced_contracts[A] = B
+	_hunted_by(C, Vector3(0.0, 0.0, -1.0))
+	(_ctx.pawn_contexts[C] as PawnContext).tier = SuspicionMath.Tier.EXPOSED
+	_fill_the_ring(8)
+	_ctx.auto_kill_arrivals.append([A, Vector3(0.0, 0.0, -3.0)])
+	_advance()
+	assert_eq(_state(A), PawnStateId.KILL_ANIM, "the stun took the tick from the kill")
+	assert_ne(_state(C), PawnStateId.STUNNED, "both resolved on one arrival")

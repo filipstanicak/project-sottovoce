@@ -80,23 +80,14 @@ var scoring: KillScoring = null
 ## duplicated, so there is still one number.
 var rewind := KillRewind.new()
 
+## **`ABIL-LUNGE`'s ARRIVAL, ITS COUNTERS AND WHAT A MISS COSTS.** Public because
+## the probe and the tests read the counters; it holds no rule a press obeys.
+var arrivals := LungeArrival.new()
+
 ## Presses judged and presses that landed — a rejection rate nobody can read is a
 ## feel problem nobody can diagnose.
 var presses_judged: int = 0
 var kills_landed: int = 0
-
-## **`ABIL-LUNGE`'s AUTO-KILL, COUNTED APART FROM PRESSES** (US-0070). GDD-04
-## §3.4's failure mode is Lunge above ~15 % of kills, and a rate nobody can read
-## is a rate nobody will check.
-var arrivals_judged: int = 0
-var arrivals_landed: int = 0
-var arrivals_whiffed: int = 0
-
-## **WHY THE LAST ARRIVAL MISSED.** A whiff reaches nobody by design — GDD-04
-## §3.4 prices a miss at `TUN-LUNGE-WHIFF-STAGGER` and nothing else — which is
-## right for the player and leaves a developer unable to tell *overshot* from
-## *behind you*. Recorded for the reason the counters beside it exist.
-var last_whiff: KillVerdict.V = KillVerdict.V.ALLOWED
 
 var _ctx: MatchContext
 
@@ -109,10 +100,6 @@ var _held: Dictionary = {}
 ## `[peer, ordinal]` per press received this tick, resolved in arrival order.
 var _requests: Array = []
 
-## peer -> where this tick's dash began, for `KillRules.resolve_swept`.
-var _dash_from: Dictionary = {}
-
-## killer -> `[victim, contact_tick]` for a kill in flight.
 var _pending: Dictionary = {}
 
 
@@ -188,7 +175,7 @@ func teardown() -> void:
 		lockouts.clear()
 	_held.clear()
 	_requests.clear()
-	_dash_from.clear()
+	arrivals.clear()
 	_pending.clear()
 
 
@@ -219,7 +206,7 @@ func pending_count() -> int:
 func _resolve_requests(ctx: MatchContext) -> void:
 	for row: Array in ctx.auto_kill_arrivals:
 		_requests.append([int(row[0]), ARRIVAL_ORDINAL])
-		_dash_from[int(row[0])] = row[1] as Vector3
+		arrivals.remember(int(row[0]), row[1] as Vector3)
 	ctx.auto_kill_arrivals.clear()
 	if _requests.is_empty():
 		return
@@ -227,7 +214,7 @@ func _resolve_requests(ctx: MatchContext) -> void:
 	for request: Array in _requests:
 		_judge_one(ctx, int(request[0]), int(request[1]))
 	_requests.clear()
-	_dash_from.clear()
+	arrivals.clear()
 
 
 static func _by_arrival(a: Array, b: Array) -> bool:
@@ -242,7 +229,7 @@ static func _by_arrival(a: Array, b: Array) -> bool:
 func _judge_one(ctx: MatchContext, peer: int, ordinal: int) -> void:
 	var arrival := ordinal == ARRIVAL_ORDINAL
 	if arrival:
-		arrivals_judged += 1
+		arrivals.judged += 1
 	else:
 		presses_judged += 1
 	var outcome := _verdict_for(ctx, peer, arrival)
@@ -250,33 +237,21 @@ func _judge_one(ctx: MatchContext, peer: int, ordinal: int) -> void:
 	var target := int(outcome[1])
 	if not KillVerdict.is_allowed(verdict):
 		if arrival:
-			_whiff(ctx, peer, verdict)
+			arrivals.missed(ctx, peer, verdict, stun, lockouts)
 		else:
 			_reject(ctx, peer, verdict, target)
 		return
 	if not contest.claim(target, peer, ctx.tick, ordinal):
 		if arrival:
-			_whiff(ctx, peer, KillVerdict.V.LOST_CONTEST)
+			arrivals.missed(ctx, peer, KillVerdict.V.LOST_CONTEST, stun, lockouts)
 		else:
 			_stagger(ctx, peer, target)
 		return
 	if arrival:
-		arrivals_landed += 1
+		arrivals.landed += 1
 	_begin(ctx, peer, target)
 
 
-## The miss. **No points and no suspicion beyond the +40 the press already cost**
-## — the spent cooldown and 1.2 s in the open are the whole price.
-func _whiff(ctx: MatchContext, peer: int, why: KillVerdict.V) -> void:
-	arrivals_whiffed += 1
-	last_whiff = why
-	if lockouts != null:
-		lockouts.stagger(peer, ctx.tick + maxi(Tuning.ticks(&"TUN-LUNGE-WHIFF-STAGGER"), 1))
-	CombatEntry.stagger(ctx, peer, &"TUN-LUNGE-WHIFF-STAGGER")
-
-
-## **A PRESS IS JUDGED AGAINST WHAT ITS PRESSER SAW; AN ARRIVAL AGAINST WHAT IS
-## THERE.** `KillRewind.present_world` holds the reasoning and the measurement.
 func _verdict_for(ctx: MatchContext, peer: int, now: bool = false) -> Array:
 	if _is_busy(ctx, peer):
 		return [KillVerdict.V.BUSY, ContractCycle.NOBODY]
@@ -295,7 +270,7 @@ func _verdict_for(ctx: MatchContext, peer: int, now: bool = false) -> Array:
 		# centimetres, where two degrees of aim error reads as an 86 degree bearing.
 		# `KillRules.resolve_swept` says why, and it was measured.
 		return KillRules.resolve_swept(
-			world, peer, _dash_from.get(peer, here) as Vector3, contract, Tuning.combat, sight
+			world, peer, arrivals.origin_of(peer, here), contract, Tuning.combat, sight
 		)
 	return KillRules.resolve(
 		world, peer, contract, KillRewind.living_others(ctx, peer), Tuning.combat, sight

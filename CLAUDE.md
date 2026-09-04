@@ -29,8 +29,10 @@ Violating one of these is a blocker, not a discussion.
    chance to read it. No invisible instant-wins.
 4. **Patience must be the strongest strategy, not merely the safest.** Hiding must *win matches*,
    not just keep you alive.
-5. **The prey must have teeth.** Stun hard-counters a reckless hunter and is worth as much as a
-   kill. Never weaken it.
+5. **The prey must have teeth, and more than one.** Being hunted is the more frightening role
+   and must not be the weaker one. A stun outscores a base kill and loses to a well-made one;
+   the prey reaches that outcome by more than one route — a read stun, an escape, a Lunge into
+   a pursuer — and none of them may be traded away to make hunting feel better.
 6. **Uncertainty is authored, not accidental.** Where the game is imprecise, the imprecision is
    designed, bounded, deterministic and learnable.
 
@@ -233,6 +235,80 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 
 *Updated 2026-08-27 (ADR-0016, the M4 gate). Keep this section current — it is the first thing a
 fresh session reads, and a stale one is worse than none.*
+
+## ADR-0018: THE PREY HAS MORE THAN ONE TOOTH, AND LAW 5 WAS WRONG IN EVERY CLAUSE
+
+**REPORTED AS A DECISION, NOT A DEFECT: *"the Lunge should stun the pursuer, also
+revamp design law 5 so that it is fitting to the original."*** Owner decision 9,
+taken. Both halves are done and the second found more than the first.
+
+**`ABIL-LUNGE` DID NOTHING AT ALL IF YOU ARRIVED AT THE PERSON HUNTING YOU.** The
+reference's equivalent resolves against **whoever it connects with** — a kill on
+the target it reaches, a stun on a pursuer it reaches, with one of its unlock
+challenges being to stun your pursuer with it. Half the ability was absent, and it
+was the defensive half.
+
+**THE KILL IS ASKED FIRST, WHICH IS THE REFERENCE'S OWN ORDERING** — *a kill is
+always prioritised over a stun*. And **a connection is not a miss**: a dash that
+stuns pays no `TUN-LUNGE-WHIFF-STAGGER`, because GDD-04 §3.4 prices that stagger
+for arriving at **nothing**.
+
+**EVERY OTHER GATE STAYS, AND THE TIER FLOOR IS THE ONE THAT MATTERS.**
+`TUN-STUN-MIN-TIER` is what makes *"an Anonymous hunter cannot be stunned —
+patience is genuinely safe"* true; a route that stunned through it would delete
+that sentence rather than add a tooth. It calls `StunSystem._land`, so the exile,
+the freeze, the score and the wire message are a pressed stun's — **one stun,
+reached three ways**, rather than a second set of numbers to drift.
+
+**AND THE LAW WAS WRONG IN EVERY CLAUSE, MEASURED.** It read *"stun hard-counters
+a reckless hunter and is worth as much as a kill; never weaken it."*
+
+| The law said | The reference does |
+|---|---|
+| a stun is *worth as much as a kill* | **200** for a stun against a base kill's **100** |
+| — and implicitly no more | a well-made kill is 100 + up to **400**, so it still beats a stun |
+| the prey's teeth are **the stun** | a read stun, a smoke flush, a charge into a pursuer — and escape |
+| *never weaken it* | already excepted once, by ADR-0013 |
+
+**THE PRICING ERROR IS THE ONE THAT MATTERED.** `TUN-SCORE-STUN` shipped at **100**
+with invariant 19 pinning it *equal* to `TUN-SCORE-CONTRACT` — so the rule that
+existed to **be** design law 5 was under-paying the prey by half while looking like
+fidelity. It is **200** now, and invariant 19 is `>` rather than `==`: **a floor,
+not a ratio**, because a stun must still lose to a well-made kill and `== 2 x`
+would pin a number no source gives.
+
+**`TUN-SCORE-ESCAPE` WAS ALREADY RIGHT AT 100**, which is worth saying: ADR-0014
+sourced it and got it exactly. Only the stun was wrong.
+
+**THE NEW LAW NAMES A PRINCIPLE AND THREE INSTRUMENTS RATHER THAN ONE MECHANIC:**
+*the prey must have teeth, and more than one … and none of them may be traded away
+to make hunting feel better.* That last clause is **never-do #13 generalised from
+the stun to the set** — a law protecting one mechanic can be satisfied while the
+prey is disarmed of the other two, which is exactly what had happened: escape
+shipped at ADR-0014 and the law never mentioned it.
+
+**THE BALANCE MODEL MOVES AND IS DELIBERATELY NOT RE-DERIVED.** §4's
+kills-per-match figures already modelled a 45 % stun rate measured before ADR-0013
+removed the last-instant save; doubling the payout moves the ratio again.
+`TEL-STUN-RATE` settles both, and guessing a rate then three numbers that depend on
+it is what §4 already warns against.
+
+**`LungeArrival` IS THE SPLIT THIS FORCED**, at 412 lines, and it mirrors
+`KillGates`: everything about the **arrival** — where the dash began, what it
+connected with, what a miss costs, how often each happens — and nothing that judges
+a press. **Fourth file this week the length guard has usefully split.**
+
+**AND MOVING `_whiff` INTO IT DROPPED THE LOCKOUT LINE**, which
+`test_the_whiff_is_a_state_and_a_lockout_together` caught on the same run. ADR-0017
+put those two on adjacent lines deliberately — the lockout is the rule, the state is
+the tell — and that test exists because the pair is exactly what a refactor
+separates. It worked.
+
+**AND MY OWN PRIORITY TEST STAGED NO RACE.**
+`test_a_dash_that_reaches_both_kills_rather_than_stuns` omitted
+`announced_contracts[A] = B`, so there was no kill to prioritise, the arrival fell
+through to the stun and the failure read exactly like the ordering being wrong. The
+name promised a race the fixture never set up — **trap 3 inside a test name, again.**
 
 ## A GATE FAILED A BUILD WITH NOTHING BEHIND IT, AND THE STATISTIC WAS WHY
 
@@ -2000,6 +2076,12 @@ through rather than deleted, and decision 7 is the divergence that same ADR foun
    lock, defeating ASM-0030. Neither message is implemented, so nothing leaks
    today.
 5. **The tag `m4-the-loop`.**
+9. ~~**SHOULD A LUNGE INTO YOUR PURSUER STUN THEM?**~~ **SETTLED 2026-09-03 by
+   ADR-0018: yes**, and design law 5 was revamped with it. The reference resolves the
+   dash against whoever it connects with; ours did nothing to a pursuer, so the
+   defensive half was missing. `TUN-SCORE-STUN` also went **100 → 200**, the
+   reference's own number, and invariant 19 from `==` to `>`.
+
 7. **`TUN-KILL-CONTEST-STAGGER` MODELS A MECHANIC THE REFERENCE TITLE DOES NOT
    HAVE.** Raised by ADR-0017's fidelity check: the contested kill and its bonus are
    the **sequel's**, not the reference's, where the loser is *"dazed for a short

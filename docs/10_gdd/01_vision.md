@@ -115,14 +115,40 @@ matches.
 > would reveal stationary players after 20 s. Rejected as a direct assault on the thesis. If
 > standing still becomes punishable, the game is a shooter with a costume.
 
-### Law 5 — The prey must have teeth
+### Law 5 — The prey must have teeth, and more than one
 
 *Being hunted is the more frightening role; it must not be the weaker one.*
 
+**REVAMPED 2026-09-03 (ADR-0018) TO FIT THE REFERENCE.** The law used to read *"stun
+hard-counters a reckless hunter and is worth as much as a kill; never weaken it"*, and measured
+against the reference every clause of that was off. It named **one** mechanic where the
+reference gives the prey several; it priced a stun at *a kill* where the reference pays **200
+against a base assassination's 100**, and where a well-made kill (100 plus up to 400 of stealth
+bonuses) still beats a stun; and its absolute *never weaken it* had already been excepted once,
+by ADR-0013.
+
 `SYS-STUN` gives prey a hard counter: `TUN-STUN-RANGE` (3.0 m) deliberately exceeds
 `TUN-KILL-RANGE` (2.5 m), so a hunter who closes to kill range has already entered stun range.
-A successful stun is worth `TUN-STUN-SCORE` = 100 — *exactly* a base kill — freezes the hunter
-for 4 s, and exiles them for 12 s. Defence is a scoring strategy, not a survival tax.
+A successful stun is worth `TUN-STUN-SCORE` = **200** — twice a base kill, and less than a
+well-made one — freezes the hunter for 4 s, and exiles them for 12 s. Defence is a scoring
+strategy, not a survival tax.
+
+**AND IT IS NOT THE ONLY TOOTH.** The reference reaches the same outcome by more than one
+route, and so does this game:
+
+| Route | What it costs the prey | Built |
+|---|---|---|
+| The read stun | A correct read of an approach, inside a 120° cone at 3.35 m | US-0061 |
+| The escape | `TUN-PURSUIT-DURATION` of not being seen, which never requires running | US-0097, ADR-0014 |
+| A Lunge into a pursuer | A 30 s cooldown, +40 suspicion and a 0.92 s telegraph | ADR-0018 |
+
+**None of them may be traded away to make hunting feel better** — which is never-do #13
+generalised from the stun to the set, because a law that protects one mechanic is a law that
+can be satisfied while the prey is disarmed of the other two.
+
+**What every route still obeys is the tier gate.** `TUN-STUN-MIN-TIER` means an Anonymous
+hunter cannot be stunned by *any* of them, so patience is genuinely safe — and that is the
+clause that stops "more teeth" becoming "the hunter cannot approach at all".
 
 **The teeth are in the approach, not in the last instant.** A hunter who has been careless is
 stunnable for the whole of their approach, from further away than they can strike. What the

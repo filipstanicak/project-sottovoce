@@ -168,7 +168,7 @@ func _press(abilities: AbilitySystem, kills: KillSystem, ctx: MatchContext) -> v
 	# The hunter dashes along `toward`; the prey stands `_off_axis()` degrees off it.
 	var off := toward.rotated(Vector3.UP, deg_to_rad(_off_axis()))
 	await _stand_prey(ctx, from, off)
-	var before := [kills.arrivals_judged, kills.arrivals_landed, kills.arrivals_whiffed]
+	var before := [kills.arrivals.judged, kills.arrivals.landed, kills.arrivals.whiffed]
 	var data := Tuning.ability_data(Ids.ABIL_LUNGE)
 	abilities.report_request(HUNTER, 1, from, toward * data.distance)
 	await _watch(kills, ctx, from, int(before[0]))
@@ -185,16 +185,16 @@ func _report(kills: KillSystem, ctx: MatchContext, before: Array) -> void:
 			"arrivals: judged %d -> %d   landed %d -> %d   whiffed %d -> %d"
 			% [
 				before[0],
-				kills.arrivals_judged,
+				kills.arrivals.judged,
 				before[1],
-				kills.arrivals_landed,
+				kills.arrivals.landed,
 				before[2],
-				kills.arrivals_whiffed
+				kills.arrivals.whiffed
 			]
 		)
 	)
-	if kills.arrivals_whiffed > int(before[2]):
-		print("the whiff's reason: ", KillVerdict.V.keys()[kills.last_whiff])
+	if kills.arrivals.whiffed > int(before[2]):
+		print("the whiff's reason: ", KillVerdict.V.keys()[kills.arrivals.last_whiff])
 	print("hunter ended in state ", hunter.state_id)
 	print("prey is dead: ", CombatTargets.is_dead(ctx.pawn_contexts.get(PREY)))
 	print("")
@@ -210,11 +210,11 @@ func _watch(kills: KillSystem, ctx: MatchContext, from: Vector3, judged: int) ->
 	var prey: PawnContext = ctx.pawn_contexts.get(PREY)
 	var dash_frames := 0
 	for _step: int in 120:
-		var before := kills.arrivals_judged
+		var before := kills.arrivals.judged
 		await _drive()
 		if hunter.state_id == PawnStateId.LUNGING:
 			dash_frames += 1
-		if kills.arrivals_judged > before or (kills.arrivals_judged > judged and dash_frames > 0):
+		if kills.arrivals.judged > before or (kills.arrivals.judged > judged and dash_frames > 0):
 			break
 	print("  held Lunging %d step ticks of %d" % [dash_frames, LungingState.dash_ticks()])
 	print("  travelled %.2f m of a tuned %.1f" % [from.distance_to(hunter.position), 6.0])

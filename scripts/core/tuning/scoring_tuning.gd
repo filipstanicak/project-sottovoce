@@ -133,7 +133,7 @@ extends Resource
 
 ## Equals TUN-STUN-SCORE. Defence pays like offence.
 ## TUN-SCORE-STUN
-@export_range(75.0, 150.0, 0.1) var stun: float = 100.0
+@export_range(75.0, 250.0, 0.1) var stun: float = 200.0
 
 ## Added 2026-08-29 (US-0097, ADR-0014). Your pursuer's chase timer emptied while you were the
 ## prey. The reference's own value, and it lands equal to a base kill and to TUN-SCORE-STUN —

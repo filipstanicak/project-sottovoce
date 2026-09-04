@@ -122,8 +122,8 @@ func test_the_scoreboard_separates_actors() -> void:
 	_kill([[Ids.SCORE_CONTRACT, _s.contract]])
 	_log.append(ScoreAward.new(100, Ids.SCORE_STUN, VICTIM, KILLER, _s.stun), _m)
 	var totals := ScoreFold.fold(_log.events())
-	assert_eq(int(totals[KILLER]), 100, "the killer's total absorbed somebody else's points")
-	assert_eq(int(totals[VICTIM]), 100, "the stunner scored nothing")
+	assert_eq(int(totals[KILLER]), int(_s.contract), "the killer's total absorbed other points")
+	assert_eq(int(totals[VICTIM]), int(_s.stun), "the stunner scored nothing")
 
 
 func test_the_breakdown_sums_to_the_total() -> void:

@@ -303,6 +303,34 @@ func _reject(ctx: MatchContext, peer: int, verdict: StunVerdict.V, target: int) 
 ## a ceiling rather than a nudge. Setting it once from here would re-arm the decay
 ## delay and the punishment would start eating itself on the next tick, which is
 ## exactly the defect US-0053 found in `StunnedState.enter()`.
+## **A DASH RESOLVES AGAINST WHOEVER IT CONNECTS WITH.** ADR-0018, owner decision
+## 9. `ABIL-LUNGE`'s arrival asks `SYS-KILL` for a kill on the contract first and
+## comes here only when that did not land, which is the reference's own ordering:
+## *a kill is always prioritised over a stun.*
+##
+## **EVERY OTHER GATE STAYS, THE TIER FLOOR ESPECIALLY.** `TUN-STUN-MIN-TIER` is
+## what makes *"an Anonymous hunter cannot be stunned"* true, and stunning through
+## it would delete that sentence rather than add to design law 5. It uses the
+## **stun's** reach, 3.35 m against the kill's 2.85, so this route does not quietly
+## narrow the range advantage — and it is present-tense, like the arrival it rides
+## on, because no moment here was ever observed.
+func stun_from_arrival(ctx: MatchContext, lunger: int, from: Vector3) -> bool:
+	var me: PawnContext = ctx.pawn_contexts.get(lunger)
+	if me == null or _is_busy(ctx, lunger):
+		return false
+	var pursuer := pursuer_of(lunger, ctx)
+	if pursuer == ContractCycle.NOBODY:
+		return false
+	var them: PawnContext = ctx.pawn_contexts.get(pursuer)
+	if them == null or not _is_a_target(them, pursuer, ctx):
+		return false
+	var nearest := KillRules.closest_on_segment(from, me.position, them.position)
+	if CompassMath.distance_to(nearest, them.position) > StunRules.reach(Tuning.combat):
+		return false
+	_land(ctx, lunger, pursuer)
+	return true
+
+
 func _land(ctx: MatchContext, stunner: int, target: int) -> void:
 	var exile := lockout_ticks(_has_second_wind(ctx, target))
 	if lockouts != null:
