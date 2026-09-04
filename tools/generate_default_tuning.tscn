@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://tools/generate_default_tuning.gd" id="1_gdt"]
+
+[node name="GenerateDefaultTuning" type="Node"]
+script = ExtResource("1_gdt")

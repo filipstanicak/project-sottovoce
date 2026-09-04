@@ -166,7 +166,7 @@ for. If anything on this checklist still moves without you, run the probe before
 judgement — it names any device that is holding an action down:
 
 ```bash
-godot --path . -s res://tools/input_probe.gd
+godot --path . res://tools/input_probe.tscn
 ```
 
 **AND A FOURTH: A AND D WERE SWAPPED.** Movement was computed on fixed world axes instead of in

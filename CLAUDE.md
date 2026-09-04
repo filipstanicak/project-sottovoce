@@ -152,7 +152,7 @@ godot --headless --path . res://tools/bot_client.tscn -- --connect 127.0.0.1:270
 
 # What the input layer reports with nobody touching the controls.
 # NEVER --headless: there is no windowing layer there to see a device. Trap 13.
-godot --path . -s res://tools/input_probe.gd
+godot --path . res://tools/input_probe.tscn
 
 # THE BENCH. A 40 m courtyard for reproducing something in ten seconds rather
 # than ten minutes. DEBUG ONLY - excluded from every export preset.
@@ -397,6 +397,121 @@ godot --path . res://tools/map_probe.tscn -- --map sandbox
 (previously freed)"* on the next physics frame. The rig is **disabled** rather than
 freed now, and the pawn is left standing, which is worth seeing anyway.
 
+## A `-s` SCRIPT CANNOT COMPILE A CORE CLASS, AND THAT COST ONE INVARIANT SINCE M0
+
+**THE ERROR WAS ON THE SCREEN EVERY RUN FOR FOUR MILESTONES AND WAS READ AS
+NOISE**, including by me yesterday: *"Nonexistent function 'full_ring_distance' in
+base 'GDScript'"*, twice per run of `generate_default_tuning`. I recorded it as *"a
+static call on a `class_name` made from `_init()`, while the global class registry
+is still being built"*. **That was wrong, and isolating it took one throwaway
+probe.**
+
+```
+SCRIPT ERROR: Compile Error: Identifier not found: Tuning
+   at: GDScript::reload (res://scripts/core/compass/compass_math.gd:130)
+```
+
+**A `-s` SCRIPT IS COMPILED BEFORE THE AUTOLOADS ARE REGISTERED.** So `Tuning` is
+an unresolvable identifier — and ADR-0005 makes `Tuning` **the one permitted
+autoload in Core**, deliberately, because threading a `TuningProfile` through every
+constructor would be worse. **Sixteen Core classes read it.** Every one fails to
+compile, along with everything depending on them, and **GDScript caches the
+failure**: they stay broken for the rest of the process *even once the autoloads
+exist*, which is why the `Tuning` autoload's own `_ready` reported it too.
+
+**THE FAILURE SURFACES FOUR FILES FROM ITS CAUSE, WHICH IS THE WHOLE REASON IT
+SURVIVED.** The message names `CompassMath.full_ring_distance` — a function that
+plainly exists, on a class that is plainly correct. The cause is the launch mode,
+and **nothing in between mentions either**. `Tuning.ticks()`'s parse error did this
+same thing at US-0059 and the note then was *"the failure surfaces four files
+away"*; this is that lesson in a second place, and it went unlearnt for a day.
+
+**WHAT IT ACTUALLY COST: `validate()` CHECKED 36 OF 37 INVARIANTS IN THE ONE TOOL
+THAT WRITES THE DATA.** Invariant 33 pins `TUN-COMPASS-CONE-FULL-RADIUS` equal to
+`TUN-COMPASS-LOCK-RANGE` — the rule that makes the Compass arc stop pointing at
+exactly the range the lock starts working, so a player learns one boundary rather
+than two. **The generator could not check it and said so, every run, in a message
+about something else.**
+
+**THE FIX IS THE ONE THIS PROJECT ALREADY MADE ONCE: A SCENE, NOT A `-s` SCRIPT.**
+`tools/generate_default_tuning.tscn`. `tools/anchor_census.gd` was converted for
+exactly this reason and its note says so — *"a `-s` script gets no autoloads, so
+`Tuning` does not exist and every Core class that reads it fails to compile"* —
+which was **already in this file** and was not connected to the error being read
+three sections above it.
+
+```bash
+godot --headless --path . res://tools/generate_default_tuning.tscn
+```
+
+**FALSIFIED RATHER THAN ASSUMED SILENT.** Planting `cone_full_radius` 20.0 → 30.0
+against a lock range of 20.0 now reports *"33. compass.cone_full_radius (30.00)
+must EQUAL compass.lock_range (20.00)"* by name and by number. **Silencing an error
+and delivering the check it was hiding are different outcomes**, and only the plant
+tells them apart.
+
+**AND I NEARLY REPORTED AN ARCHITECTURE VIOLATION THAT IS NOT ONE.** `CompassMath`
+lives in `scripts/core/` and reads an autoload, which the folder map calls
+forbidden — *"PURE. No Node, no get_node, no autoloads."* **`test_core_is_pure.gd`
+permits exactly one**, `Tuning`, and says why in its own docstring. Reading the
+guard before filing the finding is what stopped it, and that is the third audit
+claim withdrawn here after `LaunchConfig.unknown` and
+`TUN-SUSPICION-GAIN-WHISPERBOLT-WINDUP`.
+
+**THE OTHER FOUR `-s` TOOLS WERE CHECKED RATHER THAN ASSUMED, AND ONE OF THEM WAS
+WORSE OFF.** Both map generators run clean and **reproduce byte-identically**,
+because `VetraioLayout`, `SandboxLayout` and `MapBuild` read no autoload at all,
+and `persona_lineup.gd` touches no Core class.
+
+**BUT `tools/input_probe.gd` COULD NOT LOAD AT ALL, AND HAD NOT SINCE
+2026-08-27.** It names `TuningProfile` to read `TUN-SPEED-STICK-DEADZONE` from the
+shipped resource, and the engine prints the whole cascade:
+
+```
+compass_math.gd:130   Identifier not found: Tuning
+tuning_invariants.gd  Failed to compile depended scripts
+tuning_profile.gd     Failed to compile depended scripts
+input_probe.gd        Failed to compile depended scripts
+ERROR: Failed to load script "res://tools/input_probe.gd"
+```
+
+**It broke the day invariant 33 was added**, because that is what put `CompassMath`
+into the profile's dependency chain — nine days, in the tool this file documents
+for diagnosing phantom input, and **the tool that found the sim-pedals defect**.
+Nothing said so: a script that fails to load prints an engine error and **none of
+its own output**, which reads exactly like a probe that found nothing to report.
+Trap 14's shape — a documented command that does not run.
+
+**AND ITS OWN DOCSTRING ARGUED FOR THE THING THAT BROKE IT.** *"Straight from the
+resource rather than through `Tuning`. The autoloads are added after
+`_initialize()` returns"* — a correct observation about autoload **timing** that
+missed the autoload **dependency**: naming `TuningProfile` at all is what pulled
+the chain in, whichever way the value was read. It is a scene now, and it reaches
+its own headless refusal, which it could not do before.
+
+**SO THE DEFECT WAS IN TWO OF THE FIVE `-s` TOOLS AND I FOUND THE SECOND ONLY BY
+WRITING THE GUARD.** Reasoning found one; the sweep found the other.
+
+**`test_a_script_tool_gets_no_autoloads.gd` IS THE GUARD, AND IT IS TRANSITIVE
+BECAUSE ONE HOP WOULD HAVE MISSED BOTH CASES.** Neither tool names `CompassMath`;
+both reach it at depth three through `TuningProfile`. It builds `class_name -> file`
+for all 211 classes, marks the 92 that call the autoload, and walks the closure
+breadth-first so the message is the **shortest** chain:
+`generate_default_tuning.gd -> TuningProfile -> TuningInvariants -> CompassMath`.
+Falsified by planting `extends SceneTree` back, which reddens it with exactly that
+line.
+
+**AND THE GUARD WAS WRONG TWICE BEFORE IT WAS RIGHT, BOTH TIMES IN MY FAVOUR.**
+Its first needle was the substring `Tuning.`, which also matches
+`MovementTuning.new()` — and its premise assertion demanded that **fewer than a
+third** of classes call the autoload, on my assumption that a large set meant a bad
+needle. Both were guesses about the codebase wearing a guard's clothes. Measured:
+**94 of 225 files under `scripts/` call it**, because ADR-0005 makes it the way
+every gameplay constant is read, so the large set is the design working. **I
+changed the needle believing it explained the `input_probe` hit. It did not — that
+hit was true, and I nearly explained away the second defect while fixing the
+first.**
+
 ## THE BENCH TAKES A QUARRY COUNT, AND THE CYCLE LIMITS WHAT THAT CAN MEAN
 
 **ASKED FOR FROM THE CONTROLS: *"X gives me the number of hunters that hunt me
@@ -525,7 +640,7 @@ second is the worse one**.
 
 ```bash
 python tools/tuning_codegen/run_all.py && gdformat scripts/ && git diff --stat scripts/
-godot --headless -s res://tools/generate_default_tuning.gd && git diff --stat data/tuning/
+godot --headless --path . res://tools/generate_default_tuning.tscn && git diff --stat data/tuning/
 ```
 
 Both are empty on a clean checkout now. **The second line did not exist**, which is
@@ -617,15 +732,8 @@ same run, so a missing row can now only mean *equal to the documented value* —
 resolves through the default either way. Trap 17's rule stands for a hand-written
 `.tres`; this is the case where the hazard is closed by construction.
 
-**AND A PRE-EXISTING ERROR PRINTS ON EVERY RUN OF THIS TOOL. IT IS NOT MINE AND IT
-IS NOT A TUNING DEFECT.** Both the generator and the `Tuning` autoload report
-*"Nonexistent function 'full_ring_distance' in base 'GDScript'"* — a static call on
-a `class_name` made from `_init()`, while the global class registry is still being
-built. **Confirmed pre-existing by running `main`'s generator: two occurrences,
-identical.** It means `validate()` here checks **36 of 37** invariants; invariant 33
-is checked by the unit suite, where `TuningInvariants.check()` runs clean and
-returns nothing. **Reported rather than fixed** — it is one line of the invariant
-file and belongs to whoever owns `CompassMath`.
+**AND A PRE-EXISTING ERROR PRINTED ON EVERY RUN OF THIS TOOL — FIXED 2026-09-05,
+AND THE CAUSE I NAMED HERE WAS WRONG.** See the section directly above.
 
 **WHAT IS STILL STALE IS STILL REPORTED RATHER THAN SWEPT.** ADR-0018 moved
 `TUN-STUN-SCORE` to 200 and four prose places did not hear: `01_vision.md:233`,
@@ -6017,7 +6125,7 @@ US-0024 measures it against clips that do not exist.
 | | |
 |---|---|
 | CI | 7 jobs. **Running again as of 2026-08-07 after a two-day outage** — run `31200490320`, all seven green. The seven commits merged during the outage were never through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | **54 arch + 192 unit + 33 integration scripts**, holding 214 + 1659 + 243 tests and 1 231 + 29 686 + 679 assertions (measured 2026-09-04 after the codegen fix, all three green at 9.96 s / 43.1 s / **184.4 s**; the new arch script is `test_the_ability_writer_holds_no_tunables.gd`, which refuses a `TUN-`-backed field in the `.tres` writer's hand-written table. The two unit scripts before it are ADR-0019's — `test_the_stun_costs_the_contract.gd` and `test_match_consequences.gd`, which are the rule and the hop respectively. **The integration suite read 184.2 s against 183.8 s before this change**, so the wiring assertion added to `test_the_m4_loop_resolves.gd` costs about 0.4 s — it raises the signal rather than earning a stun, and deliberately does not settle through `TUN-CONTRACT-REASSIGN-DELAY`, which the first version did for **+3.8 s**) — the assertion count tripled at US-0049, because `test_contract_cycle_fuzz.gd` checks the invariant after every one of 10 000 events. **Nine are `pending` by design** — **eight in the unit suite and one in the integration suite**, which reports that an NPC aimed into the void never gives up. The island `pending` beside it **turned green by itself** when the alley mouths were built, which is what a `pending` naming its own blocker is for. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite measured **183.8 s** on 2026-09-02 and again on 2026-09-01, **174.6 s** twice on 2026-08-28 and **183.5 s** the day before that, with **no test removed** — **three readings within 0.1 s of each other now, so the 174.6 s pair is the outlier rather than the figure** — so the 9 s is machine variance and neither number should be quoted as *the* figure; what is real is that the suite sits within a few seconds of its limit either way. The 180 s it is 'allowed' is **enforced nowhere** — TEST_PLAN §3, TEST_PLAN §10 and TDD-12 §17 all assert it and no job checks it, which is the M4 gate's fourth drift finding. `test_the_m4_loop_resolves.gd` cost 13.1 s of that and is the first test ever to run M4's systems together. It was 162-172 s, up from 87.7 s at M2 — **under 9 s of headroom left, and the next integration test has to justify itself hard against that**. `test_server_tick_budget.gd` cost 9.8 s of it and is a gate line; the one before it, the 2 s pass A/B, samples ninety ticks **twice** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **The six are**: `test_upstream_bandwidth.gd` reporting the 145 % upstream miss, `test_crowd_bandwidth.gd` the 112 % downstream projection, `test_crowd_wire_cost.gd` the 112 % it actually costs, **`test_spawn_points.gd` twice — GDD-05 §2.7 rule 6's nine unoccluded spawn pairs and rule 8's S3 4, S4 1, S5 6 of 8 seats** — and `test_clone_animation_parity.gd` the missing clip library. **Two entries this row carried are gone because their findings closed**: `test_circuit_separation.gd`'s 0.51 m circuits (re-authored, now 21.20 m) and `test_cull_radius_price.gd`'s flat curve, which asserts rather than pends. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
+| Tests | **55 arch + 192 unit + 33 integration scripts**, holding 216 + 1659 + 243 tests and 1 235 + 29 686 + 679 assertions (measured 2026-09-05; the new arch script is `test_a_script_tool_gets_no_autoloads.gd`, which walks the class closure of every `-s` tool and refuses one that reaches a class calling the `Tuning` autoload — it found `input_probe.gd` unloadable, which reasoning had not. The one before it is `test_the_ability_writer_holds_no_tunables.gd`, which refuses a `TUN-`-backed field in the `.tres` writer's hand-written table. The two unit scripts before it are ADR-0019's — `test_the_stun_costs_the_contract.gd` and `test_match_consequences.gd`, which are the rule and the hop respectively. **The integration suite read 184.2 s against 183.8 s before this change**, so the wiring assertion added to `test_the_m4_loop_resolves.gd` costs about 0.4 s — it raises the signal rather than earning a stun, and deliberately does not settle through `TUN-CONTRACT-REASSIGN-DELAY`, which the first version did for **+3.8 s**) — the assertion count tripled at US-0049, because `test_contract_cycle_fuzz.gd` checks the invariant after every one of 10 000 events. **Nine are `pending` by design** — **eight in the unit suite and one in the integration suite**, which reports that an NPC aimed into the void never gives up. The island `pending` beside it **turned green by itself** when the alley mouths were built, which is what a `pending` naming its own blocker is for. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite measured **183.8 s** on 2026-09-02 and again on 2026-09-01, **174.6 s** twice on 2026-08-28 and **183.5 s** the day before that, with **no test removed** — **three readings within 0.1 s of each other now, so the 174.6 s pair is the outlier rather than the figure** — so the 9 s is machine variance and neither number should be quoted as *the* figure; what is real is that the suite sits within a few seconds of its limit either way. The 180 s it is 'allowed' is **enforced nowhere** — TEST_PLAN §3, TEST_PLAN §10 and TDD-12 §17 all assert it and no job checks it, which is the M4 gate's fourth drift finding. `test_the_m4_loop_resolves.gd` cost 13.1 s of that and is the first test ever to run M4's systems together. It was 162-172 s, up from 87.7 s at M2 — **under 9 s of headroom left, and the next integration test has to justify itself hard against that**. `test_server_tick_budget.gd` cost 9.8 s of it and is a gate line; the one before it, the 2 s pass A/B, samples ninety ticks **twice** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **The six are**: `test_upstream_bandwidth.gd` reporting the 145 % upstream miss, `test_crowd_bandwidth.gd` the 112 % downstream projection, `test_crowd_wire_cost.gd` the 112 % it actually costs, **`test_spawn_points.gd` twice — GDD-05 §2.7 rule 6's nine unoccluded spawn pairs and rule 8's S3 4, S4 1, S5 6 of 8 seats** — and `test_clone_animation_parity.gd` the missing clip library. **Two entries this row carried are gone because their findings closed**: `test_circuit_separation.gd`'s 0.51 m circuits (re-authored, now 21.20 m) and `test_cull_radius_price.gd`'s flat curve, which asserts rather than pends. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
 | Tuning | **296** tunables across 14 resource classes; all **37** cross-field invariants assert. **Six were added on 2026-08-29 for US-0097's escape verb** — four `TUN-PURSUIT-*` on `ContractTuning` (a pursuit ends by removing and reinserting a contract, so §7 is its section and no new resource was needed) and `TUN-SCORE-ESCAPE`/`-CLOSECALL` on `ScoringTuning`. **Invariant 34 fired on its first run against the story's own proposed value**: `TUN-PURSUIT-DURATION` is `warn_radius / blend_walk` = 10.7143, US-0097 wrote **10.7**, and that asks the prey for 1.402 m/s — fractionally faster than a blend walk, in exactly the direction the invariant forbids. Shipped at **10.72**, with the tolerance tightened to a true floor rather than widened to admit it. **A rounded derivation is not a derivation.** **`TUN-COMPASS-CONE-FULL-RADIUS` 20.0 m was added on 2026-08-27** — where the Compass arc becomes a whole ring — and **invariant 33 is the reason it is not a chosen number**: it pins the radius equal to `TUN-COMPASS-LOCK-RANGE`, so the arc stops pointing exactly where the lock starts working, and separately outside the validated kill reach. It was **set three times in one day and only ever by somebody playing it** — 4.0 m derived from the half-width alone, 6.0 m at `TUN-SUSPICION-OPEN-RADIUS`, then 20.0 — and the second is the one worth remembering, because it was **derived and still wrong**. **`TUN-SCORE-HALFSEEN` +50 was added on 2026-08-27** by the fidelity re-audit — the stealth ladder had no middle rung, so a kill at **Noticed** and one at **Exposed** scored identically; invariant 32 keeps it strictly descending and strictly positive, and the `> 0` clause is the load-bearing half because every ordering check passes over a zero. `TuningInvariantsScore` was split out when that pushed the file past 400 lines — tech is how the game is *transmitted*, score is what it *pays*, and what is left is how it *plays*, with one entry point still. **Four scoring values were re-priced on 2026-08-26 (ADR-0013)** — `TUN-SCORE-SILENT` 100 → 200, `TUN-SCORE-PATIENT` 150 → 100, `TUN-SCORE-FOCUS` 100 → 150, `TUN-SCORE-RECKLESS` −50 → **0**, and invariant 18 rewritten from an ordering to a floor — split across `TuningInvariants` and `TuningInvariantsTech` since the first file hit 400 lines, with one entry point still. **Eight IDs are deprecated** and recorded in TUNABLES §19 — never reused |
 | Autoloads | All eight. `Tuning` precomputes 89 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |
@@ -6136,6 +6244,18 @@ view.
    **The lesson that outlives it: the `.tres` are generated too, so a hand-edited
    one is a change with a countdown on it.** `cinderfall.tres`'s hand-typed
    `id="2_cndrf"` is what a hand-edit looks like — no generator writes a mnemonic.
+   **AND THE `.tres` WRITER IS A SCENE RATHER THAN A `-s` SCRIPT, WHICH IS A
+   CORRECTNESS FIX AND NOT A STYLE CHOICE (2026-09-05).** A `-s` script is compiled
+   **before the autoloads are registered**, so `Tuning` is unresolvable — and it is
+   the **one autoload Core is permitted** (ADR-0005), read by **sixteen Core
+   classes**, every one of which then fails to compile *and stays broken for the
+   rest of the process*, because GDScript caches the failure. The symptom is a
+   runtime *"Nonexistent function X in base 'GDScript'"* naming a class that is
+   perfectly correct, **four files from the cause**. It cost this tool **invariant
+   33** from M0 until it was fixed. `tools/anchor_census.gd` was converted for the
+   same reason. **Any tool that touches a Core class needs a `.tscn`.** The two map
+   generators are `-s` and are fine — their layout classes read no autoload — and
+   that was measured rather than assumed.
    **`Ids` IS HARVESTED FROM `docs/`**, which has a consequence worth knowing
    before you need it: an ID cannot be removed by deleting its table row. The
    harvest finds it again, `Ids` declares it, and the guard that every documented
@@ -6292,7 +6412,9 @@ view.
     written to find the spinning camera reported "connected joypads: 0 — a
     spinning camera is NOT coming from a stick" under `--headless`, on a machine
     where a pair of sim pedals was holding three actions at full deflection. It
-    was believed for a day. `tools/input_probe.gd` refuses to run headless, and
+    was believed for a day. **`tools/input_probe.tscn` — a scene since 2026-09-05,
+    because as a `-s` script it could not load at all; see trap 1** — refuses to
+    run headless, and
     polls for twelve seconds because a pad's **resting axis values arrive about a
     second after it enumerates** — a single glance at frame zero reads 0.00 even
     with a window. Trap 3's family: a check that reports clean over nothing.
