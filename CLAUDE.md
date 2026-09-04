@@ -393,31 +393,125 @@ godot --path . res://tools/map_probe.tscn -- --map sandbox
 (previously freed)"* on the next physics frame. The rig is **disabled** rather than
 freed now, and the pawn is left standing, which is worth seeing anyway.
 
-## THE TUNING CODEGEN NO LONGER REPRODUCES ITS OWN OUTPUT, ON CLEAN `main`
+## THE TUNING CODEGEN DESTROYED SHIPPED GAMEPLAY WHEN RUN AS DOCUMENTED
 
-**FOUND BY RUNNING IT FOR AN UNRELATED REASON** — `MAP-SANDBOX` needed an entry in
-`Ids`, which is generated. `python tools/tuning_codegen/run_all.py` on an untouched
-checkout produces a **different** `combat_tuning.gd`, `scoring_tuning.gd` and
-`ability_data.gd` from the ones committed.
+**IT REPRODUCES NOW, END TO END, INCLUDING THE `.tres` NOBODY WAS CHECKING.** The
+finding below was reported on 2026-09-04 during `MAP-SANDBOX` and deliberately left
+alone; taken on its own it turned out to be **two independent defects, and the
+second is the worse one**.
 
-**AND TWO OF THE THREE DIFFERENCES DELETE LIVE FIELDS.** It drops
-`combat.score` (`TUN-STUN-SCORE`) and `scoring.stun` (`TUN-SCORE-STUN`) — and
-`tuning_invariants_score.gd` reads `p.scoring.stun` for **invariant 19**, the one
-ADR-0018 amended on 2026-09-03. **Regenerating today breaks the build.**
+```bash
+python tools/tuning_codegen/run_all.py && gdformat scripts/ && git diff --stat scripts/
+godot --headless -s res://tools/generate_default_tuning.gd && git diff --stat data/tuning/
+```
 
-**WHICH MAKES TRAP 1 FALSE AS WRITTEN.** It says these files are generated and
-hand-edits are silently reverted — so the documented instruction, followed
-literally, deletes two tunables. The third difference is the other half of the same
-story: `ability_data.gd`'s docstrings have been **hand-edited** since, which is
-exactly what trap 1 forbids, and regenerating would revert three genuinely useful
-notes about `TUN-CINDERFALL-THROW-RANGE`, `-DURATION` and `TUN-LUNGE-AUTO-KILL`.
+Both are empty on a clean checkout now. **The second line did not exist**, which is
+the whole story: the verification stopped at `scripts/`, so the data the game
+actually loads was outside it for four milestones.
 
-**REPORTED RATHER THAN FIXED, AND THE `ids.gd` CHANGE WAS TAKEN ALONE.** Whatever
-`parse_tunables.py` is doing with the two stun-score IDs is a question about the
-generator, not about this map; folding a tuning-class regeneration into a map story
-would put a build-breaking diff where nobody would look for it. **Nothing here
-regenerated the tuning classes** — `ids.gd` gained one line and the other three
-were restored from git.
+**DEFECT 1: TWO ASTERISKS DELETED A TUNABLE, AND TOOK THE GUARD WITH THEM.**
+ADR-0018 wrote `TUN-STUN-SCORE`'s new value as `**200**` to mark that it had
+changed. `parse_tunables.py` matches a value cell with a leading-digit pattern,
+which fails on an asterisk — so the row was **dropped**, `combat_tuning.gd` kept
+the pre-ADR **100**, and regenerating deleted `combat.score` and `scoring.stun`
+outright. `tuning_invariants_score.gd` reads `p.scoring.stun` for **invariant 19**,
+so the documented command broke the build.
+
+**AND `test_tunables_match_the_document.gd` — WRITTEN FOR EXACTLY THIS DRIFT —
+COULD NOT SEE IT, FOR THE SAME REASON.** Its `_first_number` walked past `**200**`
+with `is_valid_float()`, found no number in any later cell, and **dropped the row
+too**. Two independent readers of one column, defeated identically by the same two
+characters. Falsified: with emphasis stripped it reports
+`TUN-STUN-SCORE: document says 200.0, data ships 100.0` on unmodified `main`, and
+coverage goes **290 -> 292**.
+
+**AND `gen_tuning.py` REFUSES TO WRITE ANYTHING NOW IF A DOCUMENTED VALUE CANNOT BE
+READ.** That refusal is the half that generalises: a code generator which silently
+emits less than it was given is worse than one that stops, because the diff then
+looks like a deliberate deletion. It names every unreadable row and exits non-zero
+**before** touching the output directory.
+
+**DEFECT 2: THE `.tres` WRITER CARRIED A FOURTH COPY OF 45 NUMBERS, AND IT HAD
+DRIFTED.** `tools/generate_default_tuning.gd` writes every section's resource from
+that section's own class defaults — except the abilities, because **`AbilityData`
+is one class holding four abilities' fields** and a class default can only be one
+of them: `duration` is 6 s of smoke for Cinderfall and 15 s of a false face for
+Second Face. So that file held a hand-written `ABILITIES` table, and the codegen
+README told you to run it after every regeneration.
+
+**MEASURED, ON A CLEAN CHECKOUT, FROM A RUN THAT PRINTED SUCCESS:**
+
+| What the documented command did | Cost |
+|---|---|
+| `TUN-CINDERFALL-THROW-RANGE` **0.0 -> 8.0** | undoes ADR-0013 — the cloud is thrown again |
+| `TUN-CINDERFALL-DURATION` **6.0 -> dropped** | the value the owner set at the controls the day before |
+| `effect_script` **dropped from both live abilities** | **Cinderfall and Lunge stop doing anything at all** |
+
+**THE THIRD ROW IS THE ONE THAT MATTERS, AND IT WAS NEVER IN THAT TABLE.** US-0067
+hand-patched `effect_script` into `cinderfall.tres` — against trap 1 — so the
+generator had never heard of it. A regeneration would have left `CinderfallEffect`
+and `LungeEffect` unreachable, which is the shape of every defect this week:
+**something that looks correct and is never reached.**
+
+**AND THE `duration` HOLE IS TRAP 17'S OWN ORIGINAL INSTANCE, FOUND FROM THE OTHER
+END.** That table never had a `duration` key for Cinderfall at all — which is why
+the cloud shipped at **0.0 from M0 against a published 4.0**, and why nothing asked
+how long a cloud lives until `SYS-KILL` did. The defect and its cause sat in this
+file for three milestones and nobody had joined them.
+
+**`AbilityDefaults` IS THE FIX, AND IT IS GENERATED BESIDE `ability_data.gd`.**
+`gen_abilities.py` emits `scripts/core/tuning/ability_defaults.gd` — 4 abilities,
+40 values — from the same parse that writes the class. What stays hand-written in
+the writer is `ABILITY_WIRING`: an id, a display key, a tell sound and the
+server-only effect script. **Content and code, never a number.**
+
+**AND THE GUARD ASSERTS THE PROPERTY RATHER THAN THE TABLE.**
+`test_the_ability_writer_holds_no_tunables.gd` reads `ABILITY_WIRING` out of the
+script's own **constant map** rather than parsing the source, so a reformat cannot
+defeat it, and refuses any field `TuningIndex` has a `TUN-` id for. Falsified
+against `"cooldown": 45.0` planted back into Cinderfall's entry.
+
+**MY OWN GUARD NAMED THE WRONG TUNABLE ON ITS FIRST FALSIFICATION RUN.** It mapped
+field -> id, and **all four abilities have a `cooldown`**, so the map held whichever
+the index listed last: a planted Cinderfall value was reported as shadowing
+`TUN-WHISPERBOLT-COOLDOWN`. The guard fired correctly and lied about why — the
+*instrument wrong in a plausible direction* this file has now recorded five times.
+Keyed on `(ability, field)`.
+
+**THE `.tres` ARE BYTE-REPRODUCIBLE, AND A HAND-EDIT IS VISIBLE IN THEM.** Unlike a
+`.tscn`, Godot derives a `.tres` `ext_resource` id from content rather than
+randomly, so no id stripping is needed and two consecutive runs are identical.
+**Which makes a hand-typed id a signature**: `cinderfall.tres` carried
+`id="2_cndrf"` and `lunge.tres` carried `id="2_lunge"`, mnemonics no generator
+produces. That is how US-0067's hand patch was identified rather than guessed at.
+
+**ONE ROW LEGITIMATELY DISAPPEARS AND IT IS NOT TRAP 17 RETURNING.**
+`throw_range = 0.0` is no longer written to `cinderfall.tres`, because
+`ability_data.gd`'s class default is **also** 0.0 and Godot omits a property equal
+to its default. Both are emitted by the same generator from the same parse in the
+same run, so a missing row can now only mean *equal to the documented value* — and
+`test_tunables_match_the_document.gd` compares the **loaded profile**, which
+resolves through the default either way. Trap 17's rule stands for a hand-written
+`.tres`; this is the case where the hazard is closed by construction.
+
+**AND A PRE-EXISTING ERROR PRINTS ON EVERY RUN OF THIS TOOL. IT IS NOT MINE AND IT
+IS NOT A TUNING DEFECT.** Both the generator and the `Tuning` autoload report
+*"Nonexistent function 'full_ring_distance' in base 'GDScript'"* — a static call on
+a `class_name` made from `_init()`, while the global class registry is still being
+built. **Confirmed pre-existing by running `main`'s generator: two occurrences,
+identical.** It means `validate()` here checks **36 of 37** invariants; invariant 33
+is checked by the unit suite, where `TuningInvariants.check()` runs clean and
+returns nothing. **Reported rather than fixed** — it is one line of the invariant
+file and belongs to whoever owns `CompassMath`.
+
+**WHAT IS STILL STALE IS STILL REPORTED RATHER THAN SWEPT.** ADR-0018 moved
+`TUN-STUN-SCORE` to 200 and four prose places did not hear: `01_vision.md:233`,
+`07_balance.md:417` and `08_liveops_and_future.md:135` all read **100**, and
+`07_balance.md:706`'s release checklist still asserts
+`TUN-SCORE-STUN == TUN-SCORE-CONTRACT`, which invariant 19 stopped being on
+2026-09-03. **`test_tunables_match_the_document.gd` still cannot see any of them**
+— it compares the table against the shipped profile, and every one of these is
+prose. Untouched by this work, and named here so it is not lost.
 
 ## ADR-0019: A STUN COSTS THE PURSUER THE CONTRACT, AND HALF THE RULE WAS ALREADY THERE
 
@@ -5800,7 +5894,7 @@ US-0024 measures it against clips that do not exist.
 | | |
 |---|---|
 | CI | 7 jobs. **Running again as of 2026-08-07 after a two-day outage** — run `31200490320`, all seven green. The seven commits merged during the outage were never through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | **53 arch + 192 unit + 33 integration scripts**, holding 212 + 1659 + 243 tests and 1 226 + 29 686 + 679 assertions (measured 2026-09-04, all three green; the two new unit scripts are ADR-0019's — `test_the_stun_costs_the_contract.gd` and `test_match_consequences.gd`, which are the rule and the hop respectively. **The integration suite read 184.2 s against 183.8 s before this change**, so the wiring assertion added to `test_the_m4_loop_resolves.gd` costs about 0.4 s — it raises the signal rather than earning a stun, and deliberately does not settle through `TUN-CONTRACT-REASSIGN-DELAY`, which the first version did for **+3.8 s**) — the assertion count tripled at US-0049, because `test_contract_cycle_fuzz.gd` checks the invariant after every one of 10 000 events. **Nine are `pending` by design** — **eight in the unit suite and one in the integration suite**, which reports that an NPC aimed into the void never gives up. The island `pending` beside it **turned green by itself** when the alley mouths were built, which is what a `pending` naming its own blocker is for. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite measured **183.8 s** on 2026-09-02 and again on 2026-09-01, **174.6 s** twice on 2026-08-28 and **183.5 s** the day before that, with **no test removed** — **three readings within 0.1 s of each other now, so the 174.6 s pair is the outlier rather than the figure** — so the 9 s is machine variance and neither number should be quoted as *the* figure; what is real is that the suite sits within a few seconds of its limit either way. The 180 s it is 'allowed' is **enforced nowhere** — TEST_PLAN §3, TEST_PLAN §10 and TDD-12 §17 all assert it and no job checks it, which is the M4 gate's fourth drift finding. `test_the_m4_loop_resolves.gd` cost 13.1 s of that and is the first test ever to run M4's systems together. It was 162-172 s, up from 87.7 s at M2 — **under 9 s of headroom left, and the next integration test has to justify itself hard against that**. `test_server_tick_budget.gd` cost 9.8 s of it and is a gate line; the one before it, the 2 s pass A/B, samples ninety ticks **twice** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **The six are**: `test_upstream_bandwidth.gd` reporting the 145 % upstream miss, `test_crowd_bandwidth.gd` the 112 % downstream projection, `test_crowd_wire_cost.gd` the 112 % it actually costs, **`test_spawn_points.gd` twice — GDD-05 §2.7 rule 6's nine unoccluded spawn pairs and rule 8's S3 4, S4 1, S5 6 of 8 seats** — and `test_clone_animation_parity.gd` the missing clip library. **Two entries this row carried are gone because their findings closed**: `test_circuit_separation.gd`'s 0.51 m circuits (re-authored, now 21.20 m) and `test_cull_radius_price.gd`'s flat curve, which asserts rather than pends. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
+| Tests | **54 arch + 192 unit + 33 integration scripts**, holding 214 + 1659 + 243 tests and 1 231 + 29 686 + 679 assertions (measured 2026-09-04 after the codegen fix, all three green at 9.96 s / 43.1 s / **184.4 s**; the new arch script is `test_the_ability_writer_holds_no_tunables.gd`, which refuses a `TUN-`-backed field in the `.tres` writer's hand-written table. The two unit scripts before it are ADR-0019's — `test_the_stun_costs_the_contract.gd` and `test_match_consequences.gd`, which are the rule and the hop respectively. **The integration suite read 184.2 s against 183.8 s before this change**, so the wiring assertion added to `test_the_m4_loop_resolves.gd` costs about 0.4 s — it raises the signal rather than earning a stun, and deliberately does not settle through `TUN-CONTRACT-REASSIGN-DELAY`, which the first version did for **+3.8 s**) — the assertion count tripled at US-0049, because `test_contract_cycle_fuzz.gd` checks the invariant after every one of 10 000 events. **Nine are `pending` by design** — **eight in the unit suite and one in the integration suite**, which reports that an NPC aimed into the void never gives up. The island `pending` beside it **turned green by itself** when the alley mouths were built, which is what a `pending` naming its own blocker is for. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite measured **183.8 s** on 2026-09-02 and again on 2026-09-01, **174.6 s** twice on 2026-08-28 and **183.5 s** the day before that, with **no test removed** — **three readings within 0.1 s of each other now, so the 174.6 s pair is the outlier rather than the figure** — so the 9 s is machine variance and neither number should be quoted as *the* figure; what is real is that the suite sits within a few seconds of its limit either way. The 180 s it is 'allowed' is **enforced nowhere** — TEST_PLAN §3, TEST_PLAN §10 and TDD-12 §17 all assert it and no job checks it, which is the M4 gate's fourth drift finding. `test_the_m4_loop_resolves.gd` cost 13.1 s of that and is the first test ever to run M4's systems together. It was 162-172 s, up from 87.7 s at M2 — **under 9 s of headroom left, and the next integration test has to justify itself hard against that**. `test_server_tick_budget.gd` cost 9.8 s of it and is a gate line; the one before it, the 2 s pass A/B, samples ninety ticks **twice** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **The six are**: `test_upstream_bandwidth.gd` reporting the 145 % upstream miss, `test_crowd_bandwidth.gd` the 112 % downstream projection, `test_crowd_wire_cost.gd` the 112 % it actually costs, **`test_spawn_points.gd` twice — GDD-05 §2.7 rule 6's nine unoccluded spawn pairs and rule 8's S3 4, S4 1, S5 6 of 8 seats** — and `test_clone_animation_parity.gd` the missing clip library. **Two entries this row carried are gone because their findings closed**: `test_circuit_separation.gd`'s 0.51 m circuits (re-authored, now 21.20 m) and `test_cull_radius_price.gd`'s flat curve, which asserts rather than pends. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
 | Tuning | **296** tunables across 14 resource classes; all **37** cross-field invariants assert. **Six were added on 2026-08-29 for US-0097's escape verb** — four `TUN-PURSUIT-*` on `ContractTuning` (a pursuit ends by removing and reinserting a contract, so §7 is its section and no new resource was needed) and `TUN-SCORE-ESCAPE`/`-CLOSECALL` on `ScoringTuning`. **Invariant 34 fired on its first run against the story's own proposed value**: `TUN-PURSUIT-DURATION` is `warn_radius / blend_walk` = 10.7143, US-0097 wrote **10.7**, and that asks the prey for 1.402 m/s — fractionally faster than a blend walk, in exactly the direction the invariant forbids. Shipped at **10.72**, with the tolerance tightened to a true floor rather than widened to admit it. **A rounded derivation is not a derivation.** **`TUN-COMPASS-CONE-FULL-RADIUS` 20.0 m was added on 2026-08-27** — where the Compass arc becomes a whole ring — and **invariant 33 is the reason it is not a chosen number**: it pins the radius equal to `TUN-COMPASS-LOCK-RANGE`, so the arc stops pointing exactly where the lock starts working, and separately outside the validated kill reach. It was **set three times in one day and only ever by somebody playing it** — 4.0 m derived from the half-width alone, 6.0 m at `TUN-SUSPICION-OPEN-RADIUS`, then 20.0 — and the second is the one worth remembering, because it was **derived and still wrong**. **`TUN-SCORE-HALFSEEN` +50 was added on 2026-08-27** by the fidelity re-audit — the stealth ladder had no middle rung, so a kill at **Noticed** and one at **Exposed** scored identically; invariant 32 keeps it strictly descending and strictly positive, and the `> 0` clause is the load-bearing half because every ordering check passes over a zero. `TuningInvariantsScore` was split out when that pushed the file past 400 lines — tech is how the game is *transmitted*, score is what it *pays*, and what is left is how it *plays*, with one entry point still. **Four scoring values were re-priced on 2026-08-26 (ADR-0013)** — `TUN-SCORE-SILENT` 100 → 200, `TUN-SCORE-PATIENT` 150 → 100, `TUN-SCORE-FOCUS` 100 → 150, `TUN-SCORE-RECKLESS` −50 → **0**, and invariant 18 rewritten from an ordering to a floor — split across `TuningInvariants` and `TuningInvariantsTech` since the first file hit 400 lines, with one entry point still. **Eight IDs are deprecated** and recorded in TUNABLES §19 — never reused |
 | Autoloads | All eight. `Tuning` precomputes 89 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |
@@ -5902,11 +5996,23 @@ view.
 
 ### Eighteen things that will cost you an hour if you do not know them
 
-1. **Two things are GENERATED.** `scripts/core/ids.gd`, `scripts/core/tuning/*.gd`
-   and `tuning_index.gd` come from `tools/tuning_codegen/run_all.py`; the map
-   scenes and `MapData` come from `tools/generate_map_vetraio.gd`, whose single
-   source is `scripts/core/vetraio_layout.gd`. Hand-edits to any of them are
-   silently reverted on the next run. **Change the layout table, not the scene.**
+1. **THREE things are GENERATED, and the third is the one that has bitten.**
+   `scripts/core/ids.gd`, `scripts/core/tuning/*.gd` and `tuning_index.gd` come
+   from `tools/tuning_codegen/run_all.py`; **`data/tuning/default/**/*.tres` come
+   from `tools/generate_default_tuning.gd`**, which must be run after the first;
+   the map scenes and `MapData` come from `tools/generate_map_vetraio.gd` and
+   `generate_map_sandbox.gd`, whose sources are `vetraio_layout.gd` and
+   `sandbox_layout.gd`. Hand-edits to any of them are silently reverted on the next
+   run. **Change the layout table, not the scene.**
+   **THIS TRAP WAS FALSE AS WRITTEN FROM ADR-0018 UNTIL 2026-09-04**, and following
+   it literally destroyed shipped gameplay — the codegen dropped two tunables and
+   the `.tres` writer reverted `TUN-CINDERFALL-THROW-RANGE`, dropped
+   `TUN-CINDERFALL-DURATION` and dropped `effect_script` from both live abilities,
+   from a run that printed success. Both halves are fixed and both reproduce
+   byte-identically; the section near the top of this file has the measurements.
+   **The lesson that outlives it: the `.tres` are generated too, so a hand-edited
+   one is a change with a countdown on it.** `cinderfall.tres`'s hand-typed
+   `id="2_cndrf"` is what a hand-edit looks like — no generator writes a mnemonic.
    **`Ids` IS HARVESTED FROM `docs/`**, which has a consequence worth knowing
    before you need it: an ID cannot be removed by deleting its table row. The
    harvest finds it again, `Ids` declares it, and the guard that every documented

@@ -41,15 +41,14 @@ extends Resource
 ## TUN-CINDERFALL-CAST-TIME
 @export_range(0.3, 0.7, 0.01) var cast_time: float = 0.0
 
-## You may place it ahead of you or at your feet. Placing it ahead is the aggressive use (deny a
-## chaser's line); at your feet is the escape.
+## 0.0 since 2026-09-03 (ADR-0013): the cloud bursts on the caster and cannot be placed ahead. It
+## was 8.0, described as "placing it ahead is the aggressive use; at your feet is the escape" —
+## and the reference has no throw at all, deploying at the player's own feet; the sequel added
+## throwing. GDD-04 §3.1's Why it exists row is the escape reading, so the aggressive use was the
+## half that diverged. The ID stays live rather than deprecated: AbilityRules.reach_of still
+## reads it, and restoring the sequel's throw is this one value.
 ## Used by: Cinderfall.
-## TUN-CINDERFALL-THROW-RANGE. **ZERO IS THE SHIPPED VALUE AND THE BAND HAD TO
-## OPEN TO ADMIT IT** (2026-09-03, ADR-0013): the reference deploys this ability at
-## the caster's own feet and only its *sequel* added a throw, so the cloud is
-## self-centred here. The row is kept live rather than deprecated because it is
-## still read — `AbilityRules.reach_of` returns it — and restoring a throw is a
-## one-value change if the owner ever wants the sequel's version.
+## TUN-CINDERFALL-THROW-RANGE
 @export_range(0.0, 12.0, 0.1) var throw_range: float = 0.0
 
 ## Twice TUN-KILL-RANGE. Covers a doorway or an alley mouth, not a plaza.
@@ -58,7 +57,11 @@ extends Resource
 @export_range(4.0, 7.0, 0.1) var radius: float = 0.0
 
 ## Long enough to break a lock (TUN-COMPASS-LOCK-FILL-TIME is 1.6 s) and leave; short enough that
-## it cannot be used to camp a corner.
+## it cannot be used to camp a corner. 4.0 → 6.0 on 2026-09-03, judged at the controls once the
+## cloud became self-centred (TUN-CINDERFALL-THROW-RANGE 0.0) — four seconds of cover you are
+## standing in is not four seconds of cover you threw. A deliberate divergence, ruled by the
+## owner: the reference's smoke is 3 s base and 4 s upgraded, so this is 1.5× its best. It is the
+## top of the band, so the next increase needs an ADR rather than a value.
 ## Used by: Cinderfall, Secondface.
 ## TUN-CINDERFALL-DURATION
 @export_range(3.0, 6.0, 0.1) var duration: float = 0.0
@@ -114,8 +117,10 @@ extends Resource
 ## TUN-LUNGE-STUNNABLE
 @export var stunnable_during: bool = false
 
-## If the dash ends within TUN-KILL-RANGE and cone of the contract, the kill auto-initiates. It
-## is one button, not two, because it is the panic button.
+## If the dash passes within TUN-KILL-RANGE of the contract anywhere along its path, the kill
+## auto-initiates. It is one button, not two, because it is the panic button. Amended 2026-09-03:
+## it was ends within range and cone, and the cone was degenerate at the distance a dash ends at
+## — 2 degrees of aim error whiffed at a 6 m approach, measured. KillRules.resolve_swept.
 ## Used by: Lunge.
 ## TUN-LUNGE-AUTO-KILL
 @export var auto_kill: bool = false

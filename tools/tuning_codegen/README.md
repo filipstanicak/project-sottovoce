@@ -42,7 +42,7 @@ script guessing at the format.
 | `map_fields.py` | `tunables.json`, `DATA_SCHEMA.md` | `fieldmap.json` |
 | `gen_ids.py` | `ids.json` | `scripts/core/ids.gd` |
 | `gen_tuning.py` | `tunables.json`, `fieldmap.json` | the twelve section classes |
-| `gen_abilities.py` | `tunables.json` | `ability_tuning.gd`, `ability_data.gd`, `abilitymap.json` |
+| `gen_abilities.py` | `tunables.json` | `ability_tuning.gd`, `ability_data.gd`, `ability_defaults.gd`, `abilitymap.json` |
 | `gen_index.py` | all three maps | `tuning_index.gd` |
 
 The `.json` files are intermediates, gitignored, and regenerated every run.
@@ -64,6 +64,34 @@ nothing looked missing.
 **`gen_index.py` asserts key uniqueness.** That assertion is what found the bug
 above. Do not remove it.
 
+**MARKDOWN EMPHASIS IN A VALUE CELL DELETED THE TUNABLE, SILENTLY.** ADR-0018
+wrote `TUN-STUN-SCORE`'s new value as `**200**` to mark that it had changed. The
+parser's `^[+-]?\d` match fails on the two asterisks, so the row was **dropped**,
+`combat_tuning.gd` kept the pre-ADR `100`, and regenerating on a clean checkout
+produced a different file from the committed one — deleting `combat.score` and
+`scoring.stun`, which `tuning_invariants_score.gd` reads for invariant 19. **The
+guard written to catch exactly this drift was defeated by the same two
+asterisks**: `test_tunables_match_the_document.gd` walked past the cell for the
+same reason and dropped the row too. Both strip emphasis now, and `gen_tuning.py`
+**refuses to write anything at all** if a documented value it was asked for cannot
+be read — a codegen that silently emits less than it was given is worse than one
+that stops.
+
+**THE `.tres` WRITER USED TO CARRY THE ABILITY NUMBERS BY HAND, AND THIS README
+TOLD YOU TO RUN IT.** `AbilityData` is one class holding four abilities' fields,
+so a class default cannot carry a per-ability value — `duration` is 6 s of smoke
+for Cinderfall and 15 s of a false face for Second Face. Every other section's
+`.tres` is written from its own class's defaults; the abilities had nowhere to
+read one from, so `generate_default_tuning.gd` held a **fourth copy of 45
+numbers**. It had drifted: the command four lines above reverted
+`TUN-CINDERFALL-THROW-RANGE` 0.0 → 8.0 (undoing ADR-0013), dropped
+`TUN-CINDERFALL-DURATION` 6.0, and dropped `effect_script` from `cinderfall.tres`
+and `lunge.tres`, which makes both abilities do nothing. **From a run that printed
+success.** `gen_abilities.py` emits `ability_defaults.gd` now and the writer reads
+it; what stays hand-written there is the wiring — an id, a display key, a tell
+sound, the effect script — and `test_the_ability_writer_holds_no_tunables.gd`
+refuses a fifth field with a `TUN-` id behind it.
+
 **Field naming is mechanical with four enumerated exceptions**, listed in
 `DATA_SCHEMA.md` §1 and mirrored in `map_fields.py`. Adding a fifth needs a row in
 that table.
@@ -79,6 +107,29 @@ python tools/tuning_codegen/run_all.py && gdformat scripts/ && git diff --stat s
 An empty diff is the check. A non-empty one means either TUNABLES.md changed or
 someone hand-edited a generated file — and hand-editing a generated file is a
 change that the next run silently reverts.
+
+**CHECK THE `.tres` TOO, WHICH NOBODY WAS DOING.** The step above stops at
+`scripts/`, so the data the game actually loads was outside the verification for
+four milestones — which is how the ability table drifted unnoticed:
+
+```bash
+godot --headless -s res://tools/generate_default_tuning.gd && git diff --stat data/tuning/
+```
+
+The `.tres` are byte-reproducible: Godot derives its `ext_resource` ids from
+content rather than randomly, so unlike a `.tscn` they need no id stripping.
+Hand-typed ids are therefore the signature of a hand-edit — `cinderfall.tres`
+carried `id="2_cndrf"` and `lunge.tres` `id="2_lunge"`, which is how US-0067's
+hand patch was identified.
+
+**A `-s` SCRIPT CANNOT CHECK INVARIANT 33 AND SAYS SO IN THE OUTPUT.** Both this
+generator and the `Tuning` autoload report *"Nonexistent function
+'full_ring_distance' in base 'GDScript'"* on every run — a static call on a
+`class_name` made while the global class registry is still being built. **It is
+pre-existing, it is not a tuning defect, and it means `validate()` reports 36 of
+the 37 invariants here.** Invariant 33 is checked by the unit suite, which boots
+normally. Reported rather than fixed: it is one line of the invariant file and
+belongs to whoever owns `CompassMath`, not to a codegen story.
 
 ## The other generator
 

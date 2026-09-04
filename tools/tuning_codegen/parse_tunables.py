@@ -17,6 +17,26 @@ def cells(line):
     return [c.strip() for c in line.strip().strip("|").split("|")]
 
 
+def plain(cell):
+    """A data cell with its markdown emphasis removed.
+
+    **BOLDING A NUMBER USED TO DELETE THE TUNABLE.** `TUN-STUN-SCORE` and
+    `TUN-SCORE-STUN` were written as `**200**` on 2026-09-03 to mark ADR-0018's
+    change, and `gen_tuning.py`'s `^[+-]?\d` match then failed on the leading
+    asterisk, so both fields were dropped from their classes. It printed the two ids
+    on a `skipped:` line and exited 0 — and `scoring.stun` is read by invariant 19,
+    so regenerating broke the build while reporting success.
+
+    The rationale column has been stripped this way since M0 (`doc_lines`), so the
+    pipeline already knew emphasis existed; it just cleaned one column of five.
+    Stripped **here** rather than in each generator, because the failure was two
+    consumers of one cell disagreeing about what the cell contains — and they
+    disagree differently: `gen_abilities.py` calls `.group(1)` with no null check
+    and would have raised instead.
+    """
+    return re.sub(r"\*\*|\*|`", "", cell).strip()
+
+
 text = io.open(SRC, encoding="utf-8").read()
 rows, scaling, section, subsection, header = [], [], "", "", None
 
@@ -55,11 +75,13 @@ for ln in text.split("\n"):
         continue
     rows.append({
         "id": tid,
-        "value": col("value").strip("` "),
-        "unit": col("unit").strip("` "),
-        "range": col("range").strip("` "),
+        "value": plain(col("value")),
+        "unit": plain(col("unit")),
+        "range": plain(col("range")),
+        # The rationale keeps its markdown: it is prose, and `doc_lines` strips it
+        # at the point it becomes a docstring.
         "rationale": col("rationale", "condition & rationale"),
-        "score_event": col("score event").strip("` "),
+        "score_event": plain(col("score event")),
         "section": int(section),
         "subsection": subsection,
     })

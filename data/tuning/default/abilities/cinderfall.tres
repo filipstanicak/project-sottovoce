@@ -1,17 +1,16 @@
 [gd_resource type="Resource" script_class="AbilityData" format=3]
 
-[ext_resource type="Script" path="res://scripts/core/tuning/ability_data.gd" id="1_eepw5"]
-[ext_resource type="Script" path="res://scripts/systems/ability/cinderfall_effect.gd" id="2_cndrf"]
+[ext_resource type="Script" path="res://scripts/systems/ability/cinderfall_effect.gd" id="1_d8pmn"]
+[ext_resource type="Script" path="res://scripts/core/tuning/ability_data.gd" id="2_l8swj"]
 
 [resource]
-script = ExtResource("1_eepw5")
+script = ExtResource("2_l8swj")
 id = &"ABIL-CINDERFALL"
 display_key = &"ability.cinderfall.name"
 tell_sfx = &"SFX-CINDERFALL-THROW"
-effect_script = ExtResource("2_cndrf")
+effect_script = ExtResource("1_d8pmn")
 cooldown = 45.0
 cast_time = 0.45
-throw_range = 0.0
 radius = 5.0
 duration = 6.0
 blocks_los = true
