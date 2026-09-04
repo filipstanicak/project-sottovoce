@@ -157,8 +157,10 @@ godot --path . -s res://tools/input_probe.gd
 # THE BENCH. A 40 m courtyard for reproducing something in ten seconds rather
 # than ten minutes. DEBUG ONLY - excluded from every export preset.
 # docs/30_bible/MAP_SANDBOX.md, and read its section 4 before quoting any number.
-sandbox.bat            REM a server, 1 hunting bot, 12 civilians, and you
-sandbox.bat 1 0        REM one bot and an EMPTY district
+sandbox.bat            REM a server, 1 hunter, 12 civilians, and you
+sandbox.bat 1 0        REM one hunter and an EMPTY district
+sandbox.bat 1 12 3     REM ...plus 3 QUARRY bots: somebody to stalk
+sandbox.bat 0 12 3     REM nobody hunting you at all. Seed is now arg 4
 
 # --map MUST be given to every process, INCLUDING each bot: a bot instantiates
 # the client root itself and never sees boot.gd, so without it the bot loads the
@@ -315,8 +317,10 @@ arrangement that showed it, and one of them — a hunting bot wedged in a corner
 needed a corner of a known shape to be reproduced at all.
 
 ```bash
-sandbox.bat            REM a server, 1 hunting bot, 12 civilians, and you
-sandbox.bat 1 0        REM one bot and an EMPTY district
+sandbox.bat            REM a server, 1 hunter, 12 civilians, and you
+sandbox.bat 1 0        REM one hunter and an EMPTY district
+sandbox.bat 1 12 3     REM ...plus 3 QUARRY bots: somebody to stalk
+sandbox.bat 0 12 3     REM nobody hunting you at all. Seed is now arg 4
 ```
 
 **EVERY SOLID IN IT IS THERE FOR A NAMED REASON**, which is the difference between
@@ -392,6 +396,125 @@ godot --path . res://tools/map_probe.tscn -- --map sandbox
 `LocalPawnDriver` down with it — *"the Object-derived class of argument 2
 (previously freed)"* on the next physics frame. The rig is **disabled** rather than
 freed now, and the pawn is left standing, which is worth seeing anyway.
+
+## THE BENCH TAKES A QUARRY COUNT, AND THE CYCLE LIMITS WHAT THAT CAN MEAN
+
+**ASKED FOR FROM THE CONTROLS: *"X gives me the number of hunters that hunt me
+and Y the amount of civilians, but can i also get a Z for the amount of NPCs i
+can hunt?"*** Built — and **half the premise is not how the contract graph
+works**, which is worth more than the flag.
+
+```bash
+sandbox.bat 1 12 3       REM one hunter, 12 civilians and 3 QUARRY bots
+sandbox.bat 0 12 3       REM nobody hunting you - three to stalk
+sandbox.bat 1 12 3 42    REM the seed is the FOURTH argument now
+```
+
+**A QUARRY BOT IS A HUNTER'S COMMAND LINE WITH `--hunt --reckless` REMOVED.** It
+joins the same lobby as a real player, strolls in random legs and pursues nobody
+— somebody to stalk, approach and kill without being chased while you do it.
+Nothing in `bot_client.gd` changed: `play.bat` has launched exactly this bot
+since US-0066 and the sandbox simply never offered one.
+
+**BUT X WAS NEVER "HUNTERS THAT HUNT ME", AND Z CANNOT BE "HOW MANY I CAN
+HUNT".** `ContractCycle` is a single Hamiltonian cycle over the living players
+(GDD-03 §7), so **every player has exactly one outgoing edge and exactly one
+incoming edge** — for a reason that has nothing to do with launchers: *deleting a
+node from a cycle leaves a cycle*, which is what makes a repair free and why a
+cycle beat a random matching. So:
+
+- **at most one bot holds a contract on you, however many hunt**;
+- **exactly one player is yours to kill at any instant**;
+- which one is **the cycle's to decide, not the command line's**.
+
+**WHAT THE THIRD NUMBER ACTUALLY BUYS IS THE ODDS AND THE TEMPO.** With one
+hunter and three quarry your contract is a passive bot **three times in four**,
+so a stalk can be practised without a chase running through it; `0 12 3` removes
+the chase entirely. And in a `3 0` run the two hunters not assigned to you are
+**hunting each other** — worth knowing before reading anything into what they do.
+
+**A QUARRY BOT IS NOT STUNNABLE, AND THAT IS THE TIER GATE RATHER THAN AN
+OVERSIGHT.** `TUN-STUN-MIN-TIER` makes an Anonymous player unstunnable and a
+strolling bot never leaves Anonymous — which is the rule that makes *"an
+Anonymous hunter cannot be stunned, patience is genuinely safe"* true. Quarry is
+there to be **killed**; stunning is practised against `--reckless` hunters. Same
+reason `--reckless` had to exist at all.
+
+**THE CAP IS ON THE TOTAL AND IT WAS ON NEITHER NUMBER BEFORE.** Six is the lobby
+and you are one of it, so `set /a` trims the **quarry** and keeps the hunters: a
+session that asked for hunters is a session about being hunted. A seventh peer is
+refused by the handshake — it starts, fails to join and vanishes, which reads as
+a bot that crashed rather than as a lobby that is full.
+
+**AND THE QUARRY CONTINUES THE `--bot` NUMBERING RATHER THAN RESTARTING AT 1.**
+That number is the bot's own RNG seed and nothing else, so two bots given the
+same one walk the same legs at the same moments — they would stroll as a pair and
+read as one body with a shadow.
+
+**VERIFIED BY RUNNING IT, BECAUSE A BATCH FILE FAILS SILENTLY.** A neutered copy
+with every `start` replaced by an `echo` was run over six argument shapes —
+default, `1 12 3`, `0 12 3`, `1 12 3 42`, `3 12 4` and `6 12 2` — and each was
+read for the right process count, the right flags and distinct `--bot` seeds. A
+mis-parsed count starts the wrong number of processes, and what you see is bots
+that crashed.
+
+**MY OWN PATCH SCRIPT FAILED ITS FIRST ASSERTION, WHICH IS TRAP 15 PAYING OUT.**
+`sandbox.bat` is **CRLF** and the needles were written `\n`, so every replace
+would have matched nothing and reported success. The assert caught it before a
+single byte moved.
+
+## ADR-0018'S PROSE DEBT IS SWEPT, AND THERE WERE SEVEN PLACES RATHER THAN FOUR
+
+**REPORTED AT THREE CONSECUTIVE CHECKPOINTS AND NOT ACTED ON.** `TUN-STUN-SCORE`
+went 100 → 200 on 2026-09-03 and the prose did not hear. All of it is corrected.
+
+**THE FOUR THAT WERE NAMED**: `01_vision.md:233` (the Mei archetype — the file
+**contradicted itself two pages apart**, since `:132` already carried 200),
+`07_balance.md:417` (the aggressor/defender model), `08_liveops_and_future.md:135`
+(the new-player on-ramp, *"= 100, equal to a kill"*), and `07_balance.md:706`'s
+release checklist still asserting `TUN-SCORE-STUN == TUN-SCORE-CONTRACT` against
+an invariant that became `>`.
+
+**AND THREE MORE THAT THE REPORT MISSED, BECAUSE IT WAS A GREP FOR ONE ID.**
+
+- **`07_balance.md:554`'s skill-floor table** — *"scores 100 per success, equal to
+  a kill"*, which names the **value without naming the tunable** and so was
+  invisible to every search that found the other four. It is the row about the
+  floor strategy, which is the exact strategy ADR-0018 paid.
+- **`TUNABLES.md:516` — THE PRIMARY DOCUMENT CONTRADICTED ITSELF ONE ROW APART.**
+  `TUN-SCORE-ESCAPE`'s rationale said it lands *"equal to a base kill **and to
+  `TUN-SCORE-STUN`**"*, and the row **directly above it** had already moved to
+  200. The value is untouched and was never in doubt — ADR-0014 sourced it and got
+  it exactly. What is wrong is the comparison, and the corrected sentence is worth
+  more than the fix: **the prey's three teeth are deliberately not priced alike, and
+  a read stun is the expensive one.** `US-0097:150` carries the same claim and is
+  corrected the same way.
+- **`US-0065`'s ticked criterion was a false sentence**: *"Stun scores exactly one
+  base kill… `TUN-SCORE-STUN == TUN-SCORE-CONTRACT`"*. **It stays ticked**, and
+  that distinction is the point: what it asserts about the **code** is still exactly
+  true — the rule reads the pin rather than a literal, which is *precisely why the
+  value could move without `server_root` changing*. Only its arithmetic went stale.
+  Unticking it would claim an implementation regressed when a number was re-priced.
+
+**THE TOTALS IN §4.5 ARE DELIBERATELY NOT RE-DERIVED, AND §4.9's ANSWER GETS
+STRONGER ANYWAY.** *Can a defensive player podium?* — yes, and the change pays the
+defensive column. But §4.3 already holds every kills-and-stuns figure in §4.4 and
+§4.5 stale on a **45 % stun rate measured before ADR-0013** removed the
+last-instant save. **Re-pricing one input of a model whose other inputs are known
+stale produces a number that looks fresher than it is.** `TEL-STUN-RATE` settles
+both at once, and §4.9 now says so rather than quietly carrying a new total.
+
+**AND THE EDIT WENT THROUGH THE CODEGEN, WHICH IS THE PIPELINE FIXED AN HOUR
+EARLIER.** `TUNABLES.md`'s rationale column is the source of the generated
+docstrings, so `scoring_tuning.gd` regenerated with the corrected sentence and no
+`.tres` moved — the value did not change. **First real exercise of the repaired
+workflow**, end to end, and it behaved.
+
+**WHAT NO TEST CAN SEE, RESTATED BECAUSE IT IS NOW THE ONLY DEFENCE.**
+`test_tunables_match_the_document.gd` compares the **table** against the shipped
+profile, and all seven of these were **prose**. Nothing in this project reads a
+sentence. The sweep was found by grepping for a value that a document had spelled
+out in words, and the one that took longest to find never named the tunable at all.
 
 ## THE TUNING CODEGEN DESTROYED SHIPPED GAMEPLAY WHEN RUN AS DOCUMENTED
 

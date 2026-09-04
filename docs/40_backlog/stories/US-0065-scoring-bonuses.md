@@ -67,10 +67,18 @@ Every bonus condition, evaluated at kill INITIATION, plus the two windows that n
       predates it** — reported rather than decided.
 - [x] Poisoned is implemented and tested but DORMANT — no MVP ability triggers it.
 - [x] Death awards and deducts ZERO points.
-- [x] Stun scores exactly one base kill, asserted as an invariant.
-      `TUN-SCORE-STUN == TUN-SCORE-CONTRACT`, and the rule reads the pin rather
+- [x] Stun scores **more** than one base kill, asserted as an invariant.
+      `TUN-SCORE-STUN > TUN-SCORE-CONTRACT`, and the rule reads the pin rather
       than a number of its own. Paid from `server_root`, because a stun landing is
       a consequence and `StunSystem` decides nothing about scoring.
+      **AMENDED 2026-09-04. This line read `==` and *exactly one base kill*, which
+      ADR-0018 falsified on 2026-09-03 by taking `TUN-SCORE-STUN` 100 → 200 and
+      invariant 19 from `==` to `>`.** It stays **ticked**, and the distinction is
+      worth stating: what the criterion asserts about the *code* is still exactly
+      true — the rule reads the pin rather than a literal, which is precisely why
+      the value could move without `server_root` changing. Only its arithmetic went
+      stale. Unticking it would claim an implementation regressed when what
+      happened is that a number was re-priced.
 
 ## Test notes
 

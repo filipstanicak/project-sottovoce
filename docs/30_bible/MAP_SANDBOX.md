@@ -26,19 +26,52 @@ seconds.**
 ## 2. Running it
 
 ```bash
-sandbox.bat            REM a server, 1 hunting bot, 12 civilians, and you
-sandbox.bat 2          REM two bots
-sandbox.bat 1 0        REM one bot and an EMPTY district
-sandbox.bat 1 12 42    REM ...with a fixed match seed
+sandbox.bat              REM a server, 1 hunter, 12 civilians, and you
+sandbox.bat 2            REM two hunters
+sandbox.bat 1 0          REM one hunter and an EMPTY district
+sandbox.bat 1 12 3       REM one hunter, 12 civilians and 3 QUARRY bots
+sandbox.bat 0 12 3       REM nobody hunting you — three to stalk
+sandbox.bat 1 12 3 42    REM ...with a fixed match seed
 ```
 
-By hand, which is the same three processes:
+**Hunters** pursue their contract and cast on cooldown; **quarry** bots join the
+same lobby and stroll in random legs, hunting nobody. The seed is the **fourth**
+argument as of 2026-09-04, where it used to be the third.
+
+By hand, which is the same processes:
 
 ```bash
 godot --headless --path . -- --server --port 27015 --max-players 6 --map sandbox --crowd 12
 godot --headless --path . res://tools/bot_client.tscn -- --connect 127.0.0.1:27015 --map sandbox --bot 1 --hunt --reckless
+godot --headless --path . res://tools/bot_client.tscn -- --connect 127.0.0.1:27015 --map sandbox --bot 2
 godot --path . -- --connect 127.0.0.1:27015 --map sandbox
 ```
+
+**A quarry bot is a hunter's command line with `--hunt --reckless` removed**, and
+its `--bot` number continues the hunters' rather than restarting at 1: that number
+is the bot's own RNG seed and nothing else, so two bots given the same one walk the
+same legs at the same moments and read as one body with a shadow.
+
+### 2.1 What the third number can and cannot buy
+
+**IT CANNOT GIVE YOU TWO PURSUERS OR TWO PREY, AND THAT IS GDD-03 §7 RATHER THAN A
+LIMIT OF THE SCRIPT.** The contract graph is a single Hamiltonian cycle over the
+living players, so every player has exactly **one** outgoing edge — their contract
+— and exactly **one** incoming edge — their pursuer. So at most one bot holds a
+contract on you however many hunt, exactly one player is yours to kill at any
+instant, and **which one is the cycle's to decide, not the launcher's.**
+
+What it buys is the **odds** and the **tempo**. With one hunter and three quarry
+your contract is a passive bot three times in four, so you can practise a stalk and
+an approach without being chased through it; `sandbox.bat 0 12 3` removes the chase
+entirely. In a `3 0` run the two hunters not assigned to you are hunting **each
+other**, which is worth knowing before reading anything into what they do.
+
+**AND A QUARRY BOT CANNOT BE STUNNED, BY DESIGN RATHER THAN BY OMISSION.**
+`TUN-STUN-MIN-TIER` makes an Anonymous player unstunnable, a strolling bot never
+leaves Anonymous, and that is the rule making *"an Anonymous hunter cannot be
+stunned — patience is genuinely safe"* true. A quarry bot is there to be killed;
+practise stunning against `--reckless` hunters.
 
 **`--map` must be given to every process, including each bot.** A bot instantiates
 the client root itself rather than going through `boot.gd`, so without it the bot

@@ -132,7 +132,7 @@ Not nothing — these are load-bearing and were designed for this:
 |---|---|
 | **The score feed names bonuses as they are earned** ([`06_ui_audio.md`](06_ui_audio.md) §3) | Teaches the vocabulary by using it. The intended ten-minute learning sequence is in §3.3 of that chapter. |
 | **`TUN-SCORE-DEATH-PENALTY` = 0** | Dying costs 5 seconds, never points. A new player cannot be driven into an unrecoverable hole. |
-| **`TUN-STUN-SCORE` = 100, equal to a kill** | A player who does nothing but hide and stun their pursuer scores. There is a floor strategy that works. |
+| **`TUN-STUN-SCORE` = 200, twice a base kill** | A player who does nothing but hide and stun their pursuer scores. There is a floor strategy that works — and ADR-0018 doubled it precisely because *equal to a kill* under-paid the prey by half while looking like fidelity. It still loses to a well-made kill, which is the ordering design law 5 now states. |
 | **Near-zero mechanical skill floor** ([`07_balance.md`](07_balance.md) §6.1) | Blend-walking and standing still require no execution. The correct play is also the easiest play. |
 | **The crosshair ring is truthful** ([`06_ui_audio.md`](06_ui_audio.md) §2.2 F) | If the ring is there, the kill lands. Removes the "why didn't that work?" class of confusion entirely. |
 | **Theatre spaces** ([`05_level_design.md`](05_level_design.md) §5) | Watching someone else sprint across Piazza Secca and get stunned teaches Law 1 for free. |

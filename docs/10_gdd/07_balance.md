@@ -414,8 +414,17 @@ reducing the crowd. Each of those would trade the design's identity for a balanc
 ### 4.9 Can a defensive player podium?
 
 Yes — the Defender column in §4.5 scores 1 713, ahead of the Aggressor's 1 425. The mechanism
-is `TUN-STUN-SCORE` = 100 at 6 stuns per match, plus 1.5 opportunistic kills at the full
-patient rate.
+is `TUN-STUN-SCORE` at 6 stuns per match, plus 1.5 opportunistic kills at the full patient
+rate.
+
+> **THAT VALUE IS 200 SINCE ADR-0018 (2026-09-03), NOT THE 100 THIS SECTION USED
+> TO NAME — AND THE TWO TOTALS ARE DELIBERATELY NOT RE-DERIVED.** The answer to
+> the question gets *stronger*, since the defensive column is the one the change
+> pays, but §4.3's note already holds every kills-and-stuns figure in §4.4 and
+> §4.5 stale on a 45 % stun rate measured **before** ADR-0013 removed the
+> last-instant save. Re-pricing one input of a model whose other inputs are known
+> stale produces a number that looks fresher than it is. `TEL-STUN-RATE` settles
+> both at once.
 
 **But the model exposes a genuine dependency worth stating plainly:**
 
@@ -542,7 +551,7 @@ punishes it**.
 |---|---|
 | Holds `INPUT-SLOW` and walks | Yes — blend-walk is the safest movement in the game and requires no execution. |
 | Stands in the market and does nothing | Yes — they are in a valid blend pocket and are effectively unfindable while Anonymous. |
-| Presses stun when their screen flashes red | Yes — and scores 100 per success, equal to a kill. |
+| Presses stun when their screen flashes red | Yes — and scores **200** per success, twice a base kill (ADR-0018, 2026-09-03; it read *100, equal to a kill* before). The floor strategy is the one that change paid. |
 | Presses kill when the crosshair ring appears | Yes — the ring appears *if and only if* the kill will land ([`06_ui_audio.md`](06_ui_audio.md) §2.2 F). |
 
 **There is no mechanical execution requirement anywhere in the game.** The tightest genuinely
@@ -703,7 +712,7 @@ append-only discipline.
 - [ ] `TUN-MATCH-FINALPHASE-WARNING` fires 5 s before the phase with no rule change.
 - [ ] A match continues down to `TUN-LOBBY-MIN-PLAYERS` and ends with results shown below it.
 - [ ] Every bonus in §3 is implemented with its exact value from `ScoringTuning`; no literals.
-- [ ] `TUN-SCORE-STUN == TUN-SCORE-CONTRACT` (TUNABLES invariant §17.19).
+- [ ] `TUN-SCORE-STUN > TUN-SCORE-CONTRACT` (TUNABLES invariant §17.19, amended 2026-09-03 by ADR-0018 from `==`: **a floor, not a ratio**, because a stun must outscore the cheapest thing a hunter can do and still lose to their best).
 - [ ] `TUN-SCORE-SILENT + TUN-SCORE-PATIENT >= 3 × TUN-SCORE-CONTRACT` (invariant §17.18, amended 2026-08-26 by ADR-0013 from the old `BLENDED > PATIENT > SILENT` ordering).
 - [ ] Death awards and deducts zero points.
 - [ ] A kill on a non-contract player is rejected and applies `TUN-SUSPICION-GAIN-FAILED-KILL`; `test_only_contract_killable.gd` asserts no code path allows otherwise.
