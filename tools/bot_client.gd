@@ -49,14 +49,47 @@ const TURN_MAX := 0.9
 ## How often the bot says where it is.
 const REPORT_EVERY := 5.0
 
+## How far off the Compass bearing a hunting bot tolerates before it turns. Wide,
+## because a bot sweeps with the pad rather than aiming with a mouse, and a tight
+## tolerance makes it oscillate on the spot.
+const AIM_TOLERANCE := 0.20
+
 var _root: Node = null
 var _rng := RandomNumberGenerator.new()
 var _held: PackedStringArray = []
+
+## The held set as one string, so an unchanged set compares by value.
+var _held_key := ""
 var _index: int = 1
 var _walking := true
 
 ## `--ability <slot>`, or -1 for a bot that only walks.
 var _ability: int = -1
+
+## `--hunt`. **THE FIRST THING IN THIS PROJECT THAT PURSUES ANYBODY.** A bot walked
+## randomly and could therefore never be a *pursuer* in any sense a player feels —
+## and worse, a strolling bot sits at Anonymous all match, so `TUN-STUN-MIN-TIER`
+## made it unstunnable and ADR-0018's Lunge stun untestable against one.
+##
+## **IT STEERS ON THE COMPASS AND NOTHING ELSE**, which is the only thing a client
+## is told about where its contract is (GDD-03 §8.5). It cannot cheat, because
+## there is nothing here to cheat with: the bearing carries
+## `TUN-COMPASS-CONE-WOBBLE`'s lie exactly as a human's does.
+var _hunting := false
+
+## The last Compass reading: a world bearing, and whether there is a contract.
+var _bearing := 0.0
+var _has_contract := false
+
+## `--reckless`. **A HUNTER IS ONLY STUNNABLE WHEN CARELESS**, which is
+## `TUN-STUN-MIN-TIER` and the whole of why patience is safe — so a bot that
+## strolls can never be practised against. Casting an ability costs
+## `TUN-CINDERFALL-SUSPICION` +40, which is above `TUN-SUSPICION-TIER-NOTICED` 30,
+## so a bot that re-casts whenever it can is a hunter who has chosen to be seen.
+##
+## **IT IS THE ONLY LEVER THAT WORKS TODAY**: the other route to Noticed is speed,
+## and a synthetic `input_run` moves the pawn 0.0 m.
+var _reckless := false
 
 ## The last value `EVT-SUSPICION-VALUE-CHANGED` carried. See `_watch_the_cast`.
 var _suspicion: float = -1.0
@@ -66,6 +99,8 @@ func _ready() -> void:
 	var args := PackedStringArray(OS.get_cmdline_user_args())
 	_index = _int_after(args, "--bot", 1)
 	_ability = _int_after(args, "--ability", -1)
+	_hunting = Array(args).has("--hunt")
+	_reckless = Array(args).has("--reckless")
 	_rng.seed = hash("sottovoce-bot-%d" % _index)
 	var address := _string_after(args, "--connect", "127.0.0.1:27015")
 	var host := address.get_slice(":", 0)
@@ -83,12 +118,19 @@ func _run() -> void:
 		print("bot %d: no server at the address. Nothing to do." % _index)
 		get_tree().quit(1)
 		return
-	print("bot %d: walking" % _index)
+	if _hunting:
+		EventBus.compass_updated.connect(_on_compass)
+	print("bot %d: %s" % [_index, "hunting" if _hunting else "walking"])
 	_report()
 	if _ability >= 0:
 		await _press_the_ability()
+	if _reckless:
+		_be_reckless()
 	while true:
-		await _leg()
+		if _hunting:
+			await _stalk()
+		else:
+			await _leg()
 
 
 ## **PRESS AN ABILITY OVER THE REAL WIRE.** `--ability 1` presses `INPUT-ABILITY-2`
@@ -196,6 +238,66 @@ static func _find_named(node: Node, wanted: String) -> Node:
 	return null
 
 
+## Cast slot 0 on a loop, so the bot stays above `TUN-STUN-MIN-TIER`. The interval
+## is `TUN-CINDERFALL-COOLDOWN`, read rather than written, so a retune moves it.
+func _be_reckless() -> void:
+	var every := Tuning.ability_data(Ids.ABIL_CINDERFALL).cooldown
+	while true:
+		Input.action_press("input_ability_1")
+		await get_tree().create_timer(0.1).timeout
+		Input.action_release("input_ability_1")
+		await get_tree().create_timer(maxf(every, 1.0)).timeout
+
+
+func _on_compass(bearing: float, bucket: int, _lock: float) -> void:
+	_bearing = bearing
+	_has_contract = bucket != CompassBoard.NO_CONTRACT
+
+
+## **WALK AT WHOEVER THE COMPASS POINTS AT, AND RUN WHILE DOING IT.** The running
+## is not flavour: `TUN-STUN-MIN-TIER` means an Anonymous hunter cannot be stunned
+## by anybody, so a bot that strolled would be a pursuer nobody can practise
+## against. A hunter who runs is a hunter who has chosen to be seen, which is
+## design law 1 and exactly the hunter the prey is meant to get teeth against.
+##
+## **IT TURNS WITH THE PAD ACTIONS, SO IT SWEEPS RATHER THAN AIMS.** A bot has no
+## mouse; `input_look_*` is the only heading control it has, and that is why it
+## circles its contract instead of walking a clean line. Said rather than tuned
+## away: it is a moving, findable, stunnable pursuer, not an opponent.
+func _stalk() -> void:
+	# **BLEND-WALK, NOT RUN, AND THAT IS A MEASURED LIMIT RATHER THAN A CHOICE.**
+	# `input_run` held through `Input.action_press` produces **0.0 m of travel** —
+	# measured against the same bot walking 15 m with `input_slow`, with and without
+	# a clean press edge. Something in the run path does not accept a synthetic
+	# hold; it is reported in CLAUDE.md rather than worked around in silence,
+	# because a player holding Shift through a match start would meet whatever it
+	# is.
+	#
+	# **SO A HUNTING BOT IS ANONYMOUS UNLESS `--reckless`**, which is correct game
+	# behaviour rather than a gap: `TUN-STUN-MIN-TIER` makes a careful hunter
+	# unstunnable on purpose.
+	var actions: Array = ["input_move_forward", "input_slow"]
+	if not _has_contract:
+		_hold(actions)
+		await get_tree().create_timer(0.2).timeout
+		return
+	var off := CompassMath.angle_between(_yaw(), _bearing)
+	if absf(off) > AIM_TOLERANCE:
+		# This game's yaw increases toward a turn to the LEFT — `InputSampler`
+		# subtracts the mouse's x. So a positive offset is closed by looking left.
+		actions.append("input_look_left" if off > 0.0 else "input_look_right")
+	_hold(actions)
+	await get_tree().create_timer(0.1).timeout
+
+
+func _yaw() -> float:
+	var driver := _find_named(_root, "LocalPawnDriver")
+	if driver == null:
+		return 0.0
+	var ctx: PawnContext = driver.get("ctx")
+	return ctx.yaw if ctx != null else 0.0
+
+
 ## One leg: walk for a while, then turn for a while. **Blend-walk, not run** —
 ## a bot sprinting in circles would sit at Exposed all match and make every
 ## suspicion reading meaningless.
@@ -213,13 +315,30 @@ func _turn() -> String:
 ## Release whatever was held and press these instead. **One place**, so a bot
 ## cannot end a leg still holding the previous one's keys — which reads as a bot
 ## that walks into a wall and stays there.
+## **AN UNCHANGED SET IS LEFT ALONE, WHICH IS THE WHOLE OF WHY `--hunt` WORKED.**
+## A stalking bot re-decides its keys ten times a second, and releasing then
+## re-pressing the same action every 0.1 s is not *holding* it: the first hunting
+## bot walked **0.0 m in forty seconds** while pressing forward continuously.
+## `TUN-SPEED-RUN-RESOLVE` alone would have been enough to break — a run that is
+## released before 0.15 s never resolves — and a released-and-re-pressed movement
+## key gives the sampler nothing to integrate either.
 func _hold(actions: Array) -> void:
+	var wanted := PackedStringArray()
+	for action: Variant in actions:
+		wanted.append(str(action))
+	# **COMPARED AS A STRING, NOT AS TWO PACKED ARRAYS.** A reference comparison
+	# here would be false every time and reinstate the thrash this guard exists to
+	# stop, silently — which is exactly the failure being fixed.
+	var key := ",".join(wanted)
+	if key == _held_key:
+		return
+	_held_key = key
 	for action: String in _held:
 		Input.action_release(action)
 	_held = PackedStringArray()
-	for action: Variant in actions:
-		Input.action_press(str(action))
-		_held.append(str(action))
+	for action: String in wanted:
+		Input.action_press(action)
+		_held.append(action)
 
 
 static func _string_after(args: PackedStringArray, flag: String, fallback: String) -> String:

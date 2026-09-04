@@ -236,6 +236,40 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 *Updated 2026-08-27 (ADR-0016, the M4 gate). Keep this section current — it is the first thing a
 fresh session reads, and a stale one is worse than none.*
 
+## SOMETHING HUNTS YOU NOW, AND A HELD `input_run` MOVES A PAWN 0.0 m
+
+**ADR-0018 SHIPPED A VERB NOBODY COULD PLAYTEST, AND I OFFERED THE PLAYTEST
+ANYWAY.** A Lunge into your pursuer stuns them — and `tools/bot_client.gd` walked
+in **random legs**, so no bot had ever pursued anybody, and a strolling bot sits at
+Anonymous all match, which `TUN-STUN-MIN-TIER` makes **unstunnable by design**. The
+feature was untestable against the only opponents this project has.
+
+**`--hunt` STEERS ON THE COMPASS AND NOTHING ELSE**, which is the only thing a
+client is told about where its contract is (GDD-03 §8.5). It cannot cheat because
+there is nothing to cheat with: the bearing carries `TUN-COMPASS-CONE-WOBBLE`'s lie
+exactly as a human's does. Measured with two bots on a real server: they converge —
+one walked 24.9 → 43.8 on x while the other walked 114.0 → 102.3.
+
+**AND `--reckless` EXISTS BECAUSE A CAREFUL HUNTER IS UNSTUNNABLE ON PURPOSE.** A
+hunting bot that strolls can never be practised against, which is correct game
+behaviour rather than a gap. Casting an ability costs +40 against
+`TUN-SUSPICION-TIER-NOTICED` 30, so a bot that re-casts on cooldown is a hunter who
+has chosen to be seen.
+
+**A HELD `input_run` MOVES THE PAWN 0.0 m, AND THAT IS THE FINDING TO CARRY.**
+Measured, repeatedly, against the same bot walking **15 m** with `input_slow`: a
+synthetic `Input.action_press("input_run")` held continuously produces **no travel
+at all**, with or without a clean press edge, while forward alone works. Something
+in the run path will not accept a held synthetic press. **Reported rather than
+worked around**, because trap 13 was narrowed on the evidence that
+`Input.action_press` *is* the same path a finger takes — and if that is true here, a
+player holding Shift across a match start meets whatever this is.
+
+**IT WAS FOUND ONLY BY READING THE WHOLE RUN.** Grepping for `bot N:` showed four
+identical position lines and nothing else; the isolation that named it was swapping
+one action and re-running. **Capture the run, read the top** — the corpus's own
+note, paid for again.
+
 ## ADR-0018: THE PREY HAS MORE THAN ONE TOOTH, AND LAW 5 WAS WRONG IN EVERY CLAUSE
 
 **REPORTED AS A DECISION, NOT A DEFECT: *"the Lunge should stun the pursuer, also
