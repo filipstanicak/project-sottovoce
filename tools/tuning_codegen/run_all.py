@@ -4,7 +4,7 @@
 
 Then `gdformat scripts/`, then regenerate the .tres files in the engine:
 
-    godot --headless -s res://tools/generate_default_tuning.gd
+    godot --headless --path . res://tools/generate_default_tuning.tscn
 
 See README.md. The order matters: later steps read the .json intermediates that
 earlier steps write.

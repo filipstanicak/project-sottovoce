@@ -1,6 +1,23 @@
 ## Writes data/tuning/default/*.tres from the class defaults.
 ##
-##     godot --headless -s res://tools/generate_default_tuning.gd
+##     godot --headless --path . res://tools/generate_default_tuning.tscn
+##
+## **A SCENE, NOT A `-s` SCRIPT, AND THAT IS A FIX RATHER THAN A STYLE CHOICE.**
+## A `-s` script is compiled **before the autoloads are registered**, so `Tuning`
+## is an unresolvable identifier — and the **sixteen Core classes that read it**
+## (ADR-0005 makes it the one permitted autoload there) then fail to compile, along
+## with everything depending on them. GDScript caches that failure, so the classes
+## stay broken for the rest of the process **even after the autoloads exist**.
+##
+## What that cost here: `_write_profile` calls `TuningProfile.validate()`, which
+## reaches `CompassMath.full_ring_distance` for **invariant 33** — and got
+## *"Nonexistent function 'full_ring_distance' in base 'GDScript'"* on every run
+## from M0 until 2026-09-05. **This tool checked 36 of 37 invariants and printed an
+## error saying so, twice, and it was read as noise.** As a scene it checks all 37.
+##
+## The same conversion was made to `tools/anchor_census.gd` for the same reason:
+## there it silently disabled a ground check through `CrowdRoster`. **Any tool that
+## touches a Core class needs the autoloads, and only a scene gets them.**
 ##
 ## The defaults live in the resource classes, which are themselves generated from
 ## TUNABLES.md — so this makes the .tres files a THIRD copy of the same numbers.
@@ -16,7 +33,7 @@
 ## §8 beside `ability_data.gd`; what stays here is `ABILITY_WIRING`, which is the
 ## content and the code rather than the numbers. It was a hand-written fourth copy of
 ## the numbers until 2026-09-04, and it had drifted — see the comment on it.
-extends SceneTree
+extends Node
 
 const OUT_DIR := "res://data/tuning/default"
 
@@ -94,7 +111,9 @@ const PASSIVES := {
 }
 
 
-func _init() -> void:
+## **`_ready`, NOT `_init`.** A node's `_init` still runs before it is in the tree,
+## so `get_tree()` would be null — and this file quits through the tree.
+func _ready() -> void:
 	DirAccess.make_dir_recursive_absolute(OUT_DIR)
 	var written := 0
 	for name: String in SECTIONS:
@@ -104,14 +123,14 @@ func _init() -> void:
 		var err := ResourceSaver.save(res, path)
 		if err != OK:
 			push_error("failed to write %s: %d" % [path, err])
-			quit(1)
+			get_tree().quit(1)
 			return
 		written += 1
 	written += _write_abilities()
 	written += _write_content("passives", PASSIVES, PassiveData)
 	_write_profile()
 	print("wrote %d resource files plus profile.tres" % written)
-	quit(0)
+	get_tree().quit(0)
 
 
 ## **THE VALUES ARE WRITTEN FIRST AND THE WIRING SECOND**, so a field named in both
@@ -130,7 +149,7 @@ func _write_abilities() -> int:
 			res.set(field, ABILITY_WIRING[name][field])
 		if ResourceSaver.save(res, "%s/%s.tres" % [dir, name]) != OK:
 			push_error("failed to write %s/%s.tres" % [dir, name])
-			quit(1)
+			get_tree().quit(1)
 			return n
 		n += 1
 	return n
@@ -146,7 +165,7 @@ func _write_content(folder: String, table: Dictionary, type: Variant) -> int:
 			res.set(field, table[name][field])
 		if ResourceSaver.save(res, "%s/%s.tres" % [dir, name]) != OK:
 			push_error("failed to write %s/%s.tres" % [dir, name])
-			quit(1)
+			get_tree().quit(1)
 			return n
 		n += 1
 	return n
@@ -169,4 +188,4 @@ func _write_profile() -> void:
 	var err := ResourceSaver.save(profile, "%s/profile.tres" % OUT_DIR)
 	if err != OK:
 		push_error("failed to write profile.tres: %d" % err)
-		quit(1)
+		get_tree().quit(1)

@@ -19,7 +19,7 @@
 ##
 ## Hands off the keyboard and mouse for the whole run. Anything it prints is
 ## something the game would have acted on.
-extends SceneTree
+extends Node
 
 ## Long enough for a pad to enumerate, short enough to sit through.
 const SECONDS := 12.0
@@ -27,15 +27,32 @@ const CAPTURE_AT := 6.0
 const INTERVAL := 0.5
 
 
-func _initialize() -> void:
+## **A SCENE, NOT A `-s` SCRIPT — AND THIS TOOL COULD NOT LOAD AT ALL UNTIL
+## 2026-09-05.** A `-s` script is compiled before the autoloads are registered, so
+## `Tuning` is unresolvable; `CompassMath` reads it, `TuningInvariants` calls
+## `CompassMath` for invariant 33, `TuningProfile` calls `TuningInvariants` — and
+## `_deadzone()` below names `TuningProfile`. The whole chain failed to compile and
+## took this file with it:
+##
+##     compass_math.gd:130   Identifier not found: Tuning
+##     tuning_invariants.gd  Failed to compile depended scripts
+##     tuning_profile.gd     Failed to compile depended scripts
+##     input_probe.gd        Failed to compile depended scripts
+##
+## **It broke on 2026-08-27**, when invariant 33 put `CompassMath` into the
+## profile's dependency chain — and nothing said so, because a tool that cannot
+## load prints an engine error and no output of its own, which reads as the tool
+## having nothing to report. Trap 14's shape: a documented command that does not
+## run. `--headless` is still refused below, for its own separate reason (trap 13).
+func _ready() -> void:
 	if DisplayServer.get_name() == "headless":
 		print("REFUSING TO RUN HEADLESS.")
 		print("  There is no windowing layer here to poll a pad or deliver mouse")
 		print("  motion, so every reading below would be a zero that proves nothing.")
 		print("  Re-run without --headless and keep the window focused.")
-		quit(1)
+		get_tree().quit(1)
 		return
-	root.add_child(Probe.new())
+	add_child(Probe.new())
 
 
 ## The probe itself, a node because `_input` needs one — mouse motion arrives as
@@ -134,9 +151,13 @@ class Probe:
 	func _vector(names: Array[StringName]) -> Vector2:
 		return Input.get_vector(names[0], names[1], names[2], names[3], _deadzone())
 
-	## Straight from the resource rather than through `Tuning`. The autoloads are
-	## added after `_initialize()` returns, and a diagnostic that depended on
-	## autoload ordering would be one more thing to be unsure about mid-hunt.
+	## Straight from the resource rather than through `Tuning`, which is now a
+	## preference rather than a necessity: this was a `-s` script when it was
+	## written, and the note here said the autoloads arrive too late to rely on.
+	## **That reasoning is what broke the tool** — naming `TuningProfile` at all is
+	## what pulled the uncompilable chain in. As a scene either route works, and the
+	## resource is kept because a diagnostic that reads the shipped file rather than
+	## the running profile is the one you want when the two might disagree.
 	func _deadzone() -> float:
 		var profile := load("res://data/tuning/default/profile.tres") as TuningProfile
 		return 0.15 if profile == null else profile.movement.stick_deadzone

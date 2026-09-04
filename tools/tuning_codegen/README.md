@@ -22,16 +22,17 @@ was wrong by 47 %.
 python tools/tuning_codegen/run_all.py
 gdformat scripts/                       # the generators do not format
 godot --headless --editor --quit-after 200
-godot --headless -s res://tools/generate_default_tuning.gd
+godot --headless --path . res://tools/generate_default_tuning.tscn
 ```
 
 **Generate, then `gdformat`, then regenerate the `.tres`.** The generators emit
 correct but unformatted GDScript; `gdformat` is the normaliser, and the committed
 files are post-format. Skipping it produces a diff that is pure whitespace.
 
-`generate_default_tuning.gd` is separate and runs *in the engine*, because the
+`generate_default_tuning.tscn` is separate and runs *in the engine*, because the
 `.tres` files must be written by Godot's own serialiser rather than by a Python
-script guessing at the format.
+script guessing at the format. **It is a scene rather than a `-s` script** — see
+the bite below; that is a correctness fix, not a preference.
 
 ## The pipeline
 
@@ -113,7 +114,7 @@ change that the next run silently reverts.
 four milestones — which is how the ability table drifted unnoticed:
 
 ```bash
-godot --headless -s res://tools/generate_default_tuning.gd && git diff --stat data/tuning/
+godot --headless --path . res://tools/generate_default_tuning.tscn && git diff --stat data/tuning/
 ```
 
 The `.tres` are byte-reproducible: Godot derives its `ext_resource` ids from
@@ -122,14 +123,27 @@ Hand-typed ids are therefore the signature of a hand-edit — `cinderfall.tres`
 carried `id="2_cndrf"` and `lunge.tres` `id="2_lunge"`, which is how US-0067's
 hand patch was identified.
 
-**A `-s` SCRIPT CANNOT CHECK INVARIANT 33 AND SAYS SO IN THE OUTPUT.** Both this
-generator and the `Tuning` autoload report *"Nonexistent function
-'full_ring_distance' in base 'GDScript'"* on every run — a static call on a
-`class_name` made while the global class registry is still being built. **It is
-pre-existing, it is not a tuning defect, and it means `validate()` reports 36 of
-the 37 invariants here.** Invariant 33 is checked by the unit suite, which boots
-normally. Reported rather than fixed: it is one line of the invariant file and
-belongs to whoever owns `CompassMath`, not to a codegen story.
+**THIS TOOL IS A SCENE, NOT A `-s` SCRIPT, AND THAT IS LOAD-BEARING.** A `-s`
+script is compiled **before the autoloads are registered**, so `Tuning` is an
+unresolvable identifier — and ADR-0005 makes `Tuning` the **one permitted autoload
+in Core**, so the **sixteen Core classes that read it** fail to compile along with
+everything depending on them. GDScript caches that failure, so those classes stay
+broken for the rest of the process *even after the autoloads exist*.
+
+What it cost: `_write_profile` calls `TuningProfile.validate()`, which reaches
+`CompassMath.full_ring_distance` for **invariant 33** — and got *"Nonexistent
+function 'full_ring_distance' in base 'GDScript'"* on every run from M0 until
+2026-09-05. **The tool checked 36 of the 37 invariants and printed an error saying
+so, twice per run, and it was read as noise.** As a scene it checks all 37;
+falsified by planting `cone_full_radius` 20.0 → 30.0, which it now reports by name.
+
+**The failure surfaces four files from its cause**, which is why it survived: the
+message names `CompassMath`, the cause is the launch mode, and nothing in between
+mentions either. `tools/anchor_census.gd` was converted for exactly this reason and
+the note there says so. **A tool that touches a Core class needs the autoloads, and
+only a scene gets them.** The map generators are `-s` scripts and are *fine* —
+checked on 2026-09-05, both reproduce byte-identically with no compile error —
+because `VetraioLayout`, `SandboxLayout` and `MapBuild` read no autoload at all.
 
 ## The other generator
 
