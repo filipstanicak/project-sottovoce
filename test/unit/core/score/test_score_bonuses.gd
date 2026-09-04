@@ -186,15 +186,24 @@ func test_poisoned_is_implemented_and_dormant() -> void:
 # --------------------------------------------------------------- stun ---
 
 
-func test_a_stun_is_worth_exactly_one_base_kill() -> void:
-	# **A STATEMENT, NOT A CALCULATION** (GDD-07 §3): successfully defending
-	# yourself is worth as much as successfully attacking. TUNABLES §17.19 pins the
-	# two equal so it cannot drift, and this asserts the rule reads that pin rather
-	# than a number of its own.
+## **A STATEMENT, NOT A CALCULATION** (GDD-07 §3): successfully defending yourself
+## outscores the cheapest thing a hunter can do.
+##
+## **THIS TEST WAS CALLED `..._is_worth_exactly_one_base_kill` AND ASSERTED
+## EQUALITY**, which was design law 5's old wording and, measured against the
+## reference, wrong by half: it pays **200** for a stun against **100** for a base
+## assassination (ADR-0018). The name is the part nobody re-reads, so it is the part
+## that was changed first.
+##
+## It reads `_s.stun` rather than a literal, and asserts the **ordering** against
+## `_s.contract` separately, so invariant 19's floor is what this pins rather than
+## a number of its own.
+func test_a_stun_outscores_a_base_kill() -> void:
 	var awards := ScoreBonuses.for_stun(120, KILLER, VICTIM, _s)
 	assert_eq(awards.size(), 1, "a stun paid more than one thing")
 	assert_eq(awards[0].kind, Ids.SCORE_STUN)
-	assert_eq(awards[0].points, _s.contract, "a stun is no longer worth one base kill")
+	assert_eq(awards[0].points, _s.stun, "the rule invented a number instead of reading the pin")
+	assert_gt(_s.stun, _s.contract, "a stun stopped outscoring a base kill — invariant 19")
 	assert_eq(awards[0].actor, KILLER, "the stun was paid to the wrong player")
 
 

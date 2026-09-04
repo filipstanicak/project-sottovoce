@@ -62,8 +62,10 @@ Violating one of these is a blocker, not a discussion.
    chance to read it. No invisible instant-wins.
 4. **Patience must be the strongest strategy, not merely the safest.** Hiding must *win matches*,
    not just keep you alive.
-5. **The prey must have teeth.** Stun hard-counters a reckless hunter and is worth as much as a
-   kill. Never weaken it.
+5. **The prey must have teeth, and more than one.** Being hunted is the more frightening role
+   and must not be the weaker one. A stun outscores a base kill and loses to a well-made one;
+   the prey reaches that outcome by more than one route — a read stun, an escape, a Lunge into
+   a pursuer — and none of them may be traded away to make hunting feel better.
 6. **Uncertainty is authored, not accidental.** Where the game is imprecise, the imprecision is
    designed, bounded, deterministic and learnable.
 
