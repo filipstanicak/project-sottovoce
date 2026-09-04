@@ -18,10 +18,44 @@
 ## stages and nothing else — not the physics frame around them, which is
 ## `test_crowd_perf.gd`'s wall-clock line.
 ##
-## **IT ASSERTS THE MAXIMUM, WHICH IS STRICTLY STRONGER THAN p99.** With a few
-## hundred samples a p99 *is* one of the worst two or three readings, so quoting
-## one implies a precision the sample size does not carry. If no tick at all
-## exceeds the budget then the p99 cannot, whatever estimator is used.
+## **IT ASSERTED THE MAXIMUM UNTIL 2026-09-03, AND THAT FAILED A BUILD WITH
+## NOTHING BEHIND IT.** The old argument was that a max is *strictly stronger* than
+## a p99 — true of the arithmetic and false of a shared runner, where the largest
+## of 180 samples is decided by whichever tick the CI scheduler interrupted rather
+## than by this project's code.
+##
+## Measured on the same commit, minutes apart: **CI 10.84 ms** against a local max
+## of **3.179**, budget 8.0. The re-run went green untouched.
+##
+## **AND THE TWO ESTIMATORS WERE THEN COMPARED ON ONE MACHINE**, which is the
+## evidence rather than the argument. Two runs, same commit, nothing else changed:
+##
+## | | p99 | max | max / p99 |
+## |---|---|---|---|
+## | run 1 | 3.042 | 3.179 | 1.05x |
+## | run 2 | 2.909 | **5.554** | **1.91x** |
+## | run 3 | 2.783 | 2.794 | 1.00x |
+##
+## **The p99 spans 9 % across the three and the max spans 99 %** — on a quiet
+## desktop, before CI is involved at all. An estimator that doubles between
+## identical runs cannot tell a regression from a scheduler, and a gate built on one
+## fails builds that mean nothing.
+##
+## **This corpus had already learned it once** — `test_crowd_perf.gd` read 1.067,
+## 1.249 and then 1.815 on CI for the same estimator, and now asserts an
+## ordinary-tick p95 and prints the population beside it.
+##
+## **p99 IS ALSO WHAT THE GATE ACTUALLY ASKS FOR.** ROADMAP's M3 line is *"server
+## tick p99 at or under 8.0 ms"*, so asserting the max was an over-reach past the
+## documented criterion, not a stricter reading of it.
+##
+## **AND IT IS PRECISE ABOUT WHAT IT FORGIVES.** `_stats` takes
+## `sorted[int(size * 0.99)]`, so over `TICKS` 180 samples the index is 178 and the
+## p99 is the **second-highest** reading: it tolerates exactly one scheduler spike
+## and no more. Two ticks over budget in 180 still fails, which is the line worth
+## holding — one outlier says something about the runner, two say something about
+## the code. **The max is printed on every run**, so a real regression that shows
+## up only as spikes is visible to a reader even though it does not fail a build.
 extends GutTest
 
 const SERVER_ROOT := "res://scenes/server_root.tscn"
@@ -181,13 +215,23 @@ func test_the_server_tick_against_its_budget() -> void:
 			]
 		)
 	)
+	# **THE GAP BETWEEN THE WORST TICK AND THE SECOND-WORST IS THE DIAGNOSTIC.** A
+	# max far above the p99 is one interrupted tick; a max close to it is the shape
+	# of a real slowdown, and only one of those is worth waking somebody for.
+	gut.p(
+		(
+			"worst tick %.3f ms, %.1fx the p99 — a large gap here is the runner, not the code"
+			% [stats["max"], float(stats["max"]) / maxf(float(stats["p99"]), 0.001)]
+		)
+	)
 	assert_lt(
-		float(stats["max"]),
+		float(stats["p99"]),
 		budget,
 		(
-			"a server tick exceeded TUN-PERF-SERVER-TICK-BUDGET. The max is asserted "
-			+ "rather than the p99 because it is strictly stronger: if no tick is over, "
-			+ "no percentile can be."
+			"the server tick is over TUN-PERF-SERVER-TICK-BUDGET at the p99, which is "
+			+ "ROADMAP's own M3 criterion. Over 180 samples that is the second-worst "
+			+ "tick, so this forgives one scheduler spike and not two — see the note at "
+			+ "the top of this file, and the max printed above."
 		)
 	)
 
