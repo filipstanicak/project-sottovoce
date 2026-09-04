@@ -14,6 +14,9 @@ const MAP := "res://data/maps/map_vetraio.tres"
 ## Every message this server sends, and the one place a peer becomes a wire slot.
 var announcer: MatchAnnouncer = null
 
+## Everything that changes elsewhere when a system decides an outcome.
+var consequences: MatchConsequences = null
+
 var _fallen_reported: int = 0
 
 @onready var director: MatchDirector = $MatchDirector
@@ -34,6 +37,8 @@ func _ready() -> void:
 	director.ctx.map = load(MAP) as MapData
 	pawns.setup(director.ctx)
 	announcer = MatchAnnouncer.new(director.ctx)
+	consequences = MatchConsequences.new(director.ctx)
+	_hand_the_systems_over()
 	_seed_the_match()
 	_stand_the_crowd_up()
 
@@ -54,6 +59,21 @@ func _ready() -> void:
 	Net.peer_joined.connect(_on_peer_joined)
 	Net.peer_left.connect(_on_peer_left)
 	Log.info("server topology wired: net -> router -> director -> pawns -> snapshots", &"net")
+
+
+## **NAMED ASSIGNMENT RATHER THAN A SEVEN-ARGUMENT CONSTRUCTOR**, because seven
+## positional systems is a call site where transposing two of them is invisible and
+## `.gdlintrc`'s six-argument cap says so. The fields are only ever read from a
+## signal handler, so they need to be set before anything is *decided* rather than
+## before anything is connected.
+func _hand_the_systems_over() -> void:
+	consequences.contracts = contracts
+	consequences.suspicion = suspicion
+	consequences.abilities = abilities
+	consequences.kills = kills
+	consequences.detection = detection
+	consequences.crowd = crowd_director
+	consequences.announcer = announcer
 
 
 ## **THE DOORWAY IS `Net` AND THE DECIDER IS THE ROUTER.** Godot addresses an RPC
@@ -166,7 +186,7 @@ func _start_the_crowd_system() -> void:
 	suspicion.blend.blend_refused.connect(announcer.blend_refused)
 	director.register(detection)
 	detection.prey_warned.connect(announcer.prey_warned)
-	detection.chase.escaped.connect(_on_escaped)
+	detection.chase.escaped.connect(consequences.escaped)
 	# **BEFORE `combat`**: a Cinderfall thrown this tick must already block kills
 	# when the kill stage runs, and `SystemOrder` is what makes that true.
 	director.register(abilities)
@@ -201,7 +221,7 @@ func _wire_the_ability_answers() -> void:
 	router.ability_requested.connect(abilities.report_request)
 	abilities.ability_started.connect(_on_ability_started)
 	abilities.ability_denied.connect(announcer.ability_denied)
-	abilities.ability_startled.connect(_on_ability_startled)
+	abilities.ability_startled.connect(consequences.ability_startled)
 
 
 ## Every message the two combat systems produce, and the one payment a stun earns.
@@ -209,12 +229,14 @@ func _wire_the_ability_answers() -> void:
 ## honest: above is *register the systems in the document's order*, here is *what
 ## anybody is told when one of them decides something*.
 func _wire_the_combat_answers() -> void:
-	kills.killed.connect(_on_killed)
+	kills.killed.connect(consequences.killed)
 	kills.kill_rejected.connect(announcer.kill_rejected)
 	kills.stun.stunned.connect(announcer.stunned)
 	# **A STUN IS PAID FOR HERE RATHER THAN INSIDE `SYS-STUN`**, which decides and
 	# announces; nothing about scoring is decided in it.
-	kills.stun.stunned.connect(_pay_for_stun)
+	kills.stun.stunned.connect(consequences.paid_for_stun)
+	# **AND IT COSTS THE PURSUER THE CONTRACT.** ADR-0019.
+	kills.stun.stunned.connect(consequences.stunned)
 	kills.stun.stun_rejected.connect(announcer.stun_rejected)
 
 
@@ -322,69 +344,6 @@ func _on_ability_started(
 ## so anything left behind is inherited by the next joiner: a stale sequence
 ## makes their input arrive in the past, a stale pawn flag authorises input for
 ## somebody else's pawn, and a stale pawn keeps simulating with nobody driving it.
-## **EVERY CONSEQUENCE OF A DEATH, IN THE TICK IT RESOLVES.** `SYS-KILL` decides
-## and announces; nothing about the crowd, the cycle or suspicion is decided in
-## it. The contract repair runs first because `SystemOrder` puts the `contract`
-## stage immediately after `combat`, and the invariant is that nobody is
-## contractless at a tick boundary.
-func _on_killed(killer: int, victim: int, at: Vector3) -> void:
-	contracts.report_death(victim, killer, director.ctx)
-	# **THE SAME SIGNAL THAT REGISTERS THE CORPSE**, two lines below, which is what
-	# makes GDD-02 §3's `Dead --> Respawning: corpse spawned` edge true rather than
-	# approximately true. `SYS-SPAWN` is `SYS-CONTRACT`'s, so the placement and the
-	# cycle insertion land in one tick.
-	contracts.spawn.report_death(victim, killer, director.ctx)
-	suspicion.blend.report_damage(victim, director.ctx)
-	crowd_director.register_corpse(at, director.ctx.tick, victim)
-	crowd_director.startle_at(at)
-	_charge_for_witnesses(killer, at)
-	abilities.on_death(victim)
-	announcer.kill_landed(killer, victim)
-
-
-## **THE CLOUD HIDES YOU AND PAINTS AN ARROW AT YOUR POSITION, AND THAT IS THE
-## ABILITY'S HONEST COST.** GDD-04 §3.1: *"every NPC within 9 m runs"* — so
-## Cinderfall buys line of sight at the price of telling everybody within 30 m
-## roughly where you are. The radius is the caster's, not the violence default.
-func _on_ability_startled(at: Vector3, radius: float) -> void:
-	crowd_director.startle_at(at, radius)
-
-
-## **THE PREY GOT AWAY.** US-0097. `SYS-DETECTION` is stage 5 and `SYS-CONTRACT`
-## stage 8, so the bar empties and the cycle repairs in one tick — the guarantee
-## `combat` before `contract` already buys for a kill. The payment lives on
-## `KillScoring` beside the stun's, which is where its reasoning is.
-func _on_escaped(hunter: int, prey: int, close_call: bool) -> void:
-	contracts.report_escape(hunter, director.ctx)
-	kills.scoring.pay_for_escape(director.ctx, prey, hunter, close_call)
-
-
-## US-0052's last criterion: `TUN-SUSPICION-GAIN-WITNESSED-KILL` applies only if
-## another PLAYER had line of sight.
-##
-## **PRESENT-TENSE, NOT REWOUND.** A witness did not *act*, so there is nothing of
-## theirs to compensate for — what they see is the animation and the corpse, now —
-## and rewinding their position would charge the killer for somebody who has since
-## walked away. The victim is not a witness to their own death and the killer is
-## not a witness to their own act.
-func _charge_for_witnesses(killer: int, at: Vector3) -> void:
-	for peer: int in director.ctx.pawn_contexts.keys():
-		if peer == killer:
-			continue
-		var pawn := director.ctx.pawn_contexts[peer] as PawnContext
-		if pawn.state_id == PawnStateId.DEAD:
-			continue
-		if not detection.clear_line(pawn.position, at):
-			continue
-		director.ctx.impulses.queue(killer, Tuning.suspicion.gain_witnessed_kill)
-		return
-
-
-func _pay_for_stun(stunner: int, target: int, _lockout_ticks: int) -> void:
-	if kills.scoring != null:
-		kills.scoring.pay_for_stun(director.ctx, stunner, target)
-
-
 func _on_peer_left(peer: int) -> void:
 	contracts.report_disconnect(peer, director.ctx)
 	director.ctx.score_windows.forget(peer)

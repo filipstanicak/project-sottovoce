@@ -235,3 +235,31 @@ func test_the_crowd_is_told_and_a_corpse_is_registered() -> void:
 		"the victim fell and CrowdDirector.register_corpse was never reached"
 	)
 	gut.p("corpse registered; %d onlookers issued" % _root.crowd_director.corpses().watcher_count())
+
+
+## **THE STUN'S CONTRACT REPAIR IS WIRED, WHICH ONLY THE REAL SCENE CAN SAY.**
+## ADR-0019. `test_match_consequences.gd` proves the handler and
+## `test_the_stun_costs_the_contract.gd` proves the rule; **neither of them runs
+## `server_root.tscn`**, so a `connect` line deleted from the wiring would leave
+## both green and the mechanic gone — which is the exact shape that left
+## `NET-C2S-ABILITY-REQUEST` with no caller under three completed stories.
+##
+## **THE SIGNAL IS RAISED RATHER THAN EARNED.** What `SYS-STUN` decides — the tier
+## floor, the cone, the reach, the exile — is `test_stun_system.gd`'s and is not
+## re-proven here. What is under test is one hop: the server heard a stun land and
+## the cycle repaired for it.
+func test_a_stun_costs_the_pursuer_the_contract_on_the_real_server() -> void:
+	assert_ne(_hunter, -1, "the fixture found no hunt")
+	assert_eq(int(_ctx().announced_contracts[_hunter]), _prey, "the premise moved")
+	_root.kills.stun.stunned.emit(_prey, _hunter, 360)
+	await _run(2)
+	assert_eq(
+		int(_ctx().announced_contracts.get(_hunter, ContractCycle.NOBODY)),
+		ContractCycle.NOBODY,
+		"a stunned pursuer kept the contract — is `stunned` wired in `server_root`?"
+	)
+	# **AND IT STOPS THERE.** Settling through `TUN-CONTRACT-REASSIGN-DELAY` to watch
+	# the new prey arrive costs about a hundred physics ticks — three seconds of a
+	# suite already over its 180 s budget — to re-prove what
+	# `test_the_stun_costs_the_contract.gd` proves in milliseconds. The hop is the
+	# only thing here that needs a real server.

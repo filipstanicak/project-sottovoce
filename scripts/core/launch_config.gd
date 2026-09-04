@@ -38,6 +38,11 @@ var max_players: int = 0
 var connect_address: String = ""
 
 ## Alternative tuning profile, server only.
+## **PARSED AND READ BY NOTHING, LIKE `--record`.** `boot.gd` warns when it is
+## given anything but `default`. Nothing loads a second profile and `data/tuning/`
+## holds one directory, so a session asking for other numbers silently gets the
+## shipped ones — which is worse than the flag not existing, because it looks like
+## it worked. Found 2026-09-04 while pricing a sandbox map.
 var tuning_profile: String = "default"
 
 ## Deterministic clone roster, for reproducing a bug. -1 means "pick one".
@@ -140,6 +145,18 @@ func warnings() -> Array[String]:
 					+ "around the export."
 				)
 				% record_path
+			)
+		)
+	if tuning_profile != "default":
+		out.append(
+			(
+				(
+					"--tuning %s does nothing: the flag is parsed and read by no code, and "
+					+ "data/tuning/ holds only `default`. The server is running the default "
+					+ "profile. Found 2026-09-04 — the second flag with this shape after "
+					+ "--record, and the reason a sandbox profile is not a free lever."
+				)
+				% tuning_profile
 			)
 		)
 	return out

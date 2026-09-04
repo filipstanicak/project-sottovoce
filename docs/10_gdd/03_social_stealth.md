@@ -1182,8 +1182,9 @@ hunter. Both are deliberately poor.
 | Facing cone | `TUN-STUN-FACING-CONE` | 120° (±60°) |
 | Required target tier | `TUN-STUN-MIN-TIER` | Noticed (30) |
 | Valid target | — | **Your pursuer only** |
-| Score to stunner | `TUN-STUN-SCORE` | 100 |
+| Score to stunner | `TUN-STUN-SCORE` | **200** (100 → 200 on 2026-09-03, ADR-0018) |
 | Freeze duration | `TUN-STUN-FREEZE` | 4.0 s |
+| **Contract** | — | **Failed. The pursuer is dealt a new prey** (2026-09-04, ADR-0019) |
 | Contract lockout | `TUN-STUN-LOCKOUT` | 12.0 s (8.0 with `PASV-SECONDWIND`) |
 | Forces Exposed | `TUN-STUN-FORCES-EXPOSED` | true — suspicion set to 100 for the freeze |
 | Stunner's commitment | `TUN-STUN-ANIM-DURATION` | 0.7 s |
@@ -1252,12 +1253,20 @@ crowd pocket, at zero suspicion, cannot be stunned at all — and their prey rec
 (§9.1, same threshold). The reward for perfect play is perfect safety. Stun is not a coin-flip
 defence; it is a punishment for a specific mistake.
 
-**3. `TUN-STUN-LOCKOUT` (12 s) is what makes it counterplay rather than a delay.**
+**3. The stun costs the hunter the contract — amended 2026-09-04, ADR-0019.**
 
-Without the lockout, a stun costs the hunter 4 seconds and they walk back. With it, they are
-frozen 4 s, Exposed (so *their* prey may be warned, and their own hunter can see them), and
-forbidden from re-engaging you for 12 s. In a 90-second hunt cycle, **that is the hunt.** The
-rejected earlier design — an interrupt-only stun — is recorded in
+This paragraph used to read *"without the lockout, a stun costs the hunter 4 seconds and they
+walk back"*, and that was true of the built game: the exile expired and the same pursuer
+returned. **It does not any more.** A stunned pursuer **fails the contract** and is dealt a new
+prey, which is the reference's rule and the same thing an escape already did. They are frozen
+4 s, Exposed (so *their* prey may be warned, and their own hunter can see them), and then
+hunting somebody else entirely.
+
+**`TUN-STUN-LOCKOUT` 12 s is kept and is not now redundant.** It is a per-`(hunter, target)`
+exile, so it still binds if the cycle later deals those two together again — and removing it
+because the contract loss subsumes it would be the weakening never-do #13 forbids outright.
+
+The rejected earlier design — an interrupt-only stun — is recorded in
 [`01_vision.md`](01_vision.md) §2 Law 5.
 
 ### 10.3 Anti-spam
