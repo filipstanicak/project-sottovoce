@@ -1,14 +1,14 @@
 [gd_resource type="Resource" script_class="AbilityData" format=3]
 
-[ext_resource type="Script" path="res://scripts/core/tuning/ability_data.gd" id="1_agclc"]
-[ext_resource type="Script" path="res://scripts/systems/ability/lunge_effect.gd" id="2_lunge"]
+[ext_resource type="Script" path="res://scripts/systems/ability/lunge_effect.gd" id="1_wknwk"]
+[ext_resource type="Script" path="res://scripts/core/tuning/ability_data.gd" id="2_emtnd"]
 
 [resource]
-script = ExtResource("1_agclc")
+script = ExtResource("2_emtnd")
 id = &"ABIL-LUNGE"
-effect_script = ExtResource("2_lunge")
 display_key = &"ability.lunge.name"
 tell_sfx = &"SFX-LUNGE-WINDUP"
+effect_script = ExtResource("1_wknwk")
 cooldown = 30.0
 suspicion_cost = 40.0
 startle_radius = 7.0

@@ -131,7 +131,11 @@ extends Resource
 ## TUN-SCORE-RECKLESS
 @export_range(-100.0, 0.0, 0.1) var reckless: float = 0.0
 
-## Equals TUN-STUN-SCORE. Defence pays like offence.
+## Equals TUN-STUN-SCORE. 100 → 200 on 2026-09-03 (ADR-0018): the reference pays 200 for a stun
+## against 100 for a base assassination, so the old value under-paid the prey by half while
+## claiming to be design law 5 written as a number. It still loses to a well-made kill (100 + up
+## to 400 of stealth bonuses), which is the reference's ordering and the one law 5 now states.
+## Invariant 19 is a floor, not a ratio.
 ## TUN-SCORE-STUN
 @export_range(75.0, 250.0, 0.1) var stun: float = 200.0
 

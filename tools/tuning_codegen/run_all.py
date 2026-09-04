@@ -21,7 +21,7 @@ STEPS = [
     ("map_fields.py", "resolve TUN- ID -> class.field into fieldmap.json"),
     ("gen_ids.py", "write scripts/core/ids.gd"),
     ("gen_tuning.py", "write the twelve section classes"),
-    ("gen_abilities.py", "write ability_tuning.gd and ability_data.gd"),
+    ("gen_abilities.py", "write ability_tuning/_data/_defaults.gd"),
     ("gen_index.py", "write tuning_index.gd"),
 ]
 

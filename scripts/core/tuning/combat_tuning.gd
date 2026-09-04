@@ -83,10 +83,11 @@ extends Resource
 ## TUN-STUN-FORCES-EXPOSED
 @export var forces_exposed: bool = true
 
-## Equal to SCORE-CONTRACT. Successfully defending yourself is worth exactly as much as a base
-## kill — the statement that defence is a scoring strategy, not a survival tax.
+## Twice SCORE-CONTRACT, and the reference's own number (2026-09-03, ADR-0018). Successfully
+## defending yourself outscores the cheapest thing a hunter can do and loses to their best — the
+## statement that defence is a scoring strategy, not a survival tax.
 ## TUN-STUN-SCORE
-@export_range(75.0, 150.0, 0.1) var score: float = 100.0
+@export_range(75.0, 250.0, 0.1) var score: float = 200.0
 
 ## The stunner's own commitment. Half the kill animation: defence is faster than offence.
 ## TUN-STUN-ANIM-DURATION

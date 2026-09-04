@@ -131,3 +131,55 @@ print("AbilityData: %d tunable-backed fields + 5 content fields" % len(fields))
 io.open(os.path.join(HERE, "abilitymap.json"), "w", encoding="utf-8").write(json.dumps(
     {ab: {strip(t, ab): t for t in tun if t.startswith("TUN-%s-" % ab)} for ab in ABILITIES}, indent=1))
 print("wrote abilitymap.json")
+# ---------------------------------------------------------------------------
+# The per-ability DEFAULTS, as GDScript the .tres writer can read.
+# ---------------------------------------------------------------------------
+#
+# **`AbilityData` IS ONE CLASS FOR FOUR ABILITIES, SO A CLASS DEFAULT CANNOT CARRY A
+# PER-ABILITY VALUE** -- `duration` means 6 s of smoke for Cinderfall and 15 s of a
+# false face for Second Face. Every other section's `.tres` is written from its own
+# class's defaults; abilities had nowhere to read one from, so
+# `tools/generate_default_tuning.gd` carried a **hand-written table of 45 numbers**
+# instead: a fourth copy of values TUNABLES already owns.
+#
+# **IT HAD DRIFTED, AND RUNNING THE DOCUMENTED COMMAND REVERTED SHIPPED GAMEPLAY.**
+# Measured 2026-09-04: `throw_range` 0.0 -> 8.0, undoing ADR-0013; `duration = 6.0`
+# dropped outright; `effect_script` dropped from both live abilities. And the
+# `duration` hole is trap 17's own original instance -- that table has never had a
+# `duration` key for Cinderfall at all, which is why the cloud shipped at 0.0 from M0
+# against a published 4.0 and nothing noticed until SYS-KILL asked.
+#
+# What stays hand-declared in the writer is the wiring that is **not** a tunable: the
+# ids, the display keys, the tell SFX and the server-only effect script.
+
+DEFAULTS_HEAD = [
+    "## The per-ability values. GENERATED FROM TUNABLES.md section 8.",
+    "##",
+    "## **`AbilityData` IS ONE CLASS FOR FOUR ABILITIES**, so a class default cannot",
+    "## carry a per-ability value: `duration` is 6 s of smoke for Cinderfall and 15 s of",
+    "## a false face for Second Face. Every other section's `.tres` is written from its",
+    "## own class's defaults, and this is where the ability writer reads its own.",
+    "##",
+    "## **IT REPLACES A HAND-WRITTEN TABLE OF 45 NUMBERS** inside",
+    "## `tools/generate_default_tuning.gd`, which had drifted far enough that running",
+    "## the documented command reverted `TUN-CINDERFALL-THROW-RANGE` to its",
+    "## pre-ADR-0013 value and dropped `TUN-CINDERFALL-DURATION` entirely (2026-09-04).",
+    "##",
+    "## BUILD-TIME ONLY. Nothing in a running game reads this: the shipped values come",
+    "## from the `.tres` files it is used to write.",
+    "class_name AbilityDefaults",
+    "",
+    "const VALUES := {",
+]
+
+rows = []
+for ab in ABILITIES:
+    owned = {strip(t, ab): t for t in tun if t.startswith("TUN-%s-" % ab)}
+    pairs = ", ".join('"%s": %s' % (f, gdtype_and_default(tun[t])[1]) for f, t in owned.items())
+    rows.append('\t"%s": {%s},' % (ab.lower(), pairs))
+
+io.open(os.path.join(OUT, "ability_defaults.gd"), "w", encoding="utf-8", newline="\n").write(
+    "\n".join(DEFAULTS_HEAD + rows + ["}", ""])
+)
+print("AbilityDefaults: %d abilities, %d values"
+      % (len(rows), sum(r.count(":") - 1 for r in rows)))

@@ -97,6 +97,33 @@ for tid, (cls, field) in assigned.items():
 for cls in by_class:                                   # document order == TUNABLES order
     by_class[cls].sort(key=lambda p: list(tun).index(p[0]))
 
+# **EVERY VALUE IS READ BEFORE ANY FILE IS WRITTEN.** A generator that discovers a
+# bad row halfway through has already replaced half the tree, so the check has to
+# come first for the refusal to mean anything.
+unparseable = [
+    (tid, cls, field, tun[tid]["value"])
+    for tid, (cls, field) in assigned.items()
+    if tid not in NOT_A_VALUE and parse_value(tun[tid])[0] is None
+]
+# **A VALUE THIS CANNOT READ IS A FAILURE, NOT A LINE OF OUTPUT.** It used to append
+# to `skipped` beside the deliberate `NOT_A_VALUE` exclusions and exit 0 — so
+# `TUN-STUN-SCORE` and `TUN-SCORE-STUN` were dropped from `CombatTuning` and
+# `ScoringTuning` on 2026-09-03 and nothing said anything. `scoring.stun` is read by
+# invariant 19, so the next person to follow the README's own instruction would have
+# regenerated a tree that does not compile, from a run that printed success.
+#
+# **THE TWO LISTS ARE SEPARATE ON PURPOSE.** `NOT_A_VALUE` is a decision recorded
+# with its reason; this is the absence of one. Folding them together is what let a
+# defect wear an exemption's clothes.
+if unparseable:
+    print("REFUSING TO WRITE: %d documented value(s) could not be read." % len(unparseable))
+    for tid, cls, field, raw in unparseable:
+        print("  %-42s -> %s.%s   value cell was %r" % (tid, cls, field, raw))
+    print("Either the cell in TUNABLES.md is malformed, or the row genuinely carries no")
+    print("value -- in which case add it to NOT_A_VALUE with the reason, so the exclusion")
+    print("is a decision somebody made rather than a parse that quietly failed.")
+    raise SystemExit(1)
+
 os.makedirs(OUTDIR, exist_ok=True)
 total = 0
 for cls, items in sorted(by_class.items()):
@@ -110,8 +137,7 @@ for cls, items in sorted(by_class.items()):
         row = tun[tid]
         default, gdtype = parse_value(row)
         if default is None:
-            skipped.append(tid)
-            continue
+            continue  # unreachable: the pass above refused the run
         lines += doc_lines(row["rationale"], tid)
         rng = parse_range(row["range"]) if gdtype in ("int", "float") else None
         if rng and rng[0] < rng[1]:
@@ -131,4 +157,4 @@ for cls, items in sorted(by_class.items()):
             newline="\n").write("\n".join(lines).rstrip("\n") + "\n")
     print("%-18s %3d fields  %3d lines" % (cls, len(items), len(lines)))
 
-print("\nfields emitted: %d   skipped: %d %s" % (total, len(skipped), skipped))
+print("\nfields emitted: %d   excluded by name: %d %s" % (total, len(skipped), skipped))

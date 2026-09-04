@@ -96,9 +96,18 @@ func _documented_rows() -> Array:
 
 
 ## The first cell after the ID that reads as a number or a bool, or null.
+##
+## **EMPHASIS IS STRIPPED, AND NOT DOING SO BLINDED THIS TEST TO THE ONE DRIFT IT
+## EXISTS TO CATCH.** ADR-0018 wrote `TUN-STUN-SCORE`'s new value as `**200**` to
+## mark the change, and `is_valid_float()` answers false for that — so this walked
+## past the value, found no number in any later cell, and **dropped the row**. The
+## generator's own `^[+-]?\d` match failed on the same two asterisks, so
+## `combat_tuning.gd` kept the pre-ADR 100 and this test could not see it. Two
+## independent readers of one column, defeated identically, and the guard written to
+## catch the drift was the second casualty of it.
 static func _first_number(cells: PackedStringArray) -> Variant:
 	for i: int in range(2, cells.size()):
-		var cell := cells[i].strip_edges()
+		var cell := cells[i].strip_edges().replace("*", "").replace("`", "").strip_edges()
 		if cell == "true":
 			return 1.0
 		if cell == "false":

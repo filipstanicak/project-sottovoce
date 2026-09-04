@@ -8,6 +8,14 @@
 ## GDScript defaults, and a hand-written .tres is a transcription of 260-odd numbers
 ## with no check on it. Generating them means the only way to change a shipped
 ## value is to change TUNABLES.md.
+##
+## **THE ABILITIES ARE THE ONE SECTION THAT CANNOT WORK THAT WAY**, because
+## `AbilityData` is one class holding four abilities' fields — `duration` is 6 s of
+## smoke for Cinderfall and 15 s of a false face for Second Face, and a class default
+## can only be one of them. Their values come from `AbilityDefaults`, generated from
+## §8 beside `ability_data.gd`; what stays here is `ABILITY_WIRING`, which is the
+## content and the code rather than the numbers. It was a hand-written fourth copy of
+## the numbers until 2026-09-04, and it had drifted — see the comment on it.
 extends SceneTree
 
 const OUT_DIR := "res://data/tuning/default"
@@ -29,72 +37,52 @@ const SECTIONS := {
 	"flags": "res://scripts/core/tuning/feature_flags.gd",
 }
 
-## Per-ability values from TUNABLES §8. Fields an ability does not use stay at the
-## class default, which is the inert zero — so a field that means something for
-## one ability can never be inherited by another.
-const ABILITIES := {
+## **THE WIRING ONLY. THE NUMBERS COME FROM `AbilityDefaults`**, which is generated
+## from TUNABLES.md §8 alongside `ability_data.gd`.
+##
+## **THIS USED TO BE A HAND-WRITTEN TABLE OF 45 NUMBERS AND IT HAD DRIFTED.** Running
+## this tool on 2026-09-04 reverted `TUN-CINDERFALL-THROW-RANGE` 0.0 -> 8.0, undoing
+## ADR-0013; dropped `TUN-CINDERFALL-DURATION` 6.0, which the owner set at the
+## controls the day before; and dropped `effect_script` from both live abilities,
+## which makes Cinderfall and Lunge do nothing at all. Silently, from a run that
+## printed success — and **the codegen README tells you to run this after every
+## regeneration**, so the documented workflow was destructive.
+##
+## And this table never had a `duration` key for Cinderfall in the first place, which
+## is **trap 17's own original instance**: the cloud shipped at 0.0 from M0 against a
+## published 4.0, and nothing asked how long a cloud lives until `SYS-KILL` did.
+##
+## What is left is content and code rather than tuning, so it cannot come from
+## TUNABLES: an id, a string key, a sound id, and the server-only effect script.
+## **`effect_script` was never in the old table either** — US-0067 hand-patched it
+## into `cinderfall.tres`, against trap 1, which is the other half of why
+## regenerating lost it.
+const ABILITY_WIRING := {
 	"cinderfall":
 	{
 		"id": &"ABIL-CINDERFALL",
 		"display_key": &"ability.cinderfall.name",
 		"tell_sfx": &"SFX-CINDERFALL-THROW",
-		"cooldown": 45.0,
-		"cast_time": 0.45,
-		"throw_range": 8.0,
-		"radius": 5.0,
-		"blocks_los": true,
-		"blocks_kill": true,
-		"suspicion_cost": 40.0,
-		"startle_radius": 9.0,
-		"tell_audio_radius": 25.0,
+		"effect_script": preload("res://scripts/systems/ability/cinderfall_effect.gd"),
 	},
 	"lunge":
 	{
 		"id": &"ABIL-LUNGE",
 		"display_key": &"ability.lunge.name",
 		"tell_sfx": &"SFX-LUNGE-WINDUP",
-		"cooldown": 30.0,
-		"distance": 6.0,
-		"speed": 9.0,
-		"windup": 0.25,
-		"stunnable_during": true,
-		"suspicion_cost": 40.0,
-		"auto_kill": true,
-		"whiff_stagger": 1.2,
-		"startle_radius": 7.0,
-		"tell_audio_radius": 20.0,
+		"effect_script": preload("res://scripts/systems/ability/lunge_effect.gd"),
 	},
 	"secondface":
 	{
 		"id": &"ABIL-SECONDFACE",
 		"display_key": &"ability.secondface.name",
 		"tell_sfx": &"SFX-SECONDFACE-MORPH-IN",
-		"cooldown": 60.0,
-		"cast_time": 0.8,
-		"duration": 15.0,
-		"break_speed": 6.2,
-		"break_on_hit": true,
-		"break_on_kill": true,
-		"suspicion_cost": 10.0,
-		"persona_source": &"nearest_clone",
-		"break_tell_duration": 0.6,
-		"tell_audio_radius": 8.0,
 	},
 	"whisperbolt":
 	{
 		"id": &"ABIL-WHISPERBOLT",
 		"display_key": &"ability.whisperbolt.name",
 		"tell_sfx": &"SFX-WHISPERBOLT-DRAW",
-		"cooldown": 40.0,
-		"windup": 1.0,
-		"range_min": 3.0,
-		"range_max": 12.0,
-		"projectile_speed": 22.0,
-		"forces_exposed": true,
-		"exposed_tail": 1.5,
-		"suspicion_on_miss": 30.0,
-		"requires_los": true,
-		"tell_audio_radius": 30.0,
 	},
 }
 
@@ -119,11 +107,33 @@ func _init() -> void:
 			quit(1)
 			return
 		written += 1
-	written += _write_content("abilities", ABILITIES, AbilityData)
+	written += _write_abilities()
 	written += _write_content("passives", PASSIVES, PassiveData)
 	_write_profile()
 	print("wrote %d resource files plus profile.tres" % written)
 	quit(0)
+
+
+## **THE VALUES ARE WRITTEN FIRST AND THE WIRING SECOND**, so a field named in both
+## takes the wiring's. Nothing is in both today, and the ordering is stated rather
+## than left to be discovered: the wiring is the half a human edits.
+func _write_abilities() -> int:
+	var dir := "%s/abilities" % OUT_DIR
+	DirAccess.make_dir_recursive_absolute(dir)
+	var n := 0
+	for name: String in ABILITY_WIRING:
+		var res := AbilityData.new()
+		var values: Dictionary = AbilityDefaults.VALUES.get(name, {})
+		for field: String in values:
+			res.set(field, values[field])
+		for field: String in ABILITY_WIRING[name]:
+			res.set(field, ABILITY_WIRING[name][field])
+		if ResourceSaver.save(res, "%s/%s.tres" % [dir, name]) != OK:
+			push_error("failed to write %s/%s.tres" % [dir, name])
+			quit(1)
+			return n
+		n += 1
+	return n
 
 
 func _write_content(folder: String, table: Dictionary, type: Variant) -> int:
@@ -147,7 +157,7 @@ func _write_profile() -> void:
 	for name: String in SECTIONS:
 		var field := "match_rules" if name == "match" else name
 		profile.set(field, load("%s/%s.tres" % [OUT_DIR, name]))
-	for name: String in ABILITIES:
+	for name: String in ABILITY_WIRING:
 		var res: AbilityData = load("%s/abilities/%s.tres" % [OUT_DIR, name])
 		profile.abilities[res.id] = res
 	for name: String in PASSIVES:
