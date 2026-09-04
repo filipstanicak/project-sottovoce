@@ -234,6 +234,51 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 *Updated 2026-08-27 (ADR-0016, the M4 gate). Keep this section current — it is the first thing a
 fresh session reads, and a stale one is worse than none.*
 
+## A GATE FAILED A BUILD WITH NOTHING BEHIND IT, AND THE STATISTIC WAS WHY
+
+**`test_server_tick_budget.gd` FAILED CI AT 10.84 ms AGAINST A BUDGET OF 8.0, ON A
+TUNING CHANGE THAT CANNOT REACH IT.** The commit raised
+`TUN-CINDERFALL-DURATION`; that test **never casts an ability**, so
+`CinderfallVolumes` is empty for every tick of it. Exoneration by construction
+rather than by re-running until green — though the re-run was green, untouched.
+
+**IT ASSERTED THE MAXIMUM, AND THE MAXIMUM IS NOT A MEASUREMENT OF THIS CODE.**
+The old docstring argued a max is *strictly stronger* than a p99, which is true of
+the arithmetic and false of a shared runner: the largest of 180 samples is decided
+by whichever tick the scheduler interrupted.
+
+**THE EVIDENCE IS TWO LOCAL RUNS RATHER THAN THE ARGUMENT.** Same machine, same
+commit, nothing else changed:
+
+| | p99 | max | max / p99 |
+|---|---|---|---|
+| run 1 | 3.042 | 3.179 | 1.05x |
+| run 2 | 2.909 | **5.554** | **1.91x** |
+| run 3 | 2.783 | 2.794 | 1.00x |
+
+**The p99 spans 9 % across the three and the max spans 99 %**, on a quiet desktop
+before CI is involved at all. An estimator that doubles between identical runs
+cannot tell a regression from a scheduler.
+
+**AND THE NEW ASSERTION IS FALSIFIED RATHER THAN ASSUMED**: dropped to a 2.0 ms
+budget it fails at a p99 of 2.783 and names the criterion in the message.
+
+**AND p99 IS WHAT THE GATE ACTUALLY ASKS FOR**, so this is a correction rather than
+a weakening: ROADMAP's M3 line is *"server tick p99 at or under 8.0 ms"* and
+asserting the max was an over-reach past the documented criterion. **It is precise
+about what it forgives**: `sorted[int(180 × 0.99)]` is index 178, the
+**second-highest** reading, so it tolerates exactly one spike and not two — one
+outlier says something about the runner, two say something about the code. The max
+is printed on every run with its ratio to the p99, so a real regression that shows
+only as spikes stays visible to a reader.
+
+**THIS PROJECT HAD ALREADY LEARNED IT ONCE AND ONLY FIXED ONE GATE.**
+`test_crowd_perf.gd` read 1.067, 1.249 and then **1.815 — failing a build with
+nothing behind it** — and was changed to assert an ordinary-tick p95 and print the
+population. The server-tick gate never got the same treatment, and this file even
+recorded *"one run reported a 6.000 ms max… recorded as an outlier rather than
+explained"*. **A lesson applied to one instance is a lesson half learned.**
+
 ## THE DENSITY IS RIGHT AND THE DURATION IS 6.0 s, JUDGED AT THE CONTROLS
 
 **BOTH CINDERFALL QUESTIONS ARE ANSWERED, AND ONE OF THEM IS A RULED DIVERGENCE.**
