@@ -108,3 +108,21 @@ func test_record_is_valid_and_warns_that_it_does_nothing() -> void:
 func test_a_launch_without_record_warns_about_nothing() -> void:
 	var c := LaunchConfig.parse(["--server"], 6)
 	assert_eq(c.warnings().size(), 0, "a clean command line produced a warning")
+
+
+## **THE SECOND FLAG WITH `--record`'s SHAPE, FOUND 2026-09-04.** `tuning_profile`
+## is parsed, validated and read by no code, and `data/tuning/` holds exactly one
+## directory — so a session asking for other numbers silently runs the shipped
+## ones. That is worse than the flag not existing, because it looks like it worked.
+func test_tuning_is_valid_and_warns_that_it_does_nothing() -> void:
+	var c := LaunchConfig.parse(["--server", "--tuning", "sandbox"], 6)
+	assert_eq(c.tuning_profile, "sandbox", "--tuning stopped parsing")
+	assert_eq(c.problems(2, 6).size(), 0, "--tuning is a valid flag and must not refuse the launch")
+	assert_eq(c.warnings().size(), 1, "--tuning is read by nothing and said so to nobody")
+
+
+## The default must stay silent, or every launch in the project carries a warning
+## and the channel stops being read.
+func test_the_default_profile_warns_about_nothing() -> void:
+	var c := LaunchConfig.parse(["--server", "--tuning", "default"], 6)
+	assert_eq(c.warnings().size(), 0, "the shipped profile produced a warning")

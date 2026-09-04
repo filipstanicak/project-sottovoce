@@ -37,7 +37,11 @@ signal contract_issued(peer: int, contract: int, reason: int)
 ## `reason:u8`, so nothing about `NET-S2C-CONTRACT-ASSIGNED`'s payload changes —
 ## and appending rather than inserting is what keeps every ordinal already on a
 ## client meaning what it meant.
-enum Reason { START, KILL, RESPAWN, REPAIR, ESCAPE }
+## **APPEND-ONLY: THE ORDER IS THE WIRE.** `NET-S2C-CONTRACT-ASSIGNED` carries
+## `reason:u8` as an index into this enum, so inserting a name in the middle
+## silently retells every client a different story about why their contract moved.
+## `STUNNED` was appended on 2026-09-04 by ADR-0019.
+enum Reason { START, KILL, RESPAWN, REPAIR, ESCAPE, STUNNED }
 
 var cycle: ContractCycle = null
 
@@ -187,6 +191,32 @@ func report_disconnect(peer: int, ctx: MatchContext) -> void:
 ## contract was issued. The right guarantee by a different mechanism than the story
 ## named.
 func report_escape(hunter: int, ctx: MatchContext) -> void:
+	_lose_the_prey(hunter, ctx, Reason.ESCAPE)
+
+
+## **THE PREY FOUGHT BACK, AND THAT IS THE SAME EVENT.** ADR-0019. A stunned
+## pursuer fails the contract and is dealt a new one, which is what the reference
+## does — being stunned there costs you the target, not merely four seconds.
+##
+## **IT IS DELIBERATELY THE ESCAPE'S OWN CALL RATHER THAN A SECOND ROUTE.** The
+## clear, the anti-repeat memory, the reassign breath and the reinsertion are one
+## rule that has been fuzzed over 10 000 events; a stun-shaped copy of it would be
+## the *rule implemented twice* this project keeps finding, and the half that would
+## drift first is the memory — the line that stops the hunter being handed straight
+## back the person who just put them on the ground.
+##
+## **THE EXILE STAYS AND IS NOT NOW REDUNDANT.** `TUN-STUN-LOCKOUT` 12 s blocks
+## that pursuer from initiating on that specific player, which still binds if the
+## cycle later deals them back together — and removing it to tidy up would be
+## exactly the weakening never-do #13 forbids.
+##
+## **THE PREY IS PAID ONCE.** `TUN-SCORE-STUN` 200 already prices this read;
+## paying `SCORE-ESCAPE` on top would pay the same act twice under two names.
+func report_stun(pursuer: int, ctx: MatchContext) -> void:
+	_lose_the_prey(pursuer, ctx, Reason.STUNNED)
+
+
+func _lose_the_prey(hunter: int, ctx: MatchContext, why: Reason) -> void:
 	cycle.tick = ctx.tick
 	# **TELL THE HISTORY BEFORE THE REMOVAL, OR IT NEVER LEARNS.** `_remember` is
 	# written by `insert` and `open` alone, so it records what was *dealt* rather
@@ -198,8 +228,8 @@ func report_escape(hunter: int, ctx: MatchContext) -> void:
 		return
 	if int(_published.get(hunter, ContractCycle.NOBODY)) != ContractCycle.NOBODY:
 		_published[hunter] = ContractCycle.NOBODY
-		contract_issued.emit(hunter, ContractCycle.NOBODY, Reason.ESCAPE)
-	_pending.append([hunter, ContractCycle.NOBODY, Reason.ESCAPE])
+		contract_issued.emit(hunter, ContractCycle.NOBODY, why)
+	_pending.append([hunter, ContractCycle.NOBODY, why])
 	_held_until[hunter] = ctx.tick + Tuning.ticks(&"TUN-CONTRACT-REASSIGN-DELAY")
 	_open_window(ctx)
 

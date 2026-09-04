@@ -32,6 +32,8 @@
 ## and does not try: it is a moving, blending, killable player, not an opponent.
 extends Node
 
+const HUNT := preload("res://tools/bot_hunt.gd")
+
 const CLIENT_ROOT := "res://scenes/client_root.tscn"
 
 ## Handshake, first snapshot, render clock.
@@ -48,11 +50,6 @@ const TURN_MAX := 0.9
 
 ## How often the bot says where it is.
 const REPORT_EVERY := 5.0
-
-## How far off the Compass bearing a hunting bot tolerates before it turns. Wide,
-## because a bot sweeps with the pad rather than aiming with a mouse, and a tight
-## tolerance makes it oscillate on the spot.
-const AIM_TOLERANCE := 0.20
 
 var _root: Node = null
 var _rng := RandomNumberGenerator.new()
@@ -77,10 +74,6 @@ var _ability: int = -1
 ## `TUN-COMPASS-CONE-WOBBLE`'s lie exactly as a human's does.
 var _hunting := false
 
-## The last Compass reading: a world bearing, and whether there is a contract.
-var _bearing := 0.0
-var _has_contract := false
-
 ## `--reckless`. **A HUNTER IS ONLY STUNNABLE WHEN CARELESS**, which is
 ## `TUN-STUN-MIN-TIER` and the whole of why patience is safe — so a bot that
 ## strolls can never be practised against. Casting an ability costs
@@ -93,6 +86,9 @@ var _reckless := false
 
 ## The last value `EVT-SUSPICION-VALUE-CHANGED` carried. See `_watch_the_cast`.
 var _suspicion: float = -1.0
+
+## The hunting brain, made only when `--hunt` is given.
+var _hunt: RefCounted = null
 
 
 func _ready() -> void:
@@ -119,7 +115,8 @@ func _run() -> void:
 		get_tree().quit(1)
 		return
 	if _hunting:
-		EventBus.compass_updated.connect(_on_compass)
+		_hunt = HUNT.new(_index)
+		EventBus.compass_updated.connect(_hunt.on_compass)
 	print("bot %d: %s" % [_index, "hunting" if _hunting else "walking"])
 	_report()
 	if _ability >= 0:
@@ -249,53 +246,15 @@ func _be_reckless() -> void:
 		await get_tree().create_timer(maxf(every, 1.0)).timeout
 
 
-func _on_compass(bearing: float, bucket: int, _lock: float) -> void:
-	_bearing = bearing
-	_has_contract = bucket != CompassBoard.NO_CONTRACT
-
-
-## **WALK AT WHOEVER THE COMPASS POINTS AT, AND RUN WHILE DOING IT.** The running
-## is not flavour: `TUN-STUN-MIN-TIER` means an Anonymous hunter cannot be stunned
-## by anybody, so a bot that strolled would be a pursuer nobody can practise
-## against. A hunter who runs is a hunter who has chosen to be seen, which is
-## design law 1 and exactly the hunter the prey is meant to get teeth against.
-##
-## **IT TURNS WITH THE PAD ACTIONS, SO IT SWEEPS RATHER THAN AIMS.** A bot has no
-## mouse; `input_look_*` is the only heading control it has, and that is why it
-## circles its contract instead of walking a clean line. Said rather than tuned
-## away: it is a moving, findable, stunnable pursuer, not an opponent.
 func _stalk() -> void:
-	# **BLEND-WALK, NOT RUN, AND THAT IS A MEASURED LIMIT RATHER THAN A CHOICE.**
-	# `input_run` held through `Input.action_press` produces **0.0 m of travel** —
-	# measured against the same bot walking 15 m with `input_slow`, with and without
-	# a clean press edge. Something in the run path does not accept a synthetic
-	# hold; it is reported in CLAUDE.md rather than worked around in silence,
-	# because a player holding Shift through a match start would meet whatever it
-	# is.
-	#
-	# **SO A HUNTING BOT IS ANONYMOUS UNLESS `--reckless`**, which is correct game
-	# behaviour rather than a gap: `TUN-STUN-MIN-TIER` makes a careful hunter
-	# unstunnable on purpose.
-	var actions: Array = ["input_move_forward", "input_slow"]
-	if not _has_contract:
-		_hold(actions)
-		await get_tree().create_timer(0.2).timeout
-		return
-	var off := CompassMath.angle_between(_yaw(), _bearing)
-	if absf(off) > AIM_TOLERANCE:
-		# This game's yaw increases toward a turn to the LEFT — `InputSampler`
-		# subtracts the mouse's x. So a positive offset is closed by looking left.
-		actions.append("input_look_left" if off > 0.0 else "input_look_right")
-	_hold(actions)
-	await get_tree().create_timer(0.1).timeout
+	var plan: Array = _hunt.decide(_pawn())
+	_hold(plan[0])
+	await get_tree().create_timer(float(plan[1])).timeout
 
 
-func _yaw() -> float:
+func _pawn() -> PawnContext:
 	var driver := _find_named(_root, "LocalPawnDriver")
-	if driver == null:
-		return 0.0
-	var ctx: PawnContext = driver.get("ctx")
-	return ctx.yaw if ctx != null else 0.0
+	return driver.get("ctx") as PawnContext if driver != null else null
 
 
 ## One leg: walk for a while, then turn for a while. **Blend-walk, not run** —
