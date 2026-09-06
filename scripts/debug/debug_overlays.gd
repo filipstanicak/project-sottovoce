@@ -27,7 +27,12 @@ const TOGGLE_KEY := KEY_F3
 ## anywhere else is somebody else's and is left alone.
 const DEBUG_PREFIX := "res://scripts/debug/"
 
-var _shown: bool = true
+var _shown: bool = false
+
+
+func _ready() -> void:
+	# Wait for the district's deferred tint before removing it as part of the HUD.
+	set_shown.call_deferred(false)
 
 
 ## Attached last, after the overlays it toggles, so its first `_gather` finds all

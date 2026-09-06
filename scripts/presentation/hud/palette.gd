@@ -55,12 +55,14 @@ extends Resource
 ## reinforce a distinction the plate already carries — the same relationship the
 ## crosshair's two colours have with its two shapes.
 @export var score: Color = Color(0.95, 0.95, 0.96)
-@export var score_penalty: Color = Color(0.91, 0.55, 0.44)
+@export var score_penalty: Color = Color(0.95, 0.70, 0.58)
+@export var penalty_plate: Color = Color(0.17, 0.08, 0.06, 0.96)
 
 ## Text and plates.
 @export var text: Color = Color(0.93, 0.94, 0.95)
-@export var text_dim: Color = Color(0.93, 0.94, 0.95, 0.62)
-@export var plate: Color = Color(0.05, 0.06, 0.07, 0.45)
+@export var text_dim: Color = Color(0.78, 0.80, 0.82)
+## Strong enough to preserve text contrast even against the district's pale sky.
+@export var plate: Color = Color(0.05, 0.06, 0.07, 0.94)
 
 ## **THE CINDER CLOUD (US-0067, drawn 2026-09-03) — AND THE FIRST ENTRY HERE THAT
 ## IS NOT THE HUD.** §7's rule is *"all colour comes from a `Palette` resource"*,

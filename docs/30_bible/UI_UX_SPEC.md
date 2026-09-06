@@ -1,10 +1,10 @@
 ---
 id: BIBLE-UI-UX
 title: UI/UX Specification
-version: 0.1.0
+version: 0.2.0
 status: draft
 owner: Lead Game Designer
-last_updated: 2026-08-03
+last_updated: 2026-09-06
 depends_on: [GDD-06-UI-AUDIO, TDD-11-UI, BIBLE-ART, ADR-0006]
 ---
 
@@ -67,7 +67,7 @@ depends_on: [GDD-06-UI-AUDIO, TDD-11-UI, BIBLE-ART, ADR-0006]
 |---|---|---|---|
 | **A Compass** | Bottom-centre, 64 px from edge | 220 × 220 | Most-consulted element. Centre-bottom is reachable by peripheral vision without moving the eyes off the crowd |
 | **B Contract portrait** | Top-left | 180 × 220 | Consulted rarely (on assignment, after a lock). Corner is correct |
-| **C Tier indicator** | Left, above abilities | 160 × 72 | Glanceable; near the abilities it constrains |
+| **C Tier indicator** | Left, above abilities | 272 × 112 | Includes a 24 px tier word and up to two lines of 15 px source text; stays outside the central reading area |
 | **D Score feed** | Right, above centre | 320 × 220 | Peripheral by design — must be readable *without* looking |
 | **E Match timer** | Top-centre | 120 × 48 | Matters intensely for ~40 s of 480; ignorable otherwise |
 | **F Crosshair** | Screen centre | 3 px dot | The one element that must be exact |
@@ -76,6 +76,18 @@ depends_on: [GDD-06-UI-AUDIO, TDD-11-UI, BIBLE-ART, ADR-0006]
 
 **Nothing occupies the centre 60 % of the screen.** That region is where players read faces and
 gait, and it is kept clear deliberately.
+
+**Local layout decision, 2026-09-06:** the owner selected this arrangement over US-0073's
+former top-left tier / top-right portrait description. The portrait is 180 × 220 at (96, 56);
+the tier is 96 px from the left and 160 px above the bottom, reserving the ability area.
+`HudRoot.InstrumentFrame` keeps these instruments in a centred 16:9 band on ultrawide.
+The vignette remains behind the instruments and reaches the full physical screen.
+Debug overlays start hidden; F3 restores them, and their map clears the portrait.
+
+**The portrait is still incomplete.** The real client has no earned persona source yet.
+Unknown uses a featureless bust; a completed lock shows a check and the localized word
+`Identified`. This reports only the received lock fact, never a guessed persona. The full
+persona silhouette and name remain US-0073's open criterion.
 
 ---
 
@@ -103,6 +115,12 @@ Single family, three weights, five sizes. A modular scale at 1.25.
 **Tabular numerals matter more than they sound.** A score feed whose `+100` and `+150` have
 different widths produces horizontal jitter in peripheral vision, which reads as motion and pulls
 the eye — the exact opposite of what the feed is for.
+
+**Local readability correction, 2026-09-06:** tier words are 24 px, source lists 15 px,
+score names 24 px and score values 32 px. Text backing is strong enough to retain 7:1
+contrast against a white world in the default palette at rest. Tier words use neutral text;
+the shape retains the tier colour. This is a contrast check, not a claim that the manual
+peripheral-reading gate in section 9 has passed.
 
 ---
 
@@ -235,7 +253,7 @@ The one negative event must never read as a smaller positive one.
 it.** The first build plated the penalty alone; white text over the district's pale sky is at the
 edge of legible at the fovea and gone in the periphery, which fails §5's own requirement that the
 feed be read *without being looked at*. Every line gets the neutral `Palette.plate`; a penalty
-gets a warm one from `Palette.score_penalty`, so the difference survives the monochrome palette
+gets a warm one from `Palette.penalty_plate`, so the difference survives the monochrome palette
 as a **value** difference rather than a hue one.
 
 **AND `−50 Reckless` IS NO LONGER A THING THAT HAPPENS.** ADR-0013 took `TUN-SCORE-RECKLESS` to

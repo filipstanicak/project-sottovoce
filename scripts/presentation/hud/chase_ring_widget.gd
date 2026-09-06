@@ -76,6 +76,10 @@ func _ready() -> void:
 	offset_top = -(centre_up + DIAMETER * 0.5)
 	offset_bottom = -(centre_up - DIAMETER * 0.5)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# CanvasItem caches draw commands. The transition to quiet must clear them,
+	# even though the frame loop correctly skips an already quiet instrument.
+	if vm != null:
+		vm.changed.connect(queue_redraw)
 
 
 ## How far above the screen's bottom edge the Compass's centre sits. **Public

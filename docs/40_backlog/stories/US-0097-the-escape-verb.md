@@ -1,10 +1,10 @@
 ---
 id: US-0097
 title: The escape verb — a hunt that can be survived
-version: 1.0.0
+version: 1.0.1
 status: done
 owner: Lead Game Designer
-last_updated: 2026-09-01
+last_updated: 2026-09-06
 depends_on: [ADR-0014, ADR-0013, GDD-03-SOCIAL-STEALTH, TDD-10-SCORING, US-0059]
 ---
 
@@ -314,6 +314,11 @@ been an instrument wrong in a plausible direction.
 
 ## Test notes
 
+- Local HUD audit, 2026-09-06: ending a pursuit left its last drawn arcs cached.
+  `ChaseVm.changed` now invalidates the widget even when both fractions become zero;
+  the idle drawing optimisation remains. `test_chase_ring.gd` covers the transition
+  after the pulse has expired. The windowed probe confirms that the subsequent quiet
+  state clears both arcs. This changes presentation only, not pursuit timing or outcomes.
 - **The counterfactual first, as always.** A test that a chase ends after 10.7 s of no sight
   passes just as happily against a bar that never refreshes at all. The primary assertion is the
   **duty cycle**: at what fraction of time-in-sight does a chase become unloseable? With a

@@ -20,6 +20,8 @@
 class_name ChaseVm
 extends RefCounted
 
+signal changed
+
 ## How long the re-acquisition pulse lasts. A **presentation** constant and not a
 ## tunable: it changes how a thing looks, never how the game plays, which is the
 ## same call `CompassWidget.DIAMETER` makes.
@@ -46,10 +48,15 @@ var _flash: float = 0.0
 ## to say what a packet contained and this is a fact about two packets. A bridge
 ## that remembered would be a second place holding view state.
 func apply(hunting_now: float, hunted_now: float) -> void:
+	var next_hunting := clampf(hunting_now, 0.0, 1.0)
+	var next_hunted := clampf(hunted_now, 0.0, 1.0)
+	if next_hunting == hunting and next_hunted == hunted:
+		return
 	if hunted_now > hunted + FLOOR:
 		_flash = FLASH_SECONDS
-	hunting = clampf(hunting_now, 0.0, 1.0)
-	hunted = clampf(hunted_now, 0.0, 1.0)
+	hunting = next_hunting
+	hunted = next_hunted
+	changed.emit()
 
 
 ## Advances the pulse. Called from the render frame, like the Compass's own phase,

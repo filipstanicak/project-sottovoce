@@ -1,10 +1,10 @@
 ---
 id: US-0073
 title: HUD — tier, portrait, crosshair, abilities, timer
-version: 0.2.0
+version: 0.3.0
 status: in-progress
 owner: Lead Game Designer
-last_updated: 2026-08-27
+last_updated: 2026-09-06
 depends_on: [BIBLE-UI-UX, TDD-11-UI]
 ---
 
@@ -60,18 +60,26 @@ The remaining widgets, each a pure renderer fed by a view model.
       Four corner brackets against a ring — **a shape, not a colour** (§6), so the
       two verbs stay distinguishable on the monochrome palette.
 - [ ] Ability slots show radial cooldown sweeps, LINEAR so remaining time is readable by angle.
-      **Blocked: there are no abilities.** `SYS-ABILITY` is US-0066 and
-      `cooldown_a_tick` / `cooldown_b_tick` are on the wire with no writer.
+      The ability pipeline, Cinderfall and Lunge now exist. Cooldowns reach the HUD bridge;
+      the remaining dependency is the honest loadout source and slot presentation, not
+      an absent ability system. US-0071 remains open.
 - [x] The passive is NOT shown in the HUD.
       Nothing renders one and there is no passive field in any view model.
 - [ ] Timer shows the final-phase bar and a persistent 2x marker.
       **Blocked: there is no match.** `SYS-MATCH` is US-0079 at M6, so `phase`,
       `ticks_remaining` and `multiplier` are on the wire and never move.
 - [x] Nothing occupies the centre 60 percent of the screen except the 3 px crosshair.
-      Tier top-left, portrait top-right, Compass centre-bottom, vignette a frame.
+      Owner decision 2026-09-06: tier bottom-left, portrait top-left, as UI_UX_SPEC states.
+      Compass centre-bottom, vignette a frame.
       The crosshair is a 3 px dot anchored dead centre.
 
 ## Test notes
+
+Local readability pass, 2026-09-06: larger text and backing plates, approved placement,
+centred ultrawide instrument band, opt-in F3 debug overlays. The portrait now acknowledges
+completed identification instead of becoming an empty box; it still has no persona to draw.
+`test_hud_layout.gd` checks placement and default text contrast. Human readability remains
+unmeasured; neither the portrait, ability slots nor timer criterion is marked complete.
 
 `test_crosshair_truth.gd` asserts agreement with server kill validity across 500 randomised
 poses. `test_tier_monochrome.gd`.
