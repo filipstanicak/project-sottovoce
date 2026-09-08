@@ -164,6 +164,11 @@ Use this when you are about to modify code and need to know which document is au
 | [`11_ui_architecture.md`](20_tdd/11_ui_architecture.md) | Systems → event bus → view models → widgets. One-way data flow. |
 | [`12_build_and_ci.md`](20_tdd/12_build_and_ci.md) | Headless import, export presets, `--server`, gdlint/gdformat, GUT layout, the debug console, one-click 3-client playtest. |
 
+**`00_meta/history/`** holds the narrative that `CLAUDE.md` has archived — the
+reasoning behind rules that still bind, moved out so the manual stays findable.
+Every file there is linked from `CLAUDE.md`'s archive table, and
+`test_claude_md_stays_findable.gd` refuses one that is not.
+
 ### 4.4 `30_bible/` — the AI Development Bible
 
 Operational documents, not essays. These are what make the project agent-legible.

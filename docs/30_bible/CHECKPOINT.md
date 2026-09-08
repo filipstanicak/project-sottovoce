@@ -63,6 +63,24 @@ Update:
 - The traps: anything that has already cost an hour, or would
 - Local environment facts that are not derivable from the repo
 
+### 3.1 The retention rule — archive the oldest, never delete a finding
+
+`CLAUDE.md` has a **4 000-line budget** and `test_claude_md_stays_findable.gd`
+holds it. Every checkpoint prepends a section and none had ever removed one, so it
+reached **6 594 lines** before anybody counted — with the state tables, the traps
+and the local environment filed at the bottom, underneath 3 301 lines of M0-M4
+history.
+
+When the budget is passed, move the **oldest** sections of "Where the work is right
+now" into `docs/00_meta/history/`, add a row to the archive table, and link the
+file. The guard refuses an archived document the manual does not link, because an
+archive nothing routes into is one nobody reads.
+
+**Archive the reasoning, never a live fact.** If a section carries a finding that
+is still open, its status belongs in the state tables or the unticked table before
+the prose moves. The archive answers *how this was found*; the manual answers *what
+is true now*.
+
 ## 4. `docs/40_backlog/ROADMAP.md`
 
 Milestone status, and — more importantly — **flag any listed deliverable that is
