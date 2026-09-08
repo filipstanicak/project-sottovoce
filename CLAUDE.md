@@ -2782,7 +2782,7 @@ that paragraph left open, answered.
 **WHAT STILL SITS BEHIND SOMETHING ELSE**: US-0071's three passives are buildable now and
 its other two criteria need M6's lobby and countdown; US-0075 has no sound file in the
 repository at all; US-0069 swaps an identity no client draws; and US-0077's results screen
-needs a match to end, which is decision 1.
+needs a match to end — **which is no longer a blocker: decision 1 was settled on 2026-09-08 and `SYS-MATCH` is M5.**
 
 ## US-0097 IS DONE. WHAT FOLLOWS IS THE RULE ITSELF, BUILT AT #184 AND #185
 
@@ -2842,17 +2842,26 @@ distance when it empties is one nobody observed.
 file. Both parties already *perceived* an escape through channels that existed;
 what the field added is the anticipatory half.
 
-## SIX THINGS WAIT ON THE OWNER, AND NONE BLOCKS M5
+## FIVE THINGS WAIT ON THE OWNER, AND NONE BLOCKS M5
 
-*Eight rows, six live: decision 8 was settled on 2026-09-03 and is struck through; decision 3 was settled by ADR-0017 on 2026-09-01 and is struck
-through rather than deleted, and decision 7 is the divergence that same ADR found.*
+*Eight rows, five live. Struck through rather than deleted, because a list with a vanished row
+invites somebody to re-open it: decision 1 was settled on 2026-09-08 (`SYS-MATCH` moved to M5),
+decision 8 on 2026-09-03, and decision 3 by ADR-0017 on 2026-09-01 — which raised decision 7 in
+its place. **A new open decision arrived with decision 1's answer**: whether US-0098 can run on
+the direct-IP launch rather than waiting for the lobby. It is not listed as a ninth row yet
+because it is the same question decision 1 half-answered, and splitting it would double-count.*
 
-1. **Move `SYS-MATCH` (US-0079) M6 → M5?** The only single-story lever that pulls
-   the first playtest a milestone earlier. M5 already ships a **results screen**
-   (US-0077), which nothing can open without a match end — so the ordering is
-   questionable on its own terms. US-0079's stated dependency on the lobby is
-   worth re-examining rather than assumed. Priced in ADR-0016; **my
-   recommendation is to move it.**
+1. ~~**Move `SYS-MATCH` (US-0079) M6 → M5?**~~ **SETTLED 2026-09-08: moved.** The
+   stated dependency on the lobby was re-examined rather than assumed, criterion by
+   criterion, and does not hold: US-0079 needs tick arithmetic, `Net.player_count()`,
+   the already-built `ScoreEvent` multiplier and the already-M5 results screen. The
+   one real coupling is the COUNTDOWN **trigger**, which a minimum-player rule
+   satisfies and the lobby later *replaces* rather than enables. **US-0098 did not
+   move with it** — the M4 gate named four blockers and the lobby is still M6, so a
+   match becomes playable at M5 while the formal playtest stays put. Whether it can
+   run on the direct-IP launch instead is a **separate open decision.** Struck
+   through rather than deleted, because a list with a vanished row invites somebody
+   to re-open it.
 2. **The 180 s integration budget**: enforce it or raise it. It is at 183.5 s.
 3. ~~**A sixteenth pawn state for the three staggers.**~~ **SETTLED 2026-09-01 by
    ADR-0017** — `Staggered` is the fifteenth state (the count was fifteen at M0,

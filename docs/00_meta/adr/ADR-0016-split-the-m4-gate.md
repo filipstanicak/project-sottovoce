@@ -20,7 +20,7 @@ scheduled to contain:
 
 | Needed by US-0063 | Story | Milestone |
 |---|---|---|
-| A match — countdown, 8:00 clock, Final Contract, end, winner | `SYS-MATCH`, US-0079 | **M6** |
+| A match — countdown, 8:00 clock, Final Contract, end, winner | `SYS-MATCH`, US-0079 | **M6 when this ADR was written; M5 since 2026-09-08** |
 | A lobby — direct-IP join, ready-up, persona and loadout | US-0078 | **M6** |
 | A HUD — Compass, tier, portrait, crosshair | US-0072, US-0073 | M5 |
 | A score, so *"did you understand why you died"* has an answer | US-0064, US-0074 | M5 |
@@ -37,7 +37,7 @@ would measure M5's absence and file it as a legibility failure against a design 
 given its legibility layer yet.
 
 **And the same shape appears once more, one milestone later.** US-0077 ships a *results screen* at
-M5, and `SYS-MATCH` — the thing that ends a match so a result exists — is US-0079 at M6.
+M5, and `SYS-MATCH` — the thing that ends a match so a result exists — was US-0079 at M6 and is M5 since 2026-09-08.
 Reported here, not fixed: moving a story between milestones is the owner's.
 
 ## Decision
@@ -127,7 +127,21 @@ all fifteen systems live, and **28 of 29 documented telemetry events with no emi
   neighbour, not its parent: the M6 gate judges the MVP, and the first human playtest is evidence
   the M6 gate reads.
 
-## Open question, priced but not decided
+## The open question, ANSWERED 2026-09-08
+
+**The owner moved it: `SYS-MATCH` (US-0079) is M5.** The dependency this ADR asked to be
+re-examined was, criterion by criterion, and it does not hold — US-0079's story file carries the
+table. In short: every criterion needs tick arithmetic, `Net.player_count()`, the already-built
+`ScoreEvent` multiplier or the already-M5 results screen, and the one real coupling is the
+COUNTDOWN **trigger**, which a minimum-player rule satisfies and the lobby later replaces.
+
+**US-0098 DID NOT MOVE WITH IT, AND THAT IS THE HALF THIS ADR SHOULD BE READ FOR.** The gate
+named four blockers and the **lobby is one of them**. Moving the match makes a match *playable*
+at M5; it does not make the formal playtest runnable, because that was never blocked on the
+match alone. Whether US-0098 can run on the direct-IP launch instead of a lobby is a separate
+decision and is still open.
+
+## The question as it was priced
 
 **Moving `SYS-MATCH` (US-0079) from M6 to M5 would let the first playtest run a milestone
 earlier**, and it is the only single-story lever that does. M5 already ships scoring (US-0064),

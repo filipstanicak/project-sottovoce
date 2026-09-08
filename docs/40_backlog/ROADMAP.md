@@ -47,11 +47,11 @@ gantt
 | **M2** Net | 3 clients + headless server, replicated movement, prediction & interpolation, join/leave stable | US-0025–0038 | `RISK-NETCODE`, `RISK-BANDWIDTH` |
 | **M3** Crowd | 80 NPCs with clones, blend groups, startle/gawk, ≤ 2 ms/frame | US-0039–0048 | `RISK-CROWD-PERF`, `RISK-ANONYMITY-LEAK`, `RISK-ANIM-SCOPE` |
 | **M4** The Loop | Contracts, compass, suspicion, kill, stun, respawn — ~~**the game is playable end-to-end**~~ **the loop RESOLVES end-to-end on the server; no player can perceive any of it** | US-0049–0063 | `RISK-NOT-FUN-SOLO` — **not measurable until M6, see US-0063** |
-| **M5** Depth | **3 abilities** (`ABIL-WHISPERBOLT` deferred 2026-08-27 to pay for escape — `SCOPE_FENCE.md` OUT #18), scoring with all bonuses, **the escape verb**, HUD, results screen, audio events | US-0064–0077 less US-0068, US-0097 | — |
-| **M6** Playable MVP | Lobby, 8-min match flow, balance pass 1, **the first human playtest (US-0098, split out of the M4 gate by ADR-0016)**, **3 external playtests completed and logged** | US-0078–0088, US-0098 | `RISK-POPULATION`, `RISK-BALANCE-UNFALSIFIABLE`, **`RISK-NOT-FUN-SOLO` — moved here from M4** |
+| **M5** Depth | **3 abilities** (`ABIL-WHISPERBOLT` deferred 2026-08-27 to pay for escape — `SCOPE_FENCE.md` OUT #18), scoring with all bonuses, **the escape verb**, HUD, results screen, audio events, **the match state machine (US-0079, moved from M6 on 2026-09-08)** | US-0064–0077 less US-0068, plus US-0079, US-0097 | — |
+| **M6** Playable MVP | Lobby, balance pass 1, **the first human playtest (US-0098, split out of the M4 gate by ADR-0016)**, **3 external playtests completed and logged** | US-0078, US-0080–0088, US-0098 | `RISK-POPULATION`, `RISK-BALANCE-UNFALSIFIABLE`, **`RISK-NOT-FUN-SOLO` — moved here from M4** |
 
 > **THE M4 ROW'S ORIGINAL WORDING WAS NEVER TRUE OF M4'S STORY LIST, AND THE M4 GATE IS WHAT
-> FOUND IT (2026-08-27).** *"Playable end-to-end"* requires a match (`SYS-MATCH`, US-0079, **M6**),
+> FOUND IT (2026-08-27).** *"Playable end-to-end"* requires a match (`SYS-MATCH`, US-0079, **M6 when this was written; M5 since 2026-09-08**),
 > a lobby (US-0078, M6), a HUD (US-0072/0073, M5) and a score (US-0064/0074, M5). US-0049–0063
 > contains none of them. So **six of US-0063's ten criteria cannot be run at M4 by construction**,
 > and two more need telemetry that does not exist — 28 of GDD-07 §8's 29 events have no emitter.
@@ -68,8 +68,11 @@ gantt
 >
 > **The cost is recorded rather than softened**: `RISK-NOT-FUN-SOLO` is first measurable at M6, two
 > milestones later than planned. **Nothing downstream is blocked** — M5 is the work that unblocks
-> the playtest either way. ADR-0016 prices one lever that would pull it earlier: moving `SYS-MATCH`
-> (US-0079) to M5, where the results screen (US-0077) already sits without a match to end.
+> the playtest either way. **That lever was pulled on 2026-09-08**: `SYS-MATCH` (US-0079) is M5, where the
+> results screen (US-0077) already sat without a match to end. **The playtest itself has NOT
+> moved** — the gate named four blockers and the **lobby** (US-0078) is still M6, so a match
+> becomes playable at M5 while US-0098 stays where ADR-0016 put it. Whether a playtest can run
+> on the direct-IP launch rather than a lobby is a separate decision and is open.
 
 Each milestone ends with an explicit **gate story** — US-0038, US-0048, US-0063, US-0088 — so the
 exit criterion is somebody's named deliverable rather than a shared assumption.
@@ -586,7 +589,7 @@ interact with them beyond collision.
 end-to-end**~~ **the loop RESOLVES end-to-end on the server. COMPLETE 2026-08-27.**
 
 > **THE ORIGINAL EXIT WORDING WAS NEVER TRUE OF M4'S STORY LIST**, and running the gate is what
-> found it — see §6.1. *Playable end-to-end* needs a match (US-0079, M6), a lobby (US-0078, M6), a
+> found it — see §6.1. *Playable end-to-end* needs a match (US-0079, **M5 since 2026-09-08**), a lobby (US-0078, M6), a
 > HUD (US-0072/0073, M5) and a score (US-0064/0074, M5); US-0049–0063 contains none of them.
 
 | Delivers | |
@@ -655,7 +658,7 @@ the reader should see what moved:
 |---|---|---|
 | **The turn** — mean speed drops between minute 1 and minute 4 | Flat. The most serious possible finding | **`TEL-MEAN-SPEED` has no emitter** — 28 of GDD-07 §8's 29 events do not. So the turn is *unmeasured*, not flat |
 | Playtest Q7 "did you understand why you died?" | Below 4/5 | No HUD, no marker, no feed, no clips. **It would score near zero and the number would be quoted later** |
-| Playtest Q12 "would you play again tonight?" | Below 70 % | No match to finish (US-0079, M6) |
+| Playtest Q12 "would you play again tonight?" | Below 70 % | No match to finish — **US-0079 moved to M5 on 2026-09-08, so this is answerable a milestone earlier than the gate assumed** |
 | Q5 rated **below** Q4 | Inverted — the emotional design is wrong | Same |
 | `TEL-FIRST-CONTACT-OUTCOME` | Above 40 % correct identification | **No emitter** |
 
@@ -722,7 +725,7 @@ logged**.
 | Delivers | |
 |---|---|
 | Lobby: direct IP, ready-up, persona + loadout selection, loadout lock | |
-| The full match state machine including Final Contract | **US-0079. ADR-0016 asks whether it belongs at M5**: M5 ships a *results screen* (US-0077) and nothing can open one without a match end, and moving it is the only single-story lever that pulls the first playtest a milestone earlier. Not decided |
+| The full match state machine including Final Contract | **US-0079, and it IS M5 as of 2026-09-08.** The stated dependency on the lobby was re-examined rather than assumed and does not hold: every one of the story's criteria needs tick arithmetic, `Net.player_count()`, the already-built `ScoreEvent` multiplier or the already-M5 results screen, and the one real coupling — the COUNTDOWN trigger — is satisfied by a minimum-player rule the lobby later replaces. **US-0098 did not move with it**; the lobby is still M6. Decided |
 | Telemetry sink; every `TEL-` event emitting | **28 of 29 have no emitter today** (US-0080). `--record` is parsed into `LaunchConfig.record_path` and read by nothing, while `playtests/README.md` tells a facilitator to use it |
 | Debug console + one-click 3-client playtest tool | |
 | Accessibility: four palettes, captions, hold/toggle, motion reduction | |
