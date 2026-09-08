@@ -25,7 +25,7 @@ func before_all() -> void:
 ## the navmesh and the lean spots both keep, so a 2.6 m wall holds bodies 3.4 m
 ## apart. Asking it the wrong way puts two walls on the list that do not belong.
 func _across(w: float, d: float) -> float:
-	return minf(w, d) + 2.0 * VetraioLayout.NAV_AGENT_RADIUS
+	return minf(w, d) + 2.0 * PawnNavigation.NAV_AGENT_RADIUS
 
 
 func test_no_building_mass_is_thin_enough_to_kill_through() -> void:

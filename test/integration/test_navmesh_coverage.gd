@@ -106,9 +106,9 @@ func test_the_bake_used_the_agent_dimensions_tdd_08_specifies() -> void:
 	# as 0.5 and the 1.8 m height as 2.0, and **only a warning says so**. The cell
 	# size divides both exactly, and this is where that stays true.
 	var mesh: NavigationMesh = load(NAVMESH)
-	assert_almost_eq(mesh.agent_radius, VetraioLayout.NAV_AGENT_RADIUS, 0.001)
-	assert_almost_eq(mesh.agent_height, VetraioLayout.NAV_AGENT_HEIGHT, 0.001)
-	assert_almost_eq(mesh.agent_max_slope, VetraioLayout.NAV_MAX_SLOPE, 0.001)
+	assert_almost_eq(mesh.agent_radius, PawnNavigation.NAV_AGENT_RADIUS, 0.001)
+	assert_almost_eq(mesh.agent_height, PawnNavigation.NAV_AGENT_HEIGHT, 0.001)
+	assert_almost_eq(mesh.agent_max_slope, PawnNavigation.NAV_MAX_SLOPE, 0.001)
 
 	var radius_cells := mesh.agent_radius / mesh.cell_size
 	var height_cells := mesh.agent_height / mesh.cell_height
@@ -131,7 +131,7 @@ func test_every_street_level_floor_is_covered() -> void:
 		var z0: float = floor_row[2]
 		# Inset by the agent radius: the mesh is legitimately inset from every
 		# wall, so sampling the exact edge would fail for a correct bake.
-		var inset := VetraioLayout.NAV_AGENT_RADIUS * 2.0
+		var inset := PawnNavigation.NAV_AGENT_RADIUS * 2.0
 		var x := x0 + inset
 		while x < x0 + float(floor_row[3]) - inset:
 			var z := z0 + inset

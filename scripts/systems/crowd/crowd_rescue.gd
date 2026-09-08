@@ -52,7 +52,7 @@ func sweep(pool: NpcPool, map: MapData) -> void:
 		return
 	for index: int in pool.active_count():
 		var body := pool.body_of(index)
-		if body == null or body.global_position.y > VetraioLayout.NAV_BAKE_FLOOR:
+		if body == null or body.global_position.y > PawnNavigation.NAV_BAKE_FLOOR:
 			continue
 		rescued += 1
 		var over := body.global_position

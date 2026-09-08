@@ -238,4 +238,4 @@ static func _capsule_of(body: CharacterBody3D) -> Vector2:
 		var capsule := shape.shape as CapsuleShape3D
 		if capsule != null:
 			return Vector2(capsule.radius, capsule.height)
-	return Vector2(VetraioLayout.NAV_AGENT_RADIUS, VetraioLayout.NAV_AGENT_HEIGHT)
+	return Vector2(PawnNavigation.NAV_AGENT_RADIUS, PawnNavigation.NAV_AGENT_HEIGHT)

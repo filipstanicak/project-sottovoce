@@ -134,8 +134,8 @@ static func stall_lean_points() -> Array:
 	for s: Array in VetraioLayout.STALLS:
 		var x := float(s[1]) + float(s[3]) * 0.5
 		var sides := {
-			"LeanN": float(s[2]) - VetraioLayout.NAV_AGENT_RADIUS,
-			"LeanS": float(s[2]) + float(s[4]) + VetraioLayout.NAV_AGENT_RADIUS,
+			"LeanN": float(s[2]) - PawnNavigation.NAV_AGENT_RADIUS,
+			"LeanS": float(s[2]) + float(s[4]) + PawnNavigation.NAV_AGENT_RADIUS,
 		}
 		for suffix: String in sides:
 			var at := Vector2(x, float(sides[suffix]))
@@ -250,7 +250,7 @@ static func is_standable(at: Vector2) -> bool:
 static func _is_usable(at: Vector2) -> bool:
 	if not on_a_floor(at):
 		return false
-	var clearance := VetraioLayout.NAV_AGENT_RADIUS
+	var clearance := PawnNavigation.NAV_AGENT_RADIUS
 	for row: Array in VetraioLayout.BLOCKS:
 		if _grown(row, clearance).has_point(at):
 			return false
