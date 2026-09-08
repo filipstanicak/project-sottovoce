@@ -20,6 +20,11 @@
 class_name MatchAnnouncer
 extends RefCounted
 
+## **HOW MANY TIMES THE RESULTS WENT OUT.** Diagnostics, and one assertion: a match
+## ends exactly once, and a second send would mean two screens' worth of the same
+## bytes. Nothing reads it to make a decision.
+var results_sent: int = 0
+
 var _ctx: MatchContext
 
 ## How far into `ScoreLog` this has already sent. **An index, not an event id**,
@@ -193,6 +198,51 @@ func flush_score(_ctx_in: MatchContext = null, _dt: float = 0.0) -> void:
 		Net.events.send_score(
 			peer, event, _ctx.slots.slot_of(peer), _ctx.slots.slot_of(event.subject_id)
 		)
+
+
+## **THE MATCH IS OVER AND EVERY PLAYER IS TOLD EVERYTHING.** `NET-S2C-MATCH-END`,
+## US-0077. Sent once, on the transition into `RESULTS`.
+##
+## **THIS IS THE ONE MESSAGE IN THIS CLASS WHOSE RECIPIENT LIST IS EVERYBODY, AND
+## THE ONE WHOSE PAYLOAD WITHHOLDS NOTHING.** Every other method here exists to keep
+## somebody uninformed — the prey warning that must not reach the pursuer, the stun
+## refusal that must not name a suspicion, the score row that reaches its actor
+## alone. Never-do #12 is about converting an **earned inference into a given fact**
+## while the match is running; when it is over there is no inference left to earn,
+## and US-0077 asks in as many words for every player's breakdown, their kit and who
+## killed you.
+##
+## **PACKED ONCE FOR EVERYBODY**, because for the first time in this protocol the
+## bytes are identical for every recipient: the results screen is the same screen.
+func match_ended(loadouts: Dictionary) -> PackedByteArray:
+	var payload := results_payload(loadouts)
+	results_sent += 1
+	Net.events.send_match_end(_ctx.slots.peers(), payload)
+	return payload
+
+
+## **THE PAYLOAD, SEPARATED FROM THE SEND FOR THE REASON EVERY RULE IN THIS PROJECT
+## IS SEPARATED FROM THE SYSTEM THAT RUNS IT**: the decision is the part that can be
+## wrong in an interesting way, and `Net.events.send_match_end` returns early with no
+## socket — so a test that only called `match_ended` would assert over nothing. This
+## is what `test_match_end_wire.gd` folds.
+func results_payload(loadouts: Dictionary) -> PackedByteArray:
+	var anonymous: Dictionary = {}
+	var kits: Dictionary = {}
+	for peer: int in _ctx.slots.peers():
+		var slot := _ctx.slots.slot_of(peer)
+		anonymous[slot] = _ctx.score_windows.anonymous_ticks(peer)
+		kits[slot] = loadouts.get(peer, [])
+	return MatchEndWire.pack(
+		anonymous, kits, _ctx.score.events(), func(peer: int) -> int: return _slot_or_zero(peer)
+	)
+
+
+## **A SLOT, OR ZERO FOR NOBODY.** `ScoreEvent.subject_id` is 0 for an award earned
+## against nobody, and a departed player has no slot at all — both must decode as
+## "no such player" rather than as slot 0, who is a real person.
+func _slot_or_zero(peer: int) -> int:
+	return _ctx.slots.slot_of(peer) if _ctx.slots.has_peer(peer) else 0
 
 
 ## **WHO HEARS ONE SCORE EVENT, AS A FUNCTION RATHER THAN AS A LOOP BODY.** Zero

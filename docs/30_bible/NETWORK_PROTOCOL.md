@@ -71,7 +71,7 @@ otherwise.
 | `NET-C2S-INPUT` | S | Unrel | **60 Hz** | `seq:u16`, `move:2×i8`, `yaw:u8`, `pitch:i8`, `buttons:u16`, `acked_tick:u16` — **hand-packed, 12 B; see §2.3** | Sender owns a living pawn. `seq` newer than last processed. **Applies to the sender's pawn, looked up from the peer id — never from the payload** |
 | `NET-C2S-ABILITY-REQUEST` | E | Rel | on demand | `slot:u8`, `aim_origin:3×f32`, `aim_dir:3×f32` | Slot equipped; cooldown expired **on the server**; GCD respected; aim **clamped** server-side |
 | `NET-C2S-BLEND-REQUEST` | E | Rel | on demand | `target_id:u16` | Target exists, within join radius, has capacity |
-| `NET-C2S-SKIP-RESULTS` | X | Rel | once | — | Phase == RESULTS. Skip requires **unanimous** consent |
+| `NET-C2S-SKIP-RESULTS` | X | Rel | once | — | Phase == RESULTS. Skip requires **unanimous** consent. **NOT BUILT**: it needs a C2S doorway on the `EVENT` channel and `net.gd` is at 398 of its 400 lines |
 | `NET-C2S-PING` | S | Unrel | 1 Hz | `client_time:u32` | None needed — echo only |
 
 ### 2.1 What is absent, and why that is the point
@@ -145,7 +145,7 @@ frame, absorbed silently by the reconciler.
 | `NET-S2C-PREY-WARNING` | E | Rel | on event | `bearing:u8`, `bucket:u8`. **Sent to the prey alone. Built US-0059.** **Amended 2026-08-26 (ADR-0013)** from `tick:u32` only: the reference marks a revealed pursuer with direction and range, so this does too. The bearing is a **world** angle at `Quantise.YAW_STEP` — the same precision the hunter's own Compass rides at, because one ring must have one rule — with `TUN-COMPASS-CONE-WOBBLE` already applied server-side. The bucket is `Quantise.BUCKET_STEP`. **The tick is gone rather than kept**: a reliable on-event message needs no stamp for a 1.2 s flash, and a third field is the one this row exists to refuse. See §5 |
 | `NET-S2C-SCORE-EVENT` | E | Rel | on event | `event_id:u32`, `tick:u32`, `kind:u8`, `actor:u8`, `subject:u8`, `base:i16`, `mult:u8`, `group:u16` — **sixteen bytes, hand-packed. Built US-0074**, `ScoreWire`. **Sent to `ScoreEvent.actor_id` and to nobody else**: the recipient is a field of the event rather than a list a caller assembles, which is what makes never-do #12's "no global kill feed" structural instead of remembered. `actor` is therefore redundant by construction and is sent anyway, because narrowing a merged row is the owner's call. `kind` indexes `ScoreKinds.ALL`, which is **append-only** — reordering it renames every bonus in the feed at once with nothing failing. **`SCORE-DEATH` is never sent**: it pays nothing, and it is the only kind whose `subject` names somebody the recipient has not earned, since `ScoreLog.mark_death` records the victim as actor and the killer as subject. Every kind that *is* sent has a subject the recipient already knows |
 | `NET-S2C-PHASE-CHANGED` | E | Rel | on change | `phase:u8`, `tick:u32`, `multiplier:u8` |
-| `NET-S2C-MATCH-END` | E | Rel | once | Full `ScoreEvent` log (~24 KB) for the results fold |
+| `NET-S2C-MATCH-END` | E | Rel | once | Full `ScoreEvent` log for the results fold, plus each slot's kit and its ticks spent Anonymous. **BUILT 2026-09-08** — `MatchEndWire`, and §4.2 is why it is the one message that withholds nothing |
 | `NET-S2C-PLAYER-JOINED` | X | Rel | on change | `peer_id:u8`, `persona:u8` |
 | `NET-S2C-PLAYER-LEFT` | X | Rel | on change | `peer_id:u8`, `persona:u8` |
 | `NET-S2C-PONG` | S | Unrel | 1 Hz | `client_time:u32`, `server_tick:u32` |
@@ -270,6 +270,31 @@ while scoring paid 1.5 — a screen that disagrees with the points. Widening it 
 and the format was frozen against pre-split bytes on 2026-09-08 (PR #214), so
 `test_the_announced_multiplier_is_the_one_that_pays` goes red on the day the value stops being a
 whole number rather than on the day somebody notices.
+
+---
+
+### 4.2 `NET-S2C-MATCH-END`, the one message that withholds nothing
+
+**EVERY OTHER MESSAGE IN THIS CATALOGUE IS BUILT AROUND WITHHOLDING.** A kill result reaches
+two players, a score event reaches its actor alone, a prey warning carries a bearing and never a
+name, and the snapshot has no field anywhere for another player's suspicion. Never-do #12 is the
+reason: a global feed converts an **earned inference into a given fact**.
+
+**THAT RULE IS ABOUT A MATCH IN PROGRESS, AND THIS MESSAGE IS SENT WHEN THERE IS NO INFERENCE
+LEFT TO EARN.** US-0077 asks for every player's breakdown, their kit and who killed you; GDD-04
+§5.1 makes kit-reading a skill *during* play and the results screen is where the answer is
+finally allowed. `SCORE-DEATH` travels here where the score feed deliberately withholds it.
+
+**THE FULL LOG TRAVELS RATHER THAN A SUMMARY**, so the placement and the per-bonus breakdown
+both come out of `ScoreFold` over one array and cannot disagree — US-0077's third criterion made
+structural. The row is `event_id:u32, tick:u32, kind:u8, actor:u8, subject:u8, base:i16,
+group:u16` — **fifteen bytes** — preceded by one `slot:u8, anonymous_ticks:u32, kit_len:u8` block
+per player. **The multiplier is absent on purpose**: `ScoreEvent` derives it from the tick, and
+two fields already here imply it.
+
+**A PAYLOAD WHOSE LENGTH DOES NOT ADD UP IS DROPPED WHOLE.** `StreamPeerBuffer` answers a read
+past the end with zero, so a partly-read log builds a scoreboard out of slot 0 scoring nothing
+— shown at the one moment players are reading the game's own account of what they just did.
 
 ---
 

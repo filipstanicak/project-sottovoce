@@ -66,6 +66,17 @@ func release(peer: int) -> void:
 	_slot_for.erase(peer)
 
 
+## Every peer holding a slot, in assignment order.
+##
+## **THE ONE HONEST ANSWER TO "WHO IS IN THIS MATCH".** A peer holds a slot from the
+## handshake to `release`, which is exactly the window in which a message addressed
+## to everybody should reach. `MatchContext.pawns` is the other candidate and is
+## subtly wrong: a player between death and respawn still has a slot and still wants
+## their results.
+func peers() -> Array:
+	return _slot_for.keys()
+
+
 func slot_of(peer: int) -> int:
 	return _slot_for.get(peer, NO_SLOT)
 

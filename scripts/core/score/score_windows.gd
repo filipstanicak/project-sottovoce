@@ -43,6 +43,42 @@ var _hunt_from: Dictionary = {}
 ## makes "and has not died since" true without a second field.
 var _killed_by: Dictionary = {}
 
+## Peer -> net ticks spent at `Tier.ANONYMOUS`, for the whole match.
+##
+## **THE CHEAPEST ONBOARDING FIX THIS DESIGN HAS, AND NOTHING WAS COUNTING IT.**
+## US-0077 asks the results screen for *time spent Anonymous per player, with the
+## winner's highlighted* — its own note calls that line the one place the invisible
+## skill becomes visible. There was no accumulator anywhere: not here, not on
+## `PawnContext`, not in the score log.
+##
+## **AND IT LIVES HERE RATHER THAN ON `PawnContext` FOR THE REASON THIS PROJECT HAS
+## NOW RECORDED FOUR TIMES.** That object is replayed during prediction
+## reconciliation, so a client replaying twenty commands would add twenty ticks of
+## patience a player never spent — the suspicion impulse queue, the patient speed
+## ring and the ability cooldowns each learned this separately.
+##
+## **NOT RESET BY DEATH.** Every other window here is about one life; this is a
+## match total, and a player who dies has still spent that time unseen.
+var _anonymous: Dictionary = {}
+
+# ----------------------------------------------------------- Anonymous ---
+
+
+## One tick of tier. **Counted on the pass that already computes it**, which is why
+## `SYS-SCORE` still does not exist as a stage: `SYS-SUSPICION` decides the tier and
+## samples the speed ring on the same line, so this costs no second pass and no
+## second reading of the same fact.
+func sample_tier(peer: int, tier: int) -> void:
+	if tier != SuspicionMath.Tier.ANONYMOUS:
+		return
+	_anonymous[peer] = int(_anonymous.get(peer, 0)) + 1
+
+
+## Net ticks this peer has spent Anonymous, for the whole match.
+func anonymous_ticks(peer: int) -> int:
+	return int(_anonymous.get(peer, 0))
+
+
 # ------------------------------------------------------------- Patient ---
 
 
@@ -157,6 +193,7 @@ func report_death(peer: int) -> void:
 
 
 func forget(peer: int) -> void:
+	_anonymous.erase(peer)
 	_speed.erase(peer)
 	_speed_at.erase(peer)
 	_focus.erase(peer)

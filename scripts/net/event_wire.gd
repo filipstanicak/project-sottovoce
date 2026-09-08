@@ -64,6 +64,11 @@ signal ability_denied(slot: int, why: int)
 ## for the Compass's yaw byte.
 signal score_reported(report: ScoreReport)
 
+## `NET-S2C-MATCH-END` arrived. CLIENT SIDE. The whole log, every kit and every
+## player's time spent Anonymous — see `MatchEndWire` for why this one message
+## withholds nothing where every other one withholds by design.
+signal match_ended(report: MatchEndReport)
+
 
 ## `NET-S2C-CONTRACT-ASSIGNED`. SERVER SIDE, **to the holder only**.
 ##
@@ -235,6 +240,39 @@ func send_score(peer: int, event: ScoreEvent, actor_slot: int, subject_slot: int
 	if not Net.is_server:
 		return
 	s2c_score_event.rpc_id(peer, ScoreWire.pack(event, actor_slot, subject_slot))
+
+
+## **`NET-S2C-MATCH-END` — THE ONLY MESSAGE ADDRESSED TO EVERYBODY WITH THE SAME
+## BYTES.** One pack, N sends: the payload is identical for every recipient because
+## the results screen is identical for every recipient, which is the first time in
+## this protocol that has been true. Packing it per peer would be the same ~24 KB
+## of work six times over to produce six identical arrays.
+func send_match_end(peers: Array, payload: PackedByteArray) -> void:
+	if not Net.is_server:
+		return
+	for peer: int in peers:
+		s2c_match_end.rpc_id(peer, payload)
+
+
+## `NET-S2C-MATCH-END`. CLIENT SIDE.
+##
+## **RELIABLE AND SENT ONCE, WHICH IS THE WHOLE RISK.** There is no later message
+## carrying this and no snapshot to reconcile against: a dropped packet is a
+## results screen that never appears, at the end of an eight-minute match. Losing
+## it is worse than losing any single score row, and it is the reason the catalogue
+## puts it on the `EVENT` channel rather than beside the snapshot.
+##
+## **A MALFORMED PAYLOAD IS DROPPED WHOLE.** `MatchEndWire.unpack` refuses a length
+## that does not add up rather than reading what it can — a partly-read log builds a
+## scoreboard the server never sent, at the one moment players are reading the
+## game's own account of what they just did.
+@rpc("authority", "call_remote", "reliable", Messages.Channel.EVENT)
+func s2c_match_end(payload: PackedByteArray) -> void:
+	var report := MatchEndWire.unpack(payload, Tuning.match_rules)
+	if report == null:
+		Log.error("malformed match-end payload: %d bytes" % payload.size(), &"net")
+		return
+	match_ended.emit(report)
 
 
 ## `NET-S2C-SCORE-EVENT`. CLIENT SIDE.

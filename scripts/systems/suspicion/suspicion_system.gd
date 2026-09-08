@@ -177,6 +177,8 @@ func _advance(peer: int, pawn: PawnContext, ctx: MatchContext, dt: float) -> voi
 	pawn.suspicion = s.value
 	pawn.tier = SuspicionMath.evaluate_tier(s.value, previous, t)
 	pawn.active_sources = SuspicionSources.of(s, t)
+	# One tick of patience, counted where the tier is decided. US-0077.
+	ctx.score_windows.sample_tier(peer, pawn.tier)
 	pawn.blend_state = blend.wire_kind(peer)
 	if pawn.tier != previous:
 		tier_changed.emit(peer, pawn.tier, pawn.active_sources)

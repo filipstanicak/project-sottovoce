@@ -87,6 +87,12 @@ func escaped(hunter: int, prey: int, close_call: bool) -> void:
 ## ABILITY'S HONEST COST.** GDD-04 §3.1: *"every NPC within 9 m runs"* — so
 ## Cinderfall buys line of sight at the price of telling everybody within 30 m
 ## roughly where you are. The radius is the caster's, not the violence default.
+func _announce_the_results() -> void:
+	if announcer == null:
+		return
+	announcer.match_ended(abilities.loadout if abilities != null else {})
+
+
 func ability_startled(at: Vector3, radius: float) -> void:
 	crowd.startle_at(at, radius)
 
@@ -124,6 +130,13 @@ func _charge_for_witnesses(killer: int, at: Vector3) -> void:
 func phase_changed(from: int, to: int, _ctx: MatchContext) -> void:
 	if router != null:
 		router.set_phase(to)
+	if to == MatchPhase.Phase.RESULTS:
+		# **THE RESULTS ARE SENT ON THE TRANSITION, NOT ON A TIMER.** There is exactly
+		# one way into `RESULTS` — `MatchSystem._enter` — whether the match ran out its
+		# clock or fell below the floor, so this fires once either way. A courier that
+		# watched the phase each tick would need a sent-already flag, which is the
+		# second copy of a fact the transition already carries.
+		_announce_the_results()
 	Log.info("phase %d -> %d" % [from, to], &"net")
 
 
