@@ -13,12 +13,8 @@
 ## traverses differently — so a sandbox built to reproduce a defect would quietly
 ## fail to reproduce it. One definition, and both maps get it.
 ##
-## **AND `NAV_AGENT_RADIUS` AND ITS SIBLINGS ARE IN THE WRONG CLASS**, which is
-## visible only now there are two maps: they describe the **pawn**, not the
-## district, and they sit in `VetraioLayout` because there was one map when they
-## were written. Read from there rather than moved — 22 references across 8 files
-## and no `TUN-` id among them, so it is a rename with no design content. Reported
-## in CLAUDE.md instead of folded into a map story.
+## PawnNavigation owns the shared dimensions and bake limits. It has no autoload
+## dependency, so both SceneTree generators can load it before autoload registration.
 class_name MapBuild
 extends RefCounted
 
@@ -99,12 +95,12 @@ static func navmesh_settings(extent: float) -> NavigationMesh:
 	# **CELL SIZE FIRST.** The agent dimensions are quantised against it — and
 	# **ceiled** — so assigning them the other way round quantises against Godot's
 	# default 0.25 and bakes a 0.4 m radius as 0.5. Only a warning says so.
-	mesh.cell_size = VetraioLayout.NAV_CELL_SIZE
-	mesh.cell_height = VetraioLayout.NAV_CELL_HEIGHT
-	mesh.agent_radius = VetraioLayout.NAV_AGENT_RADIUS
-	mesh.agent_height = VetraioLayout.NAV_AGENT_HEIGHT
-	mesh.agent_max_slope = VetraioLayout.NAV_MAX_SLOPE
-	mesh.agent_max_climb = VetraioLayout.NAV_MAX_CLIMB
+	mesh.cell_size = PawnNavigation.NAV_CELL_SIZE
+	mesh.cell_height = PawnNavigation.NAV_CELL_HEIGHT
+	mesh.agent_radius = PawnNavigation.NAV_AGENT_RADIUS
+	mesh.agent_height = PawnNavigation.NAV_AGENT_HEIGHT
+	mesh.agent_max_slope = PawnNavigation.NAV_MAX_SLOPE
+	mesh.agent_max_climb = PawnNavigation.NAV_MAX_CLIMB
 	mesh.geometry_parsed_geometry_type = NavigationMesh.PARSED_GEOMETRY_STATIC_COLLIDERS
 
 	# **THE STREET STRATUM AND NOTHING ABOVE IT.** Roofs, balconies and anything else
@@ -112,10 +108,10 @@ static func navmesh_settings(extent: float) -> NavigationMesh:
 	# by being carved out afterwards — a filter that runs second can be forgotten. A
 	# canal has no floor to bake in the first place.
 	mesh.filter_baking_aabb = AABB(
-		Vector3(-1.0, VetraioLayout.NAV_BAKE_FLOOR, -1.0),
+		Vector3(-1.0, PawnNavigation.NAV_BAKE_FLOOR, -1.0),
 		Vector3(
 			extent + 2.0,
-			VetraioLayout.NAV_BAKE_CEILING - VetraioLayout.NAV_BAKE_FLOOR,
+			PawnNavigation.NAV_BAKE_CEILING - PawnNavigation.NAV_BAKE_FLOOR,
 			extent + 2.0
 		)
 	)

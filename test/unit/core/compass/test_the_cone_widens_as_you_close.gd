@@ -19,7 +19,7 @@ extends GutTest
 ## Two agent radii — the ground a single body stands on. `VetraioLayout` owns it
 ## because the navmesh is eroded by it, so it is the game's own answer to "how
 ## wide is a person" rather than a number chosen here.
-const BODY_WIDTH := VetraioLayout.NAV_AGENT_RADIUS * 2.0
+const BODY_WIDTH := PawnNavigation.NAV_AGENT_RADIUS * 2.0
 
 var _t: CompassTuning
 

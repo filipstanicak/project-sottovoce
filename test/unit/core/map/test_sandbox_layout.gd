@@ -80,7 +80,7 @@ func test_the_nook_has_a_mouth_wide_enough_to_walk_through() -> void:
 	var mouth: float = SandboxLayout.MAP_SIZE - (float(wall[1]) + float(wall[3]))
 	assert_gt(
 		mouth,
-		VetraioLayout.NAV_AGENT_RADIUS * 2.0,
+		PawnNavigation.NAV_AGENT_RADIUS * 2.0,
 		"the nook's mouth is %.2f m — narrower than a body" % mouth
 	)
 	# And the inside of it is standable, or the mouth opens onto nothing.

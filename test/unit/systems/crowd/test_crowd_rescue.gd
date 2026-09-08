@@ -36,7 +36,7 @@ func test_a_crowd_standing_on_the_street_is_left_alone() -> void:
 
 func test_a_body_below_the_world_is_put_back_and_counted() -> void:
 	var body := _pool.body_of(0)
-	body.global_position = Vector3(101.0, VetraioLayout.NAV_BAKE_FLOOR - 200.0, 62.0)
+	body.global_position = Vector3(101.0, PawnNavigation.NAV_BAKE_FLOOR - 200.0, 62.0)
 	body.velocity = Vector3(0.0, -63.0, 0.0)
 
 	_rescue.sweep(_pool, _map)
@@ -44,7 +44,7 @@ func test_a_body_below_the_world_is_put_back_and_counted() -> void:
 	assert_eq(_rescue.rescued, 1, "a body 200 m under the district was left falling")
 	assert_gt(
 		body.global_position.y,
-		VetraioLayout.NAV_BAKE_FLOOR,
+		PawnNavigation.NAV_BAKE_FLOOR,
 		"the body was counted as rescued and left where it was"
 	)
 	assert_eq(body.velocity, Vector3.ZERO, "it was put back still falling, so it falls again")
@@ -70,7 +70,7 @@ func test_it_is_put_back_on_a_map_anchor() -> void:
 ## moves its ground carries this with it rather than needing a second number.
 func test_the_floor_is_the_bakes_own() -> void:
 	var body := _pool.body_of(2)
-	body.global_position = Vector3(60.0, VetraioLayout.NAV_BAKE_FLOOR + 0.5, 45.0)
+	body.global_position = Vector3(60.0, PawnNavigation.NAV_BAKE_FLOOR + 0.5, 45.0)
 	_rescue.sweep(_pool, _map)
 	assert_eq(_rescue.rescued, 0, "a body above the bake floor was rescued anyway")
 

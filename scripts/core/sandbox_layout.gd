@@ -106,7 +106,7 @@ static func anchors() -> Array[Vector3]:
 ## clear of every solid. The same question `VetraioGround.is_standable` answers for
 ## the district, asked of a table this one can hold in one screen.
 static func is_standable(point: Vector2) -> bool:
-	var r := VetraioLayout.NAV_AGENT_RADIUS
+	var r := PawnNavigation.NAV_AGENT_RADIUS
 	if point.x < r or point.y < r or point.x > MAP_SIZE - r or point.y > MAP_SIZE - r:
 		return false
 	for b: Array in BLOCKS:

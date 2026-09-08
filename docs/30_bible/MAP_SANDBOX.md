@@ -137,7 +137,8 @@ Then run `test/unit/core/map/test_sandbox_layout.gd`, which compares the generat
 `MapData` against the table — that is what goes red when the two drift — and look
 at the result with `map_probe`.
 
-**The navmesh bake settings are `MapBuild`'s and are shared with the district on
+**The navmesh bake constants belong to `PawnNavigation`; `MapBuild` applies them on
+both maps. They are shared with the district on
 purpose.** A bench baked with a different agent radius, cell size or climb height
 is a bench the pawn traverses differently, so a defect reproduced on it would not
 be the defect.
