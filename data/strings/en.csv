@@ -1,6 +1,8 @@
 keys,en
 ui.compass.label,Compass
 ui.contract.unknown,Unknown
+ui.contract.label,Contract
+ui.contract.identified,Identified
 ui.score.label,Score
 ui.tier.anonymous,Anonymous
 ui.tier.noticed,Noticed

@@ -30,9 +30,11 @@ var chase_vm := ChaseVm.new()
 
 var _bridge: HudBridge = null
 var _widgets: Array[Control] = []
+var _frame: Control = null
 
 
 func _ready() -> void:
+	_build_frame()
 	if not camera_path.is_empty():
 		camera = get_node_or_null(camera_path) as Node3D
 	if palette == null:
@@ -115,4 +117,26 @@ func _add(widget: Control, widget_name: String) -> void:
 	widget.name = widget_name
 	widget.set("palette", palette)
 	_widgets.append(widget)
-	add_child(widget)
+	if widget is VignetteWidget:
+		add_child(widget)
+		move_child(widget, 0)
+	else:
+		_frame.add_child(widget)
+
+
+## UI_UX_SPEC section 1: instruments stay in a centred 16:9 band on ultrawide.
+## The vignette belongs to the screen edges and deliberately stays outside it.
+func _build_frame() -> void:
+	_frame = Control.new()
+	_frame.name = "InstrumentFrame"
+	_frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_frame)
+	get_viewport().size_changed.connect(_layout_frame)
+	_layout_frame()
+
+
+func _layout_frame() -> void:
+	var extent := get_viewport().get_visible_rect().size
+	var width := minf(extent.x, extent.y * 16.0 / 9.0)
+	_frame.position = Vector2((extent.x - width) * 0.5, 0.0)
+	_frame.size = Vector2(width, extent.y)

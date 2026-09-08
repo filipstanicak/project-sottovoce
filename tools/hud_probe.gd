@@ -28,10 +28,10 @@ extends Node
 
 const CLIENT := "res://scenes/client_root.tscn"
 
-## Frames to settle between states. The vignette fades over
+## Seconds to settle between states. The vignette fades over
 ## `TUN-UI-DAMAGE-VIGNETTE-TIME`, so a capture taken on the next frame would show
 ## it part-way up and read as a rendering fault rather than as a design.
-const SETTLE := 90
+const SETTLE := 1.5
 
 var _root: Node = null
 var _hud: Node = null
@@ -71,6 +71,7 @@ func _run() -> void:
 	await _capture_every_state()
 	await _capture_the_chase()
 	await _capture_the_score_feed()
+	await _capture_readability_edges()
 	_report()
 	get_tree().quit()
 
@@ -94,15 +95,18 @@ func _report() -> void:
 
 ## One scripted state: set it, let it settle, capture it.
 ## **`settle` IS OVERRIDABLE FOR ONE REASON: A TRANSIENT CANNOT BE CAUGHT AT
-## 1.5 s.** Ninety frames is right for a state — it makes a capture reproducible —
+## 1.5 s.** Elapsed display time makes the capture independent of the frame rate,
 ## and it is exactly wrong for the chase pulse, which lasts `ChaseVm.FLASH_SECONDS`
 ## 0.45 s and would have decayed to nothing by then. Capturing it at the default
 ## and captioning it as a pulse would be an instrument wrong in a plausible
 ## direction, which is worse than no instrument.
-func _state(id: String, expect: String, setup: Callable, settle: int = SETTLE) -> void:
+func _state(id: String, expect: String, setup: Callable, settle: float = SETTLE) -> void:
 	setup.call()
-	for _i: int in settle:
+	var elapsed := 0.0
+	while elapsed < settle:
 		await get_tree().process_frame
+		elapsed += get_process_delta_time()
+	await RenderingServer.frame_post_draw
 	var path := "user://hud_%s.png" % id
 	get_tree().root.get_texture().get_image().save_png(path)
 	_shots.append("%s — %s" % [ProjectSettings.globalize_path(path), expect])
@@ -119,7 +123,7 @@ func _bus(tier: int, sources: int, bucket: int, lock: float, kill: bool, stun: b
 
 func _names(hud: Node) -> String:
 	var out: PackedStringArray = []
-	for child: Node in hud.get_children():
+	for child: Node in hud.get_node("InstrumentFrame").get_children():
 		out.append(child.name)
 	return ", ".join(out)
 
@@ -182,7 +186,7 @@ func _capture_the_loud_states() -> void:
 	await _capture_cone_diagnostics()
 	await _state(
 		"06_portrait_revealed",
-		"Portrait no longer says Unknown. It shows THAT you know, not WHO — ASM-0030.",
+		"Contract top-left: completed-lock symbol and Identified. No persona is invented.",
 		func() -> void: EventBus.contract_portrait_revealed.emit(&"")
 	)
 
@@ -274,13 +278,13 @@ func _capture_the_chase() -> void:
 		"16b_chase_reacquired",
 		"The SAME inner arc, visibly THICKER: the pulse on being seen again.",
 		func() -> void: EventBus.pursuit_changed.emit(0.0, 0.3),
-		1
+		0.03
 	)
 	await _state(
 		"16c_chase_pulse",
 		"Thicker still — full bar, freshly re-acquired. Compare against 16.",
 		func() -> void: EventBus.pursuit_changed.emit(0.0, 1.0),
-		12
+		0.10
 	)
 	await _state(
 		"17_chase_both",
@@ -299,17 +303,20 @@ func _capture_the_score_feed() -> void:
 	await _state(
 		"12_feed_building",
 		"ONE line so far: +100 Contract. The stack has not arrived yet.",
-		func() -> void: _kill_awards()
+		func() -> void: _kill_awards(),
+		0.06
 	)
 	await _state(
 		"13_feed_full",
 		"FOUR lines, right side above centre. Values in a straight column, names under them.",
-		func() -> void: pass
+		func() -> void: pass,
+		0.55
 	)
 	await _state(
 		"14_feed_penalty",
 		"A WARM plate on the negative line against neutral ones. Not a smaller positive.",
-		func() -> void: _penalty_awards()
+		func() -> void: _penalty_awards(),
+		0.25
 	)
 
 
@@ -339,3 +346,19 @@ func _kill_awards() -> void:
 func _penalty_awards() -> void:
 	EventBus.score_event_appended.emit(ScoreReport.new(Ids.SCORE_RECKLESS, 0, 8))
 	EventBus.score_event_appended.emit(ScoreReport.new(Ids.SCORE_DEATH, -50, 8))
+
+
+## Longest source list, then the actual debug toggle, so neither hides a HUD defect.
+func _capture_readability_edges() -> void:
+	await _state(
+		"18_all_sources",
+		"All five reasons fit on the tier plate; no text overflows into the world.",
+		func() -> void:
+			var all_sources := 0
+			for source: int in SuspicionSources.ALL:
+				all_sources |= source
+			EventBus.suspicion_tier_changed.emit(SuspicionMath.Tier.NOTICED, all_sources)
+	)
+	var toggle := _root.get_node("LocalPawnDriver/DebugOverlays") as DebugOverlays
+	await _state("19_debug_on", "Debug map clears the portrait.", toggle.toggle)
+	await _state("20_debug_off", "Player HUD restored, including untinted world.", toggle.toggle)

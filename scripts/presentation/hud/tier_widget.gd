@@ -19,13 +19,14 @@
 class_name TierWidget
 extends Control
 
-const MARGIN := Vector2(48.0, 40.0)
-const GLYPH_RADIUS := 9.0
+const MARGIN := Vector2(96.0, 160.0)
+const SIZE := Vector2(272.0, 112.0)
+const GLYPH_RADIUS := 12.0
 const GLYPH_WIDTH := 2.0
-const WORD_OFFSET := 20.0
-const LIST_OFFSET := 20.0
-const WORD_SIZE := 15
-const LIST_SIZE := 12
+const WORD_OFFSET := 48.0
+const LIST_OFFSET := 64.0
+const WORD_SIZE := 24
+const LIST_SIZE := 15
 
 ## `SuspicionSources` bit -> string key, in the order they are listed. **Order is
 ## fixed rather than bitfield order** so the line does not reshuffle itself
@@ -52,9 +53,12 @@ func _ready() -> void:
 	if palette == null:
 		palette = Palette.fallback()
 	_font = ThemeDB.fallback_font
-	set_anchors_preset(Control.PRESET_TOP_LEFT, true)
-	position = MARGIN
-	custom_minimum_size = Vector2(260.0, 64.0)
+	set_anchors_preset(Control.PRESET_BOTTOM_LEFT, true)
+	custom_minimum_size = SIZE
+	offset_left = MARGIN.x
+	offset_right = MARGIN.x + SIZE.x
+	offset_top = -MARGIN.y - SIZE.y
+	offset_bottom = -MARGIN.y
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	EventBus.suspicion_tier_changed.connect(_on_tier)
 
@@ -71,28 +75,30 @@ func _on_tier(tier: int, sources: int) -> void:
 
 
 func _draw() -> void:
+	draw_rect(Rect2(Vector2.ZERO, size), palette.plate, true)
 	var colour := palette.for_tier(_tier)
-	var centre := Vector2(GLYPH_RADIUS, GLYPH_RADIUS)
+	var centre := Vector2(24.0, 28.0)
 	_draw_glyph(centre, colour)
 	draw_string(
 		_font,
-		Vector2(WORD_OFFSET, GLYPH_RADIUS + 5.0),
+		Vector2(WORD_OFFSET, 36.0),
 		_word(),
 		HORIZONTAL_ALIGNMENT_LEFT,
 		-1,
 		WORD_SIZE,
-		colour
+		palette.text
 	)
 	var listed := _source_line()
 	if listed.is_empty():
 		return
-	draw_string(
+	draw_multiline_string(
 		_font,
-		Vector2(WORD_OFFSET, GLYPH_RADIUS + 5.0 + LIST_OFFSET),
+		Vector2(16.0, LIST_OFFSET),
 		listed,
 		HORIZONTAL_ALIGNMENT_LEFT,
-		-1,
+		SIZE.x - 32.0,
 		LIST_SIZE,
+		-1,
 		palette.text_dim
 	)
 

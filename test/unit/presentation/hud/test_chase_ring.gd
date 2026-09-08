@@ -80,6 +80,21 @@ func test_the_pulse_never_goes_negative() -> void:
 	assert_eq(_vm.flash(), 0.0)
 
 
+func test_ending_a_chase_invalidates_the_cached_drawing() -> void:
+	var ring := ChaseRingWidget.new()
+	ring.vm = _vm
+	add_child_autofree(ring)
+	watch_signals(_vm)
+	_vm.apply(0.8, 0.3)
+	_vm.advance(ChaseVm.FLASH_SECONDS)
+	_vm.apply(0.0, 0.0)
+	assert_signal_emit_count(_vm, "changed", 2)
+	assert_true(_vm.changed.is_connected(ring.queue_redraw), "quiet leaves stale arcs on screen")
+	assert_true(_vm.is_quiet())
+	_vm.apply(0.0, 0.0)
+	assert_signal_emit_count(_vm, "changed", 2, "an unchanged quiet state causes work")
+
+
 # --- the bridge -----------------------------------------------------------
 
 

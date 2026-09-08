@@ -9,7 +9,7 @@
 ## `NET-S2C-*` carries no persona for the contract and must not: ASM-0030 says a
 ## client learns its contract's appearance by **looking**, and the whole lock
 ## exists to make that looking cost something. So the widget can say *revealed*
-## and cannot say *Vetraio*.
+## and cannot name a persona. A completed-lock status replaces the former empty box.
 ##
 ## **THE HONEST FIX IS A MESH, NOT A FIELD.** Once the lock completes the client
 ## already knows which body it locked, and the persona is readable from the pawn it
@@ -20,10 +20,10 @@
 class_name PortraitWidget
 extends Control
 
-const SIZE := Vector2(84.0, 84.0)
-const MARGIN := Vector2(48.0, 48.0)
+const SIZE := Vector2(180.0, 220.0)
+const MARGIN := Vector2(96.0, 56.0)
 const FRAME_WIDTH := 1.5
-const LABEL_SIZE := 12
+const LABEL_SIZE := 19
 
 var palette: Palette = null
 
@@ -35,10 +35,10 @@ func _ready() -> void:
 	if palette == null:
 		palette = Palette.fallback()
 	_font = ThemeDB.fallback_font
-	set_anchors_preset(Control.PRESET_TOP_RIGHT, true)
+	set_anchors_preset(Control.PRESET_TOP_LEFT, true)
 	custom_minimum_size = SIZE
-	offset_left = -(SIZE.x + MARGIN.x)
-	offset_right = -MARGIN.x
+	offset_left = MARGIN.x
+	offset_right = MARGIN.x + SIZE.x
 	offset_top = MARGIN.y
 	offset_bottom = MARGIN.y + SIZE.y
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -74,20 +74,44 @@ func is_revealed() -> bool:
 
 func _draw() -> void:
 	draw_rect(Rect2(Vector2.ZERO, size), palette.plate, true)
-	draw_rect(Rect2(Vector2.ZERO, size), palette.text_dim, false, FRAME_WIDTH)
+	_caption(Strings.get_text(&"ui.contract.label"), 32.0, 15)
 	if _revealed:
+		_draw_identified()
 		return
-	# **`Unknown` IS A STRING TABLE KEY**, never a literal — never-do #10. The
-	# revealed state draws no word at all: it is waiting on a face, and a word
-	# saying "revealed" would be the HUD narrating itself.
-	var text := Strings.get_text(&"ui.contract.unknown")
-	var width := _font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, LABEL_SIZE).x
+	# A featureless bust communicates missing identity, never a guessed persona.
+	draw_circle(Vector2(90.0, 92.0), 22.0, palette.text_dim)
+	draw_style_box(_shoulders(), Rect2(46.0, 122.0, 88.0, 40.0))
+	_caption(Strings.get_text(&"ui.contract.unknown"), 196.0, LABEL_SIZE)
+
+
+func _caption(text: String, baseline: float, font_size: int) -> void:
 	draw_string(
 		_font,
-		Vector2((size.x - width) * 0.5, size.y * 0.5 + 4.0),
+		Vector2(8.0, baseline),
 		text,
-		HORIZONTAL_ALIGNMENT_LEFT,
-		-1,
-		LABEL_SIZE,
-		palette.text_dim
+		HORIZONTAL_ALIGNMENT_CENTER,
+		SIZE.x - 16.0,
+		font_size,
+		palette.text
 	)
+
+
+func _shoulders() -> StyleBoxFlat:
+	var shape := StyleBoxFlat.new()
+	shape.bg_color = palette.text_dim
+	shape.corner_radius_top_left = 32
+	shape.corner_radius_top_right = 32
+	return shape
+
+
+## The bridge supplies no persona yet. A completed lock is a fact we may show;
+## a face would be invented. This status does not complete US-0073's portrait.
+func _draw_identified() -> void:
+	draw_arc(Vector2(90.0, 112.0), 32.0, 0.0, TAU, 48, palette.text_dim, FRAME_WIDTH, true)
+	draw_polyline(
+		PackedVector2Array([Vector2(74.0, 112.0), Vector2(86.0, 124.0), Vector2(108.0, 100.0)]),
+		palette.text,
+		3.0,
+		true
+	)
+	_caption(Strings.get_text(&"ui.contract.identified"), 196.0, LABEL_SIZE)

@@ -22,21 +22,21 @@ extends Control
 ## From the right edge and above the vertical centre. Above rather than below
 ## because the crosshair, the ability slots and the tier block are all below it,
 ## and the feed must never be the thing under a player's aim.
-const MARGIN := Vector2(52.0, 40.0)
+const MARGIN := Vector2(112.0, 40.0)
 ## **THE BLOCK IS TALLER THAN ITS CONTENT, AND THE FIRST BUILD WAS NOT.** At 34 px
 ## a block was exactly as tall as the value plus the name, so consecutive blocks
 ## touched and four bonuses read as one eight-row ladder — and the penalty plate,
 ## which is padded, drew straight over the line above it. Found by looking at it.
-const BLOCK := Vector2(132.0, 48.0)
+const BLOCK := Vector2(240.0, 72.0)
 
 ## Value baseline, then name baseline, measured from the block's top. The plate is
 ## derived from the same two numbers rather than given its own, so it cannot grow
 ## past the block that owns it.
-const VALUE_BASE := 19.0
-const NAME_GAP := 15.0
+const VALUE_BASE := 28.0
+const NAME_GAP := 28.0
 
-const VALUE_SIZE := 19
-const NAME_SIZE := 13
+const VALUE_SIZE := 32
+const NAME_SIZE := 24
 
 ## UI_UX_SPEC §5: entry is *slide 16 px + fade over 0.15 s*, exit is *fade only
 ## over 0.3 s*. The slide is inward from the right, so a new line enters from the
@@ -51,11 +51,6 @@ const SLIDE := 16.0
 ## edge of legible at the fovea and gone in the periphery, and this element's whole
 ## requirement is to be read without being looked at.
 const PLATE_PAD := Vector2(9.0, 4.0)
-
-## The warm plate a penalty gets instead of the neutral one. Alpha rather than a
-## fifth palette entry, so a colourblind palette that changes `score_penalty`
-## changes both channels at once.
-const PENALTY_PLATE_ALPHA := 0.34
 
 var palette: Palette = null
 var vm: ScoreFeedVm = null
@@ -126,7 +121,7 @@ func _draw_line(line: ScoreFeedVm.Line, right: float, top: float) -> void:
 ## value stays dominant by **size**, which is a channel the palette cannot undo.
 func _plate_of(line: ScoreFeedVm.Line, fade: float) -> Color:
 	if line.penalty:
-		return Palette.with_alpha(palette.score_penalty, PENALTY_PLATE_ALPHA * fade)
+		return Palette.with_alpha(palette.penalty_plate, palette.penalty_plate.a * fade)
 	return Palette.with_alpha(palette.plate, palette.plate.a * fade)
 
 

@@ -130,6 +130,7 @@ Use this when you are about to modify code and need to know which document is au
 | [`ASSUMPTIONS.md`](00_meta/ASSUMPTIONS.md) | Every decision made in the absence of a stakeholder ruling, with rationale and revisit-by milestone. |
 | [`ASSET_LICENSES.md`](00_meta/ASSET_LICENSES.md) | Every third-party asset, its licence, and its attribution string. |
 | [`DECISION_LOG.md`](00_meta/DECISION_LOG.md) | Append-only one-line log of every decision; also the ADR index. |
+| [`LOCAL_AUDIT_2026-09-06.md`](00_meta/LOCAL_AUDIT_2026-09-06.md) | Local mechanics, assets and HUD audit; implemented readability changes, evidence and remaining work. |
 | [`COVERAGE_MATRIX.md`](00_meta/COVERAGE_MATRIX.md) | SYS-ID → GDD chapter → TDD chapter → stories → tests. Any gap is a documentation bug. |
 | [`adr/`](00_meta/adr/) | One file per architectural decision record. |
 
