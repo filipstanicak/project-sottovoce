@@ -248,6 +248,27 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 ---
 
 ## Where the work is right now
+### 2026-09-08 — the results reach the client, US-0077's server half
+
+**THE MATCH NOW ENDS AND EVERY PLAYER IS TOLD EVERYTHING.** `NET-S2C-MATCH-END`
+carries the whole `ScoreEvent` log, each slot's kit and each slot's ticks spent
+Anonymous, sent once on the transition into `RESULTS`. The client runs the same
+`ScoreFold` the server does, over the same events — so US-0077's third criterion
+(*the breakdown and the totals cannot disagree*) is structural rather than a
+promise.
+
+**AND THE ANONYMOUS TIME WAS COUNTED BY NOBODY.** The story calls that line the
+cheapest onboarding fix this design has; there was no accumulator anywhere.
+`ScoreWindows.sample_tier` rides the pass `SYS-SUSPICION` already makes.
+
+**Two criteria cannot be met by any amount of wire, and they are reported rather
+than worked around**: a player has **no persona server-side at all** (no lobby,
+`NET-C2S-LOADOUT` is US-0071's) and **there is no player name anywhere in this
+project**. Codex builds the screen in `scripts/presentation/`; `NET-C2S-SKIP-RESULTS`
+is deliberately not in this change.
+
+Local: unit 200 scripts / 1 714 tests / 1 706 passing / 30 487 assertions.
+
 ### 2026-09-08 — `SYS-MATCH` runs the clock, US-0079
 
 **THE SERVER HAS A LOBBY, A COUNTDOWN, AN EIGHT-MINUTE CLOCK AND A RESULTS
@@ -286,6 +307,75 @@ The owner's `project-sottovoce` checkout is not an agent working directory.
 
 *Updated 2026-08-27 (ADR-0016, the M4 gate). Keep this section current — it is the first thing a
 fresh session reads, and a stale one is worse than none.*
+
+## THE RESULTS TRAVEL, AND MY OWN FALSIFICATION LOOP LIED ABOUT THEM FIRST
+
+**FIVE PLANTED DEFECTS, AND THE FIRST RUN REPORTED FOUR OF THEM AS GREEN.** The
+plants were real and each one does redden the test that names it — by name and by
+number. What was wrong was the **loop**: it ran the whole unit suite and grepped
+`^- test_` for the failures, and that grep does not match what GUT prints for a
+single failing script inside a large run. Re-run one at a time against the suite
+that owns them, all five are red.
+
+**THAT IS THE INSTRUMENT-WRONG-IN-A-PLAUSIBLE-DIRECTION FINDING FOR THE SEVENTH
+TIME, AND THE FIRST TIME IT HAS BEEN THE *FALSIFICATION* ITSELF.** Every previous
+instance was a probe: the hud probe's camera, the cinderfall probe's frame count,
+the lunge probe's yaw, the ability probe's suspicion field, the guard that named
+the wrong tunable, the district map drawing the wrong district. This one was the
+thing that checks the checks — **so a hole it invents is a hole nobody can rule
+out except by re-measuring**, and I nearly reported four of them. *Falsify one
+plant at a time, against the suite that owns it.*
+
+**WHAT THE MESSAGE ACTUALLY CARRIES, AND WHY IT IS THE ONE THAT WITHHOLDS
+NOTHING.** Every other server-to-client message in this catalogue is built around
+never-do #12 — a kill result reaches two players, a score row reaches its actor
+alone, the snapshot has no field anywhere for another player's suspicion. That
+rule is about converting an **earned inference into a given fact while the match
+is running**; when it is over there is nothing left to earn, and US-0077 asks in
+as many words for every player's breakdown, their kit and who killed them.
+`SCORE-DEATH` travels here where the score feed deliberately withholds it, and
+that is criterion 5 rather than an oversight.
+
+**THE MULTIPLIER IS NOT ON THE WIRE, AND LEAVING IT OFF IS THE STRONGER CHOICE.**
+`ScoreEvent` has one constructor and it freezes `TUN-MATCH-FINALPHASE-MULT` from
+the event's own tick — which is exactly why no inconsistent event can be built
+(US-0064). A client rebuilding events from the log therefore reaches the same
+number the server paid, from the same `MatchTuning`, because the handshake refuses
+a peer whose profile hash differs. Sending it as well would be a second source of
+truth for a value two fields already imply.
+
+**AND `ScoreWire` ALREADY SOLVES THE `multiplier:u8` PROBLEM I REPORTED YESTERDAY,
+ONE FILE OVER.** The snapshot's `multiplier` is a whole number and cannot carry
+`TUN-MATCH-FINALPHASE-MULT`'s own 1.5–3.0 range; `ScoreWire.MULT_STEP` is **0.1**
+and has sent tenths since US-0074. So the fix is not a design question, it is a
+line — and the finding is now *the snapshot disagrees with the score row about how
+to encode one value*, which is a better statement of it than the one I filed.
+
+**TWO OF US-0077's CRITERIA CANNOT BE MET BY ANY AMOUNT OF WIRE.** *Each player's
+persona, loadout and passive*: **a player has no persona server-side at all** —
+`server_root._stand_the_crowd_up` says so in its own comment, because there is no
+lobby and every persona is therefore treated as in use — and nothing assigns a
+passive either. The **loadout** half is delivered and it is the placeholder kit,
+which is worth sending anyway: the field has to exist for a screen to be built
+against. And *your killers by name*: **there is no player name anywhere in this
+project** — no field, no protocol row, no lobby to type one into. A slot number is
+what a results screen can honestly draw today. Both are reported to the owner
+rather than faked.
+
+**THE ANONYMOUS CLOCK RIDES A PASS THAT ALREADY EXISTS, AND LIVES WHERE THE OTHER
+THREE LEARNED TO.** `SYS-SUSPICION` decides the tier and samples the patient speed
+ring on adjacent lines, so `ScoreWindows.sample_tier` costs no second pass. It is
+on `MatchContext` rather than `PawnContext` because that object is **replayed
+during prediction reconciliation** — a client replaying twenty commands would add
+twenty ticks of patience nobody spent. Fourth instance, after the suspicion
+impulse queue, the patient speed ring and the ability cooldowns.
+
+**AND THE HOP IS TESTED FROM BOTH SIDES, WHICH IS THIS PROJECT'S MOST EXPENSIVE
+RECURRING GAP.** `MatchEndWire` is proven against its own fixture and `MatchSystem`
+against its own; **neither runs the two together**, so a `phase_changed` handler
+that forgot its `RESULTS` branch would leave both green and the screen would simply
+never arrive. That is exactly what left `NET-C2S-ABILITY-REQUEST` with no caller
+under three completed stories and `ContractSystem.open` with none under five.
 
 ## `SYS-MATCH` EXISTS, AND THE PLACEHOLDER IT REPLACED HAD BEEN HIDING TWO THINGS
 
@@ -3080,7 +3170,7 @@ these numbers is what it is lives above, for the recent work, and in
 | | |
 |---|---|
 | CI | 7 jobs. **Running again as of 2026-08-07 after a two-day outage** — run `31200490320`, all seven green. The seven commits merged during the outage were never through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | **57 arch + 199 unit + 33 integration scripts**, holding 224 + 1702 + 243 tests and 1 285 + 30 448 + 679 assertions (all three measured 2026-09-08 on US-0079's tree; **the integration suite read 189.2 s**, up from 184.2, and it is over its own 180 s budget as it has been for three stories — the machine's own spread is 174.6-189.2 so no single reading is *the* figure. The three new unit scripts are US-0079's: `test_match_system.gd` drives the phase machine end to end and asks `ScoreEvent` what a kill on the tick `FINAL` opens is worth — two derivations of one instant, at the same moment; `test_the_score_origin_is_the_match_clock.gd` is the one that would have caught the defect, arranging a **boot** tick past the boundary and a **match** tick short of it; `test_the_match_clock_reaches_the_wire.gd` is the hop onto the format, which nothing had ever proven because nothing wrote the field. The one before them is `test_snapshot_wire_compatibility.gd`, which freezes the pre-split encoder's exact bytes — a symmetric writer/reader reorder passes a round trip and fails those. The earlier baseline carried BOTH #211 and #212 — neither PR's own row was right after the other landed, and `test_claude_md_counts_are_current.gd` is what said so; integration counts retained from 2026-09-05; the new unit script is `test_match_clock.gd`, whose last assertion is the one that matters: it sweeps twenty profiles to prove the tick `MatchClock` opens `FINAL` at is the tick `ScoreEvent` pays double from — two independent derivations of one instant until 2026-09-08, which agree until either moves. The one before it is `test_pawn_navigation.gd`, which pins the pawn capsule and step height to exact navmesh cell multiples so Recast's ceiling quantisation cannot change the agent in silence. The new arch script is `test_claude_md_stays_findable.gd`, which caps this file at 4 000 lines and refuses an archived document it does not link — the file was 6 594 lines with the traps and the local environment filed under 3 301 lines of history. The one before it is `test_agent_entry_points_are_pointers.gd`, which resolves the target of every agent entry point rather than only capping its length — a short file can still name a document that does not exist, and `AGENTS.md` did exactly that. The one before it is `test_a_script_tool_gets_no_autoloads.gd`, which walks the class closure of every `-s` tool and refuses one that reaches a class calling the `Tuning` autoload — it found `input_probe.gd` unloadable, which reasoning had not. The one before it is `test_the_ability_writer_holds_no_tunables.gd`, which refuses a `TUN-`-backed field in the `.tres` writer's hand-written table. The two unit scripts before it are ADR-0019's — `test_the_stun_costs_the_contract.gd` and `test_match_consequences.gd`, which are the rule and the hop respectively. **The integration suite read 184.2 s against 183.8 s before this change**, so the wiring assertion added to `test_the_m4_loop_resolves.gd` costs about 0.4 s — it raises the signal rather than earning a stun, and deliberately does not settle through `TUN-CONTRACT-REASSIGN-DELAY`, which the first version did for **+3.8 s**) — the assertion count tripled at US-0049, because `test_contract_cycle_fuzz.gd` checks the invariant after every one of 10 000 events. **Nine are `pending` by design** — **eight in the unit suite and one in the integration suite**, which reports that an NPC aimed into the void never gives up. The island `pending` beside it **turned green by itself** when the alley mouths were built, which is what a `pending` naming its own blocker is for. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite measured **183.8 s** on 2026-09-02 and again on 2026-09-01, **174.6 s** twice on 2026-08-28 and **183.5 s** the day before that, with **no test removed** — **three readings within 0.1 s of each other now, so the 174.6 s pair is the outlier rather than the figure** — so the 9 s is machine variance and neither number should be quoted as *the* figure; what is real is that the suite sits within a few seconds of its limit either way. The 180 s it is 'allowed' is **enforced nowhere** — TEST_PLAN §3, TEST_PLAN §10 and TDD-12 §17 all assert it and no job checks it, which is the M4 gate's fourth drift finding. `test_the_m4_loop_resolves.gd` cost 13.1 s of that and is the first test ever to run M4's systems together. It was 162-172 s, up from 87.7 s at M2 — **under 9 s of headroom left, and the next integration test has to justify itself hard against that**. `test_server_tick_budget.gd` cost 9.8 s of it and is a gate line; the one before it, the 2 s pass A/B, samples ninety ticks **twice** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **The six are**: `test_upstream_bandwidth.gd` reporting the 145 % upstream miss, `test_crowd_bandwidth.gd` the 112 % downstream projection, `test_crowd_wire_cost.gd` the 112 % it actually costs, **`test_spawn_points.gd` twice — GDD-05 §2.7 rule 6's nine unoccluded spawn pairs and rule 8's S3 4, S4 1, S5 6 of 8 seats** — and `test_clone_animation_parity.gd` the missing clip library. **Two entries this row carried are gone because their findings closed**: `test_circuit_separation.gd`'s 0.51 m circuits (re-authored, now 21.20 m) and `test_cull_radius_price.gd`'s flat curve, which asserts rather than pends. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
+| Tests | **57 arch + 200 unit + 33 integration scripts**, holding 224 + 1714 + 243 tests and 1 285 + 30 487 + 679 assertions (unit remeasured 2026-09-08 on US-0077's server half — the new script is `test_match_end_wire.gd`, whose load-bearing test folds the payload on the client side and asserts the totals equal the server's own, which is US-0077's third criterion made structural rather than promised. The three before it are US-0079's; **the integration suite read 189.2 s**, up from 184.2, and it is over its own 180 s budget as it has been for three stories — the machine's own spread is 174.6-189.2 so no single reading is *the* figure. The three new unit scripts are US-0079's: `test_match_system.gd` drives the phase machine end to end and asks `ScoreEvent` what a kill on the tick `FINAL` opens is worth — two derivations of one instant, at the same moment; `test_the_score_origin_is_the_match_clock.gd` is the one that would have caught the defect, arranging a **boot** tick past the boundary and a **match** tick short of it; `test_the_match_clock_reaches_the_wire.gd` is the hop onto the format, which nothing had ever proven because nothing wrote the field. The one before them is `test_snapshot_wire_compatibility.gd`, which freezes the pre-split encoder's exact bytes — a symmetric writer/reader reorder passes a round trip and fails those. The earlier baseline carried BOTH #211 and #212 — neither PR's own row was right after the other landed, and `test_claude_md_counts_are_current.gd` is what said so; integration counts retained from 2026-09-05; the new unit script is `test_match_clock.gd`, whose last assertion is the one that matters: it sweeps twenty profiles to prove the tick `MatchClock` opens `FINAL` at is the tick `ScoreEvent` pays double from — two independent derivations of one instant until 2026-09-08, which agree until either moves. The one before it is `test_pawn_navigation.gd`, which pins the pawn capsule and step height to exact navmesh cell multiples so Recast's ceiling quantisation cannot change the agent in silence. The new arch script is `test_claude_md_stays_findable.gd`, which caps this file at 4 000 lines and refuses an archived document it does not link — the file was 6 594 lines with the traps and the local environment filed under 3 301 lines of history. The one before it is `test_agent_entry_points_are_pointers.gd`, which resolves the target of every agent entry point rather than only capping its length — a short file can still name a document that does not exist, and `AGENTS.md` did exactly that. The one before it is `test_a_script_tool_gets_no_autoloads.gd`, which walks the class closure of every `-s` tool and refuses one that reaches a class calling the `Tuning` autoload — it found `input_probe.gd` unloadable, which reasoning had not. The one before it is `test_the_ability_writer_holds_no_tunables.gd`, which refuses a `TUN-`-backed field in the `.tres` writer's hand-written table. The two unit scripts before it are ADR-0019's — `test_the_stun_costs_the_contract.gd` and `test_match_consequences.gd`, which are the rule and the hop respectively. **The integration suite read 184.2 s against 183.8 s before this change**, so the wiring assertion added to `test_the_m4_loop_resolves.gd` costs about 0.4 s — it raises the signal rather than earning a stun, and deliberately does not settle through `TUN-CONTRACT-REASSIGN-DELAY`, which the first version did for **+3.8 s**) — the assertion count tripled at US-0049, because `test_contract_cycle_fuzz.gd` checks the invariant after every one of 10 000 events. **Nine are `pending` by design** — **eight in the unit suite and one in the integration suite**, which reports that an NPC aimed into the void never gives up. The island `pending` beside it **turned green by itself** when the alley mouths were built, which is what a `pending` naming its own blocker is for. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite measured **183.8 s** on 2026-09-02 and again on 2026-09-01, **174.6 s** twice on 2026-08-28 and **183.5 s** the day before that, with **no test removed** — **three readings within 0.1 s of each other now, so the 174.6 s pair is the outlier rather than the figure** — so the 9 s is machine variance and neither number should be quoted as *the* figure; what is real is that the suite sits within a few seconds of its limit either way. The 180 s it is 'allowed' is **enforced nowhere** — TEST_PLAN §3, TEST_PLAN §10 and TDD-12 §17 all assert it and no job checks it, which is the M4 gate's fourth drift finding. `test_the_m4_loop_resolves.gd` cost 13.1 s of that and is the first test ever to run M4's systems together. It was 162-172 s, up from 87.7 s at M2 — **under 9 s of headroom left, and the next integration test has to justify itself hard against that**. `test_server_tick_budget.gd` cost 9.8 s of it and is a gate line; the one before it, the 2 s pass A/B, samples ninety ticks **twice** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **The six are**: `test_upstream_bandwidth.gd` reporting the 145 % upstream miss, `test_crowd_bandwidth.gd` the 112 % downstream projection, `test_crowd_wire_cost.gd` the 112 % it actually costs, **`test_spawn_points.gd` twice — GDD-05 §2.7 rule 6's nine unoccluded spawn pairs and rule 8's S3 4, S4 1, S5 6 of 8 seats** — and `test_clone_animation_parity.gd` the missing clip library. **Two entries this row carried are gone because their findings closed**: `test_circuit_separation.gd`'s 0.51 m circuits (re-authored, now 21.20 m) and `test_cull_radius_price.gd`'s flat curve, which asserts rather than pends. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
 | Tuning | **296** tunables across 14 resource classes; all **37** cross-field invariants assert. **Six were added on 2026-08-29 for US-0097's escape verb** — four `TUN-PURSUIT-*` on `ContractTuning` (a pursuit ends by removing and reinserting a contract, so §7 is its section and no new resource was needed) and `TUN-SCORE-ESCAPE`/`-CLOSECALL` on `ScoringTuning`. **Invariant 34 fired on its first run against the story's own proposed value**: `TUN-PURSUIT-DURATION` is `warn_radius / blend_walk` = 10.7143, US-0097 wrote **10.7**, and that asks the prey for 1.402 m/s — fractionally faster than a blend walk, in exactly the direction the invariant forbids. Shipped at **10.72**, with the tolerance tightened to a true floor rather than widened to admit it. **A rounded derivation is not a derivation.** **`TUN-COMPASS-CONE-FULL-RADIUS` 20.0 m was added on 2026-08-27** — where the Compass arc becomes a whole ring — and **invariant 33 is the reason it is not a chosen number**: it pins the radius equal to `TUN-COMPASS-LOCK-RANGE`, so the arc stops pointing exactly where the lock starts working, and separately outside the validated kill reach. It was **set three times in one day and only ever by somebody playing it** — 4.0 m derived from the half-width alone, 6.0 m at `TUN-SUSPICION-OPEN-RADIUS`, then 20.0 — and the second is the one worth remembering, because it was **derived and still wrong**. **`TUN-SCORE-HALFSEEN` +50 was added on 2026-08-27** by the fidelity re-audit — the stealth ladder had no middle rung, so a kill at **Noticed** and one at **Exposed** scored identically; invariant 32 keeps it strictly descending and strictly positive, and the `> 0` clause is the load-bearing half because every ordering check passes over a zero. `TuningInvariantsScore` was split out when that pushed the file past 400 lines — tech is how the game is *transmitted*, score is what it *pays*, and what is left is how it *plays*, with one entry point still. **Four scoring values were re-priced on 2026-08-26 (ADR-0013)** — `TUN-SCORE-SILENT` 100 → 200, `TUN-SCORE-PATIENT` 150 → 100, `TUN-SCORE-FOCUS` 100 → 150, `TUN-SCORE-RECKLESS` −50 → **0**, and invariant 18 rewritten from an ordering to a floor — split across `TuningInvariants` and `TuningInvariantsTech` since the first file hit 400 lines, with one entry point still. **Eight IDs are deprecated** and recorded in TUNABLES §19 — never reused |
 | Autoloads | All eight. `Tuning` precomputes 89 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |

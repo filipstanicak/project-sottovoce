@@ -223,3 +223,23 @@ func test_a_phase_this_system_did_not_start_is_not_abandoned() -> void:
 	assert_eq(
 		_ctx.phase, MatchPhase.Phase.ACTIVE, "a probe's fixture was ended for want of players"
 	)
+
+
+## **THE MATCH ENTERS `RESULTS` EXACTLY ONCE, HOWEVER LONG IT RUNS.** This is what
+## lets `MatchConsequences.phase_changed` send the results on the transition with no
+## sent-already flag: a second emission would be two screens of the same bytes, and a
+## flag would be a duplicate of a fact the transition already carries.
+##
+## Asserted here rather than at the handler, because the handler cannot see how many
+## times it will be called — only the machine can.
+func test_the_match_enters_results_once_and_then_stops_announcing() -> void:
+	var entries: Array = []
+	_sys.phase_changed.connect(
+		func(_from: int, to: int, _c: MatchContext) -> void: entries.append(to)
+	)
+	_fill_the_lobby()
+	for _i: int in 3000:
+		_tick()
+	assert_eq(_ctx.phase, MatchPhase.Phase.RESULTS, "the match never reached its results")
+	var reached := entries.count(MatchPhase.Phase.RESULTS)
+	assert_eq(reached, 1, "the match announced its results %d times" % reached)

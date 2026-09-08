@@ -571,6 +571,40 @@ static func breakdown(events: Array[ScoreEvent], tuning: ScoringTuning) -> Dicti
 `NET-S2C-MATCH-END` ships the full log (~600 events, ~24 KB) so the client folds locally and the
 results screen needs no additional protocol.
 
+### 7.1 What US-0077's server half built, and the two things it cannot deliver
+
+**BUILT 2026-09-08.** `MatchEndWire` packs it, `MatchAnnouncer.results_payload` assembles it and
+`MatchConsequences.phase_changed` sends it on the one transition into `RESULTS`.
+**`ScoreFold.breakdown`'s signature above is a sketch**: it takes no `ScoringTuning`, for
+the reason §1.3 was amended at US-0064 — points frozen on the event and points re-read at fold
+time are two sources of truth.
+
+**THE MULTIPLIER IS NOT ON THE WIRE AND DOES NOT NEED TO BE.** `ScoreEvent` has one constructor
+and it derives `TUN-MATCH-FINALPHASE-MULT` from the event's own tick, which is exactly why no
+inconsistent event can be built. A client rebuilding events reaches the same number the server
+paid, from the same `MatchTuning` — the handshake refuses a peer whose profile hash differs.
+
+**AND THIS IS THE ONE MESSAGE THAT WITHHOLDS NOTHING**, which reads as a leak until it is said
+out loud. Never-do #12 is about converting an **earned inference into a given fact while the
+match is running**; when it is over there is nothing left to earn, and the story asks in as many
+words for every player's breakdown, their kit and who killed you. `SCORE-DEATH` travels here
+where the score feed deliberately withholds it, and that is criterion 5 rather than an oversight.
+
+**TWO CRITERIA CANNOT BE MET BY ANY AMOUNT OF WIRE, AND THEY ARE REPORTED RATHER THAN WORKED
+AROUND.** *Each player's persona, loadout and passive* — **a player has no persona server-side at
+all**: `server_root._stand_the_crowd_up` says so in its own comment, because there is no lobby and
+`NET-C2S-LOADOUT` is US-0071's, so every persona is treated as in use. Passives have no assigner
+either (`PASV-COLDREAD` is still an argument with no reader). The loadout half **is** delivered,
+and it is the placeholder kit `server_root._on_peer_joined` hands out. And *your killers by
+name* — **there is no player name anywhere in this project**: no field, no protocol row, no lobby
+to type one into. A slot number is what a results screen can honestly draw today.
+
+**`NET-C2S-SKIP-RESULTS` IS STILL UNBUILT.** Criterion 8's unanimous skip needs a C2S message on
+the `EVENT` channel, and `net.gd` is at 398 of its 400 lines — the split its own comment has
+predicted since M4 (*"the C2S doorway below could move the same way if this file grows again"*)
+is what that message costs. Separated deliberately: the delivery unblocks the screen, and the
+skip does not.
+
 ---
 
 ## 8. Interfaces

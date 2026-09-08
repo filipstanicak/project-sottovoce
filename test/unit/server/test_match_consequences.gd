@@ -80,3 +80,26 @@ func test_an_escape_costs_the_hunter_the_contract() -> void:
 		"the hunter kept the contract they lost"
 	)
 	assert_eq(_contracts.announced_contract_of(prey), preys_own, "the escapee's own contract moved")
+
+
+## **THE MATCH ENDS AND THE RESULTS GO OUT, AND NOTHING ELSE IN THIS PROJECT COULD
+## SAY SO.** US-0077.
+##
+## `MatchAnnouncer.results_payload` is tested against its own fixture in
+## `test_match_end_wire.gd`, and `MatchSystem` is tested against its own in
+## `test_match_system.gd`. **Neither runs the two together**, so a `phase_changed`
+## handler that forgot the `RESULTS` branch would leave both green and the results
+## screen would simply never arrive — which is exactly what left
+## `NET-C2S-ABILITY-REQUEST` with no caller under three completed stories, and
+## `ContractSystem.open` with no caller under five.
+##
+## **IT RAISES THE TRANSITION RATHER THAN EARNING IT.** What `MatchSystem` decides is
+## that file's; this stops at the one hop.
+func test_the_results_are_sent_when_the_phase_reaches_results() -> void:
+	_consequences.announcer = MatchAnnouncer.new(_ctx)
+	_consequences.phase_changed(MatchPhase.Phase.ACTIVE, MatchPhase.Phase.FINAL, _ctx)
+	assert_eq(
+		_consequences.announcer.results_sent, 0, "the results went out before the match ended"
+	)
+	_consequences.phase_changed(MatchPhase.Phase.FINAL, MatchPhase.Phase.RESULTS, _ctx)
+	assert_eq(_consequences.announcer.results_sent, 1, "the match ended and nobody was told")
