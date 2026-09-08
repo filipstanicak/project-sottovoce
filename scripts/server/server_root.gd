@@ -22,7 +22,12 @@ var announcer: MatchAnnouncer = null
 ## Everything that changes elsewhere when a system decides an outcome.
 var consequences: MatchConsequences = null
 
-var _fallen_reported: int = 0
+## `SYS-MATCH`. **Not a node and not registered**, because it must run before the
+## stage loop rather than inside it — see `MatchSystem`.
+var match_state: MatchSystem = null
+
+## Everything this process says about itself while it runs. Not topology.
+var diagnostics: ServerDiagnostics = null
 
 @onready var director: MatchDirector = $MatchDirector
 @onready var router: RpcRouter = $NetServer/RpcRouter
@@ -65,23 +70,39 @@ func _ready() -> void:
 	_seed_the_match()
 	_stand_the_crowd_up()
 
-	# **THE MATCH STARTS IMMEDIATELY, AND THAT IS A PLACEHOLDER.** `SYS-MATCH`
-	# owns the phase — lobby, warmup, the 8-minute clock and the final minute —
-	# and it is M4's. Until it exists there is no lobby to leave, and a server
-	# stuck in LOBBY would authorise no input and simulate nothing, which would
-	# make M2 unobservable. Both the director and the router are told, because
-	# the router refuses input on a phase it was never given.
-	director.ctx.phase = MatchPhase.Phase.ACTIVE
-	router.set_phase(MatchPhase.Phase.ACTIVE)
+	_start_the_match_clock()
 
 	_wire_the_doorway()
 	_wire_end_of_tick()
-	director.tick_completed.connect(_log_starvation)
+	diagnostics = ServerDiagnostics.new(director, crowd_director)
+	director.tick_completed.connect(diagnostics.report)
 
 	# A pawn on join, and the router told so it can authorise that peer's input.
 	Net.peer_joined.connect(_on_peer_joined)
 	Net.peer_left.connect(_on_peer_left)
 	Log.info("server topology wired: net -> router -> director -> pawns -> snapshots", &"net")
+
+
+## **`SYS-MATCH` TAKES THE PHASE OVER FROM A PLACEHOLDER THAT HAD STOOD SINCE M2.**
+## That placeholder set `ACTIVE` here and said why; the cost of it is worth recording
+## now that it is gone — **`ctx.tick` and the match clock were the same number for
+## four milestones**, so nothing could tell "since boot" from "since play began" and
+## every score event froze its multiplier from the first. `MatchContext.match_tick`.
+##
+## **THE ROUTER IS TOLD ON EVERY CHANGE AND NOT ONLY AT BOOT**, because it refuses
+## input outside play and the placeholder could set it once: the phase never moved.
+## The countdown trigger is a player count, which US-0078's ready-up later replaces
+## rather than enables. The clock itself is armed in `_arm_the_match_clock`.
+func _start_the_match_clock() -> void:
+	match_state = MatchSystem.new()
+	match_state.setup(director.ctx, Tuning.match_rules)
+	if LaunchConfig.active != null:
+		match_state.min_players = LaunchConfig.active.min_players
+	match_state.phase_changed.connect(consequences.phase_changed)
+	match_state.countdown_opened.connect(consequences.countdown_opened)
+	match_state.abandoned.connect(consequences.abandoned)
+	match_state.final_warning_announced.connect(consequences.final_warning_announced)
+	router.set_phase(director.ctx.phase)
 
 
 ## **NAMED ASSIGNMENT RATHER THAN A SEVEN-ARGUMENT CONSTRUCTOR**, because seven
@@ -97,6 +118,7 @@ func _hand_the_systems_over() -> void:
 	consequences.detection = detection
 	consequences.crowd = crowd_director
 	consequences.announcer = announcer
+	consequences.router = router
 
 
 ## **THE DOORWAY IS `Net` AND THE DECIDER IS THE ROUTER.** Godot addresses an RPC
@@ -122,7 +144,9 @@ func _wire_the_doorway() -> void:
 ## surprising match reproducible afterwards. `SYS-MATCH` will own this at M4 and
 ## send it in `NET-S2C-MATCH-START`; the protocol already has the field.
 func _seed_the_match() -> void:
-	var config := LaunchConfig.parse(OS.get_cmdline_user_args(), Tuning.match_rules.max_players)
+	var config := LaunchConfig.parse(
+		OS.get_cmdline_user_args(), Tuning.match_rules.max_players, Tuning.match_rules.min_players
+	)
 	director.ctx.match_seed = (
 		config.seed_value if config.seed_value >= 0 else int(Time.get_unix_time_from_system())
 	)
@@ -229,6 +253,22 @@ func _start_the_crowd_system() -> void:
 	abilities.setup(director.ctx)
 	_wire_the_ability_answers()
 	_start_the_combat_systems()
+	_arm_the_match_clock()
+
+
+## **THERE IS NO MATCH BEFORE THERE IS A WORLD**, and this line is where that holds.
+##
+## `_start_the_match_clock` runs in `_ready`; this runs at the end of a **deferred**
+## chain that waits two navigation-map iterations. Arming the clock in `_ready` looked
+## equivalent and was not: `ContractSystem.cycle` does not exist until `setup` a few
+## lines above, so a lobby that filled during the navmesh wait dealt its contracts
+## into a null — *"Invalid assignment of property `tick` on a base object of type
+## Nil"*, four files from anything mentioning a match. **Measured rather than
+## reasoned**: `test_server_tick_budget.gd` joins six players the moment the crowd
+## reports itself active, which is before it has been placed, and it failed on this.
+func _arm_the_match_clock() -> void:
+	match_state.players = pawns.pawn_count()
+	director.net_ticked.connect(match_state.advance)
 
 
 ## **`SYS-KILL` AND ITS TWO BOUND DEPENDENCIES.** Both are handed over rather than
@@ -301,6 +341,7 @@ func _await_navigation_map(map: RID) -> void:
 ## Full account on `MatchDirector.tick_completed`.
 func _wire_end_of_tick() -> void:
 	snapshots.abilities = abilities
+	snapshots.match_state = match_state
 	snapshots.setup(director.ctx, pawns, router)
 	director.tick_completed.connect(snapshots.send_all)
 	router.snapshot_acked.connect(snapshots.note_ack)
@@ -316,49 +357,10 @@ func _wire_end_of_tick() -> void:
 	director.tick_completed.connect(announcer.flush_score)
 
 
-## **HOW OFTEN THE INPUT QUEUE RAN DRY**, once every ten seconds and only while it
-## is happening. A starved tick repeats the peer's last command, which is a step
-## the client never predicted — felt as a tug toward the previous input. US-0028's
-## repeat is correct for a *lost* command; this line is how you find out whether it
-## is firing for merely *late* ones.
-## **A CROWD THAT FALLS OUT OF THE WORLD SAYS SO.** `CrowdRescue` puts a fallen NPC
-## back rather than letting the district quietly drain, and the count must be zero
-## on a map whose routes are walkable — so a line here is a level-data defect
-## reporting itself. Logged once per rise, not per tick.
-func _log_the_fallen() -> void:
-	var fallen := crowd_director.rescued_from_the_void()
-	if fallen == _fallen_reported:
-		return
-	_fallen_reported = fallen
-	Log.warn(
-		(
-			(
-				"crowd fell out of the world: %d put back so far — a route crosses ground "
-				+ "that does not exist (test_circuit_separation.gd)"
-			)
-			% fallen
-		),
-		&"crowd"
-	)
-
-
-func _log_starvation(_ctx: MatchContext, _dt: float) -> void:
-	_log_the_fallen()
-	if director.ctx.tick % 300 != 0 or director.starved_ticks == 0:
-		return
-	Log.info(
-		(
-			"input starvation: %d repeats over %d ticks (%.1f %%)"
-			% [
-				director.starved_ticks,
-				director.ctx.tick,
-				float(director.starved_ticks) / float(director.ctx.tick) * 100.0
-			]
-		),
-		&"net"
-	)
-
-
+## **THE PLAYER COUNT IS THE PAWN COUNT, DERIVED RATHER THAN TALLIED.**
+## `Net.player_count()` is the wrong source: every probe in `tools/` and both
+## integration tests raise `peer_joined` **synthetically**, so the registry behind it
+## holds nobody while six players stand in the district. A pawn is what a player *is*.
 func _on_peer_joined(peer: int) -> void:
 	if pawns.spawn(peer):
 		router.set_pawn_owner(peer, true)
@@ -367,6 +369,7 @@ func _on_peer_joined(peer: int) -> void:
 		# are US-0071's; until then every player carries the two MVP actives, because
 		# a pipeline nobody can reach is a pipeline nobody can test.
 		abilities.loadout[peer] = [Ids.ABIL_CINDERFALL, Ids.ABIL_LUNGE]
+		match_state.players = pawns.pawn_count()
 
 
 ## The tell. Broadcast rather than addressed — see `MatchAnnouncer.ability_started`.
@@ -391,3 +394,6 @@ func _on_peer_left(peer: int) -> void:
 	router.forget(peer)
 	director.forget(peer)
 	snapshots.forget(peer)
+	# **AFTER THE DESPAWN, NOT BEFORE**, or the lobby reads one player fuller than it
+	# is — at the abandon floor, the difference between ending and not.
+	match_state.players = pawns.pawn_count()

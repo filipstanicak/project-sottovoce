@@ -26,6 +26,7 @@ var kills: KillSystem = null
 var detection: DetectionSystem = null
 var crowd: CrowdDirector = null
 var announcer: MatchAnnouncer = null
+var router: RpcRouter = null
 
 var _ctx: MatchContext
 
@@ -109,3 +110,45 @@ func _charge_for_witnesses(killer: int, at: Vector3) -> void:
 			continue
 		_ctx.impulses.queue(killer, Tuning.suspicion.gain_witnessed_kill)
 		return
+
+
+## **THE PHASE MOVED.** `SYS-MATCH` decided it; this carries it to the one other
+## place that holds a phase — the router, which refuses input outside play.
+##
+## Two copies of the phase rather than one is deliberate and predates this story:
+## `MatchContext.phase` is the simulation's and `RpcRouter`'s is the doorway's, and
+## the doorway must answer before a tick has run. What matters is that **nothing
+## sets one without the other**, which is why this is a handler on the change rather
+## than an assignment at boot — the placeholder could get away with the second
+## because the phase never changed again.
+func phase_changed(from: int, to: int, _ctx: MatchContext) -> void:
+	if router != null:
+		router.set_phase(to)
+	Log.info("phase %d -> %d" % [from, to], &"net")
+
+
+## **THE CONTRACT CYCLE IS BUILT AT THE COUNTDOWN**, US-0079's eighth criterion.
+##
+## `ContractSystem.open` was written at US-0050 and had **no caller under
+## `scripts/`** until this line: a live server grew its cycle one `report_join` at a
+## time, so the graph was a ring in **join order** rather than the uniformly random
+## permutation the story asks for — the first peer to connect always hunted the
+## second, every match, on every seed.
+func countdown_opened(peers: PackedInt32Array, ctx: MatchContext) -> void:
+	if contracts != null and not peers.is_empty():
+		contracts.open(peers, ctx)
+
+
+## **A WARNING THAT CHANGES NO RULE STILL HAS TO REACH SOMEBODY**, and today that
+## is the log. The snapshot already carries the phase and the ticks remaining, so a
+## client can count the last seconds down itself; `NET-S2C-PHASE-CHANGED` as a
+## second channel for a fact the snapshot already sends would be the duplicated-rule
+## shape this project keeps finding. The HUD element is US-0073's, still unticked.
+func final_warning_announced(_ctx: MatchContext) -> void:
+	Log.info("the Final Contract opens shortly", &"net")
+
+
+## **BELOW THE FLOOR THE MATCH ENDS, AND IT ENDS WITH RESULTS SHOWN.** The
+## transition into `RESULTS` is `MatchSystem`'s; this only says so out loud.
+func abandoned(players: int, _ctx: MatchContext) -> void:
+	Log.info("match ended: %d player(s) left, below the floor" % players, &"net")

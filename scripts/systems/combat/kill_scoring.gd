@@ -26,7 +26,11 @@ func _init(blend: BlendSystem = null) -> void:
 ## Everything GDD-07 §3 judges, read once, at the tick of the press.
 func facts_at(ctx: MatchContext, killer: int, victim: int) -> KillScoreFacts:
 	var facts := KillScoreFacts.new()
-	facts.tick = ctx.tick
+	# **THE MATCH TICK, NEVER `ctx.tick`.** See `MatchContext.match_tick`: the boot
+	# tick and the match tick are the same number only while the server boots straight
+	# into `ACTIVE`, and every award here freezes the Final Contract multiplier from
+	# whichever one it was handed.
+	facts.tick = ctx.match_tick()
 	facts.killer = killer
 	facts.victim = victim
 	var here: PawnContext = ctx.pawn_contexts.get(killer)
@@ -60,7 +64,7 @@ func facts_at(ctx: MatchContext, killer: int, victim: int) -> KillScoreFacts:
 func pay_for_kill(ctx: MatchContext, facts: KillScoreFacts) -> int:
 	var awards := ScoreBonuses.for_kill(facts, Tuning.scoring)
 	var group := ctx.score.append_kill(awards, Tuning.match_rules, Tuning.scoring)
-	ctx.score.mark_death(ctx.tick, facts.victim, facts.killer, Tuning.match_rules, group)
+	ctx.score.mark_death(ctx.match_tick(), facts.victim, facts.killer, Tuning.match_rules, group)
 	# **THE DEBT IS RECORDED AND THE VICTIM'S WINDOWS END.** `note_killed_by` is
 	# what `SCORE-VENDETTA` reads, and the overwrite is what makes "and has not
 	# died since" true without a second field.
@@ -82,7 +86,7 @@ func pay_for_kill(ctx: MatchContext, facts: KillScoreFacts) -> int:
 func pay_for_escape(ctx: MatchContext, prey: int, hunter: int, close_call: bool) -> void:
 	var group := ctx.score.open_group()
 	for award: ScoreAward in ScoreBonuses.for_escape(
-		ctx.tick, prey, hunter, close_call, Tuning.scoring
+		ctx.match_tick(), prey, hunter, close_call, Tuning.scoring
 	):
 		ctx.score.append(award, Tuning.match_rules, group)
 
@@ -90,5 +94,7 @@ func pay_for_escape(ctx: MatchContext, prey: int, hunter: int, close_call: bool)
 ## Pay for a landed stun. **One base kill, and no variety group** — a stun is one
 ## award, so a group would be a feed line with nothing to group.
 func pay_for_stun(ctx: MatchContext, stunner: int, target: int) -> void:
-	for award: ScoreAward in ScoreBonuses.for_stun(ctx.tick, stunner, target, Tuning.scoring):
+	for award: ScoreAward in ScoreBonuses.for_stun(
+		ctx.match_tick(), stunner, target, Tuning.scoring
+	):
 		ctx.score.append(award, Tuning.match_rules, ctx.score.open_group())

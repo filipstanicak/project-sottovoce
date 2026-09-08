@@ -48,7 +48,9 @@ func _run() -> void:
 		get_tree().quit(1)
 		return
 
-	LaunchConfig.active = LaunchConfig.parse(args, Tuning.match_rules.max_players)
+	LaunchConfig.active = LaunchConfig.parse(
+		args, Tuning.match_rules.max_players, Tuning.match_rules.min_players
+	)
 	_root = (load(CLIENT_ROOT) as PackedScene).instantiate()
 	# Deferred: `_ready()` runs while the tree is still adding children, and a direct
 	# add there fails with "parent node is busy".

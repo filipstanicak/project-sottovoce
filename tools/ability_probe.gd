@@ -40,6 +40,9 @@ func _run() -> void:
 		get_tree().quit(1)
 		return
 
+	# **THE BENCH IS ITS OWN LOBBY**, or a probe under `TUN-LOBBY-MIN-PLAYERS`
+	# ticks no stage at all and reports it as a rule that does not work.
+	_root.match_state.min_players = 1
 	_root.call(&"_on_peer_joined", PEER)
 	await get_tree().physics_frame
 	var kit: Array = abilities.loadout.get(PEER, [])

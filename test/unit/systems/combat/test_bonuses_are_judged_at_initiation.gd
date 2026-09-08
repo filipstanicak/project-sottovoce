@@ -27,6 +27,11 @@ func before_each() -> void:
 	_machines.clear()
 	_ctx = MatchContext.new()
 	_ctx.tick = 200
+	# **THIS MATCH BEGAN AT BOOT**, which is what `ctx.tick` meant everywhere until
+	# US-0079 gave the server a lobby. A score event is stamped with
+	# `MatchContext.match_tick()`, so a fixture with no origin stamps every event
+	# zero and this file's press-against-fall assertion would compare 0 with 0.
+	_ctx.active_started_at = 0
 	_system = KillSystem.new()
 	add_child_autofree(_system)
 	_system.setup(_ctx)
@@ -155,7 +160,7 @@ func test_the_events_are_stamped_at_the_press_and_the_death_at_the_fall() -> voi
 	# **TWO MOMENTS, 0.9 s APART, AND THE MULTIPLIER IS FROZEN FROM WHICHEVER IS ON
 	# THE EVENT.** The bonuses were earned when the player pressed; the death
 	# happened when the body fell.
-	var pressed := _ctx.tick + 1
+	var pressed := _ctx.match_tick() + 1
 	_kill_and_land()
 	for event: ScoreEvent in _ctx.score.events():
 		if event.kind == Ids.SCORE_DEATH:

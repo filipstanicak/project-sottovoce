@@ -46,6 +46,11 @@ var crowd_delta := NpcDelta.new()
 ## (GDD-04 §5.1), and a hunter who could see your Lunge was down would simply wait.
 var abilities: AbilitySystem = null
 
+## `SYS-MATCH`, for the match clock. **Optional for the same reason `abilities` is**
+## — every snapshot test predating US-0079 builds this without one — and a null
+## leaves `ticks_remaining` at zero, which is what a match with no clock should say.
+var match_state: MatchSystem = null
+
 var _ctx: MatchContext
 var _pawns: PawnHost
 var _router: RpcRouter
@@ -95,12 +100,35 @@ func build_for(peer: int) -> Snapshot:
 	var snapshot := Snapshot.new()
 	snapshot.server_tick = _ctx.tick
 	snapshot.phase = _ctx.phase
+	_fill_the_clock(snapshot)
 	if _router != null:
 		snapshot.last_acked_seq = maxi(_router.last_acked_seq(peer), 0)
 	_fill_own(snapshot, peer)
 	_fill_remotes(snapshot, peer)
 	_fill_crowd(snapshot, peer)
 	return snapshot
+
+
+## **`ticks_remaining` GETS ITS FIRST WRITER, AFTER FIVE MILESTONES ON THE WIRE.**
+## The field has been in the format and in NETWORK_PROTOCOL §4 since M0 and nothing
+## in `scripts/` had ever assigned it, so every client has been told **zero ticks
+## left** in every snapshot of every match. Nothing drew it, which is the only reason
+## it was survivable and exactly why it went unnoticed: a field nobody reads and
+## nobody writes is indistinguishable from one that works.
+##
+## **AND `multiplier:u8` CANNOT CARRY ITS OWN TUNABLE'S RANGE.**
+## `TUN-MATCH-FINALPHASE-MULT` is `@export_range(1.5, 3.0, 0.1)` and the wire is a
+## whole number, so the shipped **2.0** is exact and a re-priced **1.5** would be
+## announced to every HUD as **2** while scoring paid 1.5 — a screen that disagrees
+## with the points. Reported rather than fixed here: widening it is a format change,
+## and the format was frozen against pre-split bytes three commits ago.
+## `test_the_announced_multiplier_is_the_one_that_pays` is the guard, and it goes red
+## the day the value stops being a whole number rather than the day somebody notices.
+func _fill_the_clock(snapshot: Snapshot) -> void:
+	if match_state == null:
+		return
+	snapshot.ticks_remaining = maxi(match_state.remaining(_ctx), 0)
+	snapshot.multiplier = int(round(match_state.multiplier(_ctx)))
 
 
 ## **THE CROWD THIS OBSERVER CAN REACH, AND NOBODY ELSE'S.** US-0030.

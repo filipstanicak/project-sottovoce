@@ -44,8 +44,16 @@ if %BOTS% GTR 5 (
     set "BOTS=5"
 )
 
+REM THE MATCH STARTS WHEN EVERYBODY IS IN, WHICH IS WHAT --min-players BUYS.
+REM SYS-MATCH boots into LOBBY as of US-0079 and simulates nothing there, so
+REM the countdown needs a trigger: the floor is set to exactly this session's
+REM peer count, so the clock starts on the tick YOU join rather than on the
+REM tick the first bot does. If a bot fails to connect the match will not
+REM start at all - the server log says how many players it is waiting for.
+set /a PLAYERS=%BOTS%+1
+
 echo.
-echo   Sottovoce - port %PORT%, %BOTS% bot^(s^) %SEED%
+echo   Sottovoce - port %PORT%, %BOTS% bot^(s^), match starts at %PLAYERS% players %SEED%
 echo.
 
 REM A stale server from a previous run still holds the port, and the failure
@@ -55,7 +63,7 @@ taskkill /F /IM "Godot_v4.7.1-stable_win64.exe" >nul 2>&1
 timeout /t 1 /nobreak >nul
 
 echo   [2/4] starting the server...
-start "sottovoce server" /min "%GODOT%" --headless --path "%PROJECT%" -- --server --port %PORT% --max-players 6 %SEED%
+start "sottovoce server" /min "%GODOT%" --headless --path "%PROJECT%" -- --server --port %PORT% --max-players 6 --min-players %PLAYERS% %SEED%
 
 REM The server places 78 NPCs and bakes four processions before it listens.
 REM Bots that dial in early simply fail to connect and exit.

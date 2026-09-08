@@ -458,7 +458,8 @@ func _start_server(port: int, max_players: int) -> void:
 |---|---|---|
 | `--server` | — | Server topology, headless |
 | `--port` | 27015 | |
-| `--max-players` | 6 | `TUN-LOBBY-MAX-PLAYERS` |
+| `--max-players` | 6 | `TUN-LOBBY-MAX-PLAYERS`. Its floor is `--min-players` rather than the tunable, so a deliberately small lobby is coherent |
+| `--min-players` | 4 | `TUN-LOBBY-MIN-PLAYERS`. **How many players start the countdown, and how few end the match.** Added 2026-09-08 with `SYS-MATCH`: the server now boots into `LOBBY` and `MatchDirector` runs no stage outside a match, so a bench holding out for four peers would simulate **nothing** and come back dead with no error. `sandbox.bat` passes `1`; `play.bat` passes this session's own peer count, so the clock starts on the tick you join. Validated against `TUN-LOBBY-MAX-PLAYERS`, not clamped |
 | `--connect <ip:port>` | — | Skip the menu; join directly. **The playtest flag** |
 | `--tuning <path>` | `default` | Alternative profile (server only). **PARSED AND READ BY NOTHING** — `data/tuning/` holds one directory and no code loads a second. `boot.gd` warns when it is given anything but `default`, because silently running the shipped numbers looks exactly like it worked (found 2026-09-04) |
 | `--seed <int>` | random | Deterministic clone roster, for reproducing a bug |

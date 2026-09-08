@@ -516,6 +516,47 @@ lobby at the moment the timer expires, and a client cannot know it (never-do #3)
 
 ---
 
+### 6.2 What US-0079 built, and the three places the sketch above is a sketch
+
+**`SYS-MATCH` IS NOT A `GameSystem`, AND THIS IS THE FIFTH SUCH CALL AND THE STRONGEST REASON.**
+`SYS-SCORE`, `SYS-STUN` and `SYS-SPAWN` each declined the interface because their stage was the
+wrong moment. This one cannot take a stage at all: `MatchDirector._net_tick` walks the stage loop
+only when `MatchPhase.is_simulating(ctx.phase)`, so a system living in that loop **could never
+leave `LOBBY`** — it would be waiting to be run by the gate it exists to open. `MatchSystem` is a
+`RefCounted` on `MatchDirector.net_ticked`, which fires immediately before that gate and had no
+listener at all.
+
+**`ctx.ticks_remaining` IS NOT A FIELD OF `MatchContext`, AND `MatchPhase.PLAYING` IS NOT AN ENUM
+MEMBER.** The sketch reads both. The elapsed count lives on the system (`phase_elapsed`), the
+remaining count is derived by `MatchClock.remaining` and put on the wire by `SnapshotBuilder`, and
+play is `ACTIVE` **and** `FINAL` — `MatchPhase.is_playing` is the question the sketch means.
+
+**AND THE SKETCH COMPARES `ticks_remaining ==`, WHICH IS FRAGILE.** An exact equality fires only
+if the clock lands on the value, so anything that ever advances it by more than one — a catch-up
+after a hitch, a rejoin, a test stepping in tens — skips the announcement in silence. A warning
+that sometimes does not arrive is worse than none, because players learn to stop expecting it.
+`MatchClock.crossed` asks whether the boundary is now behind you and was not before.
+
+**THE SIXTH PHASE IS AN ANNOUNCEMENT RATHER THAN A PHASE.** US-0079's description names six and
+its own next criterion says the warning "changes NO rules". `MatchPhase`'s ordinals are the wire —
+`NET-S2C-PHASE-CHANGED` carries `phase:u8` — so a sixth name inserted for something that changes
+nothing would remap every client's idea of what is happening, which is `PawnStateId.ALL`'s hazard
+in a second enum. It is a tick (`MatchClock.warning_at`) and a signal.
+
+**THE COUNTDOWN IS TRIGGERED BY A PLAYER COUNT, AND THAT COUNT IS THE PAWN COUNT.**
+`Net.player_count()` is the obvious source and the wrong one: every probe in `tools/` and both
+integration tests raise `peer_joined` synthetically, so the registry behind it holds nobody while
+six players stand in the district. A pawn in the world is what a player *is*. `--min-players`
+overrides `TUN-LOBBY-MIN-PLAYERS` for the bench, which would otherwise simulate nothing.
+
+**AND THE CLOCK IS ARMED WHEN THE WORLD EXISTS, NOT IN `_ready`.** `ContractSystem.cycle` is
+built at the end of a deferred chain that waits two navigation-map iterations, so a lobby that
+filled during that wait dealt its contracts into a null. Measured, not reasoned:
+`test_server_tick_budget.gd` joins six players the moment the crowd reports itself active, which
+is before it has been placed.
+
+---
+
 ## 7. Results
 
 The results screen is a `group_by(kind)` over the same log the totals fold from, so **the two

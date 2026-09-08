@@ -17,6 +17,7 @@ const DEFAULT_PORT := 27015
 const VALUE_FLAGS := {
 	"--port": "port",
 	"--max-players": "max_players",
+	"--min-players": "min_players",
 	"--connect": "connect_address",
 	"--tuning": "tuning_profile",
 	"--seed": "seed_value",
@@ -26,7 +27,7 @@ const VALUE_FLAGS := {
 }
 
 ## Of those, the ones whose value is a number.
-const INT_FLAGS: Array[String] = ["--port", "--max-players", "--seed", "--crowd"]
+const INT_FLAGS: Array[String] = ["--port", "--max-players", "--min-players", "--seed", "--crowd"]
 
 ## **WHAT THIS PROCESS WAS LAUNCHED WITH, WITH EXACTLY ONE WRITER.** `boot.gd`
 ## assigns it after parsing and nothing else ever does.
@@ -48,6 +49,21 @@ var is_server: bool = false
 var port: int = DEFAULT_PORT
 
 var max_players: int = 0
+
+## **HOW MANY PLAYERS START THE COUNTDOWN, AND HOW FEW END THE MATCH.**
+## `TUN-LOBBY-MIN-PLAYERS` 4 unless this says otherwise.
+##
+## **IT EXISTS SO THE BENCH STILL RUNS**, and the alternative was worse than the
+## flag. `SYS-MATCH` boots into `LOBBY` as of US-0079, and `MatchDirector` runs no
+## stage at all outside a match — so a server holding out for four peers would
+## simulate **nothing** under `sandbox.bat 1 12` (one hunter and you, two players)
+## and under every `play.bat` with fewer than three bots. Every debug tool this
+## project has would have come back dead with no error, which is trap 3's shape.
+##
+## Validated against the tuning rather than clamped, exactly like `--max-players`,
+## and for the reason that flag's docstring gives: a silently corrected lobby size
+## is a session that quietly differs from the one on the playtest sheet.
+var min_players: int = 0
 
 ## `ip:port`. Skips the menu and joins directly — THE PLAYTEST FLAG.
 var connect_address: String = ""
@@ -93,10 +109,16 @@ var crowd_count: int = -1
 var unknown: PackedStringArray = []
 
 
-## Parse `args`, using `default_max_players` for TUN-LOBBY-MAX-PLAYERS.
-static func parse(args: PackedStringArray, default_max_players: int) -> LaunchConfig:
+## Parse `args`, using the two lobby tunables for the values nothing overrides.
+##
+## Both are passed in for the reason at the top of this file: they are `TUN-` values
+## and Core cannot reach the autoload that holds them.
+static func parse(
+	args: PackedStringArray, default_max_players: int, default_min_players: int
+) -> LaunchConfig:
 	var config := LaunchConfig.new()
 	config.max_players = default_max_players
+	config.min_players = default_min_players
 
 	var i := 0
 	while i < args.size():
@@ -130,17 +152,11 @@ func _apply(arg: String, value: String) -> bool:
 ## Validated rather than clamped. A silently corrected port is a server nobody
 ## can find, and a silently clamped player count is a lobby that quietly differs
 ## from the one written on the playtest sheet.
-func problems(min_players: int, tuning_max: int, max_crowd: int) -> Array[String]:
+func problems(tuning_min: int, tuning_max: int, max_crowd: int) -> Array[String]:
 	var out: Array[String] = []
 	if port < 1024 or port > 65535:
 		out.append("--port %d is outside 1024-65535" % port)
-	if max_players < min_players or max_players > tuning_max:
-		out.append(
-			(
-				"--max-players %d is outside %d-%d (TUN-LOBBY-MIN/MAX-PLAYERS)"
-				% [max_players, min_players, tuning_max]
-			)
-		)
+	out.append_array(_lobby_problems(tuning_min, tuning_max))
 	if is_server and connect_address != "":
 		out.append("--server and --connect are mutually exclusive")
 	if connect_address != "" and not connect_address.contains(":"):
@@ -151,6 +167,33 @@ func problems(min_players: int, tuning_max: int, max_crowd: int) -> Array[String
 		out.append("--crowd %d is outside 0-%d (TUN-CROWD-COUNT-MAX)" % [crowd_count, max_crowd])
 	for flag: String in unknown:
 		out.append("unrecognised flag %s" % flag)
+	return out
+
+
+## The two lobby bounds, checked against each other and against the tuning.
+##
+## **`--max-players`'s FLOOR IS THE COUNTDOWN FLOOR, NOT THE TUNABLE**, which is a
+## widening and it is deliberate. It used to be `TUN-LOBBY-MIN-PLAYERS` 4, so
+## `--min-players 1 --max-players 2` — a bench with one bot and you — was refused
+## for being under a minimum the same command line had just lowered. The tunable
+## still bounds `--min-players` itself, so nothing is unbounded: a launch can ask
+## for a smaller lobby, and cannot ask for a bigger one than the design allows.
+func _lobby_problems(tuning_min: int, tuning_max: int) -> Array[String]:
+	var out: Array[String] = []
+	if min_players < 1 or min_players > tuning_max:
+		out.append(
+			(
+				"--min-players %d is outside 1-%d (TUN-LOBBY-MAX-PLAYERS); the default is %d"
+				% [min_players, tuning_max, tuning_min]
+			)
+		)
+	if max_players < min_players or max_players > tuning_max:
+		out.append(
+			(
+				"--max-players %d is outside %d-%d (--min-players and TUN-LOBBY-MAX-PLAYERS)"
+				% [max_players, min_players, tuning_max]
+			)
+		)
 	return out
 
 
