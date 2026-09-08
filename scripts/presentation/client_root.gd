@@ -17,6 +17,8 @@
 ## rather than from anything in the scene.
 extends Node
 
+var results: ResultsRoot
+
 @onready var map_host: Node3D = $World/Map
 
 
@@ -26,3 +28,17 @@ func _ready() -> void:
 	)
 	var geometry := (load(MapCatalogue.client_scene(chosen)) as PackedScene).instantiate()
 	map_host.add_child(geometry)
+	results = ResultsRoot.new()
+	results.name = "Results"
+	results.palette = ($Hud as HudRoot).palette
+	results.active_changed.connect(_results_active)
+	add_child(results)
+
+
+func _results_active(active: bool) -> void:
+	var hud := get_node_or_null("Hud") as HudRoot
+	var sampler := get_node_or_null("InputSampler") as InputSampler
+	if hud != null:
+		hud.visible = not active
+	if sampler != null:
+		sampler.set_results_active(active)

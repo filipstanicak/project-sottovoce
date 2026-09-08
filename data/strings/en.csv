@@ -65,3 +65,38 @@ caption.kill.nearby,A struggle nearby
 caption.crowd.startle,The crowd scatters
 caption.crowd.gawk,A murmur gathers
 credits.engine,Made with Godot Engine
+ui.results.title,Match results
+ui.results.subtitle,Compare your approach. The bonuses show what earned the points.
+ui.results.waiting,Waiting for the final results…
+ui.results.placements,Final standings
+ui.results.breakdown,Bonus breakdown
+ui.results.bonus,Bonus
+ui.results.count,Count
+ui.results.points,Points
+ui.results.fold_note,Every point above comes from the same awards as the total.
+ui.results.kit,"%s
+Abilities: %s
+Passive: %s"
+ui.results.duration,%d:%02d
+ui.results.anonymous,Time Anonymous  ·  %s
+ui.results.winner_anonymous,Winner’s time Anonymous  ·  %s
+ui.results.unavailable,Not available
+ui.results.other_bonus,Other award
+ui.results.no_bonuses,No bonuses earned.
+ui.results.best_kill,Highest single kill
+ui.results.no_kill,No contract kill this match.
+ui.results.best_by,%d points  ·  %s
+ui.results.your_killers,Your killers
+ui.results.no_deaths,You were not killed.
+ui.results.killer_count,%s  ·  %d
+ui.results.you,%s (you)
+ui.results.player_row,%s   %s   ·   %d
+ui.results.skip,Ready to continue
+ui.results.voted,Ready confirmed
+ui.results.vote_sent,Vote sent
+ui.results.unanimous,Everyone must agree to continue early.
+ui.results.votes,%d / %d ready · Everyone must agree to continue early.
+ui.results.remaining,  Results: %d s
+ui.results.player_points,%d points
+ui.results.anonymous_short,Anonymous %s
+ui.results.winner_short,Winner · Anonymous %s

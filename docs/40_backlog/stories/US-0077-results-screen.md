@@ -59,5 +59,41 @@ The live score feed sends only the recipient's awards and omits SCORE-DEATH;
 it cannot supply all-player results. Names, complete kits and authoritative
 Anonymous durations also need an end-of-match payload. The server-owned log
 must not be held by presentation (test_score_no_direct_mutation.gd).
-Ownership of that transport is being clarified before extending the stated
-presentation-only scope. No acceptance criterion is complete yet.
+The owner assigned transport, metadata and unanimous skip to Claude; Codex owns
+the presentation. End-to-end acceptance stays open until that delivery is wired.
+
+
+## Presentation handoff to the delivery owner
+
+The shipping `ClientRoot` now owns a `ResultsRoot` child named `Results`.
+The adapter calls `present(events: Array[ScoreEvent], roster: Array[Dictionary],
+local_actor: int)` after validating the complete end-of-match payload. Do not use
+live `ScoreReport`s: they intentionally lack identity and death records.
+Preserve the events' frozen base points and multiplier; the UI never reconstructs
+an event against a current tuning profile. IDs in the roster and local_actor must
+be the same identity domain as ScoreEvent.actor_id/subject_id, including departed
+participants. This is a presentation adapter contract, not a new wire format.
+
+| Roster key | Meaning |
+|---|---|
+| id | Stable event actor/subject ID |
+| name | Authoritative display name |
+| placement | Final server placement; absent/zero displays unknown, no client tie-break |
+| persona | PERSONA- ID |
+| abilities | Array of the two ABIL- IDs |
+| passive | PASV- ID |
+| anonymous_seconds | Authoritative duration; absent/negative displays unavailable |
+
+Connect `ResultsRoot.skip_requested` to the existing planned skip request, then
+call `apply_skip_state(votes, voters, voted, seconds_left)` with server facts.
+`seconds_left` is optional and defaults to unknown; it is RESULTS time, never
+Snapshot.ticks_remaining. Without a connected sender, the button stays disabled.
+A vote is emitted at most once per displayed result. A full tally or zero time
+never dismisses the screen: only the existing match_phase_changed event does.
+
+The payload may precede or follow RESULTS. A late payload replaces a waiting
+surface; leaving RESULTS clears it. The existing input sampler releases the
+cursor and sends neutral gameplay input while the results surface is active.
+`tools/results_probe.tscn` reproduces waiting, local, winner and long-name/empty
+screens using fixtures; it is not the delivery path and the shipping client
+never manufactures these records.
