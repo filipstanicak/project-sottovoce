@@ -2070,10 +2070,14 @@ against a 25 degree one. A hunter facing away still spends nothing.
 when there is no `World3D`, so a fixture out of the tree measures zero for every
 arrangement and every assertion in the file would pass over nothing.
 
-**`snapshot.gd` IS AT 397 OF ITS 400 LINES.** The next field added to the format
-forces a split, and the honest seam is the value object against its serialiser —
-though *"the field order is the wire"* argues for keeping them together, so it is a
-real decision rather than a mechanical one.
+**`snapshot.gd` IS NOW 167 LINES; `SnapshotCodec` IS 261.** PR #214 keeps the
+value object and its public API in `Snapshot`, with ordered encoding, decoding and
+quantised fingerprints together in the codec. The cost is one more navigation hop
+from fields to wire. Three packet fixtures captured before the split pin exact
+bytes, alongside the existing size and round-trip tests; static `deserialise` stays
+static. See [the decision](docs/40_backlog/SPLIT_THE_SNAPSHOT.md).
+**THIS WAS NOT A BLOCKER FOR US-0079:** `phase` and `ticks_remaining` already exist.
+The initial dependency claim was wrong; this is a standalone size/seam refactor.
 
 **AND TWO PROSE COUNTS IN THIS FILE WERE STALE AND HAVE SELF-CORRECTED.** The
 unticked-criteria figure read **fifty** while the truth was fifty-two (US-0097 was
