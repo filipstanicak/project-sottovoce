@@ -104,3 +104,32 @@ static func warning_at(rules: MatchTuning) -> int:
 ## was not before.
 static func crossed(previous_elapsed: int, elapsed: int, at: int) -> bool:
 	return previous_elapsed < at and elapsed >= at
+
+
+## Ticks left on **the clock the player is watching**, or `NO_CLOCK` in the lobby.
+##
+## **`ACTIVE` AND `FINAL` SHARE ONE COUNTDOWN, AND THAT IS THE WHOLE OF THIS
+## FUNCTION.** Answering each phase's own clock would make the match timer **jump
+## back up to 30 s** the moment the Final Contract opened — a timer that gains time
+## reads as a bug in the one minute of the match nobody can afford to distrust. The
+## eight minutes run to zero and `FINAL` is a boundary crossed inside them, which is
+## also the only reading under which TDD-10 §6's own sketch is arithmetically right:
+## it compares `ticks_remaining` against `finalphase_duration + finalphase_warning`,
+## a quantity that only exists if the two phases count down together.
+##
+## **AND IT IS DERIVED FROM THE TWO PHASE CLOCKS RATHER THAN FROM
+## `TUN-MATCH-DURATION`.** The sum is the same 480 s today, and a profile whose
+## seconds round differently would make it two answers to one question. There is no
+## third number here to disagree with the first two.
+##
+## `phase_elapsed` is ticks since **this** phase began, so `FINAL` restarts it at
+## zero. The score multiplier does not use this — it needs a tick spanning both, and
+## `MatchContext.match_tick()` is that one.
+static func remaining(phase: int, phase_elapsed: int, rules: MatchTuning) -> int:
+	if phase == MatchPhase.Phase.ACTIVE:
+		var left := duration_ticks(MatchPhase.Phase.ACTIVE, rules) - phase_elapsed
+		return maxi(left + duration_ticks(MatchPhase.Phase.FINAL, rules), 0)
+	var total := duration_ticks(phase, rules)
+	if total == NO_CLOCK:
+		return NO_CLOCK
+	return maxi(total - phase_elapsed, 0)

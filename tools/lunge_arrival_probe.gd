@@ -79,6 +79,12 @@ func _run() -> void:
 		print("REFUSING: the server has no combat or ability system to press.")
 		get_tree().quit(1)
 		return
+	# **THE BENCH IS ITS OWN LOBBY.** `SYS-MATCH` boots into `LOBBY` and
+	# `MatchDirector` runs no stage there, so a probe with fewer than
+	# `TUN-LOBBY-MIN-PLAYERS` peers would tick nothing at all and report it as
+	# a rule that does not work. Same reason `sandbox.bat` passes
+	# `--min-players 1`.
+	_root.match_state.min_players = 1
 	_root.call(&"_on_peer_joined", HUNTER)
 	_root.call(&"_on_peer_joined", PREY)
 	# Long enough for the repair debounce to announce and TUN-RESPAWN-INVULN to

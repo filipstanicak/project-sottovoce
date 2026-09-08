@@ -91,6 +91,13 @@ if %TOTAL% GTR 5 (
     echo   Trimming the quarry to !QUARRY!.
 )
 
+REM THE BENCH STARTS ON ITS OWN, WHICH IS WHY THE FLOOR IS ONE.
+REM SYS-MATCH boots into LOBBY as of US-0079 and runs no stage at all there,
+REM so a server holding out for TUN-LOBBY-MIN-PLAYERS 4 would simulate NOTHING
+REM under the default arrangement - one hunter and you is two players - and it
+REM would come back dead with no error at all. A countdown floor is a lobby
+REM rule and this map is not where lobby rules are tested; play.bat is.
+
 echo.
 echo   Sottovoce SANDBOX - port %PORT%, %BOTS% hunter^(s^), !QUARRY! quarry, %CROWD% civilians %SEED%
 echo.
@@ -102,7 +109,7 @@ taskkill /F /IM "Godot_v4.7.1-stable_win64.exe" >nul 2>&1
 timeout /t 1 /nobreak >nul
 
 echo   [2/4] starting the server on MAP-SANDBOX...
-start "sottovoce sandbox server" /min "%GODOT%" --headless --path "%PROJECT%" -- --server --port %PORT% --max-players 6 --map sandbox --crowd %CROWD% %SEED%
+start "sottovoce sandbox server" /min "%GODOT%" --headless --path "%PROJECT%" -- --server --port %PORT% --max-players 6 --min-players 1 --map sandbox --crowd %CROWD% %SEED%
 
 REM Far less to place than the district, but the navmesh still needs two
 REM synchronisation passes before anything can be put on it.

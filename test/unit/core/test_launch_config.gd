@@ -13,7 +13,7 @@ const MAX_PLAYERS := 6
 
 
 func _parse(args: Array) -> LaunchConfig:
-	return LaunchConfig.parse(PackedStringArray(args), MAX_PLAYERS)
+	return LaunchConfig.parse(PackedStringArray(args), MAX_PLAYERS, MIN_PLAYERS)
 
 
 func test_an_empty_command_line_is_a_menu_client() -> void:
@@ -108,7 +108,7 @@ func test_the_live_tuning_agrees_with_the_test_constants() -> void:
 ## this says *the launch is exactly what you asked for and one thing will be
 ## missing*. Refusing here would stop a playtest that is otherwise fine.
 func test_record_is_valid_and_warns_that_it_does_nothing() -> void:
-	var c := LaunchConfig.parse(["--server", "--record", "user://run.json"], 6)
+	var c := LaunchConfig.parse(["--server", "--record", "user://run.json"], 6, MIN_PLAYERS)
 	assert_eq(c.record_path, "user://run.json", "--record stopped parsing")
 	assert_eq(
 		c.problems(2, 6, MAX_CROWD).size(),
@@ -122,7 +122,7 @@ func test_record_is_valid_and_warns_that_it_does_nothing() -> void:
 ## `docs/40_backlog/playtests/README.md` tells a facilitator to attach the
 ## telemetry export; without this they find out it does not exist afterwards.
 func test_a_launch_without_record_warns_about_nothing() -> void:
-	var c := LaunchConfig.parse(["--server"], 6)
+	var c := LaunchConfig.parse(["--server"], 6, MIN_PLAYERS)
 	assert_eq(c.warnings().size(), 0, "a clean command line produced a warning")
 
 
@@ -131,7 +131,7 @@ func test_a_launch_without_record_warns_about_nothing() -> void:
 ## directory — so a session asking for other numbers silently runs the shipped
 ## ones. That is worse than the flag not existing, because it looks like it worked.
 func test_tuning_is_valid_and_warns_that_it_does_nothing() -> void:
-	var c := LaunchConfig.parse(["--server", "--tuning", "sandbox"], 6)
+	var c := LaunchConfig.parse(["--server", "--tuning", "sandbox"], 6, MIN_PLAYERS)
 	assert_eq(c.tuning_profile, "sandbox", "--tuning stopped parsing")
 	assert_eq(
 		c.problems(2, 6, MAX_CROWD).size(),
@@ -144,7 +144,7 @@ func test_tuning_is_valid_and_warns_that_it_does_nothing() -> void:
 ## The default must stay silent, or every launch in the project carries a warning
 ## and the channel stops being read.
 func test_the_default_profile_warns_about_nothing() -> void:
-	var c := LaunchConfig.parse(["--server", "--tuning", "default"], 6)
+	var c := LaunchConfig.parse(["--server", "--tuning", "default"], 6, MIN_PLAYERS)
 	assert_eq(c.warnings().size(), 0, "the shipped profile produced a warning")
 
 
@@ -152,7 +152,7 @@ func test_the_default_profile_warns_about_nothing() -> void:
 ## bench; the flag is how you get onto it, and a shipped build cannot because the
 ## export presets do not carry it.
 func test_map_selects_a_catalogued_map() -> void:
-	var c := LaunchConfig.parse(["--server", "--map", "sandbox"], 6)
+	var c := LaunchConfig.parse(["--server", "--map", "sandbox"], 6, MIN_PLAYERS)
 	assert_eq(c.map_name, "sandbox")
 	assert_eq(c.problems(MIN_PLAYERS, MAX_PLAYERS, MAX_CROWD).size(), 0)
 
@@ -162,28 +162,28 @@ func test_map_selects_a_catalogued_map() -> void:
 ## for one by name and silently got another is the shape of a playtest nobody
 ## realises was run on the wrong district.
 func test_an_unknown_map_is_refused_and_the_message_lists_the_real_ones() -> void:
-	var c := LaunchConfig.parse(["--server", "--map", "vetriao"], 6)
+	var c := LaunchConfig.parse(["--server", "--map", "vetriao"], 6, MIN_PLAYERS)
 	var problems := c.problems(MIN_PLAYERS, MAX_PLAYERS, MAX_CROWD)
 	assert_eq(problems.size(), 1, "a misspelled map was accepted")
 	assert_string_contains(problems[0], "sandbox", "the message does not say what is available")
 
 
 func test_the_default_map_needs_no_flag() -> void:
-	var c := LaunchConfig.parse(["--server"], 6)
+	var c := LaunchConfig.parse(["--server"], 6, MIN_PLAYERS)
 	assert_eq(c.map_name, MapCatalogue.DEFAULT)
 
 
 ## **-1 MEANS "WHATEVER THE TUNING SAYS" AND 0 IS A REAL ANSWER.** An empty district
 ## is a thing worth being able to ask for, so 0 cannot double as the sentinel.
 func test_crowd_defaults_to_the_tuning_and_zero_is_askable() -> void:
-	assert_eq(LaunchConfig.parse(["--server"], 6).crowd_count, -1)
-	var empty := LaunchConfig.parse(["--server", "--crowd", "0"], 6)
+	assert_eq(LaunchConfig.parse(["--server"], 6, MIN_PLAYERS).crowd_count, -1)
+	var empty := LaunchConfig.parse(["--server", "--crowd", "0"], 6, MIN_PLAYERS)
 	assert_eq(empty.crowd_count, 0)
 	assert_eq(empty.problems(MIN_PLAYERS, MAX_PLAYERS, MAX_CROWD).size(), 0, "0 must be legal")
 
 
 func test_a_crowd_over_the_pool_is_refused() -> void:
-	var c := LaunchConfig.parse(["--server", "--crowd", "500"], 6)
+	var c := LaunchConfig.parse(["--server", "--crowd", "500"], 6, MIN_PLAYERS)
 	assert_gt(
 		c.problems(MIN_PLAYERS, MAX_PLAYERS, MAX_CROWD).size(), 0, "500 civilians was accepted"
 	)

@@ -2,7 +2,7 @@
 id: US-0079
 title: Match state machine and phases
 version: 0.1.0
-status: draft
+status: in-progress
 owner: Technical Director
 last_updated: 2026-09-08
 depends_on: [GDD-07-BALANCE, TDD-10-SCORING]
@@ -25,18 +25,33 @@ wall time.
 
 ## Acceptance criteria
 
-- [ ] All six phases with the documented transitions.
-- [ ] 480 s total; 30 s Final Contract; 5 s warning before it.
-- [ ] The warning changes NO rules — it exists so the phase is anticipated rather than sprung.
-- [ ] The Final Contract changes the score multiplier and NOTHING else.
-- [ ] Multiplier is frozen at ScoreEvent APPEND time from the event tick.
-- [ ] A kill initiated pre-boundary and landing post-boundary scores at 1x.
-- [ ] Play continues down to four players; below that the match ends WITH results shown.
-- [ ] Cycle built at countdown as a uniformly random permutation; seed broadcast.
+- [ ] All six phases with the documented transitions. — **five phases and one announcement.**
+      `MatchPhase.Phase` has five members and their ordinals are the wire; the sixth would be
+      the final warning, which the criterion below says changes no rules. See TDD-10 §6.2.
+      **Left unticked rather than rewritten**: it is the owner's to rule on.
+- [x] 480 s total; 30 s Final Contract; 5 s warning before it.
+- [x] The warning changes NO rules — it exists so the phase is anticipated rather than sprung.
+- [x] The Final Contract changes the score multiplier and NOTHING else.
+- [x] Multiplier is frozen at ScoreEvent APPEND time from the event tick.
+- [x] A kill initiated pre-boundary and landing post-boundary scores at 1x.
+- [x] Play continues down to four players; below that the match ends WITH results shown.
+- [ ] Cycle built at countdown as a uniformly random permutation; seed broadcast. — **the cycle
+      half is done and the broadcast half is not.** `MatchSystem.countdown_opened` is
+      `ContractSystem.open`'s first caller under `scripts/`, and `ContractCycle.open` has been
+      Fisher-Yates on the seeded RNG since US-0050. `NET-S2C-MATCH-START` still has no sender,
+      so no client is told the seed.
 
 ## Test notes
 
-`test_finalphase_boundary.gd` for the initiation-time rule.
+`test_finalphase_boundary.gd` for the initiation-time rule. **Built as
+`test_the_score_origin_is_the_match_clock.gd`** instead, in
+`test/unit/systems/combat/`, because the rule turned out to be about *which tick a score event is
+stamped with* rather than about the boundary: `KillScoring` is where both moments are chosen, and
+a file named after the boundary would have sat two directories from the code that decides it.
+`test_a_kill_pressed_before_the_boundary_and_landing_after_it_pays_once` is the criterion.
+
+The phase machine is `test/unit/systems/match/test_match_system.gd`; the hop onto the wire is
+`test/unit/net/server/test_the_match_clock_reaches_the_wire.gd`.
 
 ## Why this is M5 and no longer waits on the lobby
 
@@ -63,8 +78,13 @@ the **lobby is one of them**. Whether a playtest can run on the direct-IP launch
 here already uses is a **separate decision and the owner's** — it is not taken by this move, and
 claiming otherwise is how a milestone quietly acquires work nobody agreed to.
 
-**`snapshot.gd` IS AT 397 OF ITS 400 LINES**, and a match timer is a field. The split lands
-before this story adds one.
+**AND THE CLAIM THAT THE SNAPSHOT SPLIT BLOCKED THIS STORY WAS WRONG.** This section said
+*"`snapshot.gd` is at 397 of its 400 lines, and a match timer is a field"* — measured on
+2026-09-08 and false: the format has carried **`phase`, `ticks_remaining` and `multiplier` since
+M0**. This story adds no field; it adds the first *writer* for two of them. The split (PR #214)
+was worth making on its own terms and was never a prerequisite here, and the urgency was
+invented. Corrected rather than deleted, because a claim that quietly vanishes is one nobody can
+check.
 
 ## Notes
 

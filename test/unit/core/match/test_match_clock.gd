@@ -101,3 +101,33 @@ func test_the_boundary_is_the_one_scoring_pays_at() -> void:
 			)
 			checked += 1
 	assert_eq(checked, 20, "the sweep must have run — an empty loop agrees with everything")
+
+
+## **THE LOBBY HAS NO CLOCK AND `remaining` SAYS SO RATHER THAN ANSWERING ZERO.**
+## Zero is a real reading everywhere else - it is the tick a phase runs out on - so a
+## lobby that returned it would be indistinguishable from a match about to end.
+func test_the_lobby_has_nothing_to_count_down() -> void:
+	var rules := Tuning.match_rules
+	assert_eq(
+		MatchClock.remaining(MatchPhase.Phase.LOBBY, 0, rules),
+		MatchClock.NO_CLOCK,
+		"the lobby was given a countdown"
+	)
+
+
+## **`ACTIVE` AND `FINAL` ARE ONE COUNTDOWN, ASSERTED AT THE SEAM.** The last tick of
+## `ACTIVE` and the first tick of `FINAL` are adjacent moments of one match, so the
+## reading must fall by one across them - not jump back up to the Final Contract's
+## own length, which is what a per-phase clock does and what a player reads as the
+## timer gaining thirty seconds.
+func test_the_two_halves_of_play_share_one_countdown() -> void:
+	var rules := Tuning.match_rules
+	var active := MatchClock.duration_ticks(MatchPhase.Phase.ACTIVE, rules)
+	var last_of_active := MatchClock.remaining(MatchPhase.Phase.ACTIVE, active - 1, rules)
+	var first_of_final := MatchClock.remaining(MatchPhase.Phase.FINAL, 0, rules)
+	assert_eq(last_of_active - first_of_final, 1, "the match timer jumped at the boundary")
+	assert_eq(
+		MatchClock.remaining(MatchPhase.Phase.ACTIVE, 0, rules),
+		MatchClock.ticks_of(rules.duration, rules),
+		"the first tick of play did not read the whole match"
+	)

@@ -21,6 +21,9 @@
 class_name MatchContext
 extends RefCounted
 
+## `active_started_at` before a match has ever reached `ACTIVE`.
+const NO_MATCH := -1
+
 ## **MONOTONIC SERVER TICK SINCE MATCH START.** Never wall-clock, never a frame
 ## count: it is the number every deterministic thing in the project is written
 ## against, and it advances exactly once per net tick even if a frame took 200 ms.
@@ -28,6 +31,19 @@ var tick: int = 0
 
 ## `MatchPhase.Phase`. The server's own answer, not the client's mirror.
 var phase: int = MatchPhase.Phase.LOBBY
+
+## **THE TICK `ACTIVE` BEGAN ON, AND THE ORIGIN EVERY SCORE EVENT IS MEASURED
+## FROM.** Written once by `MatchSystem`; `NO_MATCH` until the countdown ends.
+##
+## **`tick` IS COUNTED FROM BOOT AND ITS OWN DOCSTRING SAYS "SINCE MATCH START",
+## WHICH WAS TRUE ONLY WHILE THE SERVER BOOTED STRAIGHT INTO `ACTIVE`.** It did,
+## as a placeholder, from M2 until 2026-09-08 — so the two origins were the same
+## number and nothing could tell them apart. The moment a lobby and a countdown
+## exist they differ by the length of the countdown, and every tick handed to
+## `ScoreEvent` would put the Final Contract boundary that far past where the
+## phase machine puts it. **A drift needs both halves visible at once to be seen,
+## and until this field existed there was nowhere to look.**
+var active_started_at: int = NO_MATCH
 
 ## peer id -> the authoritative pawn. Populated by `SYS-SPAWN` in M4; the
 ## director exposes it now because the pawn substep walks it.
@@ -238,3 +254,20 @@ static func step_dt() -> float:
 ## players see and one the scoring uses.
 func elapsed() -> float:
 	return float(tick) * net_dt()
+
+
+## Ticks since the first tick of `ACTIVE`, spanning `FINAL` as well.
+##
+## **THIS IS THE TICK A `ScoreAward` CARRIES, NEVER `tick`.** `ScoreEvent` freezes
+## `TUN-MATCH-FINALPHASE-MULT` from it against `MatchClock.final_opens_at`, and that
+## boundary is measured from the start of play. A `phase_elapsed` would not do
+## either: it restarts at zero when `FINAL` opens, so every kill in the Final
+## Contract would compare a single-digit tick against 13 500 and pay 1x — the exact
+## thirty seconds the multiplier exists for.
+##
+## Zero before `ACTIVE` has begun, so a stun or an escape scored during `WARMUP`
+## pays at 1x rather than at a negative tick.
+func match_tick() -> int:
+	if active_started_at == NO_MATCH:
+		return 0
+	return maxi(tick - active_started_at, 0)

@@ -108,7 +108,9 @@ func _ready() -> void:
 	#
 	# `--bot` and `--ability` land in `unknown` here and that is harmless: nothing
 	# calls `problems()` on this, because a bot's command line is not a launch.
-	LaunchConfig.active = LaunchConfig.parse(args, Tuning.match_rules.max_players)
+	LaunchConfig.active = LaunchConfig.parse(
+		args, Tuning.match_rules.max_players, Tuning.match_rules.min_players
+	)
 	_root = (load(CLIENT_ROOT) as PackedScene).instantiate()
 	get_tree().get_root().add_child.call_deferred(_root)
 	print("bot %d joining %s:%d" % [_index, host, port])

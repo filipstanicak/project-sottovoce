@@ -198,9 +198,9 @@ NET-S2C-SNAPSHOT — per client, per tick
 │   ├── lock_fraction      u8
 │   └── portrait_revealed  bool
 ├── match
-│   ├── phase              u8
-│   ├── ticks_remaining    u16
-│   └── multiplier         u8
+│   ├── phase              u8       MatchPhase.Phase — THE ORDINALS ARE THE WIRE
+│   ├── ticks_remaining    u16      ACTIVE and FINAL share ONE countdown (see below)
+│   └── multiplier         u8       whole numbers only — see the note below
 ├── present_slots          u8       WHO EXISTS this tick, one bit per slot
 ├── remote_pawns[]                  only those whose QUANTISED state changed
 │   ├── peer_id            u8
@@ -242,6 +242,34 @@ This record was **10 bytes** as first specified, and §7.1 budgeted it at 7 — 
 `3×i16` position alone are seven. US-0029 built the format, measured it, and projected the
 district's worst case at **108.3 kbit/s against a 96 budget**. At 8 bytes it projects to
 **93.0 kbit/s**. `test_snapshot_size.gd` measures it on every run.
+
+---
+
+### 4.1 The match block, and what it took five milestones to write
+
+**`ticks_remaining` HAD NO WRITER FROM M0 UNTIL 2026-09-08.** The field was in the format, in
+this tree and in `Snapshot`, and nothing under `scripts/` had ever assigned it — so every client
+of every match was told **zero ticks left**. Nothing drew it, which is the only reason it was
+survivable and exactly why nobody found it: a field nobody reads and nobody writes is
+indistinguishable from one that works. `SnapshotBuilder._fill_the_clock` is the writer (US-0079)
+and `test_the_match_clock_reaches_the_wire.gd` is the test.
+
+**`ACTIVE` AND `FINAL` SHARE ONE COUNTDOWN.** It is the ticks left of the *match*, not of the
+current phase — so the number falls continuously through the Final Contract boundary rather than
+jumping back up to 30 s when it opens. A timer that gains time reads as a bug in the one minute
+of a match nobody can afford to distrust, and it is also the only reading under which TDD-10 §6's
+own sketch is arithmetically right. In `LOBBY` there is no clock at all and the field is **0**;
+`MatchClock.remaining` answers `NO_CLOCK` and the builder clamps, because a `u16` has no room
+for -1. **So the phase is the field a client reads first**: zero in `LOBBY` means there is nothing
+to count, and zero in `FINAL` means the match is over.
+
+**`multiplier:u8` CANNOT CARRY ITS OWN TUNABLE'S RANGE, AND THAT IS REPORTED RATHER THAN FIXED.**
+`TUN-MATCH-FINALPHASE-MULT` is `@export_range(1.5, 3.0, 0.1)` and this field is a whole number.
+At the shipped **2.0** it is exact; a re-pricing to **1.5** would announce **2** to every HUD
+while scoring paid 1.5 — a screen that disagrees with the points. Widening it is a format change
+and the format was frozen against pre-split bytes on 2026-09-08 (PR #214), so
+`test_the_announced_multiplier_is_the_one_that_pays` goes red on the day the value stops being a
+whole number rather than on the day somebody notices.
 
 ---
 

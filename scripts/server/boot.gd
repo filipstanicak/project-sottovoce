@@ -14,7 +14,9 @@ const CLIENT_ROOT := "res://scenes/client_root.tscn"
 
 
 func _ready() -> void:
-	var config := LaunchConfig.parse(OS.get_cmdline_user_args(), Tuning.match_rules.max_players)
+	var config := LaunchConfig.parse(
+		OS.get_cmdline_user_args(), Tuning.match_rules.max_players, Tuning.match_rules.min_players
+	)
 
 	var problems := config.problems(
 		Tuning.match_rules.min_players, Tuning.match_rules.max_players, Tuning.crowd.count_max
