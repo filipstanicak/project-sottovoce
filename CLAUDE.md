@@ -328,10 +328,12 @@ and was right to: this file says *"`NAV_AGENT_RADIUS` and its four siblings, 22
 references across 8 files"*. Measured 2026-09-08: **21 references across 9 files**,
 and there are **seven** siblings rather than four — `NAV_AGENT_HEIGHT`,
 `NAV_MAX_SLOPE`, `NAV_MAX_CLIMB`, `NAV_BAKE_FLOOR`, `NAV_BAKE_CEILING`,
-`NAV_CELL_SIZE`, `NAV_CELL_HEIGHT`, all at `scripts/core/vetraio_layout.gd:58-95`.
-The job is larger than advertised, and **the bake settings must not move**: a bench
-baked with a different agent radius is traversed differently, so both maps must
-reproduce byte-identically or the refactor is not the refactor.
+`NAV_CELL_SIZE`, `NAV_CELL_HEIGHT` — formerly at `scripts/core/vetraio_layout.gd:58-95`.
+**Closed by PR #211:** all eight unchanged declarations now live in the autoload-free
+Core class `PawnNavigation`. The clearest former dependency was `sandbox_layout.gd`:
+the 40 m bench asked the 120 m district how wide a body was. It now reads the shared
+pawn definition directly. Both maps reproduce byte-identically, including their
+collision scenes, MapData and navmesh resources; no bake value or assignment order changed.
 
 ## THE TICK GATE FAILED A BUILD WITH NOTHING BEHIND IT AGAIN, ONE ESTIMATOR ALONG
 
@@ -440,11 +442,12 @@ traverses **differently**, so a defect reproduced on it would not be the defect.
 `generate_map_vetraio.gd` went 319 → 176 lines and **the district reproduces
 byte-identical**, which is the only reason that refactor was safe to make.
 
-**AND `NAV_AGENT_RADIUS` AND ITS FOUR SIBLINGS ARE IN THE WRONG CLASS**, which is
-visible only now there are two maps: they describe the **pawn**, not the district,
-and they live in `VetraioLayout` because there was one map when they were written.
-22 references across 8 files and no `TUN-` id among them — a rename with no design
-content, reported rather than folded into a map story.
+**THE EIGHT `NAV_*` CONSTANTS NOW LIVE IN `PawnNavigation` (PR #211).** They describe
+the shared pawn and static bake contract, not the district. The earlier claim of
+four siblings and 22 references across 8 files was wrong: the pre-extraction census
+found seven siblings and 21 radius references across 9 files. The definitions and
+all executable readers have moved without changing any value; both maps reproduce
+byte-identically. No tunables or autoload dependencies were introduced.
 
 **THE DEBUG DISTRICT MAP WAS DRAWING THE WRONG DISTRICT.** `district_map.gd` read
 `VetraioLayout` unconditionally and scaled every position by the district's 120 m,
