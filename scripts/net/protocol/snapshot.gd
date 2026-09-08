@@ -1,7 +1,7 @@
 ## **THE WIRE FORMAT.** NETWORK_PROTOCOL §4, US-0029.
 ##
-## PURE. A value object plus its serialiser, so every field of the layout is a
-## round-trip test with no peer and no world.
+## PURE. Snapshot values and their public compatibility API. SnapshotCodec keeps
+## ordered encoding, decoding and fingerprints together, with no peer or world.
 ##
 ## **THE INFORMATION RULES LIVE HERE, NOT IN THE UI.** GDD-03 forbids a hunter
 ## ever learning their contract's persona, exact position, elevation or tier —
@@ -141,257 +141,27 @@ func add_npc(index: int, position: Vector3, yaw: float, anim_state: int, phase_b
 	npcs.append([index, position, yaw, anim_state, phase_bits])
 
 
-## **EXACTLY WHAT `_write_remotes` WOULD PUT ON THE WIRE**, as comparable values.
-##
-## Delta encoding omits a record whose state is unchanged, and §7.2 is precise
-## about which state: the **quantised** one. Comparing the `Vector3`s instead
-## would be wrong in both directions — two positions 3 mm apart round to the same
-## centimetre and would be sent as a change nobody could see, and a yaw crossing
-## a 1.4° boundary changes its byte while `is_equal_approx` says it did not.
-##
-## It lives here, beside the writer, so the two cannot come apart. If they ever
-## do, a record will be omitted as unchanged while its bytes differ, and the
-## client will render a player at a position the server never had —
-## `test_snapshot_delta.gd` asserts equal fingerprints serialise identically.
-static func remote_fingerprint(record: Array) -> Array:
-	var steps := Quantise.vector_to_i16(record[1] as Vector3)
-	return [
-		int(record[0]),
-		steps[0],
-		steps[1],
-		steps[2],
-		Quantise.yaw_to_u8(record[2]),
-		state_index(record[3]),
-		Quantise.pack(record[4], 6, record[5], 2),
-	]
-
-
-## The same idea for a crowd record, and it must match `_write_npcs` field for
-## field or an NPC will be dropped as unchanged while its bytes differ.
-##
-## **THE HEIGHT IS A 5 CM BYTE AND THE POSITION A 1 CM `i16`**, which is why this
-## cannot reuse `remote_fingerprint`: quantising an NPC's `y` at a centimetre
-## would make a crowd member that drifts 2 cm vertically look changed on every
-## tick, and the wire would carry a record identical to the one before it.
-static func npc_fingerprint(record: Array) -> Array:
-	var at := record[1] as Vector3
-	return [
-		int(record[0]),
-		Quantise.pos_to_i16(at.x),
-		Quantise.pos_to_i16(at.z),
-		Quantise.height_to_u8(at.y),
-		Quantise.yaw_to_u8(record[2]),
-		Quantise.pack(record[3], 3, record[4], 5),
-	]
-
-
+## Compatibility entry points: the codec owns all ordered wire operations.
 func serialise() -> PackedByteArray:
-	var buffer := StreamPeerBuffer.new()
-	buffer.big_endian = false
-	_write_header(buffer)
-	_write_own(buffer)
-	_write_compass_and_match(buffer)
-	_write_remotes(buffer)
-	_write_npcs(buffer)
-	return buffer.data_array
+	return SnapshotCodec.serialise(self)
 
 
-func _write_header(buffer: StreamPeerBuffer) -> void:
-	buffer.put_u32(server_tick)
-	buffer.put_u16(last_acked_seq)
-	buffer.put_u8(flags)
-	buffer.put_u8(clampi(baseline_age, FULL, MAX_BASELINE_AGE))
+## Static by contract: callers must use the returned value.
+static func deserialise(bytes: PackedByteArray) -> Snapshot:
+	return SnapshotCodec.deserialise(bytes)
 
 
-## The own-pawn block is **full floats, not quantised**. It is the authority the
-## client reconciles its prediction against, and reconciling against a value
-## rounded to a centimetre would put a permanent 1 cm disagreement into
-## `TUN-NET-RECONCILE-THRESHOLD`'s 10 cm budget for nothing. It is sent once per
-## snapshot, not five times, so the cost is 24 bytes against a budget measured in
-## thousands.
-func _write_own(buffer: StreamPeerBuffer) -> void:
-	for value: float in [own_position.x, own_position.y, own_position.z]:
-		buffer.put_float(value)
-	for value: float in [own_velocity.x, own_velocity.y, own_velocity.z]:
-		buffer.put_float(value)
-	buffer.put_u8(state_index(own_state))
-	buffer.put_u16(own_state_timer)
-	buffer.put_u8(1 if own_grounded else 0)
-
-	buffer.put_u8(Quantise.suspicion_to_u8(suspicion))
-	buffer.put_u8(active_sources)
-	buffer.put_u16(cooldown_a_tick)
-	buffer.put_u16(cooldown_b_tick)
-	# tier u2, blend_state u4, kill_ready and stun_ready one bit each: eight bits,
-	# one byte, and the packing is fixed by §4's widths.
-	var flags_byte := Quantise.pack(tier, 2, blend_state, 4) << 2
-	flags_byte |= (2 if kill_ready else 0) | (1 if stun_ready else 0)
-	buffer.put_u8(flags_byte)
-	# **THE ORDER IS `hunt` THEN `hunted`, AND A TRANSPOSITION HERE IS INVISIBLE.**
-	# Two adjacent bytes of the same width holding two fractions of the same bar is
-	# exactly the shape `ScoreAward` was extracted to avoid, and there is no type
-	# that separates them. What catches it is the round trip and the builder both
-	# being asserted with **two different values** — equal fixtures would agree
-	# whichever way round they were written.
-	buffer.put_u8(clampi(hunt_fraction, 0, 255))
-	buffer.put_u8(clampi(hunted_fraction, 0, 255))
+static func remote_fingerprint(record: Array) -> Array:
+	return SnapshotCodec.remote_fingerprint(record)
 
 
-func _write_compass_and_match(buffer: StreamPeerBuffer) -> void:
-	buffer.put_u8(bearing)
-	buffer.put_u8(distance_bucket)
-	buffer.put_u8(lock_fraction)
-	buffer.put_u8(1 if portrait_revealed else 0)
-	buffer.put_u8(phase)
-	buffer.put_u16(ticks_remaining)
-	buffer.put_u8(multiplier)
+static func npc_fingerprint(record: Array) -> Array:
+	return SnapshotCodec.npc_fingerprint(record)
 
 
-func _write_remotes(buffer: StreamPeerBuffer) -> void:
-	# **WHO EXISTS, THEN WHO MOVED.** The mask is written even on a full snapshot,
-	# where it is derivable from the records. One byte buys a single decode path,
-	# and a format whose shape depends on a flag is a format that gets read wrong
-	# on the branch nobody tested.
-	buffer.put_u8(present_slots)
-	buffer.put_u8(remote_pawns.size())
-	for record: Array in remote_pawns:
-		buffer.put_u8(record[0])
-		for step: int in Quantise.vector_to_i16(record[1] as Vector3):
-			buffer.put_16(step)
-		buffer.put_u8(Quantise.yaw_to_u8(record[2]))
-		buffer.put_u8(state_index(record[3]))
-		buffer.put_u8(Quantise.pack(record[4], 6, record[5], 2))
-
-
-## **THE CROWD IS WHERE THE BANDWIDTH IS**, so the crowd record is where it was
-## found. Ninety NPCs against six players: a byte saved here is worth fifteen
-## saved on a remote pawn.
-##
-## `x` and `z` keep their centimetre; `y` is a byte at 5 cm, because nothing
-## reads a crowd member's height — the suspicion radius is horizontal, the
-## compass is a bearing, and the strata are 3.5 m apart. The animation is `u3`
-## state and `u5` phase in one byte: eight anim states is more than
-## `CROWD_ANIM`'s five, and 32 phase steps is finer than a walk cycle can be read
-## at the 45–70 m these records are sent from.
-func _write_npcs(buffer: StreamPeerBuffer) -> void:
-	buffer.put_u16(npcs.size())
-	for record: Array in npcs:
-		var position := record[1] as Vector3
-		buffer.put_u8(record[0])
-		buffer.put_16(Quantise.pos_to_i16(position.x))
-		buffer.put_16(Quantise.pos_to_i16(position.z))
-		buffer.put_u8(Quantise.height_to_u8(position.y))
-		buffer.put_u8(Quantise.yaw_to_u8(record[2]))
-		buffer.put_u8(Quantise.pack(record[3], 3, record[4], 5))
-
-
-## The wire index of a state. `NO_STATE` for anything `PawnStateId` does not
-## declare — a retired id decodes as "no state" rather than as whatever now sits
-## at its old position.
 static func state_index(state: StringName) -> int:
-	var index := PawnStateId.ALL.find(state)
-	return index if index >= 0 else NO_STATE
+	return SnapshotCodec.state_index(state)
 
 
 static func state_at(index: int) -> StringName:
-	if index < 0 or index >= PawnStateId.ALL.size():
-		return &""
-	return PawnStateId.ALL[index]
-
-
-## Read a snapshot back. Returns null on anything that is not one, rather than a
-## half-filled object: a snapshot that decoded partially would move remote pawns
-## to plausible wrong places, which is worse than a frame with no update.
-static func deserialise(bytes: PackedByteArray) -> Snapshot:
-	# The count fields too: `StreamPeerBuffer` returns zero on an over-read rather
-	# than failing, so a buffer one byte short of the NPC count would decode as a
-	# snapshot with no NPCs in it — silently, and every frame.
-	if bytes.size() < HEADER_BYTES + OWN_BYTES + COUNT_BYTES:
-		return null
-	var buffer := StreamPeerBuffer.new()
-	buffer.big_endian = false
-	buffer.data_array = bytes
-	var snap := Snapshot.new()
-	snap.server_tick = buffer.get_u32()
-	snap.last_acked_seq = buffer.get_u16()
-	snap.flags = buffer.get_u8()
-	snap.baseline_age = buffer.get_u8()
-	snap._read_own(buffer)
-	snap._read_compass_and_match(buffer)
-	if not snap._read_remotes(buffer) or not snap._read_npcs(buffer):
-		return null
-	return snap
-
-
-func _read_own(buffer: StreamPeerBuffer) -> void:
-	own_position = Vector3(buffer.get_float(), buffer.get_float(), buffer.get_float())
-	own_velocity = Vector3(buffer.get_float(), buffer.get_float(), buffer.get_float())
-	own_state = state_at(buffer.get_u8())
-	own_state_timer = buffer.get_u16()
-	own_grounded = buffer.get_u8() != 0
-
-	suspicion = float(buffer.get_u8())
-	active_sources = buffer.get_u8()
-	cooldown_a_tick = buffer.get_u16()
-	cooldown_b_tick = buffer.get_u16()
-	var flags_byte := buffer.get_u8()
-	kill_ready = (flags_byte & 2) != 0
-	stun_ready = (flags_byte & 1) != 0
-	var packed := flags_byte >> 2
-	tier = Quantise.unpack_high(packed, 4, 2)
-	blend_state = Quantise.unpack_low(packed, 4)
-	hunt_fraction = buffer.get_u8()
-	hunted_fraction = buffer.get_u8()
-
-
-func _read_compass_and_match(buffer: StreamPeerBuffer) -> void:
-	bearing = buffer.get_u8()
-	distance_bucket = buffer.get_u8()
-	lock_fraction = buffer.get_u8()
-	portrait_revealed = buffer.get_u8() != 0
-	phase = buffer.get_u8()
-	ticks_remaining = buffer.get_u16()
-	multiplier = buffer.get_u8()
-
-
-func _read_remotes(buffer: StreamPeerBuffer) -> bool:
-	present_slots = buffer.get_u8()
-	var count := buffer.get_u8()
-	if buffer.get_available_bytes() < count * REMOTE_BYTES:
-		return false
-	for _i: int in count:
-		var slot := buffer.get_u8()
-		var position := Quantise.i16_to_vector(buffer.get_16(), buffer.get_16(), buffer.get_16())
-		var yaw := Quantise.u8_to_yaw(buffer.get_u8())
-		var state := state_at(buffer.get_u8())
-		var packed := buffer.get_u8()
-		add_remote(
-			slot,
-			position,
-			yaw,
-			state,
-			Quantise.unpack_high(packed, 2, 6),
-			Quantise.unpack_low(packed, 2)
-		)
-	return true
-
-
-func _read_npcs(buffer: StreamPeerBuffer) -> bool:
-	var count := buffer.get_u16()
-	if buffer.get_available_bytes() < count * NPC_BYTES:
-		return false
-	for _i: int in count:
-		var index := buffer.get_u8()
-		var x := Quantise.i16_to_pos(buffer.get_16())
-		var z := Quantise.i16_to_pos(buffer.get_16())
-		var y := Quantise.u8_to_height(buffer.get_u8())
-		var yaw := Quantise.u8_to_yaw(buffer.get_u8())
-		var packed := buffer.get_u8()
-		add_npc(
-			index,
-			Vector3(x, y, z),
-			yaw,
-			Quantise.unpack_high(packed, 5, 3),
-			Quantise.unpack_low(packed, 5)
-		)
-	return true
+	return SnapshotCodec.state_at(index)
