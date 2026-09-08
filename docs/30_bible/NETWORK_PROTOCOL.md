@@ -154,6 +154,11 @@ frame, absorbed silently by the reconciler.
 
 ## 4. Snapshot payload
 
+Implementation: `Snapshot` holds the values and existing public API;
+`SnapshotCodec` keeps ordered writers, readers and quantised delta fingerprints
+together. `Snapshot.deserialise(bytes)` remains static and returns a new value
+object. This split changes no field, width, order or quantisation rule.
+
 > **`present_slots` IS NOT REDUNDANT, AND IT IS THE ONE FIELD DELTA ENCODING MADE NECESSARY.**
 > Before US-0031, absent from a snapshot meant *gone*. It now means *unchanged* — so without a
 > separate statement of who exists, a player who disconnects while standing still is omitted for
