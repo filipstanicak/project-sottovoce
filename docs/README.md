@@ -172,6 +172,7 @@ Operational documents, not essays. These are what make the project agent-legible
 |---|---|
 | [`CLAUDE.md_SEED.md`](30_bible/CLAUDE.md_SEED.md) | The content copied verbatim to the repo-root `CLAUDE.md`. |
 | [`AGENT_PLAYBOOK.md`](30_bible/AGENT_PLAYBOOK.md) | The mandatory agent loop, the context-recovery ritual, the stop-and-ask rule. |
+| [`CHECKPOINT.md`](30_bible/CHECKPOINT.md) | The checkpoint procedure, and the one home for it — every agent's save command is a pointer here. |
 | [`CODING_STANDARDS.md`](30_bible/CODING_STANDARDS.md) | GDScript style, typing policy, signal naming, function/file length limits, error handling. |
 | [`NAMING_AND_IDS.md`](30_bible/NAMING_AND_IDS.md) | The ID grammar with a regex per namespace; IDs are immutable once merged. |
 | [`PROJECT_STRUCTURE.md`](30_bible/PROJECT_STRUCTURE.md) | Folder responsibilities and where a new file goes. |

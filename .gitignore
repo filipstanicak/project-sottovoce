@@ -38,6 +38,17 @@ desktop.ini
 # Agent working files
 implementation_plan.md
 
+# Machine-specific agent configuration. `.codex/config.toml` holds an absolute
+# path to a Godot binary on one developer's desktop, so it is wrong in every
+# other clone by construction.
+#
+# **`.agents/` IS DELIBERATELY NOT HERE.** The working rules two agents share --
+# the checkpoint procedure above all -- must be reviewable by both, or the next
+# divergence is invisible the way the last one was: two copies of `/save`, one
+# telling its agent to checkpoint into `CLAUDE.md` and the other into `AGENTS.md`.
+# Configuration is personal; process is not.
+.codex/
+
 # Tuning codegen intermediates — derived from TUNABLES.md, regenerated every run.
 /tools/tuning_codegen/*.json
 
