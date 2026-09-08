@@ -107,11 +107,17 @@ static func points_of(base: int, multiplier: float) -> int:
 ## visible symptom is a HUD announcing the phase on a different tick from the one
 ## the points were paid at.
 ##
-## **THE TICK IS THE MATCH TICK.** Until US-0079 owns a match clock the server's
-## own tick is all there is, so on a long-lived dev server the multiplier arrives
-## 450 s after boot rather than 450 s into a match. Nothing reads a score yet, so
-## nothing is wrong today; it is the first thing US-0079 makes true.
+## **THE TICK IS THE MATCH TICK, AND IT IS STILL THE SERVER'S OWN.** `MatchClock`
+## exists as of US-0079 and owns the boundary; what is not yet true is that the
+## tick handed in here is counted from the start of `ACTIVE` rather than from boot,
+## so on a long-lived dev server the multiplier still arrives 450 s after boot.
+## That is the caller's to fix when the clock is wired into `MatchDirector`, and it
+## is said here rather than left to be discovered because this line is the one that
+## reads as correct while being measured from the wrong zero.
+## **THE BOUNDARY IS `MatchClock`'s AND THIS READS IT (US-0079).** It was derived
+## here independently until 2026-09-08, and two independent derivations of one
+## instant is the shape this project keeps paying for: the day either moved, the
+## phase the HUD announces and the phase the points are paid at would disagree, and
+## no test of scoring or of the match clock alone could see it.
 static func multiplier_at(tick: int, rules: MatchTuning) -> float:
-	var rate := maxf(rules.tick_rate, 1.0)
-	var opens := (rules.duration - rules.finalphase_duration) * rate
-	return rules.finalphase_mult if float(tick) >= opens else 1.0
+	return rules.finalphase_mult if tick >= MatchClock.final_opens_at(rules) else 1.0
