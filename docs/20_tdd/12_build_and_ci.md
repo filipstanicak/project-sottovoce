@@ -120,6 +120,38 @@ force-push. The contexts are the job **names** from `ci.yml`, not the job ids �
 distinction that silently matches nothing if it is got wrong, since a check that
 never reports is simply "expected" forever.
 
+#### 1.3.3 A branch must be up to date before it merges — **since 2026-09-08**
+
+`strict_required_status_checks_policy` was **`false`** from the day the ruleset was
+applied until now, and with one agent working the repository that cost nothing. It
+is `true` now, because there is more than one.
+
+**WHAT `false` LETS THROUGH IS NOT A CONFLICT.** Two branches cut from the same
+`main`, each touching different files, each green: git finds nothing to resolve and
+both merge cleanly — and **the second change was never once tested against the
+first**. There is no textual overlap to detect, so nothing anywhere reports it. The
+symptom arrives later as a defect in a system neither branch edited, which is the
+most expensive shape this project has: something that looks correct and was never
+reached. `true` forces the second branch to rebase, so the seven checks run against
+the tree that is actually going to land.
+
+**THE MERGE IS ALREADY BOUND TO THE COMMIT IT CHECKED, AND THAT NEEDS NO NEW RULE.**
+GitHub evaluates required checks against the head SHA at merge time, so a commit
+pushed after a green run invalidates it and the merge waits. What `strict` adds is
+the *other* axis: not "has this tree been checked" but "has it been checked against
+today's `main`".
+
+**AND GREEN IS STILL NOT COMPATIBLE.** The checks assert what somebody thought to
+assert. `NET-C2S-ABILITY-REQUEST` had its RPC, its authority row, its channel, its
+router hop, its `server_root` wiring and five validations — and **no caller** —
+under three completed stories with every suite green. Read a green run as "the
+tests passed", never as "the feature is reachable".
+
+**The cost is a rebase per merge** while two PRs are open, and four minutes of CI
+after it. Applied with `gh api -X PUT repos/<owner>/<repo>/rulesets/<id> --input
+.github/main-ruleset.json` — **`PUT` against the ruleset id, not `POST`**, which
+creates a second ruleset with the same name and leaves both active.
+
 The table below describes what was true **before** that, and is kept because §1.3.1
 and §1.3.2 refer to it.
 

@@ -252,6 +252,71 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 *Updated 2026-08-27 (ADR-0016, the M4 gate). Keep this section current — it is the first thing a
 fresh session reads, and a stale one is worse than none.*
 
+## TWO AGENTS WORK THIS REPOSITORY NOW, AND THE SECOND MANUAL HAD ALREADY DRIFTED
+
+**A SECOND AGENT (GPT Codex) SHARES THIS REPO AS OF 2026-09-06, AND IT ARRIVED
+WITH ITS OWN COPY OF EVERYTHING.** `AGENTS.md` — the file Codex reads first by
+convention — was a **6 529-line verbatim copy of this file**. Two days later it
+was already wrong.
+
+**THE COPY DRIFTED IN THE ONE ROW THAT IS HARDEST TO NOTICE.** Its Tests row
+carried the 05-09 figures (192 unit scripts, 1 659 tests, 29 686 assertions)
+against this file's 06-09 ones (193, 1 663, 29 712). And its header made two
+claims that were **both false**: that it was generated from
+`docs/30_bible/Codex.md_SEED.md`, **a file that has never existed**, and that
+`test_claude_md_synced.gd` asserted its contents — that guard reads `CLAUDE.md`
+and its seed and had never opened it. Nothing under `test/`, `tools/`, `.ci/` or
+`.github/` mentioned `AGENTS.md` at all.
+
+**AND THE CHECKPOINT PROCEDURE EXISTED TWICE AND HAD DIVERGED IN SUBSTANCE, WHICH
+IS THE WORSE HALF.** `.claude/commands/save.md` and
+`.agents/skills/source-command-save/SKILL.md` both held the full `/save` steps —
+and one instructed its agent to write the live project state into **`CLAUDE.md`**
+while the other named **`AGENTS.md`**, with memory paths of `.claude/` against
+`.Codex/`. So two agents were told, in writing, to checkpoint one project into two
+documents. **The drift was not an accident; it was instructed**, and neither
+instruction was wrong on its own terms — which is exactly why reading either one
+would never have found it.
+
+**ONE HOME, TWO POINTERS, AND THE GUARD RESOLVES THE TARGET.**
+`docs/30_bible/CHECKPOINT.md` is the procedure; `AGENTS.md`, the slash command and
+the skill file are all pointers under 30 lines.
+`test_agent_entry_points_are_pointers.gd` refuses a copy growing back **and refuses
+a pointer naming a file that is not there** — the half a line count cannot do, and
+the half `Codex.md_SEED.md` would have walked straight through. Sixth instance of
+this corpus's most-repeated shape: **a document asserting a check that does not
+exist is worse than one asserting nothing.**
+
+**`main` NOW REQUIRES A BRANCH TO BE UP TO DATE BEFORE IT MERGES.**
+`strict_required_status_checks_policy` was `false` from the day the ruleset was
+applied, and with one agent that cost nothing. With two it is the quiet failure:
+two branches from the same `main`, no textual overlap, both green, both merge —
+and **the second was never tested against the first**. Git reports nothing,
+because there is nothing to resolve. TDD-12 §1.3.3, and the committed
+`.github/main-ruleset.json` was updated in the same change, because a settings
+file that disagrees with the applied settings is the drift this whole section is
+about.
+
+**EACH AGENT GETS ITS OWN WORKTREE, AND TRAP 16 IS WHY.** `D:/Claude Code/sv-claude`
+and `sv-codex` beside the main checkout, which stays on `main` so there is always a
+merged tree to play. One HEAD, one index and **one `.godot/`** shared between two
+agents is trap 16 as a standing condition rather than an accident: killing Godot
+mid-run corrupts the import cache, and the symptom is a suite that prints its
+header and never finishes — no failure, no message. That cost most of an afternoon
+on 2026-08-20 **with one agent**. The `pre-push` hook is repo config, so it holds in
+every worktree; the price is one full Godot import per worktree.
+
+**AND THE `NAV_*` FIGURE THIS FILE HAS PUBLISHED FOR THREE CHECKPOINTS IS WRONG IN
+BOTH DIRECTIONS.** Codex asked for it to be re-measured before anybody acted on it,
+and was right to: this file says *"`NAV_AGENT_RADIUS` and its four siblings, 22
+references across 8 files"*. Measured 2026-09-08: **21 references across 9 files**,
+and there are **seven** siblings rather than four — `NAV_AGENT_HEIGHT`,
+`NAV_MAX_SLOPE`, `NAV_MAX_CLIMB`, `NAV_BAKE_FLOOR`, `NAV_BAKE_CEILING`,
+`NAV_CELL_SIZE`, `NAV_CELL_HEIGHT`, all at `scripts/core/vetraio_layout.gd:58-95`.
+The job is larger than advertised, and **the bake settings must not move**: a bench
+baked with a different agent radius is traversed differently, so both maps must
+reproduce byte-identically or the refactor is not the refactor.
+
 ## THE TICK GATE FAILED A BUILD WITH NOTHING BEHIND IT AGAIN, ONE ESTIMATOR ALONG
 
 **AND THE CORRECTION IS MINE FROM YESTERDAY.** `test_server_tick_budget.gd` was
@@ -6125,7 +6190,7 @@ US-0024 measures it against clips that do not exist.
 | | |
 |---|---|
 | CI | 7 jobs. **Running again as of 2026-08-07 after a two-day outage** — run `31200490320`, all seven green. The seven commits merged during the outage were never through it, see trap 6. `.ci/run_gut.sh` fails if a suite runs fewer scripts than exist on disk |
-| Tests | **55 arch + 193 unit + 33 integration scripts**, holding 216 + 1663 + 243 tests and 1 235 + 29 712 + 679 assertions (unit and arch measured 2026-09-06; integration counts retained from 2026-09-05; the new arch script is `test_a_script_tool_gets_no_autoloads.gd`, which walks the class closure of every `-s` tool and refuses one that reaches a class calling the `Tuning` autoload — it found `input_probe.gd` unloadable, which reasoning had not. The one before it is `test_the_ability_writer_holds_no_tunables.gd`, which refuses a `TUN-`-backed field in the `.tres` writer's hand-written table. The two unit scripts before it are ADR-0019's — `test_the_stun_costs_the_contract.gd` and `test_match_consequences.gd`, which are the rule and the hop respectively. **The integration suite read 184.2 s against 183.8 s before this change**, so the wiring assertion added to `test_the_m4_loop_resolves.gd` costs about 0.4 s — it raises the signal rather than earning a stun, and deliberately does not settle through `TUN-CONTRACT-REASSIGN-DELAY`, which the first version did for **+3.8 s**) — the assertion count tripled at US-0049, because `test_contract_cycle_fuzz.gd` checks the invariant after every one of 10 000 events. **Nine are `pending` by design** — **eight in the unit suite and one in the integration suite**, which reports that an NPC aimed into the void never gives up. The island `pending` beside it **turned green by itself** when the alley mouths were built, which is what a `pending` naming its own blocker is for. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite measured **183.8 s** on 2026-09-02 and again on 2026-09-01, **174.6 s** twice on 2026-08-28 and **183.5 s** the day before that, with **no test removed** — **three readings within 0.1 s of each other now, so the 174.6 s pair is the outlier rather than the figure** — so the 9 s is machine variance and neither number should be quoted as *the* figure; what is real is that the suite sits within a few seconds of its limit either way. The 180 s it is 'allowed' is **enforced nowhere** — TEST_PLAN §3, TEST_PLAN §10 and TDD-12 §17 all assert it and no job checks it, which is the M4 gate's fourth drift finding. `test_the_m4_loop_resolves.gd` cost 13.1 s of that and is the first test ever to run M4's systems together. It was 162-172 s, up from 87.7 s at M2 — **under 9 s of headroom left, and the next integration test has to justify itself hard against that**. `test_server_tick_budget.gd` cost 9.8 s of it and is a gate line; the one before it, the 2 s pass A/B, samples ninety ticks **twice** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **The six are**: `test_upstream_bandwidth.gd` reporting the 145 % upstream miss, `test_crowd_bandwidth.gd` the 112 % downstream projection, `test_crowd_wire_cost.gd` the 112 % it actually costs, **`test_spawn_points.gd` twice — GDD-05 §2.7 rule 6's nine unoccluded spawn pairs and rule 8's S3 4, S4 1, S5 6 of 8 seats** — and `test_clone_animation_parity.gd` the missing clip library. **Two entries this row carried are gone because their findings closed**: `test_circuit_separation.gd`'s 0.51 m circuits (re-authored, now 21.20 m) and `test_cull_radius_price.gd`'s flat curve, which asserts rather than pends. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
+| Tests | **56 arch + 193 unit + 33 integration scripts**, holding 216 + 1663 + 243 tests and 1 235 + 29 712 + 679 assertions (unit and arch measured 2026-09-06; integration counts retained from 2026-09-05; the new arch script is `test_agent_entry_points_are_pointers.gd`, which resolves the target of every agent entry point rather than only capping its length — a short file can still name a document that does not exist, and `AGENTS.md` did exactly that. The one before it is `test_a_script_tool_gets_no_autoloads.gd`, which walks the class closure of every `-s` tool and refuses one that reaches a class calling the `Tuning` autoload — it found `input_probe.gd` unloadable, which reasoning had not. The one before it is `test_the_ability_writer_holds_no_tunables.gd`, which refuses a `TUN-`-backed field in the `.tres` writer's hand-written table. The two unit scripts before it are ADR-0019's — `test_the_stun_costs_the_contract.gd` and `test_match_consequences.gd`, which are the rule and the hop respectively. **The integration suite read 184.2 s against 183.8 s before this change**, so the wiring assertion added to `test_the_m4_loop_resolves.gd` costs about 0.4 s — it raises the signal rather than earning a stun, and deliberately does not settle through `TUN-CONTRACT-REASSIGN-DELAY`, which the first version did for **+3.8 s**) — the assertion count tripled at US-0049, because `test_contract_cycle_fuzz.gd` checks the invariant after every one of 10 000 events. **Nine are `pending` by design** — **eight in the unit suite and one in the integration suite**, which reports that an NPC aimed into the void never gives up. The island `pending` beside it **turned green by itself** when the alley mouths were built, which is what a `pending` naming its own blocker is for. The three numbers this row used to call assertions were **test** counts — corrected at US-0041 by reading both off the runner. The integration suite measured **183.8 s** on 2026-09-02 and again on 2026-09-01, **174.6 s** twice on 2026-08-28 and **183.5 s** the day before that, with **no test removed** — **three readings within 0.1 s of each other now, so the 174.6 s pair is the outlier rather than the figure** — so the 9 s is machine variance and neither number should be quoted as *the* figure; what is real is that the suite sits within a few seconds of its limit either way. The 180 s it is 'allowed' is **enforced nowhere** — TEST_PLAN §3, TEST_PLAN §10 and TDD-12 §17 all assert it and no job checks it, which is the M4 gate's fourth drift finding. `test_the_m4_loop_resolves.gd` cost 13.1 s of that and is the first test ever to run M4's systems together. It was 162-172 s, up from 87.7 s at M2 — **under 9 s of headroom left, and the next integration test has to justify itself hard against that**. `test_server_tick_budget.gd` cost 9.8 s of it and is a gate line; the one before it, the 2 s pass A/B, samples ninety ticks **twice** — US-0044's three suites are deliberately *unit* tests for that reason: `test_crowd_moves.gd` walks a crowd for sixty net ticks eight times over, and physics frames run in real time even headless. **The six are**: `test_upstream_bandwidth.gd` reporting the 145 % upstream miss, `test_crowd_bandwidth.gd` the 112 % downstream projection, `test_crowd_wire_cost.gd` the 112 % it actually costs, **`test_spawn_points.gd` twice — GDD-05 §2.7 rule 6's nine unoccluded spawn pairs and rule 8's S3 4, S4 1, S5 6 of 8 seats** — and `test_clone_animation_parity.gd` the missing clip library. **Two entries this row carried are gone because their findings closed**: `test_circuit_separation.gd`'s 0.51 m circuits (re-authored, now 21.20 m) and `test_cull_radius_price.gd`'s flat curve, which asserts rather than pends. Each reports a finding the code cannot fix rather than going red, the same choice `test_snapshot_size.gd` made. A `pending` that turns green by itself the day its blocker is authored is the point. The *script* counts are guarded by `test_claude_md_counts_are_current.gd`; the assertion counts are a snapshot and are not. This line read `119 + 515 + 132` for **twelve PRs** — every update to it was an unasserted `str.replace` that silently matched nothing. See trap 15 |
 | Tuning | **296** tunables across 14 resource classes; all **37** cross-field invariants assert. **Six were added on 2026-08-29 for US-0097's escape verb** — four `TUN-PURSUIT-*` on `ContractTuning` (a pursuit ends by removing and reinserting a contract, so §7 is its section and no new resource was needed) and `TUN-SCORE-ESCAPE`/`-CLOSECALL` on `ScoringTuning`. **Invariant 34 fired on its first run against the story's own proposed value**: `TUN-PURSUIT-DURATION` is `warn_radius / blend_walk` = 10.7143, US-0097 wrote **10.7**, and that asks the prey for 1.402 m/s — fractionally faster than a blend walk, in exactly the direction the invariant forbids. Shipped at **10.72**, with the tolerance tightened to a true floor rather than widened to admit it. **A rounded derivation is not a derivation.** **`TUN-COMPASS-CONE-FULL-RADIUS` 20.0 m was added on 2026-08-27** — where the Compass arc becomes a whole ring — and **invariant 33 is the reason it is not a chosen number**: it pins the radius equal to `TUN-COMPASS-LOCK-RANGE`, so the arc stops pointing exactly where the lock starts working, and separately outside the validated kill reach. It was **set three times in one day and only ever by somebody playing it** — 4.0 m derived from the half-width alone, 6.0 m at `TUN-SUSPICION-OPEN-RADIUS`, then 20.0 — and the second is the one worth remembering, because it was **derived and still wrong**. **`TUN-SCORE-HALFSEEN` +50 was added on 2026-08-27** by the fidelity re-audit — the stealth ladder had no middle rung, so a kill at **Noticed** and one at **Exposed** scored identically; invariant 32 keeps it strictly descending and strictly positive, and the `> 0` clause is the load-bearing half because every ordering check passes over a zero. `TuningInvariantsScore` was split out when that pushed the file past 400 lines — tech is how the game is *transmitted*, score is what it *pays*, and what is left is how it *plays*, with one entry point still. **Four scoring values were re-priced on 2026-08-26 (ADR-0013)** — `TUN-SCORE-SILENT` 100 → 200, `TUN-SCORE-PATIENT` 150 → 100, `TUN-SCORE-FOCUS` 100 → 150, `TUN-SCORE-RECKLESS` −50 → **0**, and invariant 18 rewritten from an ordering to a floor — split across `TuningInvariants` and `TuningInvariantsTech` since the first file hit 400 lines, with one entry point still. **Eight IDs are deprecated** and recorded in TUNABLES §19 — never reused |
 | Autoloads | All eight. `Tuning` precomputes 89 durations into **two** tick tables — see trap 7 |
 | Strings | `data/strings/en.csv`, 56 keys, no user-facing literal anywhere else |
