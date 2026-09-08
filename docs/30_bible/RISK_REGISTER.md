@@ -25,7 +25,7 @@ depends_on: [ADR-0001, ADR-0002, ADR-0007, BIBLE-PERF-BUDGET, BIBLE-DOD, GDD-08-
 | `RISK-CROWD-PERF` | 90 NPCs do not fit 2.0 ms | **Medium** | **High** | **High** | M3 — **re-scored at the gate: the SERVER half is measured and comfortable; the CLIENT half, which is where the 0.10 ms margin lives, has never been measured and cannot be.** Re-measured at the M4 gate with **all fifteen M4 systems live: 2.16 ms mean, 2.27 p95, 2.6-2.9 p99 against a budget of 8.0**, reproducible over three runs. Unchanged — the client is still the unmeasured half |
 | `RISK-NETCODE` | Prediction/reconciliation instability | Medium | Medium | Medium | M2 — **re-scored down at the gate** |
 | `RISK-AGENT-DRIFT` | Docs and code diverge | **High** | Medium | **High** | Continuous — **the M4 gate found four live instances in one afternoon**: `US-0084` cited as "the HUD" in **twelve places** when it is *Accessibility*, M6; the kill-LOS contradiction mis-cited to a section with no test table (ADR-0015); `--record` parsed with **no reader** while the playtest runbook tells a facilitator to use it; and **28 of 29** documented telemetry events with no emitter. The score is confirmed rather than raised, and it is the highest-frequency risk in this table |
-| `RISK-NOT-FUN-SOLO` | The loop needs 6 humans to be fun | Medium | **High** | **High** | ~~M4~~ → **M6 — re-scored at the M4 gate: NOT measurable at M4, and the reason is structural.** Its trigger is a playtest question, and a playtest needs a match (`SYS-MATCH`, US-0079, **M6**), a HUD (US-0072/0073, M5) and a score (US-0064, M5). The risk is unchanged; **the date we find out moved two milestones later** |
+| `RISK-NOT-FUN-SOLO` | The loop needs 6 humans to be fun | Medium | **High** | **High** | ~~M4~~ → **M6 — re-scored at the M4 gate: NOT measurable at M4, and the reason is structural.** Its trigger is a playtest question, and a playtest needs a match (`SYS-MATCH`, US-0079, **M5 since 2026-09-08**), a HUD (US-0072/0073, M5), a score (US-0064, M5) and a **lobby (US-0078, still M6)**. **Moving the match did NOT move this risk's date**, and saying so is the point: the match was one blocker of four, so the milestone it becomes measurable at is decided by the one still at M6. The risk is unchanged; **the date we find out moved two milestones later** |
 | `RISK-ANIM-SCOPE` | Clone parity doubles animation cost | **High** | Medium | **High** | M3 — **re-scored UP at the gate: zero clips exist on either rig, and three stories are blocked behind that** |
 | `RISK-BALANCE-UNFALSIFIABLE` | Too few playtests to settle the model | **High** | Low | Medium | M6 |
 | `RISK-ART-SCOPE` | Art exceeds a small team's capacity | Medium | Medium | Medium | M6 |
@@ -219,7 +219,7 @@ information properties are analysed at every count
 >
 > | Needed | Story | Milestone |
 > |---|---|---|
-> | A match with a start, an 8:00 clock, a Final Contract and an end | `SYS-MATCH`, US-0079 | **M6** |
+> | A match with a start, an 8:00 clock, a Final Contract and an end | `SYS-MATCH`, US-0079 | ~~M6~~ **M5 since 2026-09-08** |
 > | A HUD — Compass, tier, portrait, crosshair | US-0072 / US-0073 | M5 |
 > | A score, so Q7 *"did you understand why you died"* can be answered | US-0064, US-0074 | M5 |
 > | `TEL-MEAN-SPEED` and `TEL-FIRST-CONTACT-OUTCOME` | US-0080 | **M6** |
