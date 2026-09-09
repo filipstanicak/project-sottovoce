@@ -28,6 +28,9 @@ var crowd: CrowdDirector = null
 var announcer: MatchAnnouncer = null
 var router: RpcRouter = null
 
+## `SYS-MATCH`, for the skip vote it counts.
+var match_state: MatchSystem = null
+
 var _ctx: MatchContext
 
 
@@ -163,5 +166,18 @@ func final_warning_announced(_ctx: MatchContext) -> void:
 
 ## **BELOW THE FLOOR THE MATCH ENDS, AND IT ENDS WITH RESULTS SHOWN.** The
 ## transition into `RESULTS` is `MatchSystem`'s; this only says so out loud.
+## `NET-C2S-SKIP-RESULTS` arrived and was authorised. **The rule is
+## `MatchSystem`'s**: this carries the press and decides nothing, which is what
+## every method in this class does.
+func skip_requested(peer: int) -> void:
+	if match_state != null:
+		match_state.report_skip(peer, _ctx)
+
+
+## **THE LOBBY WAS UNANIMOUS.** `MatchSystem` counted; this only says so.
+func results_skipped(_ctx: MatchContext) -> void:
+	Log.info("results skipped — every player asked", &"net")
+
+
 func abandoned(players: int, _ctx: MatchContext) -> void:
 	Log.info("match ended: %d player(s) left, below the floor" % players, &"net")

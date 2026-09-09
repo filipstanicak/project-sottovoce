@@ -71,7 +71,7 @@ otherwise.
 | `NET-C2S-INPUT` | S | Unrel | **60 Hz** | `seq:u16`, `move:2×i8`, `yaw:u8`, `pitch:i8`, `buttons:u16`, `acked_tick:u16` — **hand-packed, 12 B; see §2.3** | Sender owns a living pawn. `seq` newer than last processed. **Applies to the sender's pawn, looked up from the peer id — never from the payload** |
 | `NET-C2S-ABILITY-REQUEST` | E | Rel | on demand | `slot:u8`, `aim_origin:3×f32`, `aim_dir:3×f32` | Slot equipped; cooldown expired **on the server**; GCD respected; aim **clamped** server-side |
 | `NET-C2S-BLEND-REQUEST` | E | Rel | on demand | `target_id:u16` | Target exists, within join radius, has capacity |
-| `NET-C2S-SKIP-RESULTS` | X | Rel | once | — | Phase == RESULTS. Skip requires **unanimous** consent. **NOT BUILT**: it needs a C2S doorway on the `EVENT` channel and `net.gd` is at 398 of its 400 lines |
+| `NET-C2S-SKIP-RESULTS` | X | Rel | once | — | Phase == RESULTS. Skip requires **unanimous** consent. **BUILT 2026-09-09** on `RequestWire`, the C2S doorway `net.gd` ran out of room for. It carries no payload: pressing is the yes |
 | `NET-C2S-PING` | S | Unrel | 1 Hz | `client_time:u32` | None needed — echo only |
 
 ### 2.1 What is absent, and why that is the point

@@ -18,11 +18,17 @@
 ## adversary to find the gap; this finds it by reading, and finds it in a handler
 ## nobody has written a test for yet.
 ##
-## **THE CHOKEPOINT IS `RpcRouter.authorise()` AND THE HANDLERS ARE ON `Net`.**
-## Godot addresses an RPC by node path, so only a node at the same path on both
-## peers can receive one — which is why the doorway moved to the autoload in
-## US-0030. The decision did not move: every handler there calls the router
-## first, and this guard is what says so.
+## **THE CHOKEPOINT IS `RpcRouter.authorise()`, AND THE HANDLERS ARE ON `Net` OR ONE
+## OF ITS CHILDREN.** Godot addresses an RPC by node path, so only a node at the same
+## path on both peers can receive one — which is why the doorway moved to the autoload
+## in US-0030, and why it could move again to `RequestWire` at US-0077 when `net.gd`
+## ran out of lines: **a child of an autoload is at the same path on every peer too.**
+## The decision did not move either time: every handler calls the router first.
+##
+## **THE SCAN IS THE WHOLE OF `scripts/net` AND NOT A FILE LIST**, which is the only
+## reason that move did not hollow this guard out. A named-file guard would have gone
+## quietly vacuous the moment two handlers left `net.gd` — falsified at US-0077 by
+## deleting `c2s_skip_results`'s authorise call, which reddens this by name.
 extends GutTest
 
 const ROOTS: Array[String] = ["res://scripts/net", "res://scripts/systems", "res://scripts/server"]

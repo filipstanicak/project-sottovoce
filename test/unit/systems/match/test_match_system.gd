@@ -243,3 +243,82 @@ func test_the_match_enters_results_once_and_then_stops_announcing() -> void:
 	assert_eq(_ctx.phase, MatchPhase.Phase.RESULTS, "the match never reached its results")
 	var reached := entries.count(MatchPhase.Phase.RESULTS)
 	assert_eq(reached, 1, "the match announced its results %d times" % reached)
+
+
+# ------------------------------------------------ the unanimous skip ---
+#
+# US-0077's eighth criterion. **The unanimity is the whole rule**: one impatient
+# player cannot deny another the teaching moment, and every assertion below is one
+# way that could stop being true without anything looking wrong.
+
+
+func _reach_the_results() -> void:
+	_fill_the_lobby()
+	assert_true(_tick_until(MatchPhase.Phase.RESULTS, 3000) > 0, "the match never ended")
+
+
+func test_one_vote_of_four_changes_nothing() -> void:
+	_reach_the_results()
+	var before := _sys.remaining(_ctx)
+	_sys.report_skip(10, _ctx)
+	assert_eq(_sys.skips(), 1, "the vote was not counted")
+	assert_eq(_sys.remaining(_ctx), before, "one player skipped the results for everybody")
+
+
+func test_the_last_vote_ends_the_screen() -> void:
+	var skipped: Array = []
+	_sys.results_skipped.connect(func(_c: MatchContext) -> void: skipped.append(true))
+	_reach_the_results()
+	for peer: int in [10, 11, 12]:
+		_sys.report_skip(peer, _ctx)
+	assert_gt(_sys.remaining(_ctx), 0, "the results ended one vote short of unanimous")
+	_sys.report_skip(13, _ctx)
+	assert_eq(_sys.remaining(_ctx), 0, "everybody asked and the screen did not end")
+	assert_eq(skipped.size(), 1, "the skip was announced %d times" % skipped.size())
+
+
+## **PRESSING TWICE IS ONE VOTE.** Otherwise two impatient presses from one player
+## satisfy a two-player lobby, which is the rule inverted rather than bent.
+func test_pressing_twice_is_still_one_vote() -> void:
+	_reach_the_results()
+	for _i: int in 8:
+		_sys.report_skip(10, _ctx)
+	assert_eq(_sys.skips(), 1, "one player voted %d times" % _sys.skips())
+	assert_gt(_sys.remaining(_ctx), 0, "one player skipped the results by pressing repeatedly")
+
+
+## **A VOTE CANNOT BE BANKED.** `Authority` refuses the message outside `RESULTS` and
+## this refuses the rule — two different checks, because the doorway is bypassed by
+## every test and every probe that calls this directly.
+func test_a_vote_before_the_results_is_not_kept() -> void:
+	_fill_the_lobby()
+	assert_true(_tick_until(MatchPhase.Phase.ACTIVE, 400) > 0, "play never began")
+	for peer: int in [10, 11, 12, 13]:
+		_sys.report_skip(peer, _ctx)
+	assert_eq(_sys.skips(), 0, "a vote cast during play was banked")
+	assert_true(_tick_until(MatchPhase.Phase.RESULTS, 3000) > 0, "the match never ended")
+	assert_gt(_sys.remaining(_ctx), 0, "banked votes skipped the results screen")
+
+
+## **A DEPARTED PLAYER TAKES THEIR VOTE WITH THEM, AND THE COUNT WOULD OTHERWISE BE
+## RIGHT.** Two players, one votes and disconnects: the lobby is one, the votes are
+## one, and unanimity is satisfied over somebody who never pressed.
+func test_a_departed_voter_does_not_carry_the_lobby() -> void:
+	_reach_the_results()
+	_sys.report_skip(10, _ctx)
+	_sys.players = 1
+	_sys.forget(10)
+	assert_eq(_sys.skips(), 0, "the departed player is still voting")
+	assert_gt(
+		_sys.remaining(_ctx), 0, "a player who left skipped the screen for the one who stayed"
+	)
+
+
+## An empty lobby is not unanimous. **Zero votes over zero players is arithmetically
+## unanimous and semantically nothing**, and the phase clock is what ends the screen.
+func test_an_empty_lobby_does_not_skip_itself() -> void:
+	_reach_the_results()
+	_sys.players = 0
+	var before := _sys.remaining(_ctx)
+	_sys.report_skip(10, _ctx)
+	assert_eq(_sys.remaining(_ctx), before, "an empty lobby skipped its own results")

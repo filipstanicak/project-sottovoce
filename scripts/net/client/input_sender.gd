@@ -108,7 +108,7 @@ func _send_ability_presses(command: InputCommand) -> void:
 func _request(slot: int, origin: Vector3, direction: Vector3) -> void:
 	if not Net.is_client_connected():
 		return
-	Net.c2s_ability_request.rpc_id(MultiplayerPeer.TARGET_PEER_SERVER, slot, origin, direction)
+	Net.requests.send_ability_request(slot, origin, direction)
 
 
 ## How many commands have gone upstream. For the integration test and the

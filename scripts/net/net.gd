@@ -45,6 +45,12 @@ var assembler := SnapshotAssembler.new()
 ## with seven more M4 event messages still to come. See `EventWire`.
 var events := EventWire.new()
 
+## The `EVENT`-channel C2S doorway. **The split this file has predicted since M4**,
+## taken when `NET-C2S-SKIP-RESULTS` would not fit under 400 lines. See
+## `RequestWire`, and note what stayed: `NET-C2S-INPUT` is the one C2S message on
+## the `STATE` channel and it is not a request.
+var requests := RequestWire.new()
+
 var _peer: ENetMultiplayerPeer = null
 var _peers := PeerRegistry.new()
 var _router: RpcRouter = null
@@ -66,6 +72,8 @@ func _ready() -> void:
 	add_child(_pings)
 	events.name = "EventWire"
 	add_child(events)
+	requests.name = "RequestWire"
+	add_child(requests)
 
 
 ## Listen on `port` for at most `max_players` peers. Returns false and logs
@@ -105,6 +113,9 @@ func join(address: String, port: int) -> bool:
 ## is, every C2S handler refuses everything.
 func bind_router(router: RpcRouter, slots: SlotTable = null) -> void:
 	_router = router
+	# **BOTH DOORWAYS, ONE ROUTER.** `RequestWire` holds the C2S handlers that no
+	# longer fit here; binding it anywhere else is two sources of one truth.
+	requests.bind(router)
 	_peers.use_slots(slots)
 
 
@@ -344,24 +355,6 @@ func c2s_input(bytes: PackedByteArray) -> void:
 	if command == null:
 		return
 	_router.receive_input(peer, command)
-
-
-## `NET-C2S-ABILITY-REQUEST`. Aim is clamped by `SYS-ABILITY`, not here.
-@rpc("any_peer", "call_remote", "reliable", Messages.Channel.EVENT)
-func c2s_ability_request(slot: int, origin: Vector3, direction: Vector3) -> void:
-	var peer := multiplayer.get_remote_sender_id()
-	if _router == null or not _router.authorise(peer, Ids.NET_C2S_ABILITY_REQUEST):
-		return
-	_router.receive_ability_request(peer, slot, origin, direction)
-
-
-## `NET-C2S-BLEND-REQUEST`. Range and capacity belong to `SYS-BLEND`.
-@rpc("any_peer", "call_remote", "reliable", Messages.Channel.EVENT)
-func c2s_blend_request(target_id: int) -> void:
-	var peer := multiplayer.get_remote_sender_id()
-	if _router == null or not _router.authorise(peer, Ids.NET_C2S_BLEND_REQUEST):
-		return
-	_router.receive_blend_request(peer, target_id)
 
 
 ## Send one sampled command upstream. `InputSender` calls this once per physics
