@@ -34,6 +34,14 @@ func setup(ctx: MatchContext, pawns: PawnHost) -> void:
 func record(ctx: MatchContext, _dt: float) -> void:
 	if _ctx == null or _pawns == null or ctx.lag_comp == null:
 		return
+	# **THE RING HOLDS WHAT A KILL MAY BE VALIDATED AGAINST, WHICH IS PLAY.**
+	# `tick_completed` began firing in `RESULTS` on 2026-09-09 so the results screen
+	# could be told its own clock; without this line the ring would then fill with
+	# identical frozen frames and a rewind would answer with a world that never
+	# happened. The guard moved here rather than staying in the director because
+	# this is the consumer the rule is about.
+	if not MatchPhase.is_simulating(ctx.phase):
+		return
 	var ids := PackedInt32Array()
 	var positions := PackedVector3Array()
 	var yaws := PackedFloat32Array()

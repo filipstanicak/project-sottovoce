@@ -32,3 +32,23 @@ static func is_playing(phase: int) -> bool:
 ## results screen would change a number players are still reading.
 static func is_simulating(phase: int) -> bool:
 	return phase == Phase.WARMUP or is_playing(phase)
+
+
+## Whether a player is looking at this phase and must be told what it holds.
+##
+## **THIS IS NOT `is_simulating`, AND CONFLATING THE TWO COST THE RESULTS SCREEN
+## ITS CLOCK.** `MatchDirector` emitted the end of a tick only while simulating, so
+## the instant a match reached `RESULTS` the snapshots stopped — every client's last
+## one said `FINAL`, `ticks_remaining` froze on whatever the final tick carried, and
+## the unanimous skip had **no channel at all** to end the screen through. Found by
+## the second agent on 2026-09-09, against a claim of mine from the day before.
+##
+## *Nothing advances* and *nobody is told* are different questions. A results screen
+## is a phase in which nothing may change and everything must still be visible.
+##
+## **`LOBBY` IS DELIBERATELY OUT.** There is no world to describe yet — no pawns, no
+## crowd placed, no match — and a snapshot of one describes nothing. What a lobby
+## screen needs is a roster and a player count, which is US-0078's message rather
+## than this one's format.
+static func is_watched(phase: int) -> bool:
+	return is_simulating(phase) or phase == Phase.RESULTS

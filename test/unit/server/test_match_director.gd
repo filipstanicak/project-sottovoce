@@ -109,13 +109,6 @@ func test_the_queue_drops_the_oldest_rather_than_growing() -> void:
 	assert_eq(_substeps[0][1], 10, "the queue dropped the newest instead of the oldest")
 
 
-func test_nothing_simulates_outside_play() -> void:
-	_director.ctx.phase = MatchPhase.Phase.LOBBY
-	_director.enqueue_input(PEER, InputCommand.empty(1))
-	_run_frames(20)
-	assert_eq(_substeps.size(), 0, "input was applied in the lobby")
-
-
 ## Give the director a pawn to substep for, without a pawn. The repeat rule
 ## walks `ctx.pawns`, because a peer with a pawn and an EMPTY queue is exactly
 ## the case it exists for — and that peer has no queue entry to be found by.

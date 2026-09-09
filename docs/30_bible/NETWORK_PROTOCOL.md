@@ -247,6 +247,13 @@ district's worst case at **108.3 kbit/s against a 96 budget**. At 8 bytes it pro
 
 ### 4.1 The match block, and what it took five milestones to write
 
+**AND THE PHASE THE BLOCK EXISTS FOR RECEIVED NO SNAPSHOT AT ALL UNTIL 2026-09-09.** The
+server sent one only while `MatchPhase.is_simulating`, so a client's last snapshot of a match
+said `FINAL` and its clock froze there — the results screen, the one phase whose entire
+content is this block, was the one phase never described. `MatchPhase.is_watched` is the
+distinction: *nothing advances* and *nobody is told* are different questions. `LOBBY` stays
+out, because there is no world to describe before a match.
+
 **`ticks_remaining` HAD NO WRITER FROM M0 UNTIL 2026-09-08.** The field was in the format, in
 this tree and in `Snapshot`, and nothing under `scripts/` had ever assigned it — so every client
 of every match was told **zero ticks left**. Nothing drew it, which is the only reason it was

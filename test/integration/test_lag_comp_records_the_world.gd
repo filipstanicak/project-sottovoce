@@ -149,6 +149,21 @@ func test_nothing_is_recorded_in_the_lobby() -> void:
 	assert_eq(_director.ctx.lag_comp.size(), 0, "the lobby was recorded into the history")
 
 
+## **AND NOTHING IS RECORDED OVER THE RESULTS SCREEN EITHER, WHICH USED TO BE FREE
+## AND IS NOW A GUARD.** `MatchDirector` stopped emitting the end of a tick outside
+## simulation, so this held by accident; since 2026-09-09 it emits in `RESULTS` too so
+## the results screen can be told its own clock, and the rule moved to
+## `LagCompRecorder.record` where it belongs — the ring holds what a kill may be
+## validated against, which is play. Without the guard the ring would fill with
+## twenty-five seconds of identical frozen frames and a rewind would answer with a
+## world that never happened.
+func test_nothing_is_recorded_over_the_results() -> void:
+	_host.spawn(PEER)
+	_director.ctx.phase = MatchPhase.Phase.RESULTS
+	_run_ticks(10)
+	assert_eq(_director.ctx.lag_comp.size(), 0, "the results screen was recorded into the history")
+
+
 func test_the_ring_never_grows_past_its_capacity() -> void:
 	_host.spawn(PEER)
 	_run_ticks(40)
