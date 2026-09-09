@@ -104,18 +104,29 @@ echo.
 
 REM A stale server from a previous run still holds the port, and the failure
 REM looks like the client being unable to connect for no reason.
-echo   [1/4] clearing anything still running...
+echo   [1/5] clearing anything still running...
 taskkill /F /IM "Godot_v4.7.1-stable_win64.exe" >nul 2>&1
 timeout /t 1 /nobreak >nul
 
-echo   [2/4] starting the server on MAP-SANDBOX...
+REM A PULLED .gd HAS NO class_name UNTIL GODOT HAS SEEN IT ONCE, and the game
+REM does not import at runtime - it expects the cache to be there. So the tick
+REM after `git pull` brings in somebody else's new script, client_root.gd fails
+REM to parse, the root scene loads WITHOUT ITS SCRIPT, and you get a grey window
+REM and a wall of errors about whatever read an autoload next. Reported from the
+REM controls on 2026-09-09 after PR #217 added five presentation scripts.
+REM Four and a half seconds, unconditional: a check for whether this is needed
+REM would be a second answer to "is the cache current" that can be wrong.
+echo   [2/5] importing (a pulled script has no class until Godot has seen it)...
+"%GODOT%" --headless --path "%PROJECT%" --editor --quit-after 300 >nul 2>&1
+
+echo   [3/5] starting the server on MAP-SANDBOX...
 start "sottovoce sandbox server" /min "%GODOT%" --headless --path "%PROJECT%" -- --server --port %PORT% --max-players 6 --min-players 1 --map sandbox --crowd %CROWD% %SEED%
 
 REM Far less to place than the district, but the navmesh still needs two
 REM synchronisation passes before anything can be put on it.
 timeout /t 3 /nobreak >nul
 
-echo   [3/4] adding %BOTS% hunter^(s^) and !QUARRY! quarry...
+echo   [4/5] adding %BOTS% hunter^(s^) and !QUARRY! quarry...
 REM --map MUST be passed to the bot as well. A bot instantiates the client root
 REM itself rather than going through boot.gd, so without it the bot loads the
 REM district while the server runs the courtyard.
@@ -140,7 +151,7 @@ if !QUARRY! GTR 0 (
 )
 
 timeout /t 2 /nobreak >nul
-echo   [4/4] joining...
+echo   [5/5] joining...
 echo.
 echo   WASD move  ^|  Ctrl blend-walk  ^|  Shift run  ^|  Shift Shift sprint
 echo   Space traverse  ^|  E blend  ^|  Q Cinderfall  ^|  F Lunge  ^|  Esc menu

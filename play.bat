@@ -58,25 +58,36 @@ echo.
 
 REM A stale server from a previous run still holds the port, and the failure
 REM looks like the client being unable to connect for no reason.
-echo   [1/4] clearing anything still running...
+echo   [1/5] clearing anything still running...
 taskkill /F /IM "Godot_v4.7.1-stable_win64.exe" >nul 2>&1
 timeout /t 1 /nobreak >nul
 
-echo   [2/4] starting the server...
+REM A PULLED .gd HAS NO class_name UNTIL GODOT HAS SEEN IT ONCE, and the game
+REM does not import at runtime - it expects the cache to be there. So the tick
+REM after `git pull` brings in somebody else's new script, client_root.gd fails
+REM to parse, the root scene loads WITHOUT ITS SCRIPT, and you get a grey window
+REM and a wall of errors about whatever read an autoload next. Reported from the
+REM controls on 2026-09-09 after PR #217 added five presentation scripts.
+REM Four and a half seconds, unconditional: a check for whether this is needed
+REM would be a second answer to "is the cache current" that can be wrong.
+echo   [2/5] importing (a pulled script has no class until Godot has seen it)...
+"%GODOT%" --headless --path "%PROJECT%" --editor --quit-after 300 >nul 2>&1
+
+echo   [3/5] starting the server...
 start "sottovoce server" /min "%GODOT%" --headless --path "%PROJECT%" -- --server --port %PORT% --max-players 6 --min-players %PLAYERS% %SEED%
 
 REM The server places 78 NPCs and bakes four processions before it listens.
 REM Bots that dial in early simply fail to connect and exit.
 timeout /t 5 /nobreak >nul
 
-echo   [3/4] adding %BOTS% bot^(s^)...
+echo   [4/5] adding %BOTS% bot^(s^)...
 for /L %%i in (1,1,%BOTS%) do (
     start "sottovoce bot %%i" /min "%GODOT%" --headless --path "%PROJECT%" res://tools/bot_client.tscn -- --connect 127.0.0.1:%PORT% --bot %%i
     timeout /t 1 /nobreak >nul
 )
 
 timeout /t 2 /nobreak >nul
-echo   [4/4] joining...
+echo   [5/5] joining...
 echo.
 echo   WASD move  ^|  Ctrl blend-walk  ^|  Shift run  ^|  Shift Shift sprint
 echo   Space traverse  ^|  E blend  ^|  Q Cinderfall  ^|  Tab score  ^|  Esc menu
