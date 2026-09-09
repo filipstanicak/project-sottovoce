@@ -90,6 +90,32 @@ func test_the_multiplier_reaches_the_wire_when_the_final_contract_opens() -> voi
 	)
 
 
+## **THE RESULTS SCREEN COUNTS DOWN ON ITS OWN CLOCK, AND IT REACHES THE CLIENT.**
+## Both halves are needed and only one was true until 2026-09-09: the builder filled
+## the field correctly, and `MatchDirector` never emitted the tick that sends it, so
+## the whole phase went out on nobody's wire. `test_match_director.gd` owns the second
+## half; this owns the first.
+func test_the_results_phase_carries_its_own_countdown() -> void:
+	var rules := Tuning.match_rules
+	_ctx.phase = MatchPhase.Phase.RESULTS
+	_match.phase_elapsed = 30
+	var whole := MatchClock.ticks_of(rules.results_duration, rules)
+	assert_gt(whole, 30, "TUN-MATCH-RESULTS-DURATION converted to almost no ticks")
+	assert_eq(
+		_builder.build_for(ALICE).ticks_remaining,
+		whole - 30,
+		"the results screen does not count its own duration down"
+	)
+
+
+## And a skipped results screen reads zero, which is how the unanimous vote ends the
+## screen at all — `MatchSystem` runs the phase clock out rather than changing phase.
+func test_a_skipped_results_screen_reads_zero_on_the_wire() -> void:
+	_ctx.phase = MatchPhase.Phase.RESULTS
+	_match.phase_elapsed = MatchClock.duration_ticks(MatchPhase.Phase.RESULTS, Tuning.match_rules)
+	assert_eq(_builder.build_for(ALICE).ticks_remaining, 0, "a spent results clock did not read 0")
+
+
 ## **A BUILDER WITH NO `SYS-MATCH` IS LEGAL AND SAYS ZERO**, the same call every
 ## snapshot test written before this story makes. The alternative is a null
 ## dereference in the one code path that runs thirty times a second per player.

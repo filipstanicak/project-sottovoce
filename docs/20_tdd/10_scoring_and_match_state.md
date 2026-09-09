@@ -599,6 +599,11 @@ and it is the placeholder kit `server_root._on_peer_joined` hands out. And *your
 name* — **there is no player name anywhere in this project**: no field, no protocol row, no lobby
 to type one into. A slot number is what a results screen can honestly draw today.
 
+**NO VOTE COUNTER REACHES THE CLIENT, AND THAT IS REPORTED RATHER THAN BUILT.** US-0077's
+criterion asks for a unanimous skip and not for a tally; the snapshot has no field for one and
+`NET-S2C-MATCH-END` is sent once, so *3 of 4* would need a new field or a new message. It is a
+nicety rather than a criterion, and adding wire format for a nicety is the owner's call.
+
 **`NET-C2S-SKIP-RESULTS` IS BUILT (2026-09-09), AND IT COST THE SPLIT `net.gd` PREDICTED AT M4.**
 `RequestWire` holds the `EVENT`-channel C2S doorway — `NET-C2S-INPUT` deliberately stayed, being
 the one C2S message on the `STATE` channel and not a request. **The message carries nothing**:
@@ -607,6 +612,22 @@ veto over a screen everybody else has finished reading. `MatchSystem` counts, re
 `RESULTS` even though `Authority` already does — the doorway is bypassed by every probe that
 calls the rule directly — and **forgets a departed player's vote**, without which two players
 where one votes and disconnects satisfies unanimity over a lobby of one who never pressed.
+
+**AND THE RESULTS SCREEN RECEIVED NO SNAPSHOTS AT ALL UNTIL 2026-09-09**, which made both
+halves of the paragraph below unreachable. `MatchDirector` emitted the end of a tick only
+while `MatchPhase.is_simulating`, so the instant a match reached `RESULTS` the snapshots
+stopped: every client's last one said `FINAL`, `ticks_remaining` froze on whatever the final
+tick carried, and the unanimous skip had **no channel to end the screen through**. Found by
+the second agent against a claim of mine from the day before.
+
+**`MatchPhase.is_watched` IS THE DISTINCTION THAT WAS MISSING.** *Nothing advances* and
+*nobody is told* are different questions, and a results screen is a phase in which nothing may
+change and everything must still be visible. The stages still run only while simulating;
+`tick_completed` now fires in `RESULTS` as well, and the one consumer that must not run
+outside play says so itself — `LagCompRecorder.record` guards on `is_simulating`, because the
+ring holds what a kill may be validated against. **`LOBBY` is deliberately still silent**:
+there is no world to describe yet, and what a lobby screen needs is a roster, which is
+US-0078's message rather than this format.
 
 **AND A SKIP ENDS THE SCREEN RATHER THAN STARTING ANYTHING.** `MatchClock.next_phase` returns
 `RESULTS` to itself deliberately, so the skip runs the phase clock out and `ticks_remaining`

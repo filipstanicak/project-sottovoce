@@ -67,15 +67,21 @@ func test_both_signals_fire_exactly_once_per_tick() -> void:
 	assert_eq(ends, 30, "tick_completed did not fire once per tick")
 
 
+## **THE LOBBY DESCRIBES NOTHING, AND THE NAME OF THIS TEST IS NOW WIDER THAN WHAT IT
+## ASSERTS.** Kept as it is rather than renamed: what it pins is the lobby, which is
+## still true, and `RESULTS` — also outside play — **does** complete since 2026-09-09
+## so the results screen can be told its own clock. `test_match_director.gd` owns that
+## distinction; the message below is corrected so it does not read as a claim about
+## every non-simulating phase.
 func test_nothing_completes_outside_play() -> void:
 	# **A LOBBY MUST NOT BE RECORDED.** The clock still advances — a monotonic
 	# tick that stopped in the lobby would restart every match at a different
-	# number — but a history filled with identical lobby frames would answer a
-	# rewind with a world that never happened.
+	# number — but there is no world to describe yet: no pawns, no crowd placed,
+	# no match.
 	_director.ctx.phase = MatchPhase.Phase.LOBBY
 	_run_frames(60)
 	assert_eq(_order.count("begin"), 30, "the clock stopped outside play")
-	assert_eq(_order.count("end"), 0, "the tick completed while nothing was simulating")
+	assert_eq(_order.count("end"), 0, "the tick completed in the lobby")
 
 
 func test_the_check_can_actually_fail() -> void:

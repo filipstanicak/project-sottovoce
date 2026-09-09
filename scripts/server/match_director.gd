@@ -29,7 +29,15 @@ extends Node
 ## it.
 signal net_ticked(ctx: MatchContext, dt: float)
 
-## One server tick has **ended**: every stage has run and the world is at rest.
+## One server tick has **ended**: every stage that was going to run has run and the
+## world is at rest.
+##
+## **IT FIRES IN `RESULTS` TOO, WHERE NO STAGE RUNS AT ALL** — corrected 2026-09-09
+## after the second agent found that a results screen received no snapshots. The
+## end of a tick is *when the world may be described*, not *when the world changed*,
+## and a phase in which nothing changes is still a phase a player is watching. Every
+## consumer that must not run outside play now says so itself: see
+## `LagCompRecorder.record`.
 ##
 ## **THE DISTINCTION IS NOT COSMETIC, AND IT WAS WRONG FOR THREE STORIES.** The
 ## snapshot builder and the lag-comp history both answer "where was everything at
@@ -225,16 +233,14 @@ func _physics_process(_delta: float) -> void:
 func _net_tick() -> void:
 	ctx.tick += 1
 	net_ticked.emit(ctx, MatchContext.net_dt())
-	if not MatchPhase.is_simulating(ctx.phase):
-		# The clock still advances — a monotonic tick that stopped in the lobby
-		# would restart every match at a different number — but nothing simulates.
-		# **AND NOTHING RECORDS.** `tick_completed` is not emitted here: a lag-comp
-		# history filled with identical lobby frames would answer a rewind with a
-		# world that never happened, and a snapshot of a match that has not started
-		# describes nothing.
+	# The clock always advances — a monotonic tick that stopped in the lobby would
+	# restart every match at a different number — and the stages run only while
+	# there is something to simulate.
+	if MatchPhase.is_simulating(ctx.phase):
+		for stage: StringName in SystemOrder.STAGES:
+			_run_stage(stage)
+	if not MatchPhase.is_watched(ctx.phase):
 		return
-	for stage: StringName in SystemOrder.STAGES:
-		_run_stage(stage)
 	tick_completed.emit(ctx, MatchContext.net_dt())
 
 
