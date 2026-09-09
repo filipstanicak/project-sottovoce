@@ -4,7 +4,7 @@ title: Results screen and bonus breakdown
 version: 0.1.0
 status: in-progress
 owner: Lead Game Designer
-last_updated: 2026-09-08
+last_updated: 2026-09-09
 depends_on: [GDD-06-UI-AUDIO, ADR-0004]
 ---
 
@@ -25,14 +25,14 @@ The teaching moment. Placement is the frame; the per-bonus breakdown is the purp
 ## Acceptance criteria
 
 - [ ] Final placement and totals for all players.
-- [ ] Per-player bonus breakdown: each type, count earned, points contributed.
-- [ ] The breakdown is derived from the SAME fold as the totals, so they cannot disagree.
+- [x] Per-player bonus breakdown: each type, count earned, points contributed.
+- [x] The breakdown is derived from the SAME fold as the totals, so they cannot disagree.
 - [ ] Each player's persona, loadout and passive shown — retrospective kit-reading.
 - [ ] Your killers by name and count. NO position, NO replay.
-- [ ] Highest single kill of the match with its bonus stack, attributed.
+- [x] Highest single kill of the match with its bonus stack, attributed.
 - [ ] Time spent Anonymous per player, with the winner's highlighted.
 - [ ] 25 s duration; skippable only by UNANIMOUS input.
-- [ ] NO per-player timeline, path or heatmap — that is a kill-cam by another name.
+- [x] NO per-player timeline, path or heatmap — that is a kill-cam by another name.
 
 ## Test notes
 
@@ -47,53 +47,79 @@ visible in the one place players are already comparing themselves.
 Unanimous skip means one impatient player cannot deny another the teaching moment.
 
 
-## Implementation status, 2026-09-08
+## Implementation status, 2026-09-09
 
-Presentation work is in progress. Phase changes use the existing HudBridge /
-EventBus signal. Match `ticks_remaining` must not drive a results countdown.
-The view model will use ScoreFold for both totals and breakdowns.
+The shipping client opens ResultsRoot from HudBridge's existing snapshot-derived
+phase event. Net.events.match_ended delivers MatchEndReport into that root; its
+wire-slot identities, complete score events, kits and Anonymous times come from
+PR #218. Totals and bonus points use ScoreFold over that same array. Three pure
+ScoreFold queries supply occurrence counts, the local player's killers and the
+highest contract-kill group. No presentation code reads a server ScoreLog, and
+no architecture guard was changed.
 
-The delivery seam is not implemented yet: NET-S2C-MATCH-END and
-NET-C2S-SKIP-RESULTS exist in the protocol catalogue but have no handlers.
-The live score feed sends only the recipient's awards and omits SCORE-DEATH;
-it cannot supply all-player results. Names, complete kits and authoritative
-Anonymous durations also need an end-of-match payload. The server-owned log
-must not be held by presentation (test_score_no_direct_mutation.gd).
 The owner assigned transport, metadata and unanimous skip to Claude; Codex owns
-the presentation. End-to-end acceptance stays open until that delivery is wired.
+the presentation and the approved pure queries. The story remains in-progress:
 
+- **Live opening is blocked in the server phase delivery.** The three-client probe
+  reaches RESULTS server-side but no client opens the screen. MatchDirector's
+  non-simulating branch returns before tick_completed; that signal is the sole
+  SnapshotBuilder.send_all trigger. Thus the snapshot-derived phase never reaches
+  RESULTS (nor the subsequent LOBBY). Claude must preserve snapshot phase delivery
+  outside simulation; the presentation does not add a second phase channel.
+
+- Placement is not delivered. **Owner decision, 2026-09-09: leave it unknown until
+  Claude supplies it**, rather than invent a tie-breaking or shared-place rule.
+  Every delivered player's total is shown, with an em dash for the absent place.
+- No player names, assigned personas or passives are delivered. Localized
+  `Player <slot>` labels identify connected participants; missing kit metadata
+  says unavailable. These are not invented names or loadouts.
+- Anonymous time is shown per delivered participant. Winner emphasis is implemented
+  and tested with supplied placement, but cannot identify the winner in live data yet.
+- The existing server owns the results duration. Unanimous skip, its tally and
+  results time delivery remain Claude's work; the shipping button stays disabled.
+- The current transport enumerates connected slots and does not preserve departed
+  participants' identity. Complete departed-player results require server work.
 
 ## Presentation handoff to the delivery owner
 
-The shipping `ClientRoot` now owns a `ResultsRoot` child named `Results`.
-The adapter calls `present(events: Array[ScoreEvent], roster: Array[Dictionary],
-local_actor: int)` after validating the complete end-of-match payload. Do not use
-live `ScoreReport`s: they intentionally lack identity and death records.
-Preserve the events' frozen base points and multiplier; the UI never reconstructs
-an event against a current tuning profile. IDs in the roster and local_actor must
-be the same identity domain as ScoreEvent.actor_id/subject_id, including departed
-participants. This is a presentation adapter contract, not a new wire format.
+ClientRoot owns a ResultsRoot child named `Results`. Its `_match_ended` adapter
+currently consumes MatchEndReport.events, slots(), kits and anonymous_seconds().
+GameState.local_peer_id is historically named but contains the same wire slot.
+Do not reconstruct results from live ScoreReports: they intentionally withhold
+other players' awards and death records.
+
+`present(events, roster, local_actor)` also accepts completed metadata with these
+keys, for the future delivery extension and the reproducible visual probe:
 
 | Roster key | Meaning |
 |---|---|
-| id | Stable event actor/subject ID |
+| id | Event actor/subject wire slot |
 | name | Authoritative display name |
-| placement | Final server placement; absent/zero displays unknown, no client tie-break |
+| placement | Server placement; absent/zero displays unknown |
 | persona | PERSONA- ID |
-| abilities | Array of the two ABIL- IDs |
+| abilities | ABIL- IDs in kit order |
 | passive | PASV- ID |
 | anonymous_seconds | Authoritative duration; absent/negative displays unavailable |
 
-Connect `ResultsRoot.skip_requested` to the existing planned skip request, then
-call `apply_skip_state(votes, voters, voted, seconds_left)` with server facts.
-`seconds_left` is optional and defaults to unknown; it is RESULTS time, never
-Snapshot.ticks_remaining. Without a connected sender, the button stays disabled.
-A vote is emitted at most once per displayed result. A full tally or zero time
-never dismisses the screen: only the existing match_phase_changed event does.
+Connect ResultsRoot.skip_requested to the server skip request, then call
+apply_skip_state(votes, voters, voted, seconds_left) with server facts.
+seconds_left is optional and defaults to unknown: it is RESULTS time, never
+Snapshot.ticks_remaining. A connected sender is required to enable the button.
+One request is emitted per result; neither full tally nor zero time dismisses it.
+Only the existing phase event closes the screen and clears the previous results.
+The input sampler releases the cursor and sends neutral gameplay input while open.
 
-The payload may precede or follow RESULTS. A late payload replaces a waiting
-surface; leaving RESULTS clears it. The existing input sampler releases the
-cursor and sends neutral gameplay input while the results surface is active.
-`tools/results_probe.tscn` reproduces waiting, local, winner and long-name/empty
-screens using fixtures; it is not the delivery path and the shipping client
-never manufactures these records.
+## Verification surfaces
+
+- `test_results_matches_scoreboard.gd`: 100 seeded logs compare totals and displayed
+  contributions, including final-phase multipliers, zero awards and empty logs.
+- `test_results_screen.gd`: actual packet decoder to screen, snapshot phase to
+  HUD/input handoff, absent metadata, one-shot voting and safe-area layout.
+- `tools/results_probe.tscn`: waiting, local, winner and long-name/empty captures
+  with explicit fixture metadata; these do not claim live metadata exists.
+- `tools/results_network_probe.tscn`: one server and three real client scenes,
+  real handshake/courier/decoder/snapshot bridge. Fixture awards and accelerated
+  ACTIVE/FINAL clocks exercise delivery without changing tuning. Start a server
+  with `--server --port 27177 --min-players 3 --map sandbox --crowd 0`, then three
+  clients with `--connect 127.0.0.1:27177 --map sandbox`. Each process must report
+  `RESULTS PROBE` success; this is not a completed eight-minute playtest.

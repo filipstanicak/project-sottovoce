@@ -50,6 +50,11 @@ gantt
 | **M5** Depth | **3 abilities** (`ABIL-WHISPERBOLT` deferred 2026-08-27 to pay for escape — `SCOPE_FENCE.md` OUT #18), scoring with all bonuses, **the escape verb**, HUD, results screen, audio events, **the match state machine (US-0079, moved from M6 on 2026-09-08)** | US-0064–0077 less US-0068, plus US-0079, US-0097 | — |
 | **M6** Playable MVP | Lobby, balance pass 1, **the first human playtest (US-0098, split out of the M4 gate by ADR-0016)**, **3 external playtests completed and logged** | US-0078, US-0080–0088, US-0098 | `RISK-POPULATION`, `RISK-BALANCE-UNFALSIFIABLE`, **`RISK-NOT-FUN-SOLO` — moved here from M4** |
 
+US-0077 status, 2026-09-09: the results presentation and full-log delivery exist,
+but the three-client probe cannot open the screen because RESULTS snapshots are
+suppressed outside simulation. Placement, identity metadata and unanimous skip
+remain open. The results deliverable is not complete; see its story handoff.
+
 > **THE M4 ROW'S ORIGINAL WORDING WAS NEVER TRUE OF M4'S STORY LIST, AND THE M4 GATE IS WHAT
 > FOUND IT (2026-08-27).** *"Playable end-to-end"* requires a match (`SYS-MATCH`, US-0079, **M6 when this was written; M5 since 2026-09-08**),
 > a lobby (US-0078, M6), a HUD (US-0072/0073, M5) and a score (US-0064/0074, M5). US-0049–0063

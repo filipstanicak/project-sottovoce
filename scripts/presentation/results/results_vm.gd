@@ -76,10 +76,7 @@ func breakdown(actor: int) -> Array[Dictionary]:
 
 static func _breakdown(actor: int, events: Array[ScoreEvent]) -> Array[Dictionary]:
 	var points := ScoreFold.breakdown(events, actor)
-	var counts: Dictionary = {}
-	for event: ScoreEvent in events:
-		if event.actor_id == actor:
-			counts[event.kind] = int(counts.get(event.kind, 0)) + 1
+	var counts := ScoreFold.counts(events, actor)
 	var rows: Array[Dictionary] = []
 	for kind: StringName in points:
 		if kind != Ids.SCORE_DEATH:
@@ -90,10 +87,7 @@ static func _breakdown(actor: int, events: Array[ScoreEvent]) -> Array[Dictionar
 
 ## Only the local player's killers are shown. No time or position leaves this query.
 func killers() -> Array[Dictionary]:
-	var counts: Dictionary = {}
-	for event: ScoreEvent in _events:
-		if event.kind == Ids.SCORE_DEATH and event.actor_id == local_actor:
-			counts[event.subject_id] = int(counts.get(event.subject_id, 0)) + 1
+	var counts := ScoreFold.killers_of(_events, local_actor)
 	var rows: Array[Dictionary] = []
 	for actor: int in counts:
 		rows.append({"id": actor, "count": counts[actor]})
@@ -123,15 +117,11 @@ func _find_best() -> void:
 	best_actor = 0
 	best_points = 0
 	best_stack.clear()
-	for event: ScoreEvent in _events:
-		if event.kind != Ids.SCORE_CONTRACT or event.group_id <= 0:
-			continue
-		var group := ScoreFold.group(_events, event.group_id)
-		var points := ScoreFold.total_for(group, event.actor_id)
-		if best_actor == 0 or points > best_points:
-			best_actor = event.actor_id
-			best_points = points
-			best_stack = _breakdown(event.actor_id, group)
+	var best := ScoreFold.best_kill(_events)
+	if not best.is_empty():
+		best_actor = int(best["actor"])
+		best_points = int(best["points"])
+		best_stack = _breakdown(best_actor, best["events"])
 
 
 ## Use supplied placement; an absent placement stays unknown, never guessed by kills.

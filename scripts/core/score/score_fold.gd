@@ -80,3 +80,35 @@ static func group(events: Array[ScoreEvent], group_id: int) -> Array[ScoreEvent]
 		if event.group_id == group_id:
 			found.append(event)
 	return found
+
+
+## Counts annotate the point fold; they never re-price a bonus.
+static func counts(events: Array[ScoreEvent], actor: int) -> Dictionary:
+	var found: Dictionary = {}
+	for event: ScoreEvent in events:
+		if event.actor_id == actor:
+			found[event.kind] = int(found.get(event.kind, 0)) + 1
+	return found
+
+
+## Killer -> count for one victim, read only after the match.
+static func killers_of(events: Array[ScoreEvent], actor: int) -> Dictionary:
+	var found: Dictionary = {}
+	for event: ScoreEvent in events:
+		if event.kind == Ids.SCORE_DEATH and event.actor_id == actor:
+			found[event.subject_id] = int(found.get(event.subject_id, 0)) + 1
+	return found
+
+
+## Highest contract kill, including its awarded stack. Equal totals keep log order.
+## A stun group is not a kill, however many points it awarded.
+static func best_kill(events: Array[ScoreEvent]) -> Dictionary:
+	var best: Dictionary = {}
+	for event: ScoreEvent in events:
+		if event.kind != Ids.SCORE_CONTRACT or event.group_id <= 0:
+			continue
+		var stack := group(events, event.group_id)
+		var points := total_for(stack, event.actor_id)
+		if best.is_empty() or points > int(best["points"]):
+			best = {"actor": event.actor_id, "points": points, "events": stack}
+	return best

@@ -101,3 +101,4 @@ ui.results.player_points,%d points
 ui.results.anonymous_short,Anonymous %s
 ui.results.winner_short,Winner · Anonymous %s
 ui.results.no_rank,—
+ui.results.player_slot,Player %d

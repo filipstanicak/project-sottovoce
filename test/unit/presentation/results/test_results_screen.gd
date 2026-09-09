@@ -100,3 +100,37 @@ func test_wrapping_cannot_push_the_footer_outside_the_safe_area() -> void:
 		assert_almost_eq(
 			font.get_string_size(str(digit), HORIZONTAL_ALIGNMENT_LEFT, -1, 32).x, width, 0.01
 		)
+
+
+func test_received_wire_report_reaches_the_screen_without_a_live_score_feed() -> void:
+	var results := ResultsRoot.new()
+	add_child_autofree(results)
+	var previous := GameState.local_peer_id
+	GameState.local_peer_id = 2
+	var events: Array[ScoreEvent] = [
+		FIXTURE.event(1, 1, Ids.SCORE_CONTRACT, 100, 1),
+		FIXTURE.event(2, 1, Ids.SCORE_SILENT, 200, 1),
+		ScoreEvent.new(3, ScoreAward.new(10, Ids.SCORE_DEATH, 2, 1, 0), Tuning.match_rules),
+	]
+	var payload := MatchEndWire.pack(
+		{1: 300, 2: 600},
+		{1: [Ids.ABIL_LUNGE], 2: [Ids.ABIL_CINDERFALL]},
+		events,
+		func(id: int) -> int: return id
+	)
+	Net.events.s2c_match_end(payload)
+	assert_false(results.visible, "delivery alone must not reveal results during play")
+	EventBus.match_phase_changed.emit(MatchPhase.Phase.RESULTS, 1.0)
+	assert_true(results.visible)
+	assert_eq(results.vm.selected, 2, "the local identity is a wire slot")
+	assert_eq(results.vm.player_for(1)["total"], 300)
+	assert_eq(results.vm.killers(), [{"id": 1, "count": 1}])
+	assert_eq(results.vm.player_for(2)["abilities"], [Ids.ABIL_CINDERFALL])
+	assert_almost_eq(
+		results.vm.player_for(2)["anonymous_seconds"], 600.0 / Tuning.match_rules.tick_rate, 0.001
+	)
+	assert_false(results.vm.player_for(1).has("placement"), "no invented placement")
+	assert_false(results.vm.skip_enabled, "the server skip doorway is still absent")
+	GameState.local_peer_id = previous
+	EventBus.match_phase_changed.emit(MatchPhase.Phase.LOBBY, 1.0)
+	assert_false(results.vm.available, "the next match cannot inherit the old result")

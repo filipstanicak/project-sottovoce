@@ -398,6 +398,13 @@ real people is the actual measure. The automation exists so no state is forgotte
 | `Results` | 25 s, unanimous skip only. **The per-bonus breakdown is the screen's purpose**; placement is just the frame |
 | `Options` | Video, audio buses, input rebinding, accessibility |
 
+**Implementation note (2026-09-09, US-0077):** ResultsRoot consumes the complete
+MatchEndReport, with points and breakdown from ScoreFold. Unknown server placement
+is an em dash; absent identity metadata is not inferred. Phase visibility remains
+on HudBridge's existing snapshot event. Live opening is currently blocked by the
+server suppressing snapshots outside simulation; unanimous skip is also pending.
+See the [story's handoff](../40_backlog/stories/US-0077-results-screen.md).
+
 ### 10.1 The lobby's information requirement
 
 Loadouts are locked for 8 minutes across every respawn. A player choosing blind will be stuck

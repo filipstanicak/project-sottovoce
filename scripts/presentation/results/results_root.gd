@@ -25,10 +25,13 @@ func _ready() -> void:
 	vm.changed.connect(_refresh)
 	vm.state_changed.connect(_refresh_state)
 	EventBus.match_phase_changed.connect(_phase_changed)
+	Net.events.match_ended.connect(_match_ended)
 	_refresh_state()
 
 
 func _exit_tree() -> void:
+	if Net.events.match_ended.is_connected(_match_ended):
+		Net.events.match_ended.disconnect(_match_ended)
 	if EventBus.match_phase_changed.is_connected(_phase_changed):
 		EventBus.match_phase_changed.disconnect(_phase_changed)
 	if _shown:
@@ -78,3 +81,22 @@ func _select(actor: int) -> void:
 func _request_skip() -> void:
 	if vm.request_skip():
 		skip_requested.emit()
+
+
+## The report uses wire slots, as does GameState's historical local_peer_id name.
+## Missing identity metadata stays unavailable until the server supplies it.
+func _match_ended(report: MatchEndReport) -> void:
+	var roster: Array[Dictionary] = []
+	for slot: int in report.slots():
+		(
+			roster
+			. append(
+				{
+					"id": slot,
+					"name": ResultsStyle.text(&"ui.results.player_slot") % slot,
+					"abilities": report.kits.get(slot, []),
+					"anonymous_seconds": report.anonymous_seconds(slot, Tuning.match_rules),
+				}
+			)
+		)
+	present(report.events, roster, GameState.local_peer_id)
