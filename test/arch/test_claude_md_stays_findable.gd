@@ -32,13 +32,18 @@ const ARCHIVE_DIR := "res://docs/00_meta/history"
 ## go to the archive, not that a finding gets deleted.
 const MAX_LINES := 4000
 
+## The traps section, without the "## ". Its leading word is a count, and a
+## count in prose is what this corpus has watched go stale six times — so the
+## heading is pinned here and the numbering is asserted below.
+const TRAPS_HEADING := "Nineteen things that will cost you an hour if you do not know them"
+
 ## In the order a cold session meets them: what is true now, what is not done, what
 ## will cost an hour, what this machine needs, and where the reasoning went.
 const REFERENCE_SECTIONS: Array[String] = [
 	"## Where the work is right now",
 	"## The state of the build",
 	"## What is deliberately unticked",
-	"## Eighteen things that will cost you an hour if you do not know them",
+	"## " + TRAPS_HEADING,
 	"## Local environment",
 	"## The record before M5, and why it is not in this file",
 	"## Fresh session? Read these four first",
@@ -131,3 +136,43 @@ func test_every_archived_document_is_linked_from_the_manual() -> void:
 		entry = dir.get_next()
 	dir.list_dir_end()
 	assert_gt(seen, 0, "the archive holds no documents — this guard is testing nothing")
+
+
+## **THE HEADING SAYS A NUMBER AND THE LIST BENEATH IT DOES NOT HAVE TO AGREE.**
+## Pinning the heading catches a rename; it cannot catch a trap added without one,
+## which is the same shape as every stale count in this file. What a test can hold
+## without a table of number words is that the traps run 1..N with no gap and no
+## repeat — a duplicated 17 is a trap nobody can find by number, and a skipped one
+## reads as a trap somebody deleted.
+##
+## It found the rename it was written beside: adding trap 19 left the heading
+## saying Eighteen, and the section list above went red by name.
+func test_the_traps_are_numbered_consecutively() -> void:
+	var seen: Array[int] = []
+	var inside := false
+	for line: String in _text().split("\n"):
+		if line == "## " + TRAPS_HEADING:
+			inside = true
+			continue
+		if inside and line.begins_with("## "):
+			break
+		if not inside:
+			continue
+		var dot := line.find(". ")
+		if dot < 1 or not line.substr(0, dot).is_valid_int():
+			continue
+		seen.append(int(line.substr(0, dot)))
+	assert_gt(seen.size(), 0, "the traps section holds no numbered trap at all")
+	for i: int in seen.size():
+		assert_eq(
+			seen[i],
+			i + 1,
+			(
+				(
+					"the traps are numbered %s. A reader who is told to go and read trap 14\n"
+					+ "counts down the list, so a gap or a repeat costs them the one thing\n"
+					+ "the number was for."
+				)
+				% str(seen)
+			)
+		)
