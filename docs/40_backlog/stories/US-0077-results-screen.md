@@ -49,13 +49,22 @@ Unanimous skip means one impatient player cannot deny another the teaching momen
 
 ## Implementation status, 2026-09-09
 
-The shipping client opens ResultsRoot from HudBridge's existing snapshot-derived
-phase event. Net.events.match_ended delivers MatchEndReport into that root; its
-wire-slot identities, complete score events, kits and Anonymous times come from
-PR #218. Totals and bonus points use ScoreFold over that same array. Three pure
-ScoreFold queries supply occurrence counts, the local player's killers and the
-highest contract-kill group. No presentation code reads a server ScoreLog, and
-no architecture guard was changed.
+**NET-S2C-MATCH-END is built**, merged as `35be35b` in PR #218 and already
+included in this branch. MatchEndWire carries the payload sent on the transition
+into RESULTS; Net.events.match_ended receives it as MatchEndReport. It contains
+anonymous_ticks and kits keyed by wire slot, events as reconstructed ScoreEvents
+including SCORE-DEATH, and anonymous_seconds(slot, rules).
+
+**The ScoreLog remains server-owned.** Presentation receives a separate copy of
+reconstructed events, not the server log. It folds that copy with the same
+ScoreFold for totals and bonus points, so criterion 3 is structural rather than
+a promise. test_score_no_direct_mutation.gd remains unchanged and enforces the
+ownership boundary. Three pure ScoreFold queries supply occurrence counts, the
+local player's killers and the highest contract-kill group.
+
+ResultsRoot visibility still follows HudBridge's existing snapshot-derived phase
+event. The working result payload and the missing phase snapshot described below
+are separate paths: receipt of the former does not establish receipt of the latter.
 
 The owner assigned transport, metadata and unanimous skip to Claude; Codex owns
 the presentation and the approved pure queries. The story remains in-progress:
@@ -70,13 +79,17 @@ the presentation and the approved pure queries. The story remains in-progress:
 - Placement is not delivered. **Owner decision, 2026-09-09: leave it unknown until
   Claude supplies it**, rather than invent a tie-breaking or shared-place rule.
   Every delivered player's total is shown, with an em dash for the absent place.
-- No player names, assigned personas or passives are delivered. Localized
-  `Player <slot>` labels identify connected participants; missing kit metadata
-  says unavailable. These are not invented names or loadouts.
+- Criterion 4 stays open: no player persona or passive is assigned server-side;
+  the placeholder loadout does arrive and is shown.
+- Criterion 5 stays open: player names do not exist in the project; the delivered
+  death counts are shown against localized `Player <slot>` labels.
+  Both findings are measured in [TDD-10 §7.1](../../20_tdd/10_scoring_and_match_state.md#71-what-us-0077s-server-half-built-and-the-two-things-it-cannot-deliver).
 - Anonymous time is shown per delivered participant. Winner emphasis is implemented
   and tested with supplied placement, but cannot identify the winner in live data yet.
-- The existing server owns the results duration. Unanimous skip, its tally and
-  results time delivery remain Claude's work; the shipping button stays disabled.
+- The existing server owns the results duration. NET-C2S-SKIP-RESULTS is still
+  unbuilt: it needs a C2S doorway on EVENT, and net.gd remains at 398 of 400 lines
+  (NETWORK_PROTOCOL §2). Skip, its tally and results time delivery remain Claude's
+  work; the shipping button stays disabled.
 - The current transport enumerates connected slots and does not preserve departed
   participants' identity. Complete departed-player results require server work.
 
