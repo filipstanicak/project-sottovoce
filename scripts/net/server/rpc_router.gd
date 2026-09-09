@@ -40,6 +40,10 @@ signal ability_requested(peer: int, slot: int, aim_origin: Vector3, aim_dir: Vec
 ## An authorised blend request.
 signal blend_requested(peer: int, target_id: int)
 
+## `NET-C2S-SKIP-RESULTS` arrived and was authorised. **A vote, and the count is
+## `MatchSystem`'s** — this node decides who may speak, never what is decided.
+signal skip_requested(peer: int)
+
 ## Something was refused. Carries the reason so a test can assert *why* rather
 ## than only that nothing happened.
 signal message_denied(peer: int, msg: StringName, denial: Authority.Denial)
@@ -164,3 +168,7 @@ func receive_ability_request(peer: int, slot: int, origin: Vector3, direction: V
 
 func receive_blend_request(peer: int, target_id: int) -> void:
 	blend_requested.emit(peer, target_id)
+
+
+func receive_skip_results(peer: int) -> void:
+	skip_requested.emit(peer)

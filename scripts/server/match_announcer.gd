@@ -132,6 +132,15 @@ func blend_refused(peer: int, why: int) -> void:
 ## living pawn. **A tell sent to the whole lobby would be a global ability feed** —
 ## never-do #12's shape — telling somebody two streets away that a hunt was under
 ## way, which is the inference the crowd is for.
+## The signal's own shape, for `AbilitySystem.ability_started` to connect straight
+## to. **This class already holds the context**, so the argument below exists for
+## the fixtures that drive it with one of their own.
+func ability_started_by(
+	caster: int, ability: StringName, origin: Vector3, direction: Vector3
+) -> void:
+	ability_started(_ctx, caster, ability, origin, direction)
+
+
 func ability_started(
 	ctx: MatchContext, caster: int, ability: StringName, origin: Vector3, direction: Vector3
 ) -> void:

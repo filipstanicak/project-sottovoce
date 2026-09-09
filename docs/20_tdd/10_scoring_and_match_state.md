@@ -599,11 +599,44 @@ and it is the placeholder kit `server_root._on_peer_joined` hands out. And *your
 name* — **there is no player name anywhere in this project**: no field, no protocol row, no lobby
 to type one into. A slot number is what a results screen can honestly draw today.
 
-**`NET-C2S-SKIP-RESULTS` IS STILL UNBUILT.** Criterion 8's unanimous skip needs a C2S message on
-the `EVENT` channel, and `net.gd` is at 398 of its 400 lines — the split its own comment has
-predicted since M4 (*"the C2S doorway below could move the same way if this file grows again"*)
-is what that message costs. Separated deliberately: the delivery unblocks the screen, and the
-skip does not.
+**`NET-C2S-SKIP-RESULTS` IS BUILT (2026-09-09), AND IT COST THE SPLIT `net.gd` PREDICTED AT M4.**
+`RequestWire` holds the `EVENT`-channel C2S doorway — `NET-C2S-INPUT` deliberately stayed, being
+the one C2S message on the `STATE` channel and not a request. **The message carries nothing**:
+pressing is the yes, and a withdrawable vote would give the last player to change their mind a
+veto over a screen everybody else has finished reading. `MatchSystem` counts, refuses outside
+`RESULTS` even though `Authority` already does — the doorway is bypassed by every probe that
+calls the rule directly — and **forgets a departed player's vote**, without which two players
+where one votes and disconnects satisfies unanimity over a lobby of one who never pressed.
+
+**AND A SKIP ENDS THE SCREEN RATHER THAN STARTING ANYTHING.** `MatchClock.next_phase` returns
+`RESULTS` to itself deliberately, so the skip runs the phase clock out and `ticks_remaining`
+reaches zero on every client. What follows a results screen is still nothing at all, and that
+is US-0078's.
+
+---
+
+### 7.2 Placement, and why a tie is not broken
+
+**`ScorePlacement` IS PURE CORE AND IS NOT ON THE WIRE**, for the reason the multiplier is not:
+`NET-S2C-MATCH-END` already carries every event and every slot, so both peers derive the
+standings from identical inputs with identical code. Sending a computed rank would be a second
+source of truth for something two fields imply, and the first disagreement would show a place
+the totals beside it contradict.
+
+**EQUAL TOTALS SHARE THE HIGHER PLACE AND THE NEXT DISTINCT TOTAL SKIPS: 1, 1, 3.** Standard
+competition ranking, and the argument against the alternative is that **a tie-break is a scoring
+rule invented at the results screen**. This game is *decided by score, not kills* — its own
+thesis — so breaking a tie on deaths would make the match partly decided by deaths, and breaking
+it on time spent Anonymous would decide it on a number displayed beside the placement as a
+separate fact. §3.1 already refused the two obvious tie-breaks for the kill contest on the same
+grounds — join order hands one player every tie, a coin makes a decision random — and **here there
+is a third answer neither of those had: say the game did not separate them.**
+
+**A PLAYER THE LOG NEVER MENTIONS IS STILL IN THE MATCH**, which is why the roster is an
+argument rather than being read off the events: somebody who died six times and scored nothing
+has no event at all and must still appear, last, on nought. The order *within* a tie group is by
+slot and is presentation only — two rows have to be drawn in some order, and both peers sort the
+same way so the two screens list the same names in the same order.
 
 ---
 

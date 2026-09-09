@@ -103,3 +103,28 @@ func test_the_results_are_sent_when_the_phase_reaches_results() -> void:
 	)
 	_consequences.phase_changed(MatchPhase.Phase.FINAL, MatchPhase.Phase.RESULTS, _ctx)
 	assert_eq(_consequences.announcer.results_sent, 1, "the match ended and nobody was told")
+
+
+## **THE SKIP PRESS REACHES THE RULE, AND NOTHING ELSE IN THIS PROJECT COULD SAY SO.**
+## US-0077.
+##
+## `RpcRouter` authorises and emits; `MatchSystem` counts. **Neither runs the other**,
+## so a handler that dropped the press would leave both green and the results screen
+## would simply never end early — the shape that left `NET-C2S-ABILITY-REQUEST` with no
+## caller under three completed stories.
+func test_a_skip_press_reaches_the_match() -> void:
+	var match_state := MatchSystem.new()
+	match_state.setup(_ctx, Tuning.match_rules)
+	match_state.players = 1
+	_ctx.phase = MatchPhase.Phase.RESULTS
+	_consequences.match_state = match_state
+	_consequences.skip_requested(PLAYERS[0])
+	assert_eq(match_state.skips(), 1, "the press never reached the rule")
+
+
+## And it does not fall over when nothing is wired, which is every fixture that
+## builds this class for one of the other handlers.
+func test_a_skip_press_with_no_match_system_is_survivable() -> void:
+	_consequences.match_state = null
+	_consequences.skip_requested(PLAYERS[0])
+	assert_true(true, "a skip press with no SYS-MATCH took the server down")

@@ -44,6 +44,11 @@ signal countdown_opened(peers: PackedInt32Array, ctx: MatchContext)
 ## the warning itself a mechanic.
 signal final_warning_announced(ctx: MatchContext)
 
+## The results screen was cut short because everybody asked. **Emitted beside the
+## clock reaching zero rather than instead of it**: what follows `RESULTS` is
+## nothing at all today, so a skip shortens a screen and starts nothing.
+signal results_skipped(ctx: MatchContext)
+
 ## The match ended because the lobby fell below `min_players`, rather than on its
 ## clock. Emitted with the transition into `RESULTS`, never instead of it: US-0079
 ## requires the results to be **shown**, so an abandoned match still ends the way a
@@ -87,12 +92,18 @@ var _rules: MatchTuning = null
 ## a fixture, said once.
 var _started: bool = false
 
+## Peers who have asked to skip the results. **A set, so pressing twice is one
+## vote** — otherwise two impatient presses from one player would satisfy a
+## two-player lobby, which is the exact outcome the unanimity rule forbids.
+var _skips: Dictionary = {}
+
 
 func setup(ctx: MatchContext, rules: MatchTuning) -> void:
 	_rules = rules
 	min_players = rules.min_players
 	phase_elapsed = 0
 	_started = false
+	_skips.clear()
 	ctx.active_started_at = MatchContext.NO_MATCH
 
 
@@ -163,6 +174,45 @@ func _end_the_phase_on_its_clock(ctx: MatchContext) -> void:
 		_enter(next, ctx)
 
 
+## **ONE PLAYER ASKS TO SKIP THE RESULTS.** US-0077's eighth criterion, and the
+## unanimity is the whole rule: *one impatient player cannot deny another the
+## teaching moment.*
+##
+## **IT REFUSES OUTSIDE `RESULTS` EVEN THOUGH `Authority` ALREADY DOES.** That
+## table guards the doorway and this guards the rule, and they are not the same
+## check: the doorway is bypassed by every test and every probe that calls this
+## directly, which is how a banked vote would get in.
+##
+## **AND A SKIP ENDS THE SCREEN RATHER THAN STARTING ANYTHING.** `next_phase`
+## returns `RESULTS` to itself deliberately — a match that has shown its result
+## has nowhere to go, and whether a server re-opens is US-0078's. So this runs
+## the phase clock out, which is exactly what the wire already carries.
+func report_skip(peer: int, ctx: MatchContext) -> void:
+	if ctx.phase != MatchPhase.Phase.RESULTS or _rules == null:
+		return
+	_skips[peer] = true
+	if not _everybody_asked():
+		return
+	phase_elapsed = maxi(MatchClock.duration_ticks(MatchPhase.Phase.RESULTS, _rules), 0)
+	results_skipped.emit(ctx)
+
+
+## A departed player's vote leaves with them. **Without this, two players where
+## one votes and disconnects satisfies unanimity over a lobby of one who never
+## pressed** — the rule inverted, and invisible because the count is right.
+func forget(peer: int) -> void:
+	_skips.erase(peer)
+
+
+## How many have asked, for a screen that wants to draw *3 of 4*.
+func skips() -> int:
+	return _skips.size()
+
+
+func _everybody_asked() -> bool:
+	return players > 0 and _skips.size() >= players
+
+
 ## Ticks left on the clock the players are watching. The wire's `ticks_remaining`.
 func remaining(ctx: MatchContext) -> int:
 	if _rules == null:
@@ -186,6 +236,10 @@ func _enter(phase: int, ctx: MatchContext) -> void:
 	var from := ctx.phase
 	ctx.phase = phase
 	phase_elapsed = 0
+	# **A VOTE BELONGS TO ONE RESULTS SCREEN.** Carrying it across a phase change
+	# would let a press made in the last second of a match skip the next one's
+	# results before anybody had read a line of them.
+	_skips.clear()
 	if phase == MatchPhase.Phase.WARMUP:
 		_started = true
 		countdown_opened.emit(PackedInt32Array(ctx.pawns.keys()), ctx)

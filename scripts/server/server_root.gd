@@ -101,6 +101,9 @@ func _start_the_match_clock() -> void:
 	match_state.phase_changed.connect(consequences.phase_changed)
 	match_state.countdown_opened.connect(consequences.countdown_opened)
 	match_state.abandoned.connect(consequences.abandoned)
+	match_state.results_skipped.connect(consequences.results_skipped)
+	consequences.match_state = match_state
+	router.skip_requested.connect(consequences.skip_requested)
 	match_state.final_warning_announced.connect(consequences.final_warning_announced)
 	router.set_phase(director.ctx.phase)
 
@@ -295,7 +298,9 @@ func _start_the_combat_systems() -> void:
 ## stages before `abilities`, so the grid the alarm queries was rebuilt this tick.
 func _wire_the_ability_answers() -> void:
 	router.ability_requested.connect(abilities.report_request)
-	abilities.ability_started.connect(_on_ability_started)
+	# **CONNECTED DIRECTLY**: `MatchAnnouncer` holds the context, so the shim that
+	# existed here only to pass it back in was a hop with nothing in it.
+	abilities.ability_started.connect(announcer.ability_started_by)
 	abilities.ability_denied.connect(announcer.ability_denied)
 	abilities.ability_startled.connect(consequences.ability_startled)
 
@@ -372,13 +377,6 @@ func _on_peer_joined(peer: int) -> void:
 		match_state.players = pawns.pawn_count()
 
 
-## The tell. Broadcast rather than addressed — see `MatchAnnouncer.ability_started`.
-func _on_ability_started(
-	peer: int, ability: StringName, origin: Vector3, direction: Vector3
-) -> void:
-	announcer.ability_started(director.ctx, peer, ability, origin, direction)
-
-
 ## **EVERY OWNER OF PER-PEER STATE IS TOLD, IN ONE PLACE.** ENet reuses peer ids,
 ## so anything left behind is inherited by the next joiner: a stale sequence
 ## makes their input arrive in the past, a stale pawn flag authorises input for
@@ -394,6 +392,7 @@ func _on_peer_left(peer: int) -> void:
 	router.forget(peer)
 	director.forget(peer)
 	snapshots.forget(peer)
+	match_state.forget(peer)
 	# **AFTER THE DESPAWN, NOT BEFORE**, or the lobby reads one player fuller than it
 	# is — at the abandon floor, the difference between ending and not.
 	match_state.players = pawns.pawn_count()
