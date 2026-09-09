@@ -22,6 +22,10 @@
 class_name HudBridge
 extends Node
 
+## Local presentation signal: only RESULTS time, after the phase was published.
+## ClientRoot wires this to ResultsRoot; no second snapshot reader is needed.
+signal results_time_changed(ticks: int)
+
 ## Nothing has arrived yet. **Not zero**, because zero is a real tier and a real
 ## bearing; the first snapshot must always be treated as a change.
 const NOTHING := -1
@@ -32,6 +36,7 @@ var _blend: int = NOTHING
 var _kill_ready: bool = false
 var _stun_ready: bool = false
 var _portrait: bool = false
+var _results_ticks: int = NOTHING
 var _phase: int = NOTHING
 var _multiplier: int = NOTHING
 var _cooldowns: Array[int] = [NOTHING, NOTHING]
@@ -86,6 +91,7 @@ func _on_snapshot(snapshot: Snapshot) -> void:
 	_publish_cooldowns(snapshot)
 	_publish_pursuit(snapshot)
 	_publish_match(snapshot)
+	_publish_results_time(snapshot)
 
 
 ## Tier and its source list travel together, because the tier indicator shows both
@@ -238,3 +244,13 @@ func _publish_match(snapshot: Snapshot) -> void:
 ## owning its own layout rather than by this class translating a second format.
 func _on_score(report: ScoreReport) -> void:
 	EventBus.score_event_appended.emit(report)
+
+
+func _publish_results_time(snapshot: Snapshot) -> void:
+	if snapshot.phase != MatchPhase.Phase.RESULTS:
+		_results_ticks = NOTHING
+		return
+	if _results_ticks == snapshot.ticks_remaining:
+		return
+	_results_ticks = snapshot.ticks_remaining
+	results_time_changed.emit(_results_ticks)

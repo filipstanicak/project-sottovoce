@@ -177,3 +177,21 @@ func _the_perfect_kill() -> Array:
 ## than written down, so retuning the phase moves the test with the game.
 func _first_final_tick() -> int:
 	return int(ceil((_m.duration - _m.finalphase_duration) * _m.tick_rate))
+
+
+func test_results_queries_keep_death_counts_and_best_kill_separate() -> void:
+	var events: Array[ScoreEvent] = [
+		ScoreEvent.new(1, ScoreAward.new(0, Ids.SCORE_CONTRACT, 1, 2, 100), _m, 1),
+		ScoreEvent.new(2, ScoreAward.new(0, Ids.SCORE_SILENT, 1, 2, 200), _m, 1),
+		ScoreEvent.new(3, ScoreAward.new(0, Ids.SCORE_DEATH, 2, 1, 0), _m, 1),
+		ScoreEvent.new(4, ScoreAward.new(0, Ids.SCORE_STUN, 2, 1, 900), _m, 2),
+		ScoreEvent.new(5, ScoreAward.new(0, Ids.SCORE_CONTRACT, 2, 1, 300), _m, 3),
+	]
+	assert_eq(ScoreFold.counts(events, 1), {Ids.SCORE_CONTRACT: 1, Ids.SCORE_SILENT: 1})
+	assert_eq(ScoreFold.killers_of(events, 2), {1: 1})
+	assert_eq(ScoreFold.killers_of(events, 1), {})
+	var best := ScoreFold.best_kill(events)
+	assert_eq(best["actor"], 1, "equal kills retain log order; the stun never qualifies")
+	assert_eq(best["points"], 300)
+	assert_eq(ScoreFold.total_for(best["events"], 1), 300)
+	assert_true(ScoreFold.best_kill([]).is_empty())

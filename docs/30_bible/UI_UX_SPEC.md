@@ -398,6 +398,16 @@ real people is the actual measure. The automation exists so no state is forgotte
 | `Results` | 25 s, unanimous skip only. **The per-bonus breakdown is the screen's purpose**; placement is just the frame |
 | `Options` | Video, audio buses, input rebinding, accessibility |
 
+**Implementation note (2026-09-09, US-0077):** ResultsRoot consumes MatchEndReport.
+ScorePlacement supplies shared places; ScoreFold supplies bonus contributions.
+Joint winners are labelled explicitly. Skip uses Net.requests.send_skip_results;
+only a RESULTS snapshot with ticks_remaining zero closes the surface. HudBridge
+forwards this time without a local countdown or invented phase change. Vote tallies
+are not transmitted, so none are shown. Missing identity metadata is not inferred.
+Live opening, unanimous skip and natural expiry pass the three-client probe after
+PR #220 restored RESULTS snapshots. Persona, passive and player names remain absent.
+See the [story's handoff](../40_backlog/stories/US-0077-results-screen.md).
+
 ### 10.1 The lobby's information requirement
 
 Loadouts are locked for 8 minutes across every respawn. A player choosing blind will be stuck

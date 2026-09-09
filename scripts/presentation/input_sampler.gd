@@ -57,6 +57,8 @@ var _look_yaw: float = 0.0
 var _look_pitch: float = 0.0
 var _mouse_delta: Vector2 = Vector2.ZERO
 var _want_mouse: bool = false
+var _results_active: bool = false
+var _resume_capture: bool = false
 
 ## id -> InputLatch.Mode, for the five holdable actions. Individually
 ## configurable per GDD-02 §9.3; the pad default for `INPUT-SLOW` is TOGGLE
@@ -151,6 +153,8 @@ func mode_of(id: StringName) -> InputLatch.Mode:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if _results_active:
+		return
 	if event.is_action_pressed(InputActions.action_names(Ids.INPUT_MENU)[0]):
 		_capture_mouse(false)
 		return
@@ -179,6 +183,9 @@ func sample(delta: float) -> InputCommand:
 	_command.seq = _seq
 
 	_command.buttons = InputBits.NONE
+	if _results_active:
+		_command.move = Vector2.ZERO
+		return _command
 	# **BUTTONS BEFORE LOOK**, since US-0023. `INPUT-SCAN` scales look
 	# sensitivity, and whether it is held is only known after the hold/toggle
 	# latch has resolved — sampling the look first would apply a toggled scan one
@@ -316,3 +323,17 @@ func reset() -> void:
 	_latch.release_all()
 	_speed.reset()
 	_mouse_delta = Vector2.ZERO
+
+
+## Results own the cursor. Keep sending neutral commands rather than stopping the wire.
+func set_results_active(active: bool) -> void:
+	if active == _results_active:
+		return
+	_results_active = active
+	if active:
+		_resume_capture = mouse_captured()
+		for id: StringName in _modes:
+			_latch.release(id)
+		_capture_mouse(false)
+	else:
+		_capture_mouse(_resume_capture)
