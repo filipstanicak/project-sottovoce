@@ -51,9 +51,9 @@ gantt
 | **M6** Playable MVP | Lobby, balance pass 1, **the first human playtest (US-0098, split out of the M4 gate by ADR-0016)**, **3 external playtests completed and logged** | US-0078, US-0080–0088, US-0098 | `RISK-POPULATION`, `RISK-BALANCE-UNFALSIFIABLE`, **`RISK-NOT-FUN-SOLO` — moved here from M4** |
 
 US-0077 status, 2026-09-09: results presentation, full-log delivery, shared placement
-and the skip request are connected. The remaining snapshot gate prevents live
-opening/expiry; persona, passive and player names are also unavailable. The results
-deliverable is not complete; see its story handoff.
+and the skip request are connected. After PR #220, the three-client probe verifies
+live opening, unanimous skip and natural expiry. Persona, passive and player names
+remain unavailable; the results deliverable is not complete. See its story handoff.
 
 > **THE M4 ROW'S ORIGINAL WORDING WAS NEVER TRUE OF M4'S STORY LIST, AND THE M4 GATE IS WHAT
 > FOUND IT (2026-08-27).** *"Playable end-to-end"* requires a match (`SYS-MATCH`, US-0079, **M6 when this was written; M5 since 2026-09-08**),

@@ -31,7 +31,7 @@ The teaching moment. Placement is the frame; the per-bonus breakdown is the purp
 - [ ] Your killers by name and count. NO position, NO replay.
 - [x] Highest single kill of the match with its bonus stack, attributed.
 - [x] Time spent Anonymous per player, with the winner's highlighted.
-- [ ] 25 s duration; skippable only by UNANIMOUS input.
+- [x] 25 s duration; skippable only by UNANIMOUS input.
 - [x] NO per-player timeline, path or heatmap — that is a kill-cam by another name.
 
 ## Test notes
@@ -72,18 +72,19 @@ The press sends once and never hides the screen itself. HudBridge, still the onl
 snapshot reader in presentation, forwards RESULTS ticks_remaining through a local
 results_time_changed signal. At zero, ResultsRoot hides the surface but keeps HUD
 and gameplay input suppressed until an actual phase change; RESULTS does not imply
-a new lobby. No local timer counts down. The working result payload and the still
-missing phase snapshot below remain separate paths.
+a new lobby. No local timer counts down. PR #220 (1c7fb0a) restores RESULTS
+snapshots; report delivery and snapshot-derived phase remain separate paths.
 
 The owner assigned transport, metadata and unanimous skip to Claude; Codex owns
 the presentation and the approved pure queries. The story remains in-progress:
 
-- **Live opening is blocked in the server phase delivery.** The three-client probe
-  reaches RESULTS server-side but no client opens the screen. MatchDirector's
-  non-simulating branch returns before tick_completed; that signal is the sole
-  SnapshotBuilder.send_all trigger. Thus the snapshot-derived phase never reaches
-  RESULTS or its remaining time. Claude must preserve snapshot phase delivery
-  outside simulation; the presentation does not add a second phase channel.
+- **Live opening and expiry are verified after PR #220.** One server and three
+  real clients each received three players and the 300-point fixture kill. In the
+  skip run, clients voted at staggered times; the screen stayed open before the
+  last vote and all three closed on authoritative zero. In the separate no-vote
+  run, all three closed at the server's normal RESULTS expiry. HUD and gameplay
+  stay suppressed because the server remains in RESULTS. No second phase channel
+  was added.
 
 - Criterion 4 stays open: no player persona or passive is assigned server-side;
   the placeholder loadout does arrive and is shown.
@@ -91,8 +92,8 @@ the presentation and the approved pure queries. The story remains in-progress:
   death counts are shown against localized `Player <slot>` labels.
   Both findings are measured in [TDD-10 §7.1](../../20_tdd/10_scoring_and_match_state.md#71-what-us-0077s-server-half-built-and-the-two-things-it-cannot-deliver).
 - NET-C2S-SKIP-RESULTS is built in RequestWire and the shipping button is connected.
-  Criterion 8 stays open until the RESULTS snapshots reach the client: the request
-  exists, but the result clock cannot yet open or close the surface in live play.
+  Criterion 8 is verified through the real request and snapshot paths, including
+  the normal 25-second clock without accelerated RESULTS time.
 - MatchSystem.skips() and its player count are server state, not replicated vote
   totals. No tally is fabricated. The optional tally adapter remains available
   for a future delivery; the actual button reports only that this client sent a vote.
@@ -145,4 +146,8 @@ No client phase is invented at expiry: the server currently remains in RESULTS.
   ACTIVE/FINAL clocks exercise delivery without changing tuning. Start a server
   with `--server --port 27177 --min-players 3 --map sandbox --crowd 0`, then three
   clients with `--connect 127.0.0.1:27177 --map sandbox`. Each process must report
-  `RESULTS PROBE` success; this is not a completed eight-minute playtest.
+  `RESULTS PROBE PASS` and `RESULTS PROBE EXPIRY PASS`. The default client mode
+  presses skip at staggered times; repeat with `--natural-expiry` on all three
+  clients to leave RESULTS running for its normal duration. The server keeps the
+  connections alive for 30 seconds of RESULTS. This is not a completed
+  eight-minute playtest.

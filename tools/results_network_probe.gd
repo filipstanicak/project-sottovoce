@@ -27,7 +27,7 @@ func _start() -> void:
 		Net.join(config.connect_host(), config.connect_port())
 		_root = (load("res://scenes/client_root.tscn") as PackedScene).instantiate()
 	add_child(_root)
-	await get_tree().create_timer(20.0).timeout
+	await get_tree().create_timer(45.0).timeout
 	if not _finished:
 		if not config.is_server:
 			var results := _root.get_node("Results") as ResultsRoot
@@ -78,7 +78,7 @@ func _advance_fixture() -> void:
 	if phase == MatchPhase.Phase.RESULTS:
 		_finished = true
 		print("RESULTS PROBE server reached RESULTS through MatchSystem")
-		await get_tree().create_timer(4.0).timeout
+		await get_tree().create_timer(30.0).timeout
 		get_tree().quit()
 
 
@@ -102,5 +102,46 @@ func _check_delivery() -> void:
 			% [vm.selected, vm.players.size(), vm.best_points]
 		)
 	)
-	await get_tree().create_timer(2.0).timeout
+	await _check_expiry(results)
+
+
+func _check_expiry(results: ResultsRoot) -> void:
+	var natural := "--natural-expiry" in OS.get_cmdline_user_args()
+	if not natural:
+		await get_tree().create_timer(float(GameState.local_peer_id) * 0.7).timeout
+		if not results.visible:
+			push_error("RESULTS PROBE closed before everybody voted")
+			get_tree().quit(1)
+			return
+		_press_skip(results.screen)
+		if not results.vm.requested:
+			push_error("RESULTS PROBE button did not send its vote")
+			get_tree().quit(1)
+			return
+	var waited := 0.0
+	while not results.vm.finished and waited < 30.0:
+		await get_tree().create_timer(0.1).timeout
+		waited += 0.1
+	var valid := results.vm.finished and not results.visible and results.vm.active
+	valid = valid and not (_root.get_node("Hud") as CanvasLayer).visible
+	valid = valid and results.vm.seconds_left == 0
+	if natural:
+		valid = valid and waited >= 24.0
+	else:
+		valid = valid and waited < 5.0
+	if not valid:
+		push_error("RESULTS PROBE expiry did not follow the authoritative clock")
+		get_tree().quit(1)
+		return
+	print("RESULTS PROBE EXPIRY PASS natural=%s waited=%.1f" % [natural, waited])
+	await get_tree().create_timer(1.0).timeout
 	get_tree().quit()
+
+
+func _press_skip(screen: ResultsScreen) -> void:
+	var button := screen.find_child("SkipResults", true, false) as Button
+	if button == null or button.disabled:
+		push_error("RESULTS PROBE skip button is unavailable")
+		get_tree().quit(1)
+		return
+	button.pressed.emit()

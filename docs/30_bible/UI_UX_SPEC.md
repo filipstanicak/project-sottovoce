@@ -404,7 +404,8 @@ Joint winners are labelled explicitly. Skip uses Net.requests.send_skip_results;
 only a RESULTS snapshot with ticks_remaining zero closes the surface. HudBridge
 forwards this time without a local countdown or invented phase change. Vote tallies
 are not transmitted, so none are shown. Missing identity metadata is not inferred.
-Live opening/expiry still needs snapshots outside simulation; Claude owns that fix.
+Live opening, unanimous skip and natural expiry pass the three-client probe after
+PR #220 restored RESULTS snapshots. Persona, passive and player names remain absent.
 See the [story's handoff](../40_backlog/stories/US-0077-results-screen.md).
 
 ### 10.1 The lobby's information requirement
