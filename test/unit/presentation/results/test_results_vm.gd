@@ -47,13 +47,14 @@ func test_best_kill_is_a_contract_group_not_the_largest_single_award() -> void:
 	assert_eq(vm.best_stack.size(), 2)
 
 
-func test_roster_is_copied_and_placement_is_authoritative() -> void:
+func test_roster_is_copied_and_placement_uses_the_shared_rule() -> void:
 	var roster := FIXTURE.roster()
 	var vm := ResultsVm.new()
 	vm.present([FIXTURE.event(1, 6, Ids.SCORE_STUN, 900)], roster, 6)
 	roster[0]["name"] = "Changed after delivery"
-	assert_eq(vm.players[0]["id"], 1)
-	assert_eq(vm.players[0]["name"], "Player 1")
+	assert_eq(vm.players[0]["id"], 6)
+	assert_eq(vm.player_for(1)["name"], "Player 1")
+	assert_eq(vm.player_for(1)["placement"], 2)
 	assert_false(roster[0].has("total"))
 	vm.select(99)
 	assert_eq(vm.selected, 6)
@@ -89,3 +90,35 @@ func test_payload_before_phase_and_phase_before_payload_are_both_valid() -> void
 			vm.present([], FIXTURE.roster(), 1)
 		assert_true(vm.active)
 		assert_true(vm.available)
+
+
+func test_shared_winners_keep_the_shared_rule_and_distinct_treatment() -> void:
+	var vm := ResultsVm.new()
+	var events: Array[ScoreEvent] = [
+		FIXTURE.event(1, 1, Ids.SCORE_STUN, 300),
+		FIXTURE.event(2, 2, Ids.SCORE_STUN, 300),
+	]
+	vm.present(events, FIXTURE.roster(), 2)
+	assert_true(vm.shared_win)
+	assert_eq(vm.players[0]["placement"], 1)
+	assert_eq(vm.players[1]["placement"], 1)
+	assert_eq(vm.players[2]["placement"], 3)
+	assert_eq(vm.players[5]["total"], 0)
+	vm.present([], FIXTURE.roster(), 2)
+	assert_true(vm.shared_win, "a scoreless match is also explicitly shared")
+
+
+func test_only_authoritative_results_time_finishes_the_surface() -> void:
+	var vm := ResultsVm.new()
+	vm.present([], FIXTURE.roster(), 1)
+	vm.results_time(0, 30.0)
+	assert_false(vm.finished, "lobby zero is not results expiry")
+	vm.phase_changed(MatchPhase.Phase.RESULTS)
+	vm.results_time(31, 30.0)
+	assert_eq(vm.seconds_left, 2)
+	assert_false(vm.finished)
+	vm.results_time(0, 30.0)
+	assert_true(vm.finished)
+	assert_true(vm.active, "expiry does not invent a lobby transition")
+	vm.phase_changed(MatchPhase.Phase.LOBBY)
+	assert_false(vm.finished)

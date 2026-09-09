@@ -32,7 +32,9 @@ func _ready() -> void:
 	results.name = "Results"
 	results.palette = ($Hud as HudRoot).palette
 	results.active_changed.connect(_results_active)
+	results.skip_requested.connect(Net.requests.send_skip_results)
 	add_child(results)
+	($Hud/HudBridge as HudBridge).results_time_changed.connect(results.results_time_changed)
 
 
 func _results_active(active: bool) -> void:

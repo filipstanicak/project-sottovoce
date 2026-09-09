@@ -398,11 +398,13 @@ real people is the actual measure. The automation exists so no state is forgotte
 | `Results` | 25 s, unanimous skip only. **The per-bonus breakdown is the screen's purpose**; placement is just the frame |
 | `Options` | Video, audio buses, input rebinding, accessibility |
 
-**Implementation note (2026-09-09, US-0077):** ResultsRoot consumes the complete
-MatchEndReport, with points and breakdown from ScoreFold. Unknown server placement
-is an em dash; absent identity metadata is not inferred. Phase visibility remains
-on HudBridge's existing snapshot event. Live opening is currently blocked by the
-server suppressing snapshots outside simulation; unanimous skip is also pending.
+**Implementation note (2026-09-09, US-0077):** ResultsRoot consumes MatchEndReport.
+ScorePlacement supplies shared places; ScoreFold supplies bonus contributions.
+Joint winners are labelled explicitly. Skip uses Net.requests.send_skip_results;
+only a RESULTS snapshot with ticks_remaining zero closes the surface. HudBridge
+forwards this time without a local countdown or invented phase change. Vote tallies
+are not transmitted, so none are shown. Missing identity metadata is not inferred.
+Live opening/expiry still needs snapshots outside simulation; Claude owns that fix.
 See the [story's handoff](../40_backlog/stories/US-0077-results-screen.md).
 
 ### 10.1 The lobby's information requirement

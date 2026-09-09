@@ -155,7 +155,7 @@ func _player_summary(row: HBoxContainer, player: Dictionary, name_text: String) 
 		)
 	var key := &"ui.results.anonymous_short"
 	if int(player.get("placement", 0)) == 1:
-		key = &"ui.results.winner_short"
+		key = &"ui.results.shared_winner_short" if vm.shared_win else &"ui.results.winner_short"
 	column.add_child(style.label(ResultsStyle.text(key) % duration, 15))
 
 

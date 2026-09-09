@@ -12,6 +12,8 @@ var selected: int = 0
 var local_actor: int = 0
 var available: bool = false
 var active: bool = false
+var finished: bool = false
+var shared_win: bool = false
 var votes: int = 0
 var voters: int = 0
 var seconds_left: int = -1
@@ -27,15 +29,12 @@ var _phase: int = -1
 
 
 ## Metadata keys: id, name, placement, persona, abilities, passive,
-## anonymous_seconds. Placement and duration are authoritative, never inferred.
+## anonymous_seconds. Placement is always the shared ScorePlacement rule.
 func present(events: Array[ScoreEvent], roster: Array[Dictionary], own_id: int) -> void:
 	_events = events.duplicate()
 	players = roster.duplicate(true)
 	local_actor = own_id
-	var totals := ScoreFold.fold(_events)
-	for player: Dictionary in players:
-		player["total"] = int(totals.get(int(player["id"]), 0))
-	players.sort_custom(_before)
+	_place_players()
 	selected = own_id if not player_for(own_id).is_empty() else 0
 	if selected == 0 and not players.is_empty():
 		selected = int(players[0]["id"])
@@ -106,7 +105,7 @@ func skip_state(count: int, eligible: int, own_vote: bool, remaining: int, conne
 
 
 func request_skip() -> bool:
-	if not active or not available or not skip_enabled or requested or voted:
+	if not active or finished or not available or not skip_enabled or requested or voted:
 		return false
 	requested = true
 	state_changed.emit()
@@ -124,15 +123,32 @@ func _find_best() -> void:
 		best_stack = _breakdown(best_actor, best["events"])
 
 
-## Use supplied placement; an absent placement stays unknown, never guessed by kills.
-static func _before(a: Dictionary, b: Dictionary) -> bool:
-	var left := int(a.get("placement", 0))
-	var right := int(b.get("placement", 0))
-	if left == right:
-		return int(a["id"]) < int(b["id"])
-	if left <= 0:
-		return false
-	return right <= 0 or left < right
+## The shared rule owns both ordering and place, including slots without events.
+func _place_players() -> void:
+	var slots: Array = []
+	for player: Dictionary in players:
+		slots.append(int(player["id"]))
+	shared_win = ScorePlacement.is_shared_win(_events, slots)
+	var ordered: Array[Dictionary] = []
+	for row: Dictionary in ScorePlacement.standings(_events, slots):
+		var player := player_for(int(row["slot"]))
+		player["total"] = int(row["points"])
+		player["placement"] = int(row["place"])
+		ordered.append(player)
+	players = ordered
+
+
+## Only a RESULTS snapshot may call this; zero is authoritative completion.
+func results_time(ticks: int, tick_rate: float) -> void:
+	if not active:
+		return
+	var seconds := int(ceil(float(maxi(ticks, 0)) / maxf(tick_rate, 1.0)))
+	var complete := finished or ticks <= 0
+	if seconds == seconds_left and complete == finished:
+		return
+	seconds_left = seconds
+	finished = complete
+	state_changed.emit()
 
 
 func _clear() -> void:
@@ -140,6 +156,8 @@ func _clear() -> void:
 	players.clear()
 	best_stack.clear()
 	available = false
+	finished = false
+	shared_win = false
 	selected = 0
 	best_actor = 0
 	best_points = 0

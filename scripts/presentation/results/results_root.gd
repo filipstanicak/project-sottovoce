@@ -57,19 +57,19 @@ func _phase_changed(phase: int, _multiplier: float) -> void:
 func _refresh() -> void:
 	if is_instance_valid(screen):
 		screen.refresh()
-		if vm.active:
+		if vm.active and not vm.finished:
 			screen.focus_player()
 
 
 func _refresh_state() -> void:
-	visible = vm.active
+	visible = vm.active and not vm.finished
 	if is_instance_valid(screen):
 		screen.refresh_state()
-	if _shown == visible:
+	if _shown == vm.active:
 		return
-	_shown = visible
+	_shown = vm.active
 	active_changed.emit(_shown)
-	if _shown:
+	if visible:
 		screen.focus_player()
 
 
@@ -100,3 +100,10 @@ func _match_ended(report: MatchEndReport) -> void:
 			)
 		)
 	present(report.events, roster, GameState.local_peer_id)
+	vm.skip_enabled = Net.is_client_connected() and not skip_requested.get_connections().is_empty()
+	vm.state_changed.emit()
+
+
+## Forwarded by the existing HudBridge, not a second snapshot subscriber.
+func results_time_changed(ticks: int) -> void:
+	vm.results_time(ticks, Tuning.match_rules.tick_rate)

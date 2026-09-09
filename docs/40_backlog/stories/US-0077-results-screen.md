@@ -24,13 +24,13 @@ The teaching moment. Placement is the frame; the per-bonus breakdown is the purp
 
 ## Acceptance criteria
 
-- [ ] Final placement and totals for all players.
+- [x] Final placement and totals for all players.
 - [x] Per-player bonus breakdown: each type, count earned, points contributed.
 - [x] The breakdown is derived from the SAME fold as the totals, so they cannot disagree.
 - [ ] Each player's persona, loadout and passive shown — retrospective kit-reading.
 - [ ] Your killers by name and count. NO position, NO replay.
 - [x] Highest single kill of the match with its bonus stack, attributed.
-- [ ] Time spent Anonymous per player, with the winner's highlighted.
+- [x] Time spent Anonymous per player, with the winner's highlighted.
 - [ ] 25 s duration; skippable only by UNANIMOUS input.
 - [x] NO per-player timeline, path or heatmap — that is a kill-cam by another name.
 
@@ -62,9 +62,18 @@ a promise. test_score_no_direct_mutation.gd remains unchanged and enforces the
 ownership boundary. Three pure ScoreFold queries supply occurrence counts, the
 local player's killers and the highest contract-kill group.
 
-ResultsRoot visibility still follows HudBridge's existing snapshot-derived phase
-event. The working result payload and the missing phase snapshot described below
-are separate paths: receipt of the former does not establish receipt of the latter.
+ScorePlacement.standings supplies order, points and place from the same report
+slots and events; no presentation tie-break exists. is_shared_win chooses explicit
+joint-winner wording, including a match where all players scored zero. This
+supersedes the temporary unknown-placement decision: main 22c80e7 supplied the rule.
+
+ClientRoot connects ResultsRoot.skip_requested to Net.requests.send_skip_results.
+The press sends once and never hides the screen itself. HudBridge, still the only
+snapshot reader in presentation, forwards RESULTS ticks_remaining through a local
+results_time_changed signal. At zero, ResultsRoot hides the surface but keeps HUD
+and gameplay input suppressed until an actual phase change; RESULTS does not imply
+a new lobby. No local timer counts down. The working result payload and the still
+missing phase snapshot below remain separate paths.
 
 The owner assigned transport, metadata and unanimous skip to Claude; Codex owns
 the presentation and the approved pure queries. The story remains in-progress:
@@ -73,23 +82,20 @@ the presentation and the approved pure queries. The story remains in-progress:
   reaches RESULTS server-side but no client opens the screen. MatchDirector's
   non-simulating branch returns before tick_completed; that signal is the sole
   SnapshotBuilder.send_all trigger. Thus the snapshot-derived phase never reaches
-  RESULTS (nor the subsequent LOBBY). Claude must preserve snapshot phase delivery
+  RESULTS or its remaining time. Claude must preserve snapshot phase delivery
   outside simulation; the presentation does not add a second phase channel.
 
-- Placement is not delivered. **Owner decision, 2026-09-09: leave it unknown until
-  Claude supplies it**, rather than invent a tie-breaking or shared-place rule.
-  Every delivered player's total is shown, with an em dash for the absent place.
 - Criterion 4 stays open: no player persona or passive is assigned server-side;
   the placeholder loadout does arrive and is shown.
 - Criterion 5 stays open: player names do not exist in the project; the delivered
   death counts are shown against localized `Player <slot>` labels.
   Both findings are measured in [TDD-10 §7.1](../../20_tdd/10_scoring_and_match_state.md#71-what-us-0077s-server-half-built-and-the-two-things-it-cannot-deliver).
-- Anonymous time is shown per delivered participant. Winner emphasis is implemented
-  and tested with supplied placement, but cannot identify the winner in live data yet.
-- The existing server owns the results duration. NET-C2S-SKIP-RESULTS is still
-  unbuilt: it needs a C2S doorway on EVENT, and net.gd remains at 398 of 400 lines
-  (NETWORK_PROTOCOL §2). Skip, its tally and results time delivery remain Claude's
-  work; the shipping button stays disabled.
+- NET-C2S-SKIP-RESULTS is built in RequestWire and the shipping button is connected.
+  Criterion 8 stays open until the RESULTS snapshots reach the client: the request
+  exists, but the result clock cannot yet open or close the surface in live play.
+- MatchSystem.skips() and its player count are server state, not replicated vote
+  totals. No tally is fabricated. The optional tally adapter remains available
+  for a future delivery; the actual button reports only that this client sent a vote.
 - The current transport enumerates connected slots and does not preserve departed
   participants' identity. Complete departed-player results require server work.
 
@@ -108,19 +114,23 @@ keys, for the future delivery extension and the reproducible visual probe:
 |---|---|
 | id | Event actor/subject wire slot |
 | name | Authoritative display name |
-| placement | Server placement; absent/zero displays unknown |
+| placement | Ignored on input; ScorePlacement derives the authoritative rule from the report |
 | persona | PERSONA- ID |
 | abilities | ABIL- IDs in kit order |
 | passive | PASV- ID |
 | anonymous_seconds | Authoritative duration; absent/negative displays unavailable |
 
-Connect ResultsRoot.skip_requested to the server skip request, then call
-apply_skip_state(votes, voters, voted, seconds_left) with server facts.
-seconds_left is optional and defaults to unknown: it is RESULTS time, never
-Snapshot.ticks_remaining. A connected sender is required to enable the button.
-One request is emitted per result; neither full tally nor zero time dismisses it.
-Only the existing phase event closes the screen and clears the previous results.
-The input sampler releases the cursor and sends neutral gameplay input while open.
+ClientRoot already connects ResultsRoot.skip_requested to Net.requests.send_skip_results.
+A received report enables voting only with a live connection and a bound sender.
+No vote tally is available over the wire; apply_skip_state is only an optional
+adapter for future authoritative tally data and the fixture probe.
+
+RESULTS snapshots carry results time as ticks_remaining (ACTIVE/FINAL carry match
+time instead). HudBridge publishes the phase first, then forwards RESULTS time
+locally through ClientRoot to ResultsRoot. Other phases' zeroes cannot close it.
+Authoritative RESULTS zero hides the surface; full vote tallies and the local press
+cannot. Leaving RESULTS clears the previous report and restores gameplay controls.
+No client phase is invented at expiry: the server currently remains in RESULTS.
 
 ## Verification surfaces
 

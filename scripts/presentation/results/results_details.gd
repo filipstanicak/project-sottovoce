@@ -52,7 +52,11 @@ func _anonymous(player: Dictionary) -> void:
 		)
 	var key := &"ui.results.anonymous"
 	if int(player.get("placement", 0)) == 1:
-		key = &"ui.results.winner_anonymous"
+		key = (
+			&"ui.results.shared_winner_anonymous"
+			if vm.shared_win
+			else &"ui.results.winner_anonymous"
+		)
 	add_child(style.wrapped(ResultsStyle.text(key) % duration, 24))
 
 

@@ -188,3 +188,13 @@ func _subscribe() -> void:
 - [ ] No file under `scripts/systems/` references `EventBus`.
 - [ ] No bus handler emits another bus signal.
 - [ ] Every view model holding a derived tuning value handles `tuning_reloaded`.
+
+
+## Results time forwarding (US-0077, 2026-09-09)
+
+HudBridge remains the sole presentation snapshot reader. After publishing the
+existing match_phase_changed event, it emits a local results_time_changed(ticks)
+signal only for RESULTS. ClientRoot wires that signal to its ResultsRoot child.
+This is composition wiring, not a new global event or a second phase channel.
+RESULTS ticks_remaining is the server's results clock; zero hides the surface
+without restarting gameplay. MatchSystem.skips() is not a replicated tally.

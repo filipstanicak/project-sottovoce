@@ -102,3 +102,5 @@ ui.results.anonymous_short,Anonymous %s
 ui.results.winner_short,Winner · Anonymous %s
 ui.results.no_rank,—
 ui.results.player_slot,Player %d
+ui.results.shared_winner_short,Joint winner · Anonymous %s
+ui.results.shared_winner_anonymous,Joint winner’s time Anonymous · %s

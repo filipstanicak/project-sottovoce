@@ -26,9 +26,10 @@ func test_real_client_uses_snapshot_phase_and_releases_gameplay_input() -> void:
 	var results := client.get_node("Results") as ResultsRoot
 	var sampler := client.get_node("InputSampler") as InputSampler
 	assert_not_null(results)
+	assert_true(results.skip_requested.is_connected(Net.requests.send_skip_results))
 	var snapshot := Snapshot.new()
 	snapshot.phase = MatchPhase.Phase.RESULTS
-	snapshot.ticks_remaining = 0
+	snapshot.ticks_remaining = MatchClock.duration_ticks(MatchPhase.Phase.RESULTS, Tuning.match_rules)
 	Net.snapshot_received.emit(snapshot)
 	assert_true(results.visible)
 	assert_false((client.get_node("Hud") as CanvasLayer).visible)
@@ -41,6 +42,11 @@ func test_real_client_uses_snapshot_phase_and_releases_gameplay_input() -> void:
 	click.pressed = true
 	sampler._unhandled_input(click)
 	assert_false(sampler.mouse_captured())
+	snapshot.ticks_remaining = 0
+	Net.snapshot_received.emit(snapshot)
+	assert_false(results.visible, "authoritative RESULTS zero closes the surface")
+	assert_false((client.get_node("Hud") as CanvasLayer).visible)
+	assert_false(sampler.mouse_captured(), "RESULTS zero must not restart gameplay")
 	snapshot.phase = MatchPhase.Phase.LOBBY
 	Net.snapshot_received.emit(snapshot)
 	assert_false(results.visible)
@@ -129,8 +135,20 @@ func test_received_wire_report_reaches_the_screen_without_a_live_score_feed() ->
 	assert_almost_eq(
 		results.vm.player_for(2)["anonymous_seconds"], 600.0 / Tuning.match_rules.tick_rate, 0.001
 	)
-	assert_false(results.vm.player_for(1).has("placement"), "no invented placement")
+	assert_eq(results.vm.player_for(1)["placement"], 1, "placement uses the shared rule")
 	assert_false(results.vm.skip_enabled, "the server skip doorway is still absent")
 	GameState.local_peer_id = previous
 	EventBus.match_phase_changed.emit(MatchPhase.Phase.LOBBY, 1.0)
 	assert_false(results.vm.available, "the next match cannot inherit the old result")
+
+
+func test_joint_winner_text_is_explicit_on_rows_and_details() -> void:
+	var results := ResultsRoot.new()
+	add_child_autofree(results)
+	results.present([], FIXTURE.roster(), 1)
+	var labels := results.screen.find_children("*", "Label", true, false)
+	var found := false
+	for node: Label in labels:
+		if node.text.begins_with("Joint winner"):
+			found = true
+	assert_true(found, "the shared first place must not look like two sole winners")
