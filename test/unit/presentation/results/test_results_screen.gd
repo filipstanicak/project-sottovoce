@@ -29,7 +29,9 @@ func test_real_client_uses_snapshot_phase_and_releases_gameplay_input() -> void:
 	assert_true(results.skip_requested.is_connected(Net.requests.send_skip_results))
 	var snapshot := Snapshot.new()
 	snapshot.phase = MatchPhase.Phase.RESULTS
-	snapshot.ticks_remaining = MatchClock.duration_ticks(MatchPhase.Phase.RESULTS, Tuning.match_rules)
+	snapshot.ticks_remaining = MatchClock.duration_ticks(
+		MatchPhase.Phase.RESULTS, Tuning.match_rules
+	)
 	Net.snapshot_received.emit(snapshot)
 	assert_true(results.visible)
 	assert_false((client.get_node("Hud") as CanvasLayer).visible)
