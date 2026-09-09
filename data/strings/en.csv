@@ -100,3 +100,4 @@ ui.results.remaining,  Results: %d s
 ui.results.player_points,%d points
 ui.results.anonymous_short,Anonymous %s
 ui.results.winner_short,Winner · Anonymous %s
+ui.results.no_rank,—

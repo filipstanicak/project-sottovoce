@@ -90,3 +90,13 @@ func test_wrapping_cannot_push_the_footer_outside_the_safe_area() -> void:
 	assert_gt(content.size.y, 0.0)
 	for key: StringName in Strings.keys():
 		assert_false(Strings.get_text(key).contains(String.chr(0xfffd)))
+
+	for button: Button in results.screen.get("_buttons").values():
+		var row := button.get_child(0) as Control
+		assert_lte(row.get_combined_minimum_size().y, button.size.y - 16.0)
+	var font := results.screen.style.font
+	var width := font.get_string_size("0", HORIZONTAL_ALIGNMENT_LEFT, -1, 32).x
+	for digit: int in 10:
+		assert_almost_eq(
+			font.get_string_size(str(digit), HORIZONTAL_ALIGNMENT_LEFT, -1, 32).x, width, 0.01
+		)

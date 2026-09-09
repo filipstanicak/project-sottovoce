@@ -105,13 +105,13 @@ func _player_button(column: VBoxContainer, player: Dictionary) -> void:
 	var rank := (
 		str(player["placement"])
 		if int(player.get("placement", 0)) > 0
-		else ResultsStyle.text(&"ui.results.unavailable")
+		else ResultsStyle.text(&"ui.results.no_rank")
 	)
 	var name_text := str(player.get("name", ""))
 	if actor == vm.local_actor:
 		name_text = ResultsStyle.text(&"ui.results.you") % name_text
 	var button := style.button("", actor == vm.selected)
-	button.custom_minimum_size.y = 88
+	button.custom_minimum_size.y = 96
 	button.name = "Player%d" % actor
 	button.tooltip_text = (
 		ResultsStyle.text(&"ui.results.player_row") % [rank, name_text, player["total"]]
@@ -136,6 +136,7 @@ func _player_button(column: VBoxContainer, player: Dictionary) -> void:
 
 func _player_summary(row: HBoxContainer, player: Dictionary, name_text: String) -> void:
 	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", 0)
 	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(column)

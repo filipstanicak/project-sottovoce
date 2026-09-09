@@ -1,4 +1,4 @@
-## **THE CLIENT'S BOOT, AND THE ONLY THING IT DOES IS OPEN THE MAP.** CLIENT ONLY.
+## Client composition root: map, HUD and the results/input handoff. CLIENT ONLY.
 ##
 ## Added 2026-09-04 with `MAP-SANDBOX`. `client_root.tscn` was the one root scene
 ## with no script at all, and the district was an `ext_resource` inside it — which
