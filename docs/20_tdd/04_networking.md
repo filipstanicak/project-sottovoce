@@ -269,7 +269,7 @@ is consulted constantly.
 | `NET-C2S-INPUT` | S | Unreliable | **60 Hz** | `seq:u16`, `move:2×i8`, `yaw:u8`, `pitch:i8`, `buttons:u16`, `acked_tick:u16` — **hand-packed into 12 bytes, see below** | Sender must own a living pawn. `seq` must be newer than last processed (stale/replayed commands dropped). Applies to the **sender's** pawn only — the pawn is looked up from the peer id, never from the payload |
 | `NET-C2S-ABILITY-REQUEST` | E | Reliable | On demand | `slot:u8`, `aim_origin:3×f32`, `aim_dir:3×f32` | Slot must be equipped; cooldown must be expired **on the server**; `TUN-ABILITY-GLOBAL-COOLDOWN` respected; aim clamped to the ability's range server-side |
 | `NET-C2S-BLEND-REQUEST` | E | Reliable | On demand | `target_id:u16` (blend prop or group slot) | Target must exist, be within `TUN-BLEND-GROUP-JOIN-RADIUS`, and have capacity (`TUN-BLEND-PROP-CAPACITY` 1) |
-| `NET-C2S-SKIP-RESULTS` | X | Reliable | Once | — | Phase must be RESULTS. Skip requires **unanimous** consent |
+| `NET-C2S-SKIP-RESULTS` | E | Reliable | Once | — | Phase must be RESULTS. (Channel corrected X → E 2026-09-13; built on `EVENT` at US-0077.) Skip requires **unanimous** consent |
 | `NET-C2S-PING` | S | Unreliable | 1 Hz | `client_time:u32` | None needed — echo only |
 
 **Note what is absent:** there is no `NET-C2S-KILL`, no `NET-C2S-STUN`, no
@@ -284,7 +284,7 @@ evaluated by the server against the lag-compensated world. A client cannot expre
 | `NET-S2C-WELCOME` | X | Reliable | Once | `peer_id:u8`, `tuning_hash:u64`, `map_id:u8`, `phase:u8` |
 | `NET-S2C-TUNING-SYNC` | X | Reliable | On mismatch | Full serialised `TuningProfile`. Client adopts it — **corrected, never kicked** (ADR-0005 rule 4) |
 | `NET-S2C-LOBBY-STATE` | X | Reliable | On change | `players[]{peer_id, persona, ready}`. **Loadouts deliberately excluded** ([`../10_gdd/06_ui_audio.md`](../10_gdd/06_ui_audio.md) §4.1) |
-| `NET-S2C-MATCH-START` | X | Reliable | Once | `match_seed:u64`, `start_tick:u32`, `crowd_count:u8` |
+| `NET-S2C-MATCH-START` | X | Reliable | Once | `match_seed:u64`, `start_tick:u32`, `crowd_count:u8`. **Built 2026-09-13**, `MatchStartWire`. *Once* is per recipient — every player at `ACTIVE`, and a late joiner from `peer_joined`. `SESSION` for the ordering against `NET-S2C-WELCOME` |
 | `NET-S2C-SNAPSHOT` | S | Unreliable | **30 Hz** | §6.3 |
 | `NET-S2C-CONTRACT-ASSIGNED` | E | Reliable | On change | `contract_peer:u8`, `reason:u8`. **Contains no persona, position or identity hint** — see §6.4 |
 | `NET-S2C-KILL-RESULT` | E | Reliable | On event | `killer:u8`, `victim:u8`, `tick:u32`, `bonus_group:u16` |

@@ -375,6 +375,7 @@ func _on_peer_joined(peer: int) -> void:
 		# a pipeline nobody can reach is a pipeline nobody can test.
 		abilities.loadout[peer] = [Ids.ABIL_CINDERFALL, Ids.ABIL_LUNGE]
 		match_state.players = pawns.pawn_count()
+		announcer.started_for(peer)
 
 
 ## **EVERY OWNER OF PER-PEER STATE IS TOLD, IN ONE PLACE.** ENet reuses peer ids,

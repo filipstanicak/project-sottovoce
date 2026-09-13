@@ -24,6 +24,22 @@ var phase: Phase = Phase.LOBBY
 ## never receives it cannot leak it.
 var roster: Dictionary = {}
 
+## **THE MATCH SEED, AND IT IS NOT A DEBUG FIELD.** `CrowdRoster` derives every
+## NPC's persona from it, identically on every peer — which is how ninety
+## identities reach a client for nothing. Zero until `NET-S2C-MATCH-START`
+## arrives, and **zero is also a legal seed**, so a reader must ask
+## `has_match()` rather than testing this for truth.
+var match_seed: int = 0
+
+## The server tick play began on, and the crowd it began with. Both arrive in the
+## same message and neither is derivable from anything else a client holds.
+var start_tick: int = 0
+var crowd_count: int = 0
+
+## Whether `NET-S2C-MATCH-START` has arrived. **A flag rather than a sentinel
+## value**, because every field above has a legal zero.
+var match_known: bool = false
+
 
 func is_lobby() -> bool:
 	return phase == Phase.LOBBY
@@ -31,6 +47,11 @@ func is_lobby() -> bool:
 
 func is_playing() -> bool:
 	return phase == Phase.ACTIVE or phase == Phase.FINAL
+
+
+## Whether this client has been told which match it is in.
+func has_match() -> bool:
+	return match_known
 
 
 func peer_count() -> int:
@@ -50,7 +71,28 @@ func replace(new_peer_id: int, new_phase: Phase, new_roster: Dictionary) -> void
 	state_replaced.emit()
 
 
+## **THE SECOND MUTATOR, AND THE ONE-WRITER RULE IS UNCHANGED.** The rule is one
+## *writer* — `scripts/net/` — not one function; widening `replace` instead would
+## have taken it to six arguments, which `.gdlintrc` caps and calls a design
+## signal, and every existing caller would have had to name three fields it knows
+## nothing about. `test_game_state_single_writer.gd` derives its mutator list from
+## this file rather than listing it, so this one could not be forgotten.
+func adopt_match(seed_value: int, began_at: int, crowd: int) -> void:
+	match_seed = seed_value
+	start_tick = began_at
+	crowd_count = crowd
+	match_known = true
+	state_replaced.emit()
+
+
 ## Reset to lobby. Called on disconnect, so a stale roster never outlives the
 ## session that produced it.
 func clear() -> void:
+	# **A SEED OUTLIVING ITS SESSION WOULD DRESS THE NEXT MATCH'S CROWD**, which
+	# is the exact failure this function exists to prevent for the roster. Reset
+	# BEFORE `replace` emits, so nothing hearing `state_replaced` reads a stale seed.
+	match_seed = 0
+	start_tick = 0
+	crowd_count = 0
+	match_known = false
 	replace(0, Phase.LOBBY, {})

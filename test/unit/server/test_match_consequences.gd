@@ -128,3 +128,56 @@ func test_a_skip_press_with_no_match_system_is_survivable() -> void:
 	_consequences.match_state = null
 	_consequences.skip_requested(PLAYERS[0])
 	assert_true(true, "a skip press with no SYS-MATCH took the server down")
+
+
+## **THE SEED GOES OUT WHEN PLAY BEGINS, TO EVERY PLAYER, AND NOT AT THE COUNTDOWN.**
+## US-0079's last criterion, `NET-S2C-MATCH-START`.
+##
+## Driven through the real `MatchSystem` rather than by raising `phase_changed` by
+## hand, because the thing that would break this is an ordering: `_enter` writes
+## `active_started_at` on the line BEFORE it emits, and `started_for` refuses a
+## match with no start tick. Swap those two lines and a hand-raised transition
+## with the field pre-set would stay green while every live client went untold.
+## `starts_sent` is what a socketless test can count — the send returns early off
+## a server.
+func test_the_seed_reaches_every_player_when_play_begins() -> void:
+	for peer: int in PLAYERS:
+		_ctx.slots.assign(peer)
+	var match_state := MatchSystem.new()
+	match_state.setup(_ctx, Tuning.match_rules)
+	match_state.players = PLAYERS.size()
+	match_state.phase_changed.connect(_consequences.phase_changed)
+	_consequences.announcer = MatchAnnouncer.new(_ctx)
+	_ctx.phase = MatchPhase.Phase.LOBBY
+	match_state.advance(_ctx)
+	assert_eq(_ctx.phase, MatchPhase.Phase.WARMUP, "premise: the lobby did not open the countdown")
+	assert_eq(
+		_consequences.announcer.starts_sent,
+		0,
+		"the seed went out at the countdown, before a start tick existed"
+	)
+	var guard := 0
+	while _ctx.phase == MatchPhase.Phase.WARMUP and guard < 10_000:
+		_ctx.tick += 1
+		match_state.advance(_ctx)
+		guard += 1
+	assert_eq(_ctx.phase, MatchPhase.Phase.ACTIVE, "premise: the countdown never reached play")
+	assert_eq(
+		_consequences.announcer.starts_sent,
+		PLAYERS.size(),
+		"play began and not every player was told the seed"
+	)
+
+
+## **A LATE JOINER IS TOLD THE SEED, AND A LOBBY JOINER IS NOT.** The catalogue's
+## *once* is per recipient: somebody who connects mid-match would otherwise draw a
+## crowd nobody else can see the same way, and somebody who connects before play
+## has no start tick to be told.
+func test_a_late_joiner_is_told_the_seed_and_a_lobby_joiner_is_not() -> void:
+	var announcer := MatchAnnouncer.new(_ctx)
+	_ctx.slots.assign(PLAYERS[0])
+	announcer.started_for(PLAYERS[0])
+	assert_eq(announcer.starts_sent, 0, "a peer who joined the lobby was told a seed for no match")
+	_ctx.active_started_at = _ctx.tick
+	announcer.started_for(PLAYERS[0])
+	assert_eq(announcer.starts_sent, 1, "a peer who joined a running match was not told the seed")

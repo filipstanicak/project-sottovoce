@@ -69,6 +69,11 @@ signal score_reported(report: ScoreReport)
 ## withholds nothing where every other one withholds by design.
 signal match_ended(report: MatchEndReport)
 
+## `NET-S2C-MATCH-START` arrived. CLIENT SIDE. **`GameState` already holds it** by
+## the time this fires; the signal is for anything that must rebuild rather than
+## re-read, which is `NpcView` the day a clone wears a persona.
+signal match_started(match_seed: int, start_tick: int, crowd_count: int)
+
 
 ## `NET-S2C-CONTRACT-ASSIGNED`. SERVER SIDE, **to the holder only**.
 ##
@@ -240,6 +245,37 @@ func send_score(peer: int, event: ScoreEvent, actor_slot: int, subject_slot: int
 	if not Net.is_server:
 		return
 	s2c_score_event.rpc_id(peer, ScoreWire.pack(event, actor_slot, subject_slot))
+
+
+## **`NET-S2C-MATCH-START`, AND IT IS SENT ONCE PER PEER RATHER THAN ONCE PER
+## MATCH.** The catalogue's *once* column is about the recipient: a player who joins
+## while a match is running needs the seed exactly as much as one who was there at
+## the countdown, and would otherwise draw a crowd nobody else can see the same way.
+func send_match_start(peer: int, match_seed: int, start_tick: int, crowd: int) -> void:
+	if not Net.is_server:
+		return
+	s2c_match_start.rpc_id(peer, MatchStartWire.pack(match_seed, start_tick, crowd))
+
+
+## `NET-S2C-MATCH-START`. CLIENT SIDE.
+##
+## **RELIABLE, BECAUSE THERE IS NO SECOND CHANCE AND NO WAY TO NOTICE.** A dropped
+## seed is a client whose whole crowd wears the wrong faces, for the rest of the
+## match, with nothing on screen saying so — every NPC still walks, still blends,
+## still hides somebody. It is the quietest packet loss in this protocol.
+##
+## **ON `SESSION` RATHER THAN `EVENT`, AND THE ORDER IS THE REASON.** A late joiner
+## is welcomed from the handshake and told the seed from `peer_joined` a moment
+## later; only on the same ordered channel as `NET-S2C-WELCOME` is the second
+## guaranteed to land after the first. The catalogue has said X since M0.
+@rpc("authority", "call_remote", "reliable", Messages.Channel.SESSION)
+func s2c_match_start(payload: PackedByteArray) -> void:
+	var fields := MatchStartWire.unpack(payload)
+	if fields.is_empty():
+		Log.error("malformed match-start payload: %d bytes" % payload.size(), &"net")
+		return
+	GameState.adopt_match(int(fields[0]), int(fields[1]), int(fields[2]))
+	match_started.emit(int(fields[0]), int(fields[1]), int(fields[2]))
 
 
 ## **`NET-S2C-MATCH-END` — THE ONLY MESSAGE ADDRESSED TO EVERYBODY WITH THE SAME

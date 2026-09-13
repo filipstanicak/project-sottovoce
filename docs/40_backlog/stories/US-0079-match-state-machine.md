@@ -4,7 +4,7 @@ title: Match state machine and phases
 version: 0.1.0
 status: in-progress
 owner: Technical Director
-last_updated: 2026-09-08
+last_updated: 2026-09-13
 depends_on: [GDD-07-BALANCE, TDD-10-SCORING]
 ---
 
@@ -35,11 +35,13 @@ wall time.
 - [x] Multiplier is frozen at ScoreEvent APPEND time from the event tick.
 - [x] A kill initiated pre-boundary and landing post-boundary scores at 1x.
 - [x] Play continues down to four players; below that the match ends WITH results shown.
-- [ ] Cycle built at countdown as a uniformly random permutation; seed broadcast. — **the cycle
-      half is done and the broadcast half is not.** `MatchSystem.countdown_opened` is
-      `ContractSystem.open`'s first caller under `scripts/`, and `ContractCycle.open` has been
-      Fisher-Yates on the seeded RNG since US-0050. `NET-S2C-MATCH-START` still has no sender,
-      so no client is told the seed.
+- [x] Cycle built at countdown as a uniformly random permutation; seed broadcast. — **both
+      halves as of 2026-09-13.** `MatchSystem.countdown_opened` is `ContractSystem.open`'s
+      first caller under `scripts/`, and `NET-S2C-MATCH-START` has its first sender:
+      `MatchAnnouncer.match_started` at the transition into `ACTIVE`, and `started_for` to a
+      late joiner. The seed is sent at `ACTIVE` rather than at the countdown because
+      `start_tick` does not exist before then, and the message is on `SESSION` so a late
+      joiner cannot receive it before `NET-S2C-WELCOME`.
 
 ## Test notes
 
@@ -67,7 +69,7 @@ not hold:
 | the multiplier frozen at append from the event tick | **already built** — `ScoreEvent` derives it, and scoring was deliberately not blocked on `SYS-MATCH` |
 | a pre-boundary initiation landing post-boundary at 1x | the phase clock |
 | play down to four, below that end **with results shown** | `Net.player_count()`, and US-0077 — **already M5** |
-| the cycle built at countdown, seed broadcast | `ContractSystem.open()`, built and Fisher-Yates on the seeded RNG, **called from tests only**; `NET-S2C-MATCH-START` already carries the seed field |
+| the cycle built at countdown, seed broadcast | `ContractSystem.open()`, built and Fisher-Yates on the seeded RNG, called at the countdown since 2026-09-08; `NET-S2C-MATCH-START` sent since 2026-09-13 — `MatchStartWire`, `MatchAnnouncer.match_started`, `GameState.adopt_match` |
 
 **What US-0078 provides is host-and-join, persona and loadout selection, and ready-up. None of
 that appears above.** The one real coupling is the *trigger* for COUNTDOWN, and a minimum-player
