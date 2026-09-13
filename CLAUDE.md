@@ -249,6 +249,18 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 
 ## Where the work is right now
 
+### 2026-09-13 — US-0079 is done: the final warning is an announcement, by owner decision
+
+**OWNER DECISION 10, TAKEN.** The story's first criterion read *"All six phases"* from
+the day it was written; `MatchPhase.Phase` has five members and their ordinals are
+the wire, so a sixth name for something the next criterion says changes no rules
+would have remapped every client's phase. It was built as an announcement on
+2026-09-08 and **left unticked for five days rather than reworded**, because
+rewriting a criterion to match what was built is the owner's call. The owner took
+it; the criterion now says five phases and one announcement, and US-0079 is
+**eight of eight**. Unticked criteria: 50, regenerated. Five things wait on the
+owner now.
+
 ### 2026-09-13 — the snapshot's multiplier carries tenths, protocol version 2
 
 **A LINE, AND A FORMAT CHANGE, AND SAYING WHICH IS THE POINT.** `Snapshot.multiplier`
@@ -3358,9 +3370,9 @@ distance when it empties is one nobody observed.
 file. Both parties already *perceived* an escape through channels that existed;
 what the field added is the anticipatory half.
 
-## SIX THINGS WAIT ON THE OWNER, AND NONE BLOCKS M5
+## FIVE THINGS WAIT ON THE OWNER, AND NONE BLOCKS M5
 
-*Nine rows, six live. Struck through rather than deleted, because a list with a vanished row
+*Nine rows, five live. Struck through rather than deleted, because a list with a vanished row
 invites somebody to re-open it: decision 1 was settled on 2026-09-08 (`SYS-MATCH` moved to M5),
 decision 8 on 2026-09-03, and decision 3 by ADR-0017 on 2026-09-01 — which raised decision 7 in
 its place. **A new open decision arrived with decision 1's answer**: whether US-0098 can run on
@@ -3390,7 +3402,7 @@ because it is the same question decision 1 half-answered, and splitting it would
    today.
 5. **The tag `m4-the-loop`.**
 
-10. **IS THE FINAL WARNING A SIXTH PHASE OR AN ANNOUNCEMENT?** Raised 2026-09-08 by US-0079, whose description asks for six phases and whose next criterion says the warning changes **no rules**. `MatchPhase.Phase` has five members and **their ordinals are the wire** — `NET-S2C-PHASE-CHANGED` carries `phase:u8` — so a sixth name inserted for something that changes nothing would silently remap every client's idea of what is happening, which is `PawnStateId.ALL`'s hazard in a second enum. **It is built as an announcement** (`MatchClock.warning_at` and `MatchSystem.final_warning_announced`) and the criterion is left **unticked** rather than reworded, because rewriting a criterion to match what was built is how a backlog stops being a status view. **My recommendation is to amend the criterion to five phases and one announcement**: nothing in the design wants a phase that changes no rules, and the wire cost of one is real.
+10. ~~**IS THE FINAL WARNING A SIXTH PHASE OR AN ANNOUNCEMENT?**~~ **SETTLED 2026-09-13 by the owner: an announcement.** The criterion is amended to five phases and one announcement and ticked; US-0079 is **done, eight of eight**. Struck through rather than deleted. The original reasoning follows. Raised 2026-09-08 by US-0079, whose description asks for six phases and whose next criterion says the warning changes **no rules**. `MatchPhase.Phase` has five members and **their ordinals are the wire** — `NET-S2C-PHASE-CHANGED` carries `phase:u8` — so a sixth name inserted for something that changes nothing would silently remap every client's idea of what is happening, which is `PawnStateId.ALL`'s hazard in a second enum. **It is built as an announcement** (`MatchClock.warning_at` and `MatchSystem.final_warning_announced`) and the criterion is left **unticked** rather than reworded, because rewriting a criterion to match what was built is how a backlog stops being a status view. **My recommendation is to amend the criterion to five phases and one announcement**: nothing in the design wants a phase that changes no rules, and the wire cost of one is real.
 9. ~~**SHOULD A LUNGE INTO YOUR PURSUER STUN THEM?**~~ **SETTLED 2026-09-03 by
    ADR-0018: yes**, and design law 5 was revamped with it. The reference resolves the
    dash against whoever it connects with; ours did nothing to a pursuer, so the
@@ -3522,7 +3534,7 @@ it comes from: its occupant leaves `present_slots` entirely and both combat syst
 
 ## What is deliberately unticked
 
-**Fifty-one criteria are deliberately unticked**, each blocked by something real —
+**Fifty criteria are deliberately unticked**, each blocked by something real —
 regenerated on **2026-09-02**, when US-0070 closed US-0061's ninth line after four
 milestones. It went 47 → 56 → 48
 in one day on 2026-08-27 and both moves are US-0063: running the M4 gate made it
@@ -3544,7 +3556,6 @@ total=0; for f in docs/40_backlog/stories/*.md; do
 
 | Story | Unticked | Blocked by |
 |---|---|---|
-| US-0079 | the sixth phase | **seven of eight are ticked as of 2026-09-13** — the seed broadcast is built (`NET-S2C-MATCH-START`, at `ACTIVE` and to every late joiner). `MatchPhase` has five members and their ordinals are the wire, so the "sixth phase" would be the final warning — which the story's own next criterion says changes no rules. It is an announcement at `MatchClock.warning_at`, and the criterion is left unticked rather than reworded. `ContractSystem.open` is called at the countdown and deals a uniformly random permutation |
 | US-0002/3/4/5 | four "required check on `main`" lines | branch protection needs GitHub Pro on a private repo. TDD-12 §1.3 |
 | US-0019 | root motion for hand and foot placement | there are no animation clips |
 | US-0022 | motion-reduction's compensating indicator | the FOV **lock** is done and tested; the persistent speed indicator is motion reduction's compensating channel, US-0084 (M6) |

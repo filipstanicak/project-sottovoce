@@ -2,7 +2,7 @@
 id: US-0079
 title: Match state machine and phases
 version: 0.1.0
-status: in-progress
+status: done
 owner: Technical Director
 last_updated: 2026-09-13
 depends_on: [GDD-07-BALANCE, TDD-10-SCORING]
@@ -25,10 +25,15 @@ wall time.
 
 ## Acceptance criteria
 
-- [ ] All six phases with the documented transitions. — **five phases and one announcement.**
-      `MatchPhase.Phase` has five members and their ordinals are the wire; the sixth would be
-      the final warning, which the criterion below says changes no rules. See TDD-10 §6.2.
-      **Left unticked rather than rewritten**: it is the owner's to rule on.
+- [x] Five phases — `LOBBY`, `WARMUP`, `ACTIVE`, `FINAL`, `RESULTS` — with the documented
+      transitions, and the final warning as an **announcement** rather than a phase. —
+      **Amended by owner decision 10 on 2026-09-13.** The line read *"All six phases"* from
+      the day the story was written; `MatchPhase.Phase` has five members and their ordinals
+      are the wire, so a sixth name for something the next criterion says changes no rules
+      would have remapped every client's idea of what is happening. Built as
+      `MatchClock.warning_at` and `MatchSystem.final_warning_announced` on 2026-09-08 and
+      left unticked for five days rather than reworded, because rewriting a criterion to
+      match what was built is the owner's call and not the builder's. See TDD-10 §6.2.
 - [x] 480 s total; 30 s Final Contract; 5 s warning before it.
 - [x] The warning changes NO rules — it exists so the phase is anticipated rather than sprung.
 - [x] The Final Contract changes the score multiplier and NOTHING else.
@@ -64,7 +69,7 @@ not hold:
 
 | This story asks for | What it actually needs |
 |---|---|
-| six phases and their transitions | tick arithmetic |
+| six phases and their transitions — five and an announcement since decision 10 | tick arithmetic |
 | 480 s, 30 s Final Contract, 5 s warning | tick arithmetic |
 | the multiplier frozen at append from the event tick | **already built** — `ScoreEvent` derives it, and scoring was deliberately not blocked on `SYS-MATCH` |
 | a pre-boundary initiation landing post-boundary at 1x | the phase clock |
