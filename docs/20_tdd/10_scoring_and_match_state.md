@@ -541,7 +541,8 @@ that sometimes does not arrive is worse than none, because players learn to stop
 its own next criterion says the warning "changes NO rules". `MatchPhase`'s ordinals are the wire —
 `NET-S2C-PHASE-CHANGED` carries `phase:u8` — so a sixth name inserted for something that changes
 nothing would remap every client's idea of what is happening, which is `PawnStateId.ALL`'s hazard
-in a second enum. It is a tick (`MatchClock.warning_at`) and a signal.
+in a second enum. It is a tick (`MatchClock.warning_at`) and a signal. **Settled by owner
+decision 10 on 2026-09-13**: the story's criterion now says five phases and one announcement.
 
 **THE COUNTDOWN IS TRIGGERED BY A PLAYER COUNT, AND THAT COUNT IS THE PAWN COUNT.**
 `Net.player_count()` is the obvious source and the wrong one: every probe in `tools/` and both
