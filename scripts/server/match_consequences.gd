@@ -90,6 +90,11 @@ func escaped(hunter: int, prey: int, close_call: bool) -> void:
 ## ABILITY'S HONEST COST.** GDD-04 §3.1: *"every NPC within 9 m runs"* — so
 ## Cinderfall buys line of sight at the price of telling everybody within 30 m
 ## roughly where you are. The radius is the caster's, not the violence default.
+func _announce_the_start() -> void:
+	if announcer != null:
+		announcer.match_started()
+
+
 func _announce_the_results() -> void:
 	if announcer == null:
 		return
@@ -133,6 +138,10 @@ func _charge_for_witnesses(killer: int, at: Vector3) -> void:
 func phase_changed(from: int, to: int, _ctx: MatchContext) -> void:
 	if router != null:
 		router.set_phase(to)
+	if to == MatchPhase.Phase.ACTIVE:
+		# **THE SEED GOES OUT WHEN PLAY BEGINS**, which is the first tick
+		# `start_tick` is a real number rather than `NO_MATCH`.
+		_announce_the_start()
 	if to == MatchPhase.Phase.RESULTS:
 		# **THE RESULTS ARE SENT ON THE TRANSITION, NOT ON A TIMER.** There is exactly
 		# one way into `RESULTS` — `MatchSystem._enter` — whether the match ran out its

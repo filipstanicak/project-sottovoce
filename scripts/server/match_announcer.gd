@@ -20,6 +20,11 @@
 class_name MatchAnnouncer
 extends RefCounted
 
+## **HOW MANY `NET-S2C-MATCH-START` MESSAGES WENT OUT.** Diagnostics, and the one
+## thing a test with no socket can assert: `send_match_start` returns early off a
+## server, so a test that only called it would assert over nothing.
+var starts_sent: int = 0
+
 ## **HOW MANY TIMES THE RESULTS WENT OUT.** Diagnostics, and one assertion: a match
 ## ends exactly once, and a second send would mean two screens' worth of the same
 ## bytes. Nothing reads it to make a decision.
@@ -252,6 +257,37 @@ func results_payload(loadouts: Dictionary) -> PackedByteArray:
 ## "no such player" rather than as slot 0, who is a real person.
 func _slot_or_zero(peer: int) -> int:
 	return _ctx.slots.slot_of(peer) if _ctx.slots.has_peer(peer) else 0
+
+
+## **PLAY HAS BEGUN, AND EVERY PLAYER IS TOLD WHICH MATCH THIS IS.**
+## `NET-S2C-MATCH-START`, US-0079's last criterion.
+##
+## **SENT AT `ACTIVE` RATHER THAN AT THE COUNTDOWN**, because `start_tick` does not
+## exist until then: `MatchContext.active_started_at` is `NO_MATCH` for the whole of
+## `WARMUP`, and a message carrying a placeholder for a field a client cannot
+## recompute is worse than a message that arrives five seconds later.
+func match_started() -> void:
+	for peer: int in _ctx.slots.peers():
+		started_for(peer)
+
+
+## The same message to one late joiner. **A player who arrives mid-match needs the
+## seed exactly as much as one who was there**, and nothing else on the wire carries
+## it — the crowd is replicated positionally and never by identity.
+func started_for(peer: int) -> void:
+	if _ctx.active_started_at == MatchContext.NO_MATCH:
+		return
+	starts_sent += 1
+	Net.events.send_match_start(peer, _ctx.match_seed, _ctx.active_started_at, _crowd_count())
+
+
+## **READ OFF THE CONTEXT, WHICH ALREADY HOLDS THE POOL**, rather than wired in as
+## a `Callable` from `server_root` — that was the first draft, and it was a second
+## road to a thing `MatchContext.crowd` already carries. Null off a server and in
+## every unit fixture, which the context's own docstring says to expect; a count
+## of nought is then the honest answer, not a placeholder.
+func _crowd_count() -> int:
+	return _ctx.crowd.active_count() if _ctx.crowd != null else 0
 
 
 ## **WHO HEARS ONE SCORE EVENT, AS A FUNCTION RATHER THAN AS A LOOP BODY.** Zero

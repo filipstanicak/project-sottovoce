@@ -23,15 +23,55 @@ const READERS: Array[String] = [
 	"res://scripts/autoload",
 ]
 
-## Mutating entry points. Assignment to a bare property is caught separately.
-const MUTATORS: Array[String] = ["GameState.replace(", "GameState.clear("]
+const GAME_STATE := "res://scripts/autoload/game_state.gd"
+
+## Members the derivation below MUST find. A regex that matches nothing would
+## make both checks vacuous, which is trap 3; these two mutators and these three
+## fields have existed since M0 and are the floor the premise is asserted against.
+const KNOWN_MUTATORS: Array[String] = ["replace", "clear"]
+const KNOWN_FIELDS: Array[String] = ["phase", "local_peer_id", "roster"]
+
+
+## **THE MUTATORS ARE READ OFF `GameState` RATHER THAN LISTED HERE.** Until
+## 2026-09-13 this was a two-entry constant, and a third mutator (`adopt_match`,
+## for `NET-S2C-MATCH-START`) would have joined the file without joining the
+## guard — a list that goes stale in silence, which is the shape of every
+## drift in this corpus. The structural signal is the return type: every
+## reader on `GameState` answers a value and every mutator returns `void`.
+static func _mutators() -> Array[String]:
+	var out: Array[String] = []
+	for pair: Array in SourceScanner.code_lines(GAME_STATE):
+		var code: String = String(pair[1]).strip_edges(false, true)
+		if code.begins_with("func ") and code.ends_with("-> void:"):
+			out.append("GameState.%s(" % code.substr(5, code.find("(") - 5))
+	return out
+
+
+## Every top-level `var` on `GameState`, for the same reason.
+static func _fields() -> Array[String]:
+	var out: Array[String] = []
+	for pair: Array in SourceScanner.code_lines(GAME_STATE):
+		var line: String = String(pair[1])
+		if line.begins_with("var "):
+			out.append(line.substr(4).split(":")[0].split("=")[0].strip_edges())
+	return out
+
+
+## PREMISE. The derivations above must at least find what has always been there.
+func test_the_derivation_finds_the_known_members() -> void:
+	var mutators := _mutators()
+	var fields := _fields()
+	for name: String in KNOWN_MUTATORS:
+		assert_has(mutators, "GameState.%s(" % name, "the mutator scan lost %s" % name)
+	for name: String in KNOWN_FIELDS:
+		assert_has(fields, name, "the field scan lost %s" % name)
 
 
 func test_no_reader_calls_a_mutator() -> void:
 	var violations: PackedStringArray = []
 	for root: String in READERS:
 		for path: String in SourceScanner.gd_files(root):
-			for mutator: String in MUTATORS:
+			for mutator: String in _mutators():
 				for hit: String in SourceScanner.find(path, mutator):
 					violations.append("%s calls %s)" % [hit, mutator])
 	violations.sort()
@@ -49,7 +89,7 @@ func test_no_reader_calls_a_mutator() -> void:
 func test_no_reader_assigns_to_a_property() -> void:
 	# The subtler half. `GameState.phase = x` bypasses `replace()` entirely and
 	# leaves the object in a state no single update ever produced.
-	var fields: Array[String] = ["phase", "local_peer_id", "roster"]
+	var fields := _fields()
 	var violations: PackedStringArray = []
 	for root: String in READERS:
 		for path: String in SourceScanner.gd_files(root):
