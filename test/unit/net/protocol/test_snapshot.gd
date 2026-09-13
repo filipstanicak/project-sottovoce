@@ -34,7 +34,7 @@ func _full() -> Snapshot:
 	snap.portrait_revealed = true
 	snap.phase = 3
 	snap.ticks_remaining = 7200
-	snap.multiplier = 2
+	snap.multiplier = 2.0
 	snap.add_remote(2, Vector3(60.0, 3.5, 12.0), deg_to_rad(90.0), PawnStateId.STROLL, 33, 2)
 	snap.add_npc(17, Vector3(-4.0, 3.5, 77.5), deg_to_rad(180.0), 5, 20)
 	return snap

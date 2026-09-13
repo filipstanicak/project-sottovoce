@@ -116,19 +116,18 @@ func build_for(peer: int) -> Snapshot:
 ## it was survivable and exactly why it went unnoticed: a field nobody reads and
 ## nobody writes is indistinguishable from one that works.
 ##
-## **AND `multiplier:u8` CANNOT CARRY ITS OWN TUNABLE'S RANGE.**
-## `TUN-MATCH-FINALPHASE-MULT` is `@export_range(1.5, 3.0, 0.1)` and the wire is a
-## whole number, so the shipped **2.0** is exact and a re-priced **1.5** would be
-## announced to every HUD as **2** while scoring paid 1.5 — a screen that disagrees
-## with the points. Reported rather than fixed here: widening it is a format change,
-## and the format was frozen against pre-split bytes three commits ago.
-## `test_the_announced_multiplier_is_the_one_that_pays` is the guard, and it goes red
-## the day the value stops being a whole number rather than the day somebody notices.
+## **AND `multiplier:u8` CARRIES TENTHS AS OF 2026-09-13.** From US-0079 until then
+## the byte was a whole number and could not hold `TUN-MATCH-FINALPHASE-MULT`'s own
+## `@export_range(1.5, 3.0, 0.1)` — a re-priced 1.5 would have been announced as 2
+## while scoring paid 1.5. The codec uses `ScoreWire`'s conversion now, so the
+## snapshot and the score row agree about how one value is encoded, and
+## `test_the_announced_multiplier_is_the_one_that_pays` asserts every value in the
+## band survives the byte rather than waiting for the day one does not.
 func _fill_the_clock(snapshot: Snapshot) -> void:
 	if match_state == null:
 		return
 	snapshot.ticks_remaining = maxi(match_state.remaining(_ctx), 0)
-	snapshot.multiplier = int(round(match_state.multiplier(_ctx)))
+	snapshot.multiplier = match_state.multiplier(_ctx)
 
 
 ## **THE CROWD THIS OBSERVER CAN REACH, AND NOBODY ELSE'S.** US-0030.

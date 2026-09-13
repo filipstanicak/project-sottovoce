@@ -30,7 +30,7 @@ static func full() -> Snapshot:
 	snap.portrait_revealed = true
 	snap.phase = 3
 	snap.ticks_remaining = 7200
-	snap.multiplier = 2
+	snap.multiplier = 2.0
 	_records(snap)
 	return snap
 

@@ -108,7 +108,8 @@ static func _write_compass_and_match(snap: Snapshot, buffer: StreamPeerBuffer) -
 	buffer.put_u8(1 if snap.portrait_revealed else 0)
 	buffer.put_u8(snap.phase)
 	buffer.put_u16(snap.ticks_remaining)
-	buffer.put_u8(snap.multiplier)
+	# Tenths, `ScoreWire`'s own conversion: one encoding for one value, on both rows.
+	buffer.put_u8(ScoreWire.multiplier_to_u8(snap.multiplier))
 
 
 static func _write_remotes(snap: Snapshot, buffer: StreamPeerBuffer) -> void:
@@ -215,7 +216,7 @@ static func _read_compass_and_match(snap: Snapshot, buffer: StreamPeerBuffer) ->
 	snap.portrait_revealed = buffer.get_u8() != 0
 	snap.phase = buffer.get_u8()
 	snap.ticks_remaining = buffer.get_u16()
-	snap.multiplier = buffer.get_u8()
+	snap.multiplier = ScoreWire.u8_to_multiplier(buffer.get_u8())
 
 
 static func _read_remotes(snap: Snapshot, buffer: StreamPeerBuffer) -> bool:

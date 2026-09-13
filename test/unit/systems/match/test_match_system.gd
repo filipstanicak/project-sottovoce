@@ -129,25 +129,36 @@ func test_the_shipped_profile_agrees_about_the_boundary() -> void:
 	assert_eq(ScoreEvent.multiplier_at(opens - 1, rules), 1.0, "shipped: opens early")
 
 
-## **`multiplier:u8` CANNOT CARRY A FRACTION, AND THIS IS WHERE THAT STOPS BEING
-## SURVIVABLE.** `SnapshotBuilder` rounds the multiplier onto a whole-number wire
-## field. At the shipped 2.0 that is exact; `TUN-MATCH-FINALPHASE-MULT` is
-## `@export_range(1.5, 3.0, 0.1)`, so a re-pricing to 1.5 would announce **2** to
-## every HUD while scoring paid 1.5 - a screen that disagrees with the points.
-## This goes red on the day the value changes rather than on the day somebody looks.
+## **EVERY MULTIPLIER THE TUNING CAN HOLD SURVIVES THE BYTE.** Until 2026-09-13 the
+## snapshot rounded it onto a whole number and this test was a time bomb — green at
+## the shipped 2.0, red the day `TUN-MATCH-FINALPHASE-MULT` moved to 1.5, because a
+## screen would then have announced 2 while scoring paid 1.5. The byte carries tenths
+## now, `ScoreWire`'s own conversion, so the property is asserted over the whole
+## `@export_range(1.5, 3.0, 0.1)` band rather than waiting for one value to fail it.
 func test_the_announced_multiplier_is_the_one_that_pays() -> void:
-	var mult := Tuning.match_rules.finalphase_mult
-	assert_eq(
-		float(int(round(mult))),
-		mult,
-		(
-			(
-				"TUN-MATCH-FINALPHASE-MULT is %.2f and the wire carries a u8: widen "
-				+ "Snapshot.multiplier before shipping this value"
-			)
-			% mult
-		)
+	var shipped := Tuning.match_rules.finalphase_mult
+	assert_almost_eq(
+		_through_the_wire(shipped),
+		shipped,
+		0.001,
+		"the shipped TUN-MATCH-FINALPHASE-MULT does not survive the snapshot byte"
 	)
+	for tenths: int in range(15, 31):
+		var value := float(tenths) / 10.0
+		assert_almost_eq(
+			_through_the_wire(value),
+			value,
+			0.001,
+			"a multiplier of %.1f inside the export range would be misannounced" % value
+		)
+
+
+## The snapshot's own codec, not `ScoreWire`'s: a guard over the conversion helper
+## would stay green while the snapshot encoder ignored it.
+func _through_the_wire(multiplier: float) -> float:
+	var snap := Snapshot.new()
+	snap.multiplier = multiplier
+	return Snapshot.deserialise(snap.serialise()).multiplier
 
 
 func test_the_warning_fires_once_and_changes_no_phase() -> void:

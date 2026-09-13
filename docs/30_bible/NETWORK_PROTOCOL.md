@@ -200,7 +200,7 @@ NET-S2C-SNAPSHOT — per client, per tick
 ├── match
 │   ├── phase              u8       MatchPhase.Phase — THE ORDINALS ARE THE WIRE
 │   ├── ticks_remaining    u16      ACTIVE and FINAL share ONE countdown (see below)
-│   └── multiplier         u8       whole numbers only — see the note below
+│   └── multiplier         u8       TENTHS, `ScoreWire.MULT_STEP` — see the note below
 ├── present_slots          u8       WHO EXISTS this tick, one bit per slot
 ├── remote_pawns[]                  only those whose QUANTISED state changed
 │   ├── peer_id            u8
@@ -270,13 +270,18 @@ own sketch is arithmetically right. In `LOBBY` there is no clock at all and the 
 for -1. **So the phase is the field a client reads first**: zero in `LOBBY` means there is nothing
 to count, and zero in `FINAL` means the match is over.
 
-**`multiplier:u8` CANNOT CARRY ITS OWN TUNABLE'S RANGE, AND THAT IS REPORTED RATHER THAN FIXED.**
-`TUN-MATCH-FINALPHASE-MULT` is `@export_range(1.5, 3.0, 0.1)` and this field is a whole number.
-At the shipped **2.0** it is exact; a re-pricing to **1.5** would announce **2** to every HUD
-while scoring paid 1.5 — a screen that disagrees with the points. Widening it is a format change
-and the format was frozen against pre-split bytes on 2026-09-08 (PR #214), so
-`test_the_announced_multiplier_is_the_one_that_pays` goes red on the day the value stops being a
-whole number rather than on the day somebody notices.
+**`multiplier:u8` CARRIES TENTHS AS OF 2026-09-13, PROTOCOL VERSION 2.** From US-0079 until then
+it was a whole number and could not carry `TUN-MATCH-FINALPHASE-MULT`'s own
+`@export_range(1.5, 3.0, 0.1)`: the shipped **2.0** was exact and a re-pricing to **1.5** would
+have announced **2** to every HUD while scoring paid 1.5 — a screen that disagrees with the
+points. `NET-S2C-SCORE-EVENT`'s `mult:u8` had carried tenths through `ScoreWire.MULT_STEP` since
+US-0074, so the snapshot now uses the same conversion, and the two rows agree about how one
+value is encoded. **Same width, different meaning** — an old client would read 20 for 2.0 — which
+is why `Messages.PROTOCOL_VERSION` went 1 → 2: the handshake refuses the misreading at the door.
+The pre-split fixtures in `test_snapshot_wire_compatibility.gd` had **one byte each re-frozen by
+hand** rather than being regenerated, so every other byte still proves the layout.
+`test_the_announced_multiplier_is_the_one_that_pays` now round-trips every value in the band
+through the snapshot codec instead of waiting for one to fail.
 
 ---
 

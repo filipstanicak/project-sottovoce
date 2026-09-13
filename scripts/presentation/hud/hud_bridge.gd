@@ -38,7 +38,7 @@ var _stun_ready: bool = false
 var _portrait: bool = false
 var _results_ticks: int = NOTHING
 var _phase: int = NOTHING
-var _multiplier: int = NOTHING
+var _multiplier: float = float(NOTHING)
 var _cooldowns: Array[int] = [NOTHING, NOTHING]
 var _hunting: int = NOTHING
 var _hunted: int = NOTHING
@@ -230,7 +230,7 @@ func _publish_match(snapshot: Snapshot) -> void:
 		return
 	_phase = snapshot.phase
 	_multiplier = snapshot.multiplier
-	EventBus.match_phase_changed.emit(_phase, float(_multiplier))
+	EventBus.match_phase_changed.emit(_phase, _multiplier)
 
 
 ## **THE ONE THING HERE THAT IS NOT A SNAPSHOT, AND IT IS FORWARDED UNCHANGED.**

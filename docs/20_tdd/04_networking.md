@@ -329,7 +329,7 @@ NET-S2C-SNAPSHOT (per client, per tick)
 ├── match
 │   ├── phase              u8
 │   ├── ticks_remaining    u16
-│   └── multiplier         u8
+│   └── multiplier         u8            # tenths (ScoreWire.MULT_STEP), v2 2026-09-13
 ├── remote_pawns[]                   # visible players only
 │   ├── peer_id            u8
 │   ├── position           3×i16    # TUN-NET-QUANT-POS 1 cm, map-local
