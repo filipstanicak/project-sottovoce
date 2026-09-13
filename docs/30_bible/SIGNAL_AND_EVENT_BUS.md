@@ -198,3 +198,13 @@ signal only for RESULTS. ClientRoot wires that signal to its ResultsRoot child.
 This is composition wiring, not a new global event or a second phase channel.
 RESULTS ticks_remaining is the server's results clock; zero hides the surface
 without restarting gameplay. MatchSystem.skips() is not a replicated tally.
+
+## Match time forwarding (US-0073, 2026-09-13)
+
+The same shape for the match timer: HudBridge emits a local
+`match_time_changed(ticks)` for `ACTIVE` and `FINAL` — the phases whose remainder
+is the match's own clock — on change only, and HudRoot wires it to `MatchVm`.
+The phase and the multiplier still travel on `EVT-MATCH-PHASE-CHANGED`; a global
+event carrying a number that moves thirty times a second is the one thing this
+bus was built not to carry. Nothing is forwarded in `LOBBY`, `WARMUP` or
+`RESULTS`.

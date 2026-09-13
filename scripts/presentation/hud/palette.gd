@@ -99,6 +99,15 @@ extends Resource
 ## oppressive, not *the screen is broken*. **Found by looking at it.**
 @export var vignette: Color = Color(0.62, 0.16, 0.12, 0.5)
 
+## The match timer's bar through the last `TUN-MATCH-FINALPHASE-WARNING`, and the
+## `×2` marker through `FINAL`. **Not the tier amber**: that hue means *you are
+## being noticed*, and a colour carrying two meanings is one the colourblind
+## variants cannot separate.
+@export var timer_warning: Color = Color(0.93, 0.84, 0.55)
+
+## The timer's plate through `FINAL` — the phase treatment GDD-06 §E asks for.
+@export var timer_final_plate: Color = Color(0.18, 0.11, 0.04, 0.96)
+
 
 ## The tier's colour. **Shape and word carry the same information** (§4), so this
 ## is the third of three channels rather than the only one — which is what lets

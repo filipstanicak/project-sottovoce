@@ -27,6 +27,7 @@ var camera: Node3D = null
 var compass_vm := CompassVm.new()
 var score_vm := ScoreFeedVm.new()
 var chase_vm := ChaseVm.new()
+var match_vm := MatchVm.new()
 
 var _bridge: HudBridge = null
 var _widgets: Array[Control] = []
@@ -48,6 +49,8 @@ func _ready() -> void:
 	feed.vm = score_vm
 	var chase := ChaseRingWidget.new()
 	chase.vm = chase_vm
+	var timer := MatchTimerWidget.new()
+	timer.vm = match_vm
 	# **THE VIGNETTE IS ADDED FIRST SO IT SITS BEHIND EVERYTHING.** It is the only
 	# full-screen effect in the game (§4.2) and it must never cover a widget the
 	# player is trying to read at the exact moment they most need to read it.
@@ -62,9 +65,12 @@ func _ready() -> void:
 	_add(PortraitWidget.new(), "Portrait")
 	_add(CrosshairWidget.new(), "Crosshair")
 	_add(feed, "ScoreFeed")
+	_add(timer, "MatchTimer")
 	EventBus.compass_updated.connect(_on_compass)
 	EventBus.score_event_appended.connect(_on_score)
 	EventBus.pursuit_changed.connect(_on_pursuit)
+	EventBus.match_phase_changed.connect(_on_phase)
+	_bridge.match_time_changed.connect(match_vm.apply_ticks)
 
 
 func _exit_tree() -> void:
@@ -74,6 +80,8 @@ func _exit_tree() -> void:
 		EventBus.score_event_appended.disconnect(_on_score)
 	if EventBus.pursuit_changed.is_connected(_on_pursuit):
 		EventBus.pursuit_changed.disconnect(_on_pursuit)
+	if EventBus.match_phase_changed.is_connected(_on_phase):
+		EventBus.match_phase_changed.disconnect(_on_phase)
 
 
 ## **THE YAW IS READ ON THE RENDER FRAME**, like the Compass's phase, because the
@@ -102,6 +110,10 @@ func _on_score(event: RefCounted) -> void:
 
 func _on_pursuit(hunting: float, hunted: float) -> void:
 	chase_vm.apply(hunting, hunted)
+
+
+func _on_phase(phase: int, multiplier: float) -> void:
+	match_vm.apply_phase(phase, multiplier)
 
 
 func _on_compass(bearing: float, bucket: int, lock: float) -> void:

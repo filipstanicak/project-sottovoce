@@ -4,7 +4,7 @@ title: HUD — tier, portrait, crosshair, abilities, timer
 version: 0.3.0
 status: in-progress
 owner: Lead Game Designer
-last_updated: 2026-09-06
+last_updated: 2026-09-13
 depends_on: [BIBLE-UI-UX, TDD-11-UI]
 ---
 
@@ -65,9 +65,18 @@ The remaining widgets, each a pure renderer fed by a view model.
       an absent ability system. US-0071 remains open.
 - [x] The passive is NOT shown in the HUD.
       Nothing renders one and there is no passive field in any view model.
-- [ ] Timer shows the final-phase bar and a persistent 2x marker.
-      **Blocked: there is no match.** `SYS-MATCH` is US-0079 at M6, so `phase`,
-      `ticks_remaining` and `multiplier` are on the wire and never move.
+- [x] Timer shows the final-phase bar and a persistent 2x marker.
+      **Built 2026-09-13**, once US-0079 gave the three wire fields a writer. `MatchTimerWidget`
+      top-centre, 120 × 48: `M:SS` rounded *up*, a thin bar that fills through the last
+      `TUN-MATCH-FINALPHASE-WARNING` before the Final Contract, and the phase treatment with a
+      persistent `×2` through `FINAL`. `MatchVm` derives the bar from the authoritative
+      `ticks_remaining` against the same two tunables `MatchClock.warning_at` reads — the tick
+      the bar is full is the tick the server opens `FINAL`, asserted from both derivations —
+      and never counts down between snapshots. The clock reaches the HUD through
+      `HudBridge.match_time_changed`, the same composition wiring the results screen uses.
+      Captured as `hud_21`–`hud_23` in `tools/hud_probe.tscn`. One spec disagreement is
+      reported in the widget's docstring: §2 lists the timer at the 48 px `DISPLAY` scale and
+      §1.1 gives the element 48 px of height, which cannot both hold with a bar underneath.
 - [x] Nothing occupies the centre 60 percent of the screen except the 3 px crosshair.
       Owner decision 2026-09-06: tier bottom-left, portrait top-left, as UI_UX_SPEC states.
       Compass centre-bottom, vignette a frame.

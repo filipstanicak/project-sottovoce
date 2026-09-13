@@ -362,3 +362,35 @@ func _capture_readability_edges() -> void:
 	var toggle := _root.get_node("LocalPawnDriver/DebugOverlays") as DebugOverlays
 	await _state("19_debug_on", "Debug map clears the portrait.", toggle.toggle)
 	await _state("20_debug_off", "Player HUD restored, including untinted world.", toggle.toggle)
+	await _capture_the_timer()
+
+
+## **THE MATCH TIMER'S THREE FACES**, US-0073. The phase rides the bus exactly as a
+## snapshot's does; the remaining ticks are pushed into `MatchVm` the way the root
+## pushes the camera yaw into `CompassVm`, because the bridge's local clock signal
+## has no bus to be raised on.
+func _capture_the_timer() -> void:
+	var rate := int(Tuning.match_rules.tick_rate)
+	var final_ticks := Tuning.ticks(&"TUN-MATCH-FINALPHASE-DURATION")
+	var warning := Tuning.ticks(&"TUN-MATCH-FINALPHASE-WARNING")
+	await _state(
+		"21_timer_play",
+		"Top-centre, 4:38 on a dark plate, NO bar. Ignorable, which is the design.",
+		func() -> void:
+			EventBus.match_phase_changed.emit(MatchPhase.Phase.ACTIVE, 1.0)
+			_hud.match_vm.apply_ticks(278 * rate)
+	)
+	await _state(
+		"22_timer_warning",
+		"0:33 and a thin bar HALF full under the digits, with its track visible.",
+		func() -> void: _hud.match_vm.apply_ticks(final_ticks + warning / 2)
+	)
+	await _state(
+		"23_timer_final",
+		"0:12, the plate in the phase treatment, and a persistent x2 beside the digits.",
+		func() -> void:
+			EventBus.match_phase_changed.emit(
+				MatchPhase.Phase.FINAL, Tuning.match_rules.finalphase_mult
+			)
+			_hud.match_vm.apply_ticks(12 * rate)
+	)

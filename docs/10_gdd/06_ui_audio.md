@@ -132,6 +132,7 @@ Each element states **the question it answers, in the player's words**. Law 1.
 | **Question it answers** | *"How long do I have, and is the Final Contract coming?"* |
 | **Shows** | `M:SS` remaining. A thin bar underneath fills during the last `TUN-MATCH-FINALPHASE-WARNING` 5 s before the Final Contract phase, then the whole element shifts to the phase treatment for the final `TUN-MATCH-FINALPHASE-DURATION` 30 s with a persistent `×2` marker. |
 | **Why small and top-centre** | It matters intensely for about 40 seconds of an 8-minute match and should be ignorable for the rest. |
+| **Built** | 2026-09-13, `MatchTimerWidget` + `MatchVm` (US-0073). The bar is derived from the server's `ticks_remaining` against the same two tunables the server's own warning reads, never counted down locally; the marker is the multiplier the snapshot carries |
 
 #### F — Crosshair  *(screen centre, 3 px)*
 
