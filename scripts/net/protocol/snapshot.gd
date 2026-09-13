@@ -120,7 +120,12 @@ var portrait_revealed: bool = false
 # --- match ---
 var phase: int = 0
 var ticks_remaining: int = 0
-var multiplier: int = 1
+## **TENTHS ON THE WIRE, A FLOAT HERE.** `TUN-MATCH-FINALPHASE-MULT` is
+## `@export_range(1.5, 3.0, 0.1)`; from 2026-09-08 to 2026-09-13 this byte carried
+## whole numbers and could not hold its own tunable's range — a re-priced 1.5 would
+## have announced 2 while scoring paid 1.5. `ScoreWire.MULT_STEP` had sent tenths one
+## file over since US-0074; the codec uses the same conversion now.
+var multiplier: float = 1.0
 
 ## `[slot, position, yaw, state, anim_phase, render_state]` per visible player.
 var remote_pawns: Array = []

@@ -79,13 +79,13 @@ func test_the_lobby_sends_no_countdown() -> void:
 
 func test_the_multiplier_reaches_the_wire_when_the_final_contract_opens() -> void:
 	var rules := Tuning.match_rules
-	assert_eq(_builder.build_for(ALICE).multiplier, 1, "ordinary play announced a multiplier")
+	assert_eq(_builder.build_for(ALICE).multiplier, 1.0, "ordinary play announced a multiplier")
 	_ctx.phase = MatchPhase.Phase.FINAL
 	_ctx.active_started_at = 0
 	_ctx.tick = MatchClock.final_opens_at(rules)
 	assert_eq(
 		_builder.build_for(ALICE).multiplier,
-		int(round(rules.finalphase_mult)),
+		rules.finalphase_mult,
 		"the Final Contract was never announced to the client"
 	)
 

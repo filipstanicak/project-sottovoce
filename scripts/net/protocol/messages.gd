@@ -39,7 +39,11 @@ const CHANNEL_COUNT := 3
 ## Bumped whenever a payload in §2 or §3 changes shape. A client that disagrees
 ## is rejected at `NET-C2S-HELLO` rather than being allowed to misread every
 ## packet after it.
-const PROTOCOL_VERSION := 1
+##
+## **2 (2026-09-13): the snapshot's `multiplier` byte carries tenths.** Same width,
+## different meaning — an old client would read 20 for 2.0 — which is exactly the
+## misreading this number exists to refuse at the door.
+const PROTOCOL_VERSION := 2
 
 ## How often a client sends `NET-C2S-PING`. The catalogue's rate column, and
 ## **not a tunable**: it changes nothing a player can perceive. The server does
