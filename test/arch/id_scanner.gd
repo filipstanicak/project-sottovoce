@@ -48,6 +48,10 @@ const MIRRORED: Array[String] = [
 ## hazard would be permanent. Resolved with the project owner, US-0006.
 const NOT_A_MEMBER := {
 	"SCORE-EVENT": "the ScoreEvent record type, not a score kind",
+	# The M5 archive quotes the id this guard REFUSED on 2026-09-03 — minted by prose,
+	# never merged; `ANIM-CINDERFALL-THROW` is the real one. Naming a refusal is not
+	# declaring an id, and the archive is the one place under docs/ that does.
+	"ANIM-CINDERFALL-CAST": "a refused id, quoted in docs/00_meta/history as the refusal",
 }
 
 const _DOCS_ROOT := "res://docs"
