@@ -5,7 +5,10 @@
 ## with no transport standing up.
 ##
 ## **THE CHANNEL A MESSAGE TRAVELS ON IS A PROPERTY OF THE MESSAGE**, declared
-## here once, rather than an argument each caller passes. A snapshot sent down
+## here for everything that reads rather than sends — and declared AGAIN as a
+## constant on every `@rpc`, because an annotation cannot read a table. Two
+## declarations drift; `test_rpc_channels_match_the_table.gd` holds them together,
+## after one row and one missing row had drifted unseen. A snapshot sent down
 ## the reliable channel by a caller who typed the wrong number is a bug that
 ## looks like packet loss: it works perfectly until the network is bad, which is
 ## the one condition the split exists for.
@@ -67,7 +70,6 @@ const CHANNEL_FOR: Dictionary = {
 	Ids.NET_C2S_HELLO: Channel.SESSION,
 	Ids.NET_C2S_LOADOUT: Channel.SESSION,
 	Ids.NET_C2S_READY: Channel.SESSION,
-	Ids.NET_C2S_SKIP_RESULTS: Channel.SESSION,
 	Ids.NET_S2C_WELCOME: Channel.SESSION,
 	Ids.NET_S2C_TUNING_SYNC: Channel.SESSION,
 	Ids.NET_S2C_LOBBY_STATE: Channel.SESSION,
@@ -82,11 +84,18 @@ const CHANNEL_FOR: Dictionary = {
 	# Outcomes. Must arrive, and must arrive in order.
 	Ids.NET_C2S_ABILITY_REQUEST: Channel.EVENT,
 	Ids.NET_C2S_BLEND_REQUEST: Channel.EVENT,
+	# A keypress-shaped request beside the other requests on `RequestWire`, not a
+	# session fact. This row said SESSION from M0 until 2026-09-13 while the handler
+	# was built on EVENT; the second agent found the third source in disagreement.
+	Ids.NET_C2S_SKIP_RESULTS: Channel.EVENT,
 	Ids.NET_S2C_CONTRACT_ASSIGNED: Channel.EVENT,
 	Ids.NET_S2C_KILL_RESULT: Channel.EVENT,
 	Ids.NET_S2C_STUN_RESULT: Channel.EVENT,
 	Ids.NET_S2C_ABILITY_STARTED: Channel.EVENT,
 	Ids.NET_S2C_ABILITY_DENIED: Channel.EVENT,
+	# Built at US-0054 and absent from this table until 2026-09-13, which
+	# `channel_for` reported as -1 the day a guard first asked.
+	Ids.NET_S2C_BLEND_DENIED: Channel.EVENT,
 	Ids.NET_S2C_PREY_WARNING: Channel.EVENT,
 	Ids.NET_S2C_SCORE_EVENT: Channel.EVENT,
 	Ids.NET_S2C_PHASE_CHANGED: Channel.EVENT,
