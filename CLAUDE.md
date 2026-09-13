@@ -3761,7 +3761,17 @@ view.
     agents the expensive half is the other direction**, because every pull is
     somebody else's new script and the person pulling wrote none of it.
     `play.bat` and `sandbox.bat` import first now, unconditionally, for **4.4 s
-    warm and 6 s cold**. A check for whether the cache is current would be a
+    warm and 6 s cold** — **and stop if the import fails**, because the first
+    version did not: it sent the output to `nul` and proceeded to the grey window
+    it existed to prevent, hiding the one line that named the cause. **Godot
+    returns 0 from an import that could not parse a script** (the reviewer of
+    #221 measured it against a malformed autoload), so the launchers keep the log
+    at `%TEMP%\sottovoce-import.log`, search it for `SCRIPT ERROR`, `Parse
+    Error`, `Compile Error`, `Failed to load script` and `Failed to create an
+    autoload`, and abort on either signal before any process starts, printing the
+    numbered lines. Verified over both launchers and three outcomes — a parse
+    error with exit 0, a silent exit 23, and the real import — on neutered copies
+    whose every `start` is an `echo`. A check for whether the cache is current would be a
     second answer to the question the cache itself answers, and this corpus has
     paid seven times over for an instrument that is wrong in a plausible
     direction. By hand:
