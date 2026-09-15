@@ -334,8 +334,8 @@ asked.
 > This risk was written about an animator adding a clip. The instance that actually arrived is
 > geometric and was found by US-0096: **three of `MAP-VETRAIO`'s six spawn points cannot hold
 > `TUN-CROWD-CLONE-LOCAL-MIN`**, and **(114, 97.5) can see no NPC at all**. A player spawning
-> there begins alone, uniquely identifiable, and on open ground for `TUN-SUSPICION-GAIN-OPEN`
-> before they can move.
+> there begins alone and uniquely identifiable before they can move (the open-ground charge,
+> `TUN-SUSPICION-GAIN-OPEN`, is 0 since ADR-0020 — the identifiability is the risk).
 >
 > It is a **release blocker**, it is the **level data** that fails it rather than any code, and
 > `tools/anchor_census.gd` grades a change in one run. Probability moves off Low because this is no
@@ -379,8 +379,8 @@ Plus `test_footstep_parity.gd` for the audio equivalent, and the no-per-instance
 > seats each spawn point can see within `TUN-CROWD-CLONE-LOCAL-RADIUS`: four personas at the
 > minimum need eight, and three of `MAP-VETRAIO`'s six spawn points offer **3, 6 and zero**.
 > **A player spawning at (114, 97.5) begins the match with no clone of their persona and no NPC
-> of any kind within 25 m** — uniquely identifiable, and on open ground for
-> `TUN-SUSPICION-GAIN-OPEN`, before they can move. No arrangement of the crowd fixes it; the idle
+> of any kind within 25 m** — uniquely identifiable before they can move (and, until ADR-0020
+> zeroed `TUN-SUSPICION-GAIN-OPEN`, charged for the open ground as well). No arrangement of the crowd fixes it; the idle
 > anchors in that corner do not exist. **This is the probability moving off "Low" until the
 > anchors are re-authored**, and `test_crowd_seating.gd` prints the census on every run.
 

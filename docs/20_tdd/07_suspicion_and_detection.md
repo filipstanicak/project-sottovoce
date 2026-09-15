@@ -12,8 +12,9 @@ depends_on: [TDD-01-ARCHITECTURE, TDD-03-TICK, TDD-04-NET, GDD-03-SOCIAL-STEALTH
 
 > **Context restated.** In Project Sottovoce every player has a hidden **suspicion** value in
 > [0, 100] driving three tiers — **Anonymous** (< 30), **Noticed** (30–69), **Exposed** (≥ 70).
-> Suspicion rises with speed, roof presence, climbing, being alone, bumping NPCs and loud
-> abilities; it decays at 8/s **only** at stroll speed or slower. Tier is not a broadcast: a
+> Suspicion rises with speed, roof presence, climbing, bumping NPCs and loud abilities
+> (being alone cost +6/s until [ADR-0020](../00_meta/adr/ADR-0020-walking-alone-costs-nothing.md),
+> 2026-09-15, and costs nothing now); it decays at 8/s **only** at stroll speed or slower. Tier is not a broadcast: a
 > player at 100 suspicion looks completely ordinary to everyone except their hunter and their
 > prey. Blend actions crush suspicion to 0 over 1.2 s. Standing still among ≥ 4 NPCs must be
 > the strongest defensive play in the game.
@@ -58,7 +59,7 @@ flowchart TD
 
 | Guarantee | Consequence of violating it |
 |---|---|
-| **Crowd (step 4) resolves before suspicion (step 5)** | `TUN-SUSPICION-GAIN-OPEN` depends on whether any NPC is within 6 m, and blend-pocket validity depends on NPC positions. Computing suspicion against last tick's crowd would let a player accrue "alone" suspicion inside a pocket that has already re-formed — the player believes they are blended and is not. **This is the most damaging silent failure in the game** ([`../10_gdd/03_social_stealth.md`](../10_gdd/03_social_stealth.md) §13 failure mode 7) |
+| **Crowd (step 4) resolves before suspicion (step 5)** | The nearest-NPC reading (its gain `TUN-SUSPICION-GAIN-OPEN` is 0 since ADR-0020; the reading is still taken every tick) and blend-pocket validity both depend on NPC positions. Computing suspicion against last tick's crowd would let a player accrue "alone" suspicion inside a pocket that has already re-formed — the player believes they are blended and is not. **This is the most damaging silent failure in the game** ([`../10_gdd/03_social_stealth.md`](../10_gdd/03_social_stealth.md) §13 failure mode 7) |
 | **Suspicion (step 5) resolves before detection (step 6)** | Detection renders per-observer state *from tier*. One tick of lag means the silhouette tint disagrees with the tier indicator, which is an information-channel defect in a game made of information channels |
 
 Both are asserted by `test_system_tick_order.gd`.
@@ -94,8 +95,8 @@ static func integrate(s: SuspicionState, t: SuspicionTuning, dt: float) -> float
         SpeedState.CLIMB:  gain += t.gain_climb      # 12.0
     if s.stratum == Stratum.ROOF:
         gain += t.gain_roof                          # 18.0 — for PRESENCE, not movement
-    if s.nearest_npc_distance > t.open_radius:       #  6.0 m
-        gain += t.gain_open                          #  6.0
+    if t.gain_open > 0.0 and s.nearest_npc_distance > t.open_radius:  # 6.0 m
+        gain += t.gain_open                          #  0.0 since ADR-0020; was 6.0
 
     var decay := 0.0
     if gain == 0.0 \
@@ -156,7 +157,7 @@ has no memory between ticks:
 
 | | `scripts/pawn/` | `SuspicionMath` |
 |---|---|---|
-| Standing alone in an empty plaza | **−8/s** (decays) | **+6/s** (`TUN-SUSPICION-GAIN-OPEN`) |
+| Standing alone in an empty plaza | **−8/s** (decays) | **−8/s** since ADR-0020 (`TUN-SUSPICION-GAIN-OPEN` is 0; it read **+6/s** here until 2026-09-15, which is the case the report from the controls described) |
 | Tap-sprinting | free — no `TUN-SUSPICION-DECAY-DELAY` | the delay applies |
 | `PASV-STILLNESS` | absent | `TUN-PASV-STILLNESS-MULT` |
 | Decay above stroll | applied | refused (`TUN-SUSPICION-DECAY-SPEED-CEILING`) |

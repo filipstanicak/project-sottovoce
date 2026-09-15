@@ -116,7 +116,7 @@ Three consequences that must be internalised:
 | **To your prey** | The same. No warning is generated at any distance (`TUN-COMPASS-WARN-MIN-TIER`). |
 | **To everyone else** | The same. |
 | **Compass effect on your hunter** | Their bearing cone still points at you (the Compass is not gated on tier), but the lock arc will not complete faster and no reveal is granted. They must find you by looking. |
-| **What breaks it** | Any behaviour that is not a civilian's: moving above stroll, being on a roof, standing alone, bumping people, using a loud ability. |
+| **What breaks it** | Any behaviour that is not a civilian's: moving above stroll, being on a roof, bumping people, using a loud ability. *Standing alone* was in this list until 2026-09-15 and is not: the reference charges nothing for it, and neither does this game ([ADR-0020](../00_meta/adr/ADR-0020-walking-alone-costs-nothing.md)). |
 
 > **Mock screenshot — Anonymous.** Mid-afternoon in the Piazza del Vetro. Twenty-three
 > figures in frame: four Cantatrice, three Lucerna, five Vetraio, six Pesatore, five filler.
@@ -194,7 +194,7 @@ replicated to the owning client (as a value) and to the relevant observers (as a
 | **Sprint** | gain | +25.0 /s | `TUN-SUSPICION-GAIN-SPRINT` | 1.2 s | 2.8 s |
 | **On the roof stratum** (any speed, incl. standing) | gain | +18.0 /s | `TUN-SUSPICION-GAIN-ROOF` | 1.7 s | 3.9 s |
 | **Climbing** | gain | +12.0 /s | `TUN-SUSPICION-GAIN-CLIMB` | 2.5 s | 5.8 s |
-| **Alone** (no NPC within 6 m) | gain | +6.0 /s | `TUN-SUSPICION-GAIN-OPEN` | 5.0 s | 11.7 s |
+| **Alone** (no NPC within 6 m) | gain | **0** — was +6.0 /s until 2026-09-15 | `TUN-SUSPICION-GAIN-OPEN` | — (was 5.0 s) | — (was 11.7 s). Neutralised by [ADR-0020](../00_meta/adr/ADR-0020-walking-alone-costs-nothing.md): the reference charges nothing for walking alone, and a player at the civilian speed was reaching Exposed for it. The row stays because the ID, the bit and the condition stay, dormant |
 | **Bumping an NPC** | impulse | +15.0 | `TUN-SUSPICION-GAIN-NPC-BUMP` | 2 bumps | 5 bumps |
 | **Loud ability** (Cinderfall, Lunge) | impulse | +40.0 | `TUN-SUSPICION-GAIN-LOUD-ABILITY` | immediate | +1 more |
 | **Failed kill** | impulse | +30.0 | `TUN-SUSPICION-GAIN-FAILED-KILL` | immediate | — |
@@ -215,8 +215,8 @@ if speed_state == RUN:      gain_rate += TUN-SUSPICION-GAIN-RUN        # 14.0
 if speed_state == SPRINT:   gain_rate += TUN-SUSPICION-GAIN-SPRINT     # 25.0
 if speed_state == CLIMB:    gain_rate += TUN-SUSPICION-GAIN-CLIMB      # 12.0
 if stratum == ROOF:         gain_rate += TUN-SUSPICION-GAIN-ROOF       # 18.0
-if nearest_npc_dist > TUN-SUSPICION-OPEN-RADIUS:
-                            gain_rate += TUN-SUSPICION-GAIN-OPEN       # 6.0
+if TUN-SUSPICION-GAIN-OPEN > 0 and nearest_npc_dist > TUN-SUSPICION-OPEN-RADIUS:
+                            gain_rate += TUN-SUSPICION-GAIN-OPEN       # 0.0 since ADR-0020; was 6.0
 
 decay_rate = 0
 if speed <= TUN-SUSPICION-DECAY-SPEED-CEILING  (2.2 m/s)  \
@@ -467,9 +467,11 @@ here".
 Piazza Secca — "the dry plaza" — is a ~22 × 18 m open square with a dead fountain, no stalls,
 no NPC circuits, and 0–1 filler NPCs.
 
-**What it does mechanically:** anyone standing in it accrues `TUN-SUSPICION-GAIN-OPEN` at
-+6/s and reaches **Noticed** in 5 seconds. There is no blend action available. Sightlines
-across it are unbroken.
+**What it does mechanically:** there is no blend action available, and sightlines across it
+are unbroken — a hunter scanning it has one thing to look at. *Until 2026-09-15 it also
+charged `TUN-SUSPICION-GAIN-OPEN` at +6/s, Noticed in 5 seconds*; that gain is 0 by
+[ADR-0020](../00_meta/adr/ADR-0020-walking-alone-costs-nothing.md), because the reference charges nothing for being alone. The plaza is
+dangerous the way the concealment props are (§4): visually, not mechanically.
 
 **Why the map needs it:**
 
@@ -491,7 +493,7 @@ across it are unbroken.
 |---|---|---|
 | **Alley mouth** | 2.2–2.8 m | Fits one `ABIL-CINDERFALL` cloud (5 m radius) with overlap. The canonical escape geometry. |
 | **Arcade span** | 3.5–4.5 m | Two people can pass; a blend-walking player and their hunter can occupy it without contact. |
-| **Stair run** | 1.8 m | Single file. Committing to a stair is committing to a direction — no NPCs use stairs, so a player on a stair is always alone (open-ground gain applies). |
+| **Stair run** | 1.8 m | Single file. Committing to a stair is committing to a direction — no NPCs use stairs, so a player on a stair is always alone, and visibly so (the open-ground gain applied here until [ADR-0020](../00_meta/adr/ADR-0020-walking-alone-costs-nothing.md) zeroed it). |
 | **Bridge over the canal cut** | 2.4 m | The only connection between the north and south market rows at street level. Deliberately singular: it creates a predictable crossing that hunters can watch and prey must risk. |
 
 **The choke-point rule:** no dead end may be longer than 8 m. A player who commits to a dead

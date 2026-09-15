@@ -272,7 +272,7 @@ flowchart LR
 
 | Boundary | Why |
 |---|---|
-| **Crowd (3) before Suspicion (4)** | `TUN-SUSPICION-GAIN-OPEN` depends on whether any NPC is within `TUN-SUSPICION-OPEN-RADIUS` 6 m, and blend-pocket validity depends on NPC positions. Suspicion computed against last tick's crowd would let a player accrue "alone" suspicion inside a pocket that has already re-formed. |
+| **Crowd (3) before Suspicion (4)** | The nearest-NPC reading (`TUN-SUSPICION-OPEN-RADIUS` 6 m; its gain is dormant at 0 since ADR-0020, the reading is still taken) and blend-pocket validity both depend on NPC positions. Suspicion computed against last tick's crowd would let a player accrue "alone" suspicion inside a pocket that has already re-formed. |
 | **Suspicion (4) before Detection (5)** | Detection renders per-observer state from **tier**. One tick of lag here means the silhouette tint disagrees with the tier indicator, which is an information-channel defect ([`../10_gdd/03_social_stealth.md`](../10_gdd/03_social_stealth.md) §11). |
 | **Kill/Stun (7) before Contract (8)** | The cycle must be repaired in the same tick the death resolves, so no player is ever contractless at a tick boundary — the invariant proved in [`../10_gdd/03_social_stealth.md`](../10_gdd/03_social_stealth.md) §7.4. |
 

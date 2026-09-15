@@ -408,8 +408,8 @@ refused to conscript somebody else's minimum.**
 | (114, 97.5) | **0** |
 
 A permutation cannot conjure a seat that is not there, so a player spawning at the thinnest of them
-begins the match all but alone *and* on open ground for `TUN-SUSPICION-GAIN-OPEN` — uniquely
-identifiable, before they can move. `test_crowd_seating.gd` asserts what the code owes — **zero
+begins the match all but alone — uniquely identifiable before they can move (and, until
+ADR-0020 zeroed `TUN-SUSPICION-GAIN-OPEN` on 2026-09-15, charged for it as well). `test_crowd_seating.gd` asserts what the code owes — **zero
 shortfalls where there is room** — and prints the census, exactly as `test_circuit_separation.gd`
 reports US-0043's 0.51 m.
 
@@ -583,8 +583,9 @@ true with the indexing deleted.
 widen its search until it finds somebody, and in the one case that matters — a player genuinely
 alone — that is a full scan of the crowd, per pawn, per tick. That is precisely the
 O(pawns × NPCs) cost this section exists to remove, arriving exactly when the district is
-emptiest. No consumer needs more: `TUN-SUSPICION-GAIN-OPEN` asks whether anybody is within
-`TUN-SUSPICION-OPEN-RADIUS`, and "further than that" is the whole answer.
+emptiest. No consumer needs more: the alone reading asks whether anybody is within
+`TUN-SUSPICION-OPEN-RADIUS`, and "further than that" is the whole answer (its gain is 0 since
+ADR-0020; the query is still made and the cell size still derives from the radius).
 
 **Every distance is horizontal.** A player on the 3.5 m Loggia balcony is not in a blend pocket
 with the crowd below — but they are equally not *alone*, and the rule that charges them for being

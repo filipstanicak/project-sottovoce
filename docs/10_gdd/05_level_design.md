@@ -12,8 +12,9 @@ depends_on: [DOC-GLOSSARY, TUN-INDEX, GDD-02-PLAYER, GDD-03-SOCIAL-STEALTH]
 
 > **Context restated.** Project Sottovoce is a 4–6 player social-stealth free-for-all. Players
 > move on a speed ladder where anything above stroll (2.2 m/s) accrues **suspicion**; standing
-> among ≥ 4 NPCs erases it. Being alone (no NPC within 6 m) accrues suspicion at +6/s; being on
-> a roof accrues +18/s *for presence alone*. Kills happen at 2.5 m; the prey's counter-stun
+> among ≥ 4 NPCs erases it. Being alone (no NPC within 6 m) costs nothing since
+> [ADR-0020](../00_meta/adr/ADR-0020-walking-alone-costs-nothing.md) (it accrued +6/s until
+> 2026-09-15); being on a roof accrues +18/s *for presence alone*. Kills happen at 2.5 m; the prey's counter-stun
 > reaches 3.0 m. The map's job is to turn all of that into places worth standing.
 >
 > Implements: `SYS-MAP`, `SYS-SPAWN`. Constrains: `SYS-CROWD`, `SYS-BLEND`, `SYS-TRAVERSAL`.
@@ -308,8 +309,8 @@ The map's single third-stratum location, and a deliberate special case.
 |---|---|---|
 | Height | 22 m | Sees the whole district. |
 | Access | One internal stair (single file, 1.8 m) + one exterior climb (8.5 m from the balcony) | Two entrances, both slow, both visible. |
-| NPCs | **Zero** | So `TUN-SUSPICION-GAIN-OPEN` (+6/s) applies continuously. |
-| Roof-stratum penalty | **Applies** (+18/s) | Combined: **+24/s → Noticed in 1.25 s, Exposed in 2.9 s.** |
+| NPCs | **Zero** | Nobody to blend with, and nobody to hide among. (`TUN-SUSPICION-GAIN-OPEN` applied here at +6/s until [ADR-0020](../00_meta/adr/ADR-0020-walking-alone-costs-nothing.md) zeroed it.) |
+| Roof-stratum penalty | **Applies** (+18/s) | **Noticed in 1.7 s, Exposed in 3.9 s** — the roof toll alone, since 2026-09-15; it read +24/s → 2.9 s while the alone gain applied. |
 | Sightlines | Every zone except inside the Loggia and inside the Fondaco | |
 | Escape | One drop to the roof stratum (4 m, safe); the stair | |
 
@@ -916,7 +917,7 @@ Run in order. Each stage gates the next.
 - [ ] Every alley is ≥ 2.6 m wide.
 - [ ] Four crowd-pocket modules exist per §4.3, each with 6 anchors and ≥ 2 exits.
 - [ ] Every roof point has a drop within 12 m; no rooftop dead ends.
-- [ ] The Campanile applies both `TUN-SUSPICION-GAIN-ROOF` and `TUN-SUSPICION-GAIN-OPEN` (+24/s total).
+- [ ] The Campanile applies `TUN-SUSPICION-GAIN-ROOF` (+18/s; it was *both* gains, +24/s, until ADR-0020 zeroed the alone gain on 2026-09-15).
 - [ ] Both theatre spaces satisfy the §5.4 checklist.
 - [ ] The 4-player soft bound applies a suspicion penalty rather than a collision wall.
 - [ ] Art-pass invariants (§7.3) are all covered by an automated test that runs on both greybox and art geometry.

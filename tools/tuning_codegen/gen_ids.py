@@ -8,8 +8,11 @@ OUT = os.path.join(ROOT, "scripts", "core", "ids.gd")
 ids = json.load(io.open(os.path.join(HERE, "ids.json"), encoding="utf-8"))
 
 # Declared in the corpus, but not a member of its namespace's runtime set.
-# Mirrored by IdScanner.NOT_A_MEMBER, which is the committed source of truth.
-NOT_A_MEMBER = {"SCORE-EVENT"}
+# A MIRROR of IdScanner.NOT_A_MEMBER, which is the committed source of truth --
+# test_ids_match_glossary.gd holds this set equal to that one, because the
+# mirror drifted for two days after #225 added the second entry there and the
+# next regeneration minted a constant for an id the guard had refused.
+NOT_A_MEMBER = {"SCORE-EVENT", "ANIM-CINDERFALL-CAST"}
 for ns in ids:
     ids[ns] = [i for i in ids[ns] if i not in NOT_A_MEMBER]
 

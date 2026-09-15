@@ -42,7 +42,9 @@ const ALL: Array[int] = [SPRINT, ROOF, CLIMB, OPEN, RUN]
 ##
 ## **RUN, SPRINT AND CLIMB ARE MUTUALLY EXCLUSIVE** because they are states and a
 ## pawn is in one state. Roof and open are *conditions*, and either can accompany
-## any of them — which is ASM-0018's compounding, expressed as bits.
+## any of them — which is ASM-0018's compounding, expressed as bits. **Open is
+## dormant** (ADR-0020, 2026-09-15): the bit keeps its wire slot and its condition,
+## and is set only while its rate is above zero, which the shipped profile's is not.
 static func of(s: SuspicionState, t: SuspicionTuning) -> int:
 	if s.blending:
 		return NONE
@@ -61,7 +63,11 @@ static func of(s: SuspicionState, t: SuspicionTuning) -> int:
 		bits |= CLIMB
 	if s.on_roof:
 		bits |= ROOF
-	if s.nearest_npc_distance > t.open_radius:
+	# **A SOURCE THAT PAYS NOTHING IS NOT LISTED.** `TUN-SUSPICION-GAIN-OPEN` is 0
+	# since ADR-0020: the reference charges nothing for walking alone, and a HUD
+	# word beside a value that is not rising is the drift this file exists to
+	# prevent. The condition is kept, so restoring the number restores the rule.
+	if t.gain_open > 0.0 and s.nearest_npc_distance > t.open_radius:
 		bits |= OPEN
 	return bits
 

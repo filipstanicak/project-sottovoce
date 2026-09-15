@@ -472,7 +472,7 @@ punishes it**.
 |---|---|
 | **The strategy** | Sit on the roof stratum or the Campanile. Superior sightlines, no ground-level threats, see everything. |
 | **Why tempting** | Elevation genuinely gives the best information in the game. |
-| **Punished by** | **`TUN-SUSPICION-GAIN-ROOF` +18/s applies for *presence*, not movement.** Standing still on a roof reaches Noticed in 1.7 s and Exposed in 3.9 s. On the Campanile, where `TUN-SUSPICION-GAIN-OPEN` +6/s also applies, the combined +24/s reaches Exposed in **2.9 s**. |
+| **Punished by** | **`TUN-SUSPICION-GAIN-ROOF` +18/s applies for *presence*, not movement.** Standing still on a roof reaches Noticed in 1.7 s and Exposed in 3.9 s. (The Campanile used to add `TUN-SUSPICION-GAIN-OPEN` +6/s for a combined 2.9 s; that gain is 0 since [ADR-0020](../00_meta/adr/ADR-0020-walking-alone-costs-nothing.md).) |
 | **Reinforced by** | An Exposed player is outlined **through geometry at 60 m** to their pursuer — from the most conspicuous point on the map. There are no NPCs on roofs, so no blend action can clear it. `ABIL-WHISPERBOLT` reaches 12 m, street-to-balcony and balcony-to-roof. And `SCORE-FROMABOVE` (+100) does not offset the forfeited Silent (−100) and Patient (−150). |
 | **Residual risk** | A camper who accepts permanent Exposure and simply relocates constantly. Monitored by `TEL-TIME-BY-STRATUM`. |
 
@@ -503,7 +503,7 @@ punishes it**.
 | **The strategy** | Enter a concealment prop or a quiet corner and never leave. Survive, deny kills, wait out the clock. |
 | **Why tempting** | Perfect safety is available (`TUN-BLEND-PROP-CAPACITY` 1, unkillable inside). |
 | **Punished by** | **Hiding scores nothing.** `TUN-SCORE-DEATH-PENALTY` is 0, so surviving has no positive value — a parked player finishes on 0 points and last place. |
-| **Reinforced by** | (1) **A parked player is a stationary Compass beacon.** Their pursuer's bearing points at a fixed location and the pulse accelerates monotonically; they are the easiest possible target to find. (2) The five concealment props are fixed, learnable locations, capacity 1, and **blind** — you cannot see when it is safe to leave. (3) Quiet corners without NPCs accrue `TUN-SUSPICION-GAIN-OPEN` +6/s → Noticed in 5 s → stunnable *and* their prey is warned. (4) `TUN-BLEND-PROP-EXIT-VULN` 0.5 s prevents door-flickering. |
+| **Reinforced by** | (1) **A parked player is a stationary Compass beacon.** Their pursuer's bearing points at a fixed location and the pulse accelerates monotonically; they are the easiest possible target to find. (2) The five concealment props are fixed, learnable locations, capacity 1, and **blind** — you cannot see when it is safe to leave. (3) ~~Quiet corners without NPCs accrue `TUN-SUSPICION-GAIN-OPEN` +6/s → Noticed in 5 s~~ — struck 2026-09-15 by [ADR-0020](../00_meta/adr/ADR-0020-walking-alone-costs-nothing.md); a quiet corner is now conspicuous rather than charged, and (1) was always the load-bearing punishment. (4) `TUN-BLEND-PROP-EXIT-VULN` 0.5 s prevents door-flickering. |
 | **The decisive one** | Reason (1). In most stealth games hiding is safe because the seeker lacks information. Here the seeker has a direction and a distance, permanently. **Stillness is only safe when combined with a crowd**, which is precisely the behaviour the design wants. |
 
 ### 5.5 Target-trading
