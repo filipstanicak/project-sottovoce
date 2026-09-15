@@ -157,8 +157,8 @@ Applied per tick while the condition holds. Additive (ASM-0018).
 | `TUN-SUSPICION-ROOF-HEIGHT` | 6.0 | m | 4.0–8.0 | World height at or above which a pawn counts as being on the rooftop stratum, and so pays `TUN-SUSPICION-GAIN-ROOF`. Sits between MAP-VETRAIO's balcony (3.5 m) and roof (8.5 m) strata, so a balcony is free and a roof is not. **Absolute, and that only works while the street stratum is flat at y = 0** — a map with varying ground level needs real stratum data in `MapData` instead. |
 | `TUN-SUSPICION-GAIN-ROOF` | 18.0 | /s | 14–24 | Being on the rooftop stratum at all, regardless of speed. **Noticed** in 1.7 s — which is 30/18, the toll *alone*: decay does not run up there, or the same figure would be 3.0 s. A roof is not somewhere you recover slowly, it is somewhere you do not recover. Roofs are fast and empty; a civilian is never up there. This is what stops the roofs from being strictly better. |
 | `TUN-SUSPICION-GAIN-CLIMB` | 12.0 | /s | 8–16 | While actively climbing. Lower than roof-presence because a climb is brief and sometimes necessary; the roof you arrive at is what really costs. |
-| `TUN-SUSPICION-GAIN-OPEN` | 6.0 | /s | 4–9 | While no NPC is within `TUN-SUSPICION-OPEN-RADIUS`. **Noticed** in 5 s of standing alone. The mechanic that makes an empty plaza a danger zone and makes crowd-seeking a constant background pressure. |
-| `TUN-SUSPICION-OPEN-RADIUS` | 6.0 | m | 4–9 | "Alone" means no NPC within this radius. Tuned against the crowd-pocket module spacing so that the designed pockets reliably suppress it and the designed empty spaces reliably do not. |
+| `TUN-SUSPICION-GAIN-OPEN` | 0.0 | /s | 0–9 | **0.0 since 2026-09-15 (ADR-0020): walking alone costs nothing, as it costs nothing in the reference.** It was 6.0 — *Noticed in 5 s of standing alone, Exposed in 11.7 s* — described as the mechanic that makes an empty plaza a danger zone; reported from the controls as *already Exposed from walking without a group*, and the reference has no such source: its detection moves only on high-profile actions in the other player's sight. The condition survives (`SuspicionSources.of` reads this value and lists the bit only while it pays), so restoring the number restores the rule. See §19. |
+| `TUN-SUSPICION-OPEN-RADIUS` | 6.0 | m | 4–9 | "Alone" means no NPC within this radius. Tuned against the crowd-pocket module spacing so that the designed pockets reliably suppress it and the designed empty spaces reliably do not. **Still live while its gain is 0** (ADR-0020): `SpatialHash` sizes its cells from it and `SYS-SUSPICION` still answers the nearest-NPC query against it. |
 | `TUN-SUSPICION-GAIN-WHISPERBOLT-WINDUP` | — | — | — | Not a gain — `ABIL-WHISPERBOLT` **forces** the Exposed tier for its wind-up. See §8.2. |
 
 ### 3.3 Instant sources (impulses)
@@ -433,7 +433,7 @@ Shared rules first, then per ability. Cooldowns are authoritative on the server 
 
 | ID | Value | Unit | Range | Rationale |
 |---|---|---|---|---|
-| `TUN-CROWD-COUNT-MIN` | 60 | count | 60–60 | Absolute floor. Below 60 on a 120 × 120 m map the district reads as abandoned and `TUN-SUSPICION-GAIN-OPEN` applies almost everywhere, which turns the game into a shooter. |
+| `TUN-CROWD-COUNT-MIN` | 60 | count | 60–60 | Absolute floor. Below 60 on a 120 × 120 m map the district reads as abandoned — and nobody has anywhere to blend, which turns the game into a shooter. (It used to read *`TUN-SUSPICION-GAIN-OPEN` applies almost everywhere*; that gain is 0 since ADR-0020, and the floor stands on the blend argument alone.) |
 | `TUN-CROWD-COUNT-MAX` | 90 | count | 90–90 | Absolute ceiling, set by `TUN-PERF-CROWD-BUDGET`. |
 | `TUN-CROWD-COUNT-DEFAULT-6P` | 78 | count | 66–90 | The 6-player default. Chosen as 48 clones (4 personas × 12) + 30 filler. |
 | `TUN-CROWD-COUNT-DEFAULT-4P` | 66 | count | 60–78 | The 4-player default: 40 clones (4 × 10) + 26 filler. Fewer players need fewer clones for the same per-player anonymity, and the saved budget goes to frame time. See [`../10_gdd/07_balance.md`](../10_gdd/07_balance.md) §7. |
@@ -718,6 +718,24 @@ file, so a deprecated row would go on generating a field.
 
 The first six were retired together, when the speed ladder lost its Jog rung and `INPUT-RUN`
 stopped meaning two different things. The two camera entries went with the shoulder offset.
+
+### TUN-SUSPICION-GAIN-OPEN — NEUTRALISED 2026-09-15, not removed
+
+Set to **0** by ADR-0020. It was 6.0/s whenever no NPC stood within
+`TUN-SUSPICION-OPEN-RADIUS`, at any speed including standing still — and because no decay
+runs while any source pays, a player walking alone reached **Noticed in 5 s and Exposed in
+11.7 s** without running, climbing or doing anything a civilian would not.
+
+**The reference charges nothing for being alone.** Its detection moves on high-profile
+actions performed in the other player's sight, and walking is low profile wherever it
+happens; groups and hiding places bear on the *escape* and on the `Hidden`/`Incognito`
+bonuses, never on whether a walker is noticed. The empty plaza is still dangerous there —
+*visually*, because a hunter scanning it has one thing to look at — which is the same
+pressure GDD-03 §4 already describes for the concealment props.
+
+**The ID, the field and the condition are retained.** `SuspicionSources.of` still reads the
+radius and lists the `OPEN` bit only while this value is above zero, so the wire slot holds
+and restoring the number restores the mechanic in one edit. The ID may never be reused.
 
 ### TUN-SCORE-RECKLESS — NEUTRALISED 2026-08-26, not removed
 

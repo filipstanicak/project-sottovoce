@@ -6,8 +6,10 @@
 class_name CrowdTuning
 extends Resource
 
-## Absolute floor. Below 60 on a 120 × 120 m map the district reads as abandoned and TUN-
-## SUSPICION-GAIN-OPEN applies almost everywhere, which turns the game into a shooter.
+## Absolute floor. Below 60 on a 120 × 120 m map the district reads as abandoned — and nobody has
+## anywhere to blend, which turns the game into a shooter. (It used to read TUN-SUSPICION-GAIN-
+## OPEN applies almost everywhere; that gain is 0 since ADR-0020, and the floor stands on the
+## blend argument alone.)
 ## TUN-CROWD-COUNT-MIN
 @export var count_min: int = 60
 

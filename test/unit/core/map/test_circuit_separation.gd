@@ -56,10 +56,11 @@ func test_every_declared_period_is_inside_the_documented_band() -> void:
 
 
 func test_no_circuit_enters_the_empty_plaza() -> void:
-	# **THE EMPTY PLAZA STAYS EMPTY — THAT IS ITS ENTIRE FUNCTION.** GDD-05 §5.3:
-	# anyone standing in Piazza Secca accrues `TUN-SUSPICION-GAIN-OPEN` and is
-	# Noticed in five seconds, because there is no cover. A walking group crossing
-	# it would carry cover into the one place designed to have none.
+	# **THE EMPTY PLAZA STAYS EMPTY — THAT IS ITS ENTIRE FUNCTION.** GDD-03 §5.3:
+	# anyone standing in Piazza Secca has no cover and no blend action, and a hunter
+	# scanning it has one thing to look at (it also charged `TUN-SUSPICION-GAIN-OPEN`
+	# until ADR-0020 zeroed that). A walking group crossing it would carry cover into
+	# the one place designed to have none.
 	var plaza := _plaza()
 	assert_not_null(plaza, "Piazza Secca is not a declared zone")
 	var intrusions: PackedStringArray = []

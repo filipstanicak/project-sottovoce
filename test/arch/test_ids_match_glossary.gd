@@ -87,3 +87,36 @@ func test_exclusions_are_still_real() -> void:
 			+ "\n".join(stale)
 		)
 	)
+
+
+## **THE CODEGEN CARRIES A COPY OF THE EXEMPTION TABLE, AND A COPY DRIFTS.**
+## `tools/tuning_codegen/gen_ids.py` cannot read `IdScanner`, so it mirrors
+## `NOT_A_MEMBER` as a Python set — and after #225 exempted `ANIM-CINDERFALL-CAST`
+## here, the next `run_all.py` declared it in `ids.gd` anyway, because nothing held
+## the two sets together. Found 2026-09-15 by regenerating for ADR-0020.
+func test_the_codegen_mirror_of_the_exemptions_is_current() -> void:
+	var source := FileAccess.get_file_as_string("res://tools/tuning_codegen/gen_ids.py")
+	assert_false(source.is_empty(), "gen_ids.py could not be read")
+	var regex := RegEx.new()
+	regex.compile("(?m)^NOT_A_MEMBER\\s*=\\s*\\{([^}]*)\\}")
+	var found := regex.search(source)
+	assert_not_null(found, "gen_ids.py no longer declares NOT_A_MEMBER as a set literal")
+	if found == null:
+		return
+	var mirrored: Dictionary = {}
+	for piece: String in found.get_string(1).split(","):
+		var id := piece.strip_edges().trim_prefix('"').trim_suffix('"')
+		if not id.is_empty():
+			mirrored[id] = true
+	var here: Dictionary = {}
+	for id: String in IdScanner.NOT_A_MEMBER:
+		here[id] = true
+	assert_eq(
+		mirrored,
+		here,
+		(
+			"gen_ids.py's NOT_A_MEMBER is not IdScanner.NOT_A_MEMBER. The Python set is a\n"
+			+ "mirror; edit it in the same change, or run_all.py will declare an id the\n"
+			+ "guard refuses."
+		)
+	)

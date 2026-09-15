@@ -126,7 +126,7 @@ Values, units and rationales are in TUNABLES.md at the section noted. Reproduced
 | `gain_sprint` | float | 20–32 | 25.0 |
 | `gain_roof` | float | 14–24 | 18.0 |
 | `gain_climb` | float | 8–16 | 12.0 |
-| `gain_open` | float | 4–9 | 6.0 |
+| `gain_open` | float | 0–9 | 0.0 (was 6.0 until ADR-0020, 2026-09-15) |
 | `open_radius` | float | 4–9 | 6.0 |
 | `gain_npc_bump` | float | 10–22 | 15.0 |
 | `gain_npc_bump_cooldown` | float | 0.5–1.5 | 0.8 |
@@ -402,7 +402,7 @@ gain_run = 14.0
 gain_sprint = 25.0
 gain_roof = 18.0
 gain_climb = 12.0
-gain_open = 6.0
+gain_open = 0.0
 open_radius = 6.0
 tier_noticed = 30.0
 tier_exposed = 70.0

@@ -11,12 +11,19 @@ extends GutTest
 ## the rate the server actually runs it at.
 const DT := 1.0 / 30.0
 
+## The alone gain as the rule was written, TUNABLES §19; 0 in the shipped profile
+## since ADR-0020. The integrator's properties are proven with it restored on a
+## copy, because they must still hold the day the number returns; the shipped
+## profile's own behaviour — walking alone costs nothing — is its own test.
+const ALONE_GAIN_BEFORE_ADR_0020 := 6.0
+
 var _t: SuspicionTuning
 var _s: SuspicionState
 
 
 func before_each() -> void:
-	_t = Tuning.suspicion
+	_t = Tuning.suspicion.duplicate()
+	_t.gain_open = ALONE_GAIN_BEFORE_ADR_0020
 	_s = SuspicionState.new()
 	# Default to the civilian case: standing in a crowd, nothing owed.
 	_s.nearest_npc_distance = 0.5
@@ -45,8 +52,9 @@ func test_gain_and_decay_are_mutually_exclusive() -> void:
 
 
 func test_the_alone_gain_is_not_cancelled_by_decay_either() -> void:
-	# The case that would go NEGATIVE: +6/s against −8/s. A player standing alone in
-	# Piazza Secca must accrue, or the empty plaza stops being dangerous.
+	# The case that would go NEGATIVE: +6/s against −8/s. With the alone gain
+	# restored, a player standing alone must accrue its full rate rather than a net
+	# −2/s — the ladder must not invert the day the number comes back.
 	_s.nearest_npc_distance = _t.open_radius + 1.0
 	_s.speed = 0.0
 	_s.ticks_since_gain = 999
@@ -68,6 +76,27 @@ func test_sources_sum_additively() -> void:
 	var to_exposed: float = _t.tier_exposed / expected
 	gut.p("sprint + roof + alone = %.1f/s, Exposed in %.2f s" % [expected, to_exposed])
 	assert_lt(to_exposed, 2.0, "compounding three bad choices no longer compounds")
+
+
+## **THE REPORTED DEFECT, AS A TEST.** *"Ich bin bereits exposed wenn ich mal alleine
+## laufe ohne Gruppe"* — 2026-09-15, from the controls. On the shipped profile a
+## stroll with nobody within `TUN-SUSPICION-OPEN-RADIUS` used to reach Exposed in
+## 11.7 s; the reference charges nothing for it (ADR-0020). Twelve seconds alone at
+## the civilian speed must leave the value exactly where it started.
+func test_walking_alone_costs_nothing_on_the_shipped_profile() -> void:
+	var shipped := Tuning.suspicion
+	_s.nearest_npc_distance = INF
+	_s.speed_state = PawnStateId.STROLL
+	_s.speed = Tuning.movement.stroll
+	for _step: int in int(round(12.0 / DT)):
+		var earned := SuspicionMath.gained(_s, shipped)
+		assert_false(earned, "a tick alone at stroll counted as a gain")
+		_s.value = SuspicionMath.integrate(_s, shipped, DT)
+		_s.ticks_since_gain = 0 if earned else _s.ticks_since_gain + 1
+	assert_eq(_s.value, 0.0, "twelve seconds of walking alone cost something")
+	assert_lt(
+		_s.value, shipped.tier_noticed, "walking alone reached Noticed, which the report describes"
+	)
 
 
 func test_decay_needs_the_speed_ceiling_and_the_delay_together() -> void:
