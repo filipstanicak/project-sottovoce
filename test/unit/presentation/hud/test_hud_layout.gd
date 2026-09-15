@@ -25,7 +25,7 @@ func test_the_approved_layout_leaves_the_centre_clear() -> void:
 	var frame := hud.get_node("InstrumentFrame") as Control
 	_assert_placements(frame)
 	var centre := Rect2(384.0, 216.0, 1152.0, 648.0)
-	for child_name: String in ["Portrait", "Tier"]:
+	for child_name: String in ["Portrait", "Tier", "MatchTimer"]:
 		var widget := frame.get_node(child_name) as Control
 		assert_false(centre.intersects(widget.get_rect()), "widget covers the crowd-reading area")
 
@@ -38,6 +38,15 @@ func _assert_placements(frame: Control) -> void:
 	assert_gt(tier.position.y, frame.size.y * 0.5, "tier belongs in the lower left")
 	assert_gte(tier.position.x, 96.0, "tier is outside the safe area")
 	assert_lte(tier.get_rect().end.y, frame.size.y - 64.0, "tier touches the bottom edge")
+	var timer := frame.get_node("MatchTimer") as Control
+	assert_almost_eq(
+		timer.position.x + timer.size.x * 0.5,
+		frame.size.x * 0.5,
+		0.5,
+		"the timer is not top-centre"
+	)
+	assert_eq(timer.position.y, 56.0, "the timer is outside the safe area")
+	assert_eq(timer.size, Vector2(120.0, 48.0))
 
 
 func test_normal_text_survives_a_white_world_behind_its_plate() -> void:

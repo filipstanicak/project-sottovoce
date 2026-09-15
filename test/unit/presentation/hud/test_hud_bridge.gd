@@ -12,6 +12,7 @@ var _tiers: Array = []
 var _compass: Array = []
 var _combat: Array = []
 var _portraits: Array = []
+var _match_ticks: Array = []
 
 
 func before_each() -> void:
@@ -19,8 +20,10 @@ func before_each() -> void:
 	_compass = []
 	_combat = []
 	_portraits = []
+	_match_ticks = []
 	_bridge = HudBridge.new()
 	add_child_autofree(_bridge)
+	_bridge.match_time_changed.connect(func(ticks: int) -> void: _match_ticks.append(ticks))
 	EventBus.suspicion_tier_changed.connect(_on_tier)
 	EventBus.compass_updated.connect(_on_compass)
 	EventBus.kill_ready_changed.connect(_on_combat)
@@ -136,3 +139,30 @@ func test_a_freed_bridge_stops_listening() -> void:
 	extra.free()
 	_deliver(_snapshot())
 	assert_eq(_compass.size(), 1, "a freed bridge is still publishing")
+
+
+## **THE MATCH CLOCK IS FORWARDED DURING PLAY, ON CHANGE, AND NOWHERE ELSE.** US-0073.
+## The same local wiring as `results_time_changed`, for the phases whose remainder is
+## the match's own clock; a lobby has no clock and the results screen has its own.
+func test_the_match_clock_is_forwarded_during_play_and_only_on_change() -> void:
+	var s := _snapshot()
+	s.phase = MatchPhase.Phase.ACTIVE
+	s.ticks_remaining = 300
+	_deliver(s)
+	_deliver(s)
+	assert_eq(_match_ticks, [300], "an unchanged remainder was forwarded twice")
+	s.ticks_remaining = 299
+	_deliver(s)
+	s.phase = MatchPhase.Phase.FINAL
+	s.ticks_remaining = 298
+	_deliver(s)
+	assert_eq(_match_ticks, [300, 299, 298])
+
+
+func test_the_match_clock_is_silent_outside_play() -> void:
+	var s := _snapshot()
+	s.ticks_remaining = 150
+	for phase: int in [MatchPhase.Phase.LOBBY, MatchPhase.Phase.WARMUP, MatchPhase.Phase.RESULTS]:
+		s.phase = phase
+		_deliver(s)
+	assert_eq(_match_ticks, [], "the match clock was forwarded outside play")

@@ -26,6 +26,13 @@ extends Node
 ## ClientRoot wires this to ResultsRoot; no second snapshot reader is needed.
 signal results_time_changed(ticks: int)
 
+## `ticks_remaining` during play — `ACTIVE` and `FINAL`, the phases whose remainder
+## is the match's own clock. The same composition wiring as the line above, for the
+## same reason: the phase already travels on `EVT-MATCH-PHASE-CHANGED`, and a global
+## event carrying a number that moves thirty times a second would be the one thing
+## the bus was built not to carry. `HudRoot` wires this to `MatchVm`.
+signal match_time_changed(ticks: int)
+
 ## Nothing has arrived yet. **Not zero**, because zero is a real tier and a real
 ## bearing; the first snapshot must always be treated as a change.
 const NOTHING := -1
@@ -37,6 +44,7 @@ var _kill_ready: bool = false
 var _stun_ready: bool = false
 var _portrait: bool = false
 var _results_ticks: int = NOTHING
+var _match_ticks: int = NOTHING
 var _phase: int = NOTHING
 var _multiplier: float = float(NOTHING)
 var _cooldowns: Array[int] = [NOTHING, NOTHING]
@@ -92,6 +100,7 @@ func _on_snapshot(snapshot: Snapshot) -> void:
 	_publish_pursuit(snapshot)
 	_publish_match(snapshot)
 	_publish_results_time(snapshot)
+	_publish_match_time(snapshot)
 
 
 ## Tier and its source list travel together, because the tier indicator shows both
@@ -244,6 +253,16 @@ func _publish_match(snapshot: Snapshot) -> void:
 ## owning its own layout rather than by this class translating a second format.
 func _on_score(report: ScoreReport) -> void:
 	EventBus.score_event_appended.emit(report)
+
+
+func _publish_match_time(snapshot: Snapshot) -> void:
+	if not MatchPhase.is_playing(snapshot.phase):
+		_match_ticks = NOTHING
+		return
+	if _match_ticks == snapshot.ticks_remaining:
+		return
+	_match_ticks = snapshot.ticks_remaining
+	match_time_changed.emit(_match_ticks)
 
 
 func _publish_results_time(snapshot: Snapshot) -> void:
