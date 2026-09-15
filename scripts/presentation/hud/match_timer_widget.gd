@@ -7,11 +7,11 @@
 ## the bar that fills through the last `TUN-MATCH-FINALPHASE-WARNING`, and the
 ## phase treatment with a persistent multiplier marker through `FINAL`.
 ##
-## **THE DIGITS ARE 32 px IN A 48 px PLATE.** UI_UX_SPEC §2 lists the timer under
-## the 48 px `DISPLAY` scale, and §1.1 gives the element 48 px of height; a 48 px
-## glyph and a bar beneath it do not fit in 48 px, so the digits are sized to the
-## plate rather than the plate to the digits. Reported here rather than resolved
-## silently: the two rows of the spec disagree by the height of the bar.
+## **THE DIGITS ARE `HEADING` 32 px IN A 48 px PLATE.** UI_UX_SPEC §2 listed the
+## timer under the 48 px `DISPLAY` scale from M0 while §1.1 gave the element 48 px
+## of height; a 48 px glyph and a bar beneath it do not fit in 48 px, so the digits
+## are sized to the plate rather than the plate to the digits. §2 was moved to say
+## so on 2026-09-15, at the review of US-0073, with the old row and the reason kept.
 ##
 ## It reads `MatchVm` and computes nothing of its own — never-do #7 — so the bar's
 ## fraction and the marker's number are the view model's, and a widget that drew

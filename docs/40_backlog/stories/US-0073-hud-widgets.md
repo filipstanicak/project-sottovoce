@@ -4,7 +4,7 @@ title: HUD — tier, portrait, crosshair, abilities, timer
 version: 0.3.0
 status: in-progress
 owner: Lead Game Designer
-last_updated: 2026-09-13
+last_updated: 2026-09-15
 depends_on: [BIBLE-UI-UX, TDD-11-UI]
 ---
 
@@ -74,9 +74,10 @@ The remaining widgets, each a pure renderer fed by a view model.
       the bar is full is the tick the server opens `FINAL`, asserted from both derivations —
       and never counts down between snapshots. The clock reaches the HUD through
       `HudBridge.match_time_changed`, the same composition wiring the results screen uses.
-      Captured as `hud_21`–`hud_23` in `tools/hud_probe.tscn`. One spec disagreement is
-      reported in the widget's docstring: §2 lists the timer at the 48 px `DISPLAY` scale and
-      §1.1 gives the element 48 px of height, which cannot both hold with a bar underneath.
+      Captured as `hud_21`–`hud_23` in `tools/hud_probe.tscn`. The digits are `HEADING` 32 px:
+      §2 listed the timer at the 48 px `DISPLAY` scale while §1.1 gave the element 48 px of
+      height, which cannot both hold with a bar underneath; §2 was moved on 2026-09-15 at the
+      reviewer's request, with the old row and the reason preserved.
 - [x] Nothing occupies the centre 60 percent of the screen except the 3 px crosshair.
       Owner decision 2026-09-06: tier bottom-left, portrait top-left, as UI_UX_SPEC states.
       Compass centre-bottom, vignette a frame.
