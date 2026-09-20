@@ -8,29 +8,46 @@
 ## a departed peer leaves nothing behind for whoever inherits their id.
 ##
 ## **THE SPATIAL HASH IS REAL, NOT A STUB.** The one thing that cannot be faked
-## here is the crowd query — `TUN-SUSPICION-GAIN-OPEN` is the source that decides
-## whether standing still is safe, and a fake answering 0.5 m forever would make
-## every assertion below true of a system that never asked.
+## here is the crowd query — `TUN-SUSPICION-GAIN-OPEN` is the source that reads it,
+## and a fake answering 0.5 m forever would make every assertion below true of a
+## system that never asked. **That gain is 0 in the shipped profile since
+## ADR-0020**, and the system reads the autoload directly, so the tests that prove
+## the query is wired restore the number on the live profile for their own
+## duration and `after_each` puts it back — the one write to `Tuning` under
+## `test/`, and scoped to that reason.
 extends GutTest
 
 const PEER := 4
 const OTHER := 5
 const ROOF_Y := 7.0
+## The alone gain as the rule was written, TUNABLES §19.
+const ALONE_GAIN_BEFORE_ADR_0020 := 6.0
 
 var _sys: SuspicionSystem
 var _ctx: MatchContext
 var _pawn: PawnContext
 var _t: SuspicionTuning
+var _shipped_gain_open: float
 
 
 func before_each() -> void:
 	_t = Tuning.suspicion
+	_shipped_gain_open = _t.gain_open
 	_sys = SuspicionSystem.new()
 	add_child_autofree(_sys)
 	_ctx = MatchContext.new()
 	_ctx.crowd_hash.setup(AABB(Vector3(-10, -10, -10), Vector3(160, 40, 160)), 16)
 	_pawn = _spawn(PEER, Vector3.ZERO)
 	_crowd_at(PackedVector3Array())
+
+
+func after_each() -> void:
+	Tuning.suspicion.gain_open = _shipped_gain_open
+
+
+## Restore the alone gain on the live profile, so the crowd query has a reader.
+func _with_the_alone_gain() -> void:
+	Tuning.suspicion.gain_open = ALONE_GAIN_BEFORE_ADR_0020
 
 
 func _spawn(peer: int, at: Vector3) -> PawnContext:
@@ -64,10 +81,19 @@ func test_the_stage_is_after_the_crowd_and_before_detection() -> void:
 	assert_lt(here, SystemOrder.position_of(&"detection"), "detection runs before suspicion")
 
 
+func test_standing_alone_costs_nothing_on_the_shipped_profile() -> void:
+	# **ADR-0020, end to end**: the pawn is doing nothing at all, nobody is near it,
+	# and the value does not move — walking alone is low profile, as in the
+	# reference. This is the report from the controls, at the system's own seam.
+	_tick(30 * 12)
+	assert_eq(_pawn.suspicion, 0.0, "twelve seconds alone cost something on the shipped profile")
+	assert_eq(_pawn.active_sources, SuspicionSources.NONE, "being alone was listed")
+
+
 func test_standing_alone_accrues_and_standing_in_a_crowd_does_not() -> void:
-	# **THE MECHANIC THAT MAKES AN EMPTY PLAZA DANGEROUS**, end to end: the pawn is
-	# doing nothing at all, and the only thing that changes is who is standing near
-	# it.
+	# The crowd query, end to end, with the alone gain restored: the pawn is doing
+	# nothing at all, and the only thing that changes is who is standing near it.
+	_with_the_alone_gain()
 	_tick(30)
 	var alone := _pawn.suspicion
 	assert_almost_eq(
@@ -83,6 +109,7 @@ func test_the_crowd_is_asked_through_the_shared_hash_and_not_a_physics_query() -
 	# US-0052's second criterion. The evidence is behavioural: an NPC that exists
 	# **only** in the hash suppresses the alone gain, so the answer cannot have come
 	# from anywhere else — there is no physics world in this test at all.
+	_with_the_alone_gain()
 	_crowd_at(PackedVector3Array([Vector3(_t.open_radius - 0.1, 0.0, 0.0)]))
 	_tick(30)
 	assert_eq(_pawn.suspicion, 0.0, "a hash-only NPC did not suppress TUN-SUSPICION-GAIN-OPEN")
@@ -90,6 +117,7 @@ func test_the_crowd_is_asked_through_the_shared_hash_and_not_a_physics_query() -
 
 
 func test_the_source_bitfield_reaches_the_pawn_beside_the_value() -> void:
+	_with_the_alone_gain()
 	_pawn.state_id = PawnStateId.SPRINT
 	_pawn.position = Vector3(0.0, ROOF_Y, 0.0)
 	_tick(1)
@@ -187,6 +215,8 @@ func test_horizontal_motion_is_still_read_as_motion() -> void:
 func test_a_pawn_that_is_not_in_the_world_accrues_nothing() -> void:
 	# A corpse on empty ground would otherwise accrue TUN-SUSPICION-GAIN-OPEN for
 	# the whole respawn timer, and arrive back at Noticed for having been dead.
+	# Restored for the test, or a corpse would accrue nothing for the wrong reason.
+	_with_the_alone_gain()
 	for state: StringName in [PawnStateId.DEAD, PawnStateId.RESPAWNING]:
 		_pawn.suspicion = 0.0
 		_pawn.state_id = state

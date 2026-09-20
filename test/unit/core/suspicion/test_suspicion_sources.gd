@@ -24,11 +24,18 @@ const STATES: Array[StringName] = [
 	PawnStateId.CLIMB,
 ]
 
+## The alone gain as the rule was written, TUNABLES §19. **The shipped profile has
+## it at 0 since ADR-0020**, and a sweep that can never set a bit proves nothing
+## about it — so the property is swept over a copy with the number restored, and
+## the shipped profile gets its own test below.
+const ALONE_GAIN_BEFORE_ADR_0020 := 6.0
+
 var _t: SuspicionTuning
 
 
 func before_each() -> void:
-	_t = Tuning.suspicion
+	_t = Tuning.suspicion.duplicate()
+	_t.gain_open = ALONE_GAIN_BEFORE_ADR_0020
 
 
 ## One reading per combination of state × roof × alone × blending.
@@ -128,6 +135,33 @@ func test_an_npc_exactly_at_the_radius_is_company() -> void:
 		(SuspicionSources.of(s, _t) & SuspicionSources.OPEN) != 0,
 		"an NPC beyond the radius did not read as alone"
 	)
+
+
+## **ADR-0020: WALKING ALONE COSTS NOTHING, AS IN THE REFERENCE.** On the shipped
+## profile the `OPEN` bit is never set and the rate never rises for it — and the
+## two must agree, because a HUD word beside a value that is not rising is the
+## drift this file exists to refuse. Restoring the number in the profile reddens
+## this by name, which is the plant that matters.
+func test_the_shipped_profile_lists_and_charges_nothing_for_being_alone() -> void:
+	var shipped := Tuning.suspicion
+	assert_eq(shipped.gain_open, 0.0, "TUN-SUSPICION-GAIN-OPEN is not 0 (ADR-0020)")
+	for state: StringName in STATES:
+		var alone := SuspicionState.new()
+		alone.speed_state = state
+		alone.nearest_npc_distance = INF
+		var company := SuspicionState.new()
+		company.speed_state = state
+		company.nearest_npc_distance = 0.5
+		assert_eq(
+			SuspicionSources.of(alone, shipped) & SuspicionSources.OPEN,
+			0,
+			"being alone was listed as a source in %s" % state
+		)
+		assert_eq(
+			SuspicionMath.gain_rate(alone, shipped),
+			SuspicionMath.gain_rate(company, shipped),
+			"being alone changed the rate in %s" % state
+		)
 
 
 func test_blending_reports_no_sources_at_all() -> void:

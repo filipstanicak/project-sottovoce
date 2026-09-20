@@ -60,14 +60,20 @@ extends Resource
 ## TUN-SUSPICION-GAIN-CLIMB
 @export_range(8.0, 16.0, 0.1) var gain_climb: float = 12.0
 
-## While no NPC is within TUN-SUSPICION-OPEN-RADIUS. Noticed in 5 s of standing alone. The
-## mechanic that makes an empty plaza a danger zone and makes crowd-seeking a constant background
-## pressure.
+## 0.0 since 2026-09-15 (ADR-0020): walking alone costs nothing, as it costs nothing in the
+## reference. It was 6.0 — Noticed in 5 s of standing alone, Exposed in 11.7 s — described as the
+## mechanic that makes an empty plaza a danger zone; reported from the controls as already
+## Exposed from walking without a group, and the reference has no such source: its detection
+## moves only on high-profile actions in the other player's sight. The condition survives
+## (SuspicionSources.of reads this value and lists the bit only while it pays), so restoring the
+## number restores the rule. See §19.
 ## TUN-SUSPICION-GAIN-OPEN
-@export_range(4.0, 9.0, 0.1) var gain_open: float = 6.0
+@export_range(0.0, 9.0, 0.1) var gain_open: float = 0.0
 
 ## "Alone" means no NPC within this radius. Tuned against the crowd-pocket module spacing so that
-## the designed pockets reliably suppress it and the designed empty spaces reliably do not.
+## the designed pockets reliably suppress it and the designed empty spaces reliably do not. Still
+## live while its gain is 0 (ADR-0020): SpatialHash sizes its cells from it and SYS-SUSPICION
+## still answers the nearest-NPC query against it.
 ## TUN-SUSPICION-OPEN-RADIUS
 @export_range(4.0, 9.0, 0.1) var open_radius: float = 6.0
 
