@@ -85,7 +85,7 @@ func test_a_clear_steady_view_completes() -> void:
 	# fills at all.
 	_watch(_t.lock_fill_time + 0.2)
 	assert_eq(_arc(), 1.0, "a clear 10 m view straight ahead did not complete a lock")
-	assert_true(_ctx.compass.portrait_of(HUNTER), "a completed lock earned no portrait")
+	assert_true(_ctx.compass.portrait_of(HUNTER), "a completed lock set no latch")
 
 
 func test_glimpses_at_the_gait_of_a_walking_group_never_complete() -> void:
@@ -100,7 +100,7 @@ func test_glimpses_at_the_gait_of_a_walking_group_never_complete() -> void:
 		_watch(STRIDE_CYCLE * 0.5)
 	gut.p("twenty stride-length glimpses reached %.2f of the arc at best" % best)
 	assert_lt(best, 1.0, "a lock completed through the gaps in a walking group")
-	assert_false(_ctx.compass.portrait_of(HUNTER), "a glimpsed contract was identified")
+	assert_false(_ctx.compass.portrait_of(HUNTER), "a glimpsed contract completed a lock")
 
 
 func test_the_cone_is_the_total_width_not_the_half() -> void:
@@ -166,4 +166,4 @@ func test_no_contract_means_no_arc_at_all() -> void:
 	_ctx.announced_contracts.erase(HUNTER)
 	_watch(_t.lock_fill_time + 0.2)
 	assert_eq(_arc(), 0.0, "a hunter with no contract filled an arc")
-	assert_false(_ctx.compass.portrait_of(HUNTER), "a hunter with no contract had a portrait")
+	assert_false(_ctx.compass.portrait_of(HUNTER), "a hunter with no contract had a latch")

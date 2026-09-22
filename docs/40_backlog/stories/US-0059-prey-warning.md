@@ -42,8 +42,8 @@ leaves a competent hunter invisible.
       field. `TUN-COMPASS-WARN-GIVES-DIRECTION` is `true`.
 - [x] **The payload names nobody.** No persona, no wire slot, no colour — nothing from which a
       client could identify *which* of the people on that bearing is the player. Asserted
-      structurally, not by a widget: the Compass lock (ASM-0030) is the only thing in the game
-      that earns an identity.
+      structurally, not by a widget: you are never told who your pursuer is at all (GDD-03
+      §8.5, a row ADR-0021 did not strike — it struck your own *contract*'s persona).
 - [ ] The bearing is a **world** angle, rotated into view space by the client each rendered
       frame — the same decision `SYS-COMPASS` made in US-0057, and for the same reason: a
       camera-relative bearing computed server-side lags the mouse by the round trip.

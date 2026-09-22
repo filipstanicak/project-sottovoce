@@ -129,11 +129,11 @@ func _publish_compass(snapshot: Snapshot) -> void:
 		return
 	_portrait = snapshot.portrait_revealed
 	if _portrait:
-		# **THE PERSONA IS NOT ON THE WIRE AND MUST NOT BE GUESSED.** ASM-0030: a
-		# client learns its contract's appearance by *looking*, and the reveal is
-		# the moment it is allowed to. `&""` says "revealed, ask the mesh", which
-		# is US-0073's problem and not a value this bridge may invent.
-		EventBus.contract_portrait_revealed.emit(&"")
+		# **THE SIGNAL CARRIES NOTHING BECAUSE IT REPORTS NOTHING BUT THE LOCK**
+		# (ADR-0021). The wire field is a per-contract completion latch; the persona
+		# is known from assignment and arrives with US-0078's lobby, not here. It
+		# used to emit `&""` against a `persona` parameter no emitter could fill.
+		EventBus.contract_portrait_revealed.emit()
 
 
 func _publish_combat(snapshot: Snapshot) -> void:

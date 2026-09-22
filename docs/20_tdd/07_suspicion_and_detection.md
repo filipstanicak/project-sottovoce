@@ -485,7 +485,9 @@ rather than merely disabled; the reference marks a revealed pursuer with directi
 no wire slot, no colour. `test_warning_names_nobody.gd` refuses one on the RPC *and* in this
 document's own catalogue row; `test_prey_warning_signal_arity.gd` refuses one on the event bus.
 A persona here would collapse the crowd from seventy-eight candidates to one, permanently and
-for free, and `ASM-0030`'s Compass lock would have nothing left to earn.
+for free — and it would hand over the identity of somebody the recipient has no relationship
+with, which is GDD-03 §8.5's *who their pursuer is* row. **ADR-0021 did not touch that row**:
+it struck the one about your own *contract*'s persona, which you are told from assignment.
 
 **The sketch above is superseded in one more way**: `prey.last_warning_tick` is not a field on
 the pawn. `PawnContext` is replayed during prediction reconciliation, so a cooldown stamped
@@ -588,7 +590,7 @@ func _advance_lock(hunter: PawnServer, target: PawnServer, dt: float) -> void:
         hunter.lock_fraction = minf(hunter.lock_fraction + rate * dt, 1.0)
         if hunter.lock_fraction >= 1.0 and _reveal_off_cooldown(hunter):
             _grant_reveal(hunter, target)                              # 1.5 s silhouette
-            hunter.portrait_revealed = true                            # PERMANENT for this contract (ASM-0030)
+            hunter.portrait_revealed = true                            # PERMANENT for this contract (ADR-0021: a lock fact)
     else:
         # Drains 1.4x faster than it fills: peeking repeatedly is strictly worse
         # than committing to one clear view — which pushes the hunter toward
@@ -627,29 +629,31 @@ make every re-reveal cost another 1.6 s of standing still, which is a much harsh
 **AND THE ARC RESETS ON REASSIGNMENT, SEPARATELY FROM THE PORTRAIT.** `CompassLock` tracks which
 contract the *arc* belongs to as well as which one the portrait was earned for. The first version
 inferred the reassignment from the portrait alone, so a hunter who had half-filled an arc and
-never completed it carried that half onto their next contract — progress toward identifying
-somebody they had stopped hunting, for free. `NOBODY` is deliberately **not** a reassignment: the
-`TUN-CONTRACT-REASSIGN-DELAY` breath would otherwise destroy a portrait earned before it.
+never completed it carried that half onto their next contract — progress toward picking
+somebody they had stopped hunting out of the crowd, for free. `NOBODY` is deliberately **not** a
+reassignment: the `TUN-CONTRACT-REASSIGN-DELAY` breath would otherwise destroy a latch earned
+before it. (Since ADR-0021 the latch is a *lock-completion* fact, not an identification.)
 
-### 4.5.2 A leak in the protocol that ASM-0030 depends on, and it is not fixed here
+### 4.5.2 ~~A leak in the protocol that ASM-0030 depends on~~ — CLOSED 2026-09-22 by ADR-0021
 
-`NET-S2C-PLAYER-JOINED` is specified as `peer_id:u8, persona:u8` and `NET-S2C-CONTRACT-ASSIGNED`
-as `contract_peer:u8` — so a client that receives both can **join them and read its contract's
-persona directly**, with no lock, on the tick the contract is assigned.
+**There is no leak, because there is nothing left to leak.** ADR-0021 voided ASM-0030: the
+hunter is told their contract's persona from assignment, as the reference shows the target's
+picture from the start, and the crowd's protection is the clone system rather than a hidden
+persona. `NET-S2C-PLAYER-JOINED`'s `persona:u8` joined with `NET-S2C-CONTRACT-ASSIGNED` now
+hands a client something it is **supposed** to have. Owner decision 4 closed with it.
 
-That defeats ASM-0030 entirely, contradicts GDD-03 §8.5, contradicts §5's own "not sent" table,
-and contradicts NETWORK_PROTOCOL §9's checklist line *"No payload contains the contract's persona"*.
+**What is still true is a build state rather than a rule**: no player has a persona
+server-side until US-0078's lobby, so nothing carries one today. When it does, the cheapest
+route is for the persona to travel *with the contract* on `NET-S2C-CONTRACT-ASSIGNED` — one
+byte and a `PROTOCOL_VERSION` bump — rather than being joined out of a lobby message, because
+the portrait's reset is the contract's own event.
 
-**Neither message is implemented** — both are lobby work, M5/M6 — so nothing leaks today. It is
-recorded rather than fixed because changing a merged `NET-` ID's payload is the owner's call.
-The candidate fixes, in the order they seem cheapest:
-
-1. `NET-S2C-PLAYER-JOINED` carries no persona; the client learns each player's appearance from
-   the mesh it draws, which is what a human does.
-2. Personas are sent for everyone **except** the recipient's contract, which is a per-observer
-   filter of the kind `render_state` already is.
-
-Option 1 is smaller and does not add a per-observer rule to a lobby message.
+*The original note follows, because a section that vanishes invites somebody to re-open the
+question.* It read: the two messages can be joined to read the contract's persona with no
+lock, which defeats ASM-0030, contradicts GDD-03 §8.5, §5's own "not sent" table and
+NETWORK_PROTOCOL §9's checklist line; neither message is implemented, so nothing leaked; the
+candidate fixes were (1) `NET-S2C-PLAYER-JOINED` carries no persona and the client reads the
+mesh, or (2) personas are sent for everyone except the recipient's contract.
 
 ---
 
@@ -711,7 +715,7 @@ trap 14's shape, and the claim is worse than the absence because it stops anybod
 | `scripts/core/detection/render_matrix.gd` | Per-observer states for one tick | **Built**, US-0055 |
 | `scripts/core/compass/compass_math.gd` | The pulse curve and the wobbling cone (§8.2-8.3) | **Built**, US-0057 |
 | `scripts/core/compass/compass_board.gd` | One reading per hunter for one tick | **Built**, US-0057 |
-| `scripts/core/compass/compass_lock.gd` | The arc, the reveal window, the cooldown and ASM-0030's portrait | **Built**, US-0058 |
+| `scripts/core/compass/compass_lock.gd` | The arc, the reveal window, the cooldown and the per-contract lock-completion latch (ASM-0030's portrait until ADR-0021) | **Built**, US-0058 |
 | `scripts/core/compass/prey_warning.gd` | The prey warning's re-trigger cooldown, and the pursuer-change that defeats it (§4.4.0) | **Built**, US-0059 |
 
 ---

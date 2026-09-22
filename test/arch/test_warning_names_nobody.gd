@@ -8,9 +8,11 @@
 ## and no amount of care in presentation can put it back.
 ##
 ## **A persona on this message would collapse the crowd from seventy-eight
-## candidates to one, permanently and for free.** `ASM-0030`'s Compass lock is the
-## only thing in the game that earns an identity — 1.6 s of held sight through a
-## 25° cone — and it would have nothing left to earn.
+## candidates to one, permanently and for free**, and hand over the identity of
+## somebody you have no relationship with: never-do #12's own line, and GDD-03
+## §8.5's *who their pursuer is* row, which ADR-0021 did **not** strike. (It
+## struck the row about your own **contract**'s persona: you are told that from
+## assignment; a pursuer you are told nothing about.)
 ##
 ## Why review misses it: `bearing` and `bucket` are already two fields, so adding
 ## `slot:u8` looks like completing a pattern rather than breaking a rule.

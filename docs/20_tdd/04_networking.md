@@ -70,7 +70,7 @@ the chapter's core contract; every RPC in §6 must be consistent with it.
 | **Render state of other players** (plain / tinted / hard) | **Server** | No | No | Snapshot, computed **per observer** |
 | **Contract assignment** | **Server** | No | No | `NET-S2C-CONTRACT-ASSIGNED`, reliable |
 | **Compass bearing / distance / lock** | **Server** | No | No | Snapshot |
-| Contract portrait revealed flag | **Server** | No | No | Snapshot (ASM-0030) |
+| Contract lock-completion latch (`portrait_revealed`) | **Server** | No | No | Snapshot. *Named for ASM-0030's earned portrait; since ADR-0021 (2026-09-22) it means a lock has completed for this contract, which is what it always stored* |
 | **Kill resolution** | **Server** | No | No — client plays the *animation* on request, the *death* on confirmation | `NET-S2C-KILL-RESULT`, reliable |
 | **Stun resolution** | **Server** | No | No | `NET-S2C-STUN-RESULT`, reliable |
 | **Ability activation** | **Server** validates | Requests only | **Tell only** (§4.4) | `NET-S2C-ABILITY-STARTED`, reliable |
@@ -325,7 +325,7 @@ NET-S2C-SNAPSHOT (per client, per tick)
 │   ├── bearing            u8       # quantised to TUN-NET-QUANT-YAW (1 deg), wobble ALREADY APPLIED server-side
 │   ├── distance_bucket    u8       # 0.5 m buckets to 60 m — never an exact distance
 │   ├── lock_fraction      u8       # 0..255
-│   └── portrait_revealed  bool     # ASM-0030
+│   └── portrait_revealed  bool     # a lock completed for this contract (ADR-0021)
 ├── match
 │   ├── phase              u8
 │   ├── ticks_remaining    u16

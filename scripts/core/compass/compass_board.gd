@@ -48,7 +48,7 @@ func lock_of(peer: int) -> float:
 	return float((_readings[peer] as Array)[2])
 
 
-## **ASM-0030.** A hunter with no reading has no portrait: the portrait is a
+## A hunter with no reading has no latch: it is a
 ## property of a contract, and they have none.
 func portrait_of(peer: int) -> bool:
 	if not _readings.has(peer):

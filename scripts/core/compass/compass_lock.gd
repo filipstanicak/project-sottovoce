@@ -1,5 +1,5 @@
 ## **THE LOCK ARC, THE REVEAL AND THE PORTRAIT.** GDD-03 §8.4, TDD-07 §4.5,
-## ASM-0030, US-0058. PURE.
+## ADR-0021, US-0058. PURE.
 ##
 ## The lock is the hardest skill in the game and the only way a hunter ever learns
 ## *which* figure is theirs. It fills while the contract sits inside a narrow
@@ -15,8 +15,8 @@
 ##
 ## **AND THE PORTRAIT IS WHAT MAKES THE 1.6 s WORTH SPENDING.** The reveal alone
 ## is `TUN-COMPASS-REVEAL-DURATION` 1.5 s, which is too brief to pay for 1.6 s of
-## standing still. ASM-0030 makes a completed lock *also* fill the contract
-## portrait permanently — for that contract, resetting on reassignment. That is
+## standing still. A completed lock *also* latches the contract portrait's mark
+## permanently — for that contract, resetting on reassignment. That is
 ## the durable payoff, and it is why locking is a thing a player does twice.
 class_name CompassLock
 extends RefCounted
@@ -31,8 +31,8 @@ const ARC_FOR := 4
 
 ## peer -> `[fraction, reveal_ticks, cooldown_ticks, portrait_for, arc_for]`.
 ##
-## `portrait_for` is the **contract** the portrait was filled for, not a boolean:
-## ASM-0030 resets it on reassignment, and a bool would have to be cleared by
+## `portrait_for` is the **contract** the latch was set for, not a boolean:
+## it resets on reassignment, and a bool would have to be cleared by
 ## whoever noticed the reassignment first. Storing *who* makes the reset a
 ## comparison rather than an event somebody can forget to send.
 ##
@@ -61,7 +61,7 @@ func forget(peer: int) -> void:
 ## Returns true on the tick a reveal is granted, so the caller can announce it.
 func advance(peer: int, contract: int, can_lock: bool, dt: float, cold_read: bool) -> bool:
 	var row := _row_for(peer)
-	# **THE ARC AND THE PORTRAIT BOTH RESET ON REASSIGNMENT**, ASM-0030. Checked
+	# **THE ARC AND THE LATCH BOTH RESET ON REASSIGNMENT.** Checked
 	# before anything else, because a fraction carried across a reassignment is
 	# progress toward identifying somebody the hunter has just stopped hunting.
 	#
@@ -118,7 +118,11 @@ func revealing(peer: int) -> bool:
 	return _locks.has(peer) and int(_row_for(peer)[REVEAL]) > 0
 
 
-## **ASM-0030's PERMANENT HALF.** True once a lock has completed on *this*
+## **THE PERMANENT HALF, AND IT IS A LOCK FACT RATHER THAN AN IDENTITY.** Under
+## ASM-0030 this answered *the hunter knows the persona*; since ADR-0021 the
+## persona is known from assignment and this answers *a lock has completed for
+## this contract*, which is what it always stored. True once a lock has
+## completed on *this*
 ## contract, and false again the moment the contract changes.
 func portrait_revealed(peer: int, contract: int) -> bool:
 	if not _locks.has(peer) or contract == ContractCycle.NOBODY:

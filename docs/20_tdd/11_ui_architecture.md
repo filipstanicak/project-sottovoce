@@ -249,7 +249,7 @@ extends Node
 ## --- Facts ---
 signal suspicion_tier_changed(tier: int, active_sources: int)
 signal contract_assigned(reason: int)
-signal contract_portrait_revealed(persona: StringName)
+signal contract_portrait_revealed  ## no payload: a lock-completion fact (ADR-0021)
 signal match_phase_changed(phase: int, multiplier: float)
 signal ability_cooldown_changed(slot: int, remaining_ticks: int)
 signal blend_state_changed(blend_type: int)

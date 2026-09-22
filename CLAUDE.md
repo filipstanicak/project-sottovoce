@@ -279,13 +279,44 @@ and the `portrait_revealed` latch, whose meaning narrows to *a lock has complete
 this contract*. US-0073's portrait criterion is reworded and stays unticked, blocked
 on US-0078 rather than on an assumption.
 
+**THE REVIEW OF THIS CHANGE FOUND THE HALF I HAD NOT SWEPT, AND IT IS THIS
+CORPUS'S MOST-REPEATED SHAPE.** I voided the assumption and amended the documents
+that *state* the rule — and left every document, comment and test that *depends*
+on it saying the old thing: the bus catalogue's "never appears" row,
+NETWORK_PROTOCOL §9's checklist line, TDD-07 §4.5.2's recorded leak, and nine
+source files whose comments and test names defined the latch as an identity
+earned by looking. **A decision that is not swept is a decision the next reader
+finds twice, in two versions.** All of them converge now; the wire rows still say
+no persona is carried *today*, marked as US-0078's gap rather than a prohibition.
+
+**AND THE EVENT HAD A PAYLOAD NOBODY COULD FILL.**
+`EVT-CONTRACT-PORTRAIT-REVEALED` was declared `(persona: StringName)` against a
+`PERSONA-*` id — and `HudBridge` emitted `&""` while `PortraitWidget` ignored the
+value. Under ASM-0030 that was an honest placeholder for something the lock would
+one day earn; under ADR-0021 it is a lock-completion fact with nothing to carry,
+so **the signal is parameterless** and the guard is its own arity. The `EVT-` id
+stays, because ids are immutable, and so does the snapshot's `portrait_revealed`,
+which stored a per-contract completion latch all along. Planted, the parameter
+back: red by name.
+
+**AND THE CLONE CLAIM IS NOW QUALIFIED RATHER THAN ASSERTED.** The ADR leant on
+*"the clone system already covers it"*; the reviewer asked which clone system.
+The **designed** one — and today's is short in two measurable ways, both
+release-blocking: the local floor is scoped by `CloneParity.grace_seconds()`
+19.86 s, and animation parity is half-built because neither rig has clips, so a
+clone and a player are identical partly *because neither is animated*. Written
+into the ADR, because a decision resting on a protection should say which
+protection it means.
+
 **AND THE REVIEW OF #227 LEFT TWO TEXT NOTES, BOTH TAKEN.** ADR-0020 said the
 crowd-query tests ran *on a copy*; the Core tests do, the system test writes the live
 profile for its own duration, and the sentence says so now. Three comments still
 priced sprint-on-a-roof-alone at 49/s and sprinting alone at 31/s — the old figures
 are kept beside the new ones, marked as history.
 
-Docs only; no test moved. Local suites carried from 2026-09-15.
+Local: unit 208 scripts / 1 782 tests / 1 774 passing / 32 424 assertions;
+arch 58 / 231 / 1 457; integration 33 / 244 / 243 passing / 189.7 s — remeasured
+because the bus signal changed shape, not because a count did.
 
 ### 2026-09-15 — walking alone costs nothing, ADR-0020
 
