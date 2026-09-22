@@ -186,8 +186,8 @@ func _capture_the_loud_states() -> void:
 	await _capture_cone_diagnostics()
 	await _state(
 		"06_portrait_revealed",
-		"Contract top-left: completed-lock symbol and Identified. No persona is invented.",
-		func() -> void: EventBus.contract_portrait_revealed.emit(&"")
+		"Contract top-left: the completed-lock mark. Nobody has a persona to draw yet.",
+		func() -> void: EventBus.contract_portrait_revealed.emit()
 	)
 
 
