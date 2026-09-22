@@ -13,7 +13,8 @@
 ## empty plaza would cost nothing.
 ##
 ## **SOURCES ARE ADDITIVE WITH A CLAMP** (ASM-0018). A sprinting player on a roof
-## with nobody nearby pays 25 + 18 + 6 = **49/s** and is Exposed in 1.4 s.
+## pays 25 + 18 = **43/s** and is Exposed in 1.6 s (49/s and 1.4 s while the alone
+## gain was 6, until ADR-0020).
 ## Max-of-sources would make the second bad choice free, and compounding bad choices
 ## is exactly what should compound.
 class_name SuspicionMath

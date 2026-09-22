@@ -249,6 +249,44 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 
 ## Where the work is right now
 
+### 2026-09-22 — the hunter knows the face from the start, ADR-0021
+
+**REPORTED FROM THE CONTROLS AFTER THE ALONE-GAIN PLAYTEST PASSED ON EVERY POINT:
+*"der Contract zeigt Unknown und wenn ich in der Nähe bin, identified. Wie mein Opfer
+aussieht muss ich von Anfang an wissen … Wie macht das Original es?"*** The reference
+shows the target's picture from the moment the contract is assigned; its uncertainty
+is *which of the identical figures is the human*, never *which persona*, and its lock
+is a targeting act. Ours (ASM-0030) showed `UNKNOWN` until a 20 m / 1.6 s Compass
+lock, on GDD-03 §8.5's strongest row: *"if you knew your target was a Lucerna, the
+crowd would collapse from 60–90 candidates to 8–13."*
+
+**THAT COLLAPSE IS THE GAME, AND M3 WAS BUILT FOR IT.** `CloneBalance`,
+`TUN-CROWD-CLONE-LOCAL-MIN` and the clone-parity rules exist so that the 8–13 are
+indistinguishable from the player; US-0078 says duplicate personas are *good*. The
+hidden persona was a second protection against the same threat — and it fell on the
+skill the game is about: a player cannot learn whose gait to read if they do not know
+whose gait to compare against, so the hardest read was unlearnable until the lock did
+it for them, which inverts design law 4. **ASM-0030 is void**, §8.5 loses its persona
+row (struck, with the reason), GDD-06 §B and UI_UX_SPEC row B say *from assignment*,
+and owner decision 4 closes with it.
+
+**NOTHING CHANGES ON THE WIRE HERE, BECAUSE THERE IS NOTHING TO SEND.** A player has
+no persona server-side until US-0078's lobby; when they do, the persona travels with
+the contract — one byte on `NET-S2C-CONTRACT-ASSIGNED`, a `PROTOCOL_VERSION` bump —
+recorded on that row when it lands. The lock keeps its 1.5 s silhouette reveal (the
+only thing that names the *body* among the clones), `SCORE-FOCUS`, `PASV-COLDREAD`
+and the `portrait_revealed` latch, whose meaning narrows to *a lock has completed for
+this contract*. US-0073's portrait criterion is reworded and stays unticked, blocked
+on US-0078 rather than on an assumption.
+
+**AND THE REVIEW OF #227 LEFT TWO TEXT NOTES, BOTH TAKEN.** ADR-0020 said the
+crowd-query tests ran *on a copy*; the Core tests do, the system test writes the live
+profile for its own duration, and the sentence says so now. Three comments still
+priced sprint-on-a-roof-alone at 49/s and sprinting alone at 31/s — the old figures
+are kept beside the new ones, marked as history.
+
+Docs only; no test moved. Local suites carried from 2026-09-15.
+
 ### 2026-09-15 — walking alone costs nothing, ADR-0020
 
 **REPORTED FROM THE FIRST TIMED MATCH: *"Ich bin bereits exposed wenn ich mal
@@ -1012,8 +1050,8 @@ collision scenes, MapData and navmesh resources; no bake value or assignment ord
 
 ## FIVE THINGS WAIT ON THE OWNER, AND NONE BLOCKS M5
 
-*Eleven rows, seven live — two arrived with ADR-0020 on 2026-09-15 (decisions 11 and 12,
-at the end of the list). The heading keeps its number because the section above it points
+*Eleven rows, six live — two arrived with ADR-0020 on 2026-09-15 (decisions 11 and 12,
+at the end of the list) and decision 4 closed with ADR-0021 on 2026-09-22. The heading keeps its number because the section above it points
 at it by name. Struck through rather than deleted, because a list with a vanished row
 invites somebody to re-open it: decision 1 was settled on 2026-09-08 (`SYS-MATCH` moved to M5),
 decision 8 on 2026-09-03, and decision 3 by ADR-0017 on 2026-09-01 — which raised decision 7 in
@@ -1038,10 +1076,12 @@ because it is the same question decision 1 half-answered, and splitting it would
    fourteen after the `Jog` rung was deprecated, and is fifteen again). Struck through
    rather than deleted, because a decision list with a silently vanished row invites
    somebody to re-open it. **Replaced by decision 7 below**, which the same ADR raised.
-4. **`NET-S2C-PLAYER-JOINED`'s persona field.** Joined with
-   `NET-S2C-CONTRACT-ASSIGNED` a client can read its contract's persona with no
-   lock, defeating ASM-0030. Neither message is implemented, so nothing leaks
-   today.
+4. ~~**`NET-S2C-PLAYER-JOINED`'s persona field.**~~ **CLOSED 2026-09-22 by
+   ADR-0021**: the hunter is told the persona from assignment, as the reference
+   does, so there is no lock left for a joined message to defeat. The row read:
+   *joined with `NET-S2C-CONTRACT-ASSIGNED` a client can read its contract's
+   persona with no lock, defeating ASM-0030. Neither message is implemented, so
+   nothing leaks today.* Struck through rather than deleted.
 5. **The tag `m4-the-loop`.**
 
 10. ~~**IS THE FINAL WARNING A SIXTH PHASE OR AN ANNOUNCEMENT?**~~ **SETTLED 2026-09-13 by the owner: an announcement.** The criterion is amended to five phases and one announcement and ticked; US-0079 is **done, eight of eight**. Struck through rather than deleted. The original reasoning follows. Raised 2026-09-08 by US-0079, whose description asks for six phases and whose next criterion says the warning changes **no rules**. `MatchPhase.Phase` has five members and **their ordinals are the wire** — `NET-S2C-PHASE-CHANGED` carries `phase:u8` — so a sixth name inserted for something that changes nothing would silently remap every client's idea of what is happening, which is `PawnStateId.ALL`'s hazard in a second enum. **It is built as an announcement** (`MatchClock.warning_at` and `MatchSystem.final_warning_announced`) and the criterion is left **unticked** rather than reworded, because rewriting a criterion to match what was built is how a backlog stops being a status view. **My recommendation is to amend the criterion to five phases and one announcement**: nothing in the design wants a phase that changes no rules, and the wire cost of one is real.
@@ -1182,7 +1222,7 @@ it comes from: its occupant leaves `present_slots` entirely and both combat syst
 | Stun | `SYS-STUN` is **not a `GameSystem`** — TDD-01 §4's box 7 is one node reading "Kill / Stun", so `KillSystem` owns it and ticks it, `SuspicionSystem`/`BlendSystem`'s shape. **The kill is judged first within the tick**, which is where ADR-0013's contested initiation is decided rather than in a comment. Target is the stunner's own pursuer by reverse lookup on the **announced** contracts. `StunRules` is pure geometry and reads **one yaw**, the stunner's; it shares `TUN-KILL-VALIDATION-GRACE` with the kill, so the two reaches shift together. A stun at a hunter already in `KillAnim` is `TARGET_COMMITTED` and **costs nothing**. **Every other refusal costs the same and looks the same**, because a refusal that reported its reason would be a free identity probe. `stun_ready` carries the tier gate for that same reason |
 | Spawn | `SYS-SPAWN` is **not a `GameSystem`** — TDD-01 §4's diagram has no spawn box and stage 8 is *"repair cycle after deaths"*, so `ContractSystem` owns it and **ticks it first**: the placement and the cycle insertion land in one tick. `SpawnRules` is pure — 40 m from the killer, 12 m from **every** living player, and a fallback that draws nothing at all because it runs at the worst moment in a match. **The point is chosen when the timer expires**, never at the contact frame. `TUN-RESPAWN-INVULN` is a third `CombatLockouts` shape: it shields a *target* where the stagger and the exile restrain an *initiator*, and both combat systems answer `TARGET_PROTECTED` at **no cost to the presser**. **Both respawn edges are completions rather than interruptions** — trap 8 |
 | Kill commits | **`KillAnimState.is_interruptible` returns false** (ADR-0013). A stun landing after the hunter has pressed kill saves nobody; the prey's counterplay is the approach, where a revealed hunter is stunnable from 3.0 m and cannot strike until 2.5. **FATAL still gets through** — a third party killing the killer — because `transition` compares priorities, which is the asymmetry `test_the_kill_commits.gd` asserts both halves of. `KillSystem.report_interrupt` is **deleted rather than left as a no-op**: a cancel entry point that silently does nothing is worse than none |
-| Compass lock | `CompassLock` is pure and holds the arc, the reveal window, the cooldown and the portrait; `SYS-DETECTION` supplies the yes-or-no its conditions come to. **`has_los()`'s first and only caller**, last in the early-out ladder — a hunter facing away spends zero raycasts, one watching spends one, against TDD-07 §4.3's budget of 2-6. The cone is gated on the hunter's **own yaw**, never the wobbled bearing. **The arc is not reset on completion**: a held view keeps a full arc and `TUN-COMPASS-REVEAL-COOLDOWN` is what stops chain-locking. **It resets on reassignment, tracked separately from the portrait** — inferring one from the other let a half-filled arc cross to the next contract. `NOBODY` is not a reassignment, or the breath would destroy an earned portrait. `PASV-COLDREAD` is an argument with no reader until a loadout exists |
+| Compass lock | `CompassLock` is pure and holds the arc, the reveal window, the cooldown and the portrait; `SYS-DETECTION` supplies the yes-or-no its conditions come to. **`has_los()`'s first and only caller**, last in the early-out ladder — a hunter facing away spends zero raycasts, one watching spends one, against TDD-07 §4.3's budget of 2-6. The cone is gated on the hunter's **own yaw**, never the wobbled bearing. **The arc is not reset on completion**: a held view keeps a full arc and `TUN-COMPASS-REVEAL-COOLDOWN` is what stops chain-locking. **It resets on reassignment, tracked separately from the portrait** — inferring one from the other let a half-filled arc cross to the next contract. `NOBODY` is not a reassignment, or the breath would destroy an earned portrait. `PASV-COLDREAD` is an argument with no reader until a loadout exists. **The portrait latch means *a lock completed* as of ADR-0021 (2026-09-22)**, not *the persona is known* — the persona is shown from assignment once players have one (US-0078) |
 | Compass | **The cone points at the contract and widens as you close** (2026-08-27), to a whole ring at `TUN-COMPASS-CONE-FULL-RADIUS` 20.0 m — which is `TUN-COMPASS-LOCK-RANGE`, invariant 33, rather than a number anybody chose: outside it the instrument points, inside it you look. Two conversions stand between a world bearing and a pixel and **neither existed**: `CameraArm.yaw_from_camera` (this game's yaw 0 faces +Z, a Godot node's faces −Z) and `CompassWidget.screen_angle` (this game's yaw increases to the left, a screen angle increases clockwise). They partly cancelled, so the shoulders drew correctly and ahead drew behind. `CompassMath.cone_halfwidth_for` holds the arc at a constant **length of ground** rather than a constant angle — a whole ring at 4.0 m, invariant 33 — and the widget's edge falloff flattens as it opens. **The server half lives in `SYS-DETECTION`**, at steps 9-10 of its pass, because the Compass is about the observer's *contract* — the same relationship the render state is computed from — and TDD-07 §1's diagram draws it there. `CompassMath` is pure Core: `period_for()` reproduces TUNABLES §4.2's twelve rows to **0.40 ms**, and the reciprocal exponent makes the rate **58x steeper close in than far out**. One reading per hunter into `ctx.compass`: a **world** bearing with `TUN-COMPASS-CONE-WOBBLE`'s drift already applied server-side, and a `Quantise.BUCKET_STEP` 0.5 m distance bucket, so nothing downstream holds the exact metres. The wobble is a sine of `(contract, tick)` — deterministic and learnable, never RNG — with its phase **mixed**, or adjacent peer ids would drift in step. **A missing reading is `NO_CONTRACT` 255, never bucket 0**, which is a real reading. `lock_fraction` and `portrait_revealed` are US-0058's and read zero; nothing draws any of it |
 | Detection | `SYS-DETECTION` ticks at the `detection` stage, **after `suspicion`**, because the render state is computed from *tier* and a tick of lag makes the silhouette disagree with the tier indicator. One pass over 30 ordered pairs, **costing zero raycasts**: GDD-03 §2.1's rule is `tier × relationship` and §2.3 draws the Exposed outline through geometry, so occlusion must not gate it. The early-out ladder drops ~70 % of pairs on the tier check alone. It reads the **announced** contract from `ctx.announced_contracts`, never the graph's, so a tint cannot arrive before the Compass does. `RenderMatrix` carries the answer to `SnapshotBuilder` four stages later and **absent means `PLAIN`**, which is the safe direction. **It also holds the only line-of-sight query in the project** — `WORLD`-masked, so NPCs and players cannot block it by construction; Cinderfall is a sphere tested against the segment; the rewound form is **still refused**, and US-0060 sharpened the reason rather than clearing it — kill validation asks no line-of-sight question at all, so there is still no caller for a past one. **`has_los()` has two callers**: the Compass lock (US-0058) and the witnessed-kill check (US-0060). `cinderfall` is `MatchContext`'s list, adopted by reference, and every liveness query takes the tick it is asked about. **It also owns the prey warning** (US-0059): `_resolve_pair` already computes `hunted_by`, so the warning is a distance, a tier comparison and a cooldown lookup on pairs the ladder has already admitted — no second pass and no raycast. `PreyWarning` holds only the cooldown, and **a new pursuer defeats it**, or a repair would silence the prey's one warning for 2.5 s |
 | Abilities | **`SYS-ABILITY` at the `abilities` stage, and one of the four now does something** (US-0066, US-0067). `AbilityRules` is pure — five validations answering with the first rung that fails, and an aim that is **clamped rather than refused** because the client's aim and the server's differ by a rounding error on every cast. Cooldowns are **integer tick deadlines started at ACTIVATION**, reset on death by `AbilitySystem.on_death` rather than by `PawnContext.reset_for_spawn`, which prediction replays. The tell is **the one broadcast in this game** — reliable, to everybody inside `TUN-<ABIL>-TELL-AUDIO-RADIUS`, and emitted **before** `effect.begin`. A denial **carries its reason**, unlike the stun's, because every reason is a fact about the presser's own kit. **A cast has a wind-up as of US-0067**: `LiveAbility` holds it *pending* until `TUN-<ABIL>-CAST-TIME` has passed and *live* afterwards, the duration runs from the burst rather than from the press, and a caster killed mid-throw drops nothing. `AbilityData.startle_radius` is raised by the **system** beside the suspicion cost, because Lunge carries one too, and leaves through `ability_startled` for `server_root` to wire. `effect_script` is set for **Cinderfall** and null for the other three — and it is **stripped from `TuningProfile.serialise`**, because `var_to_bytes_with_objects` would otherwise send a server-only `Script` to every client |

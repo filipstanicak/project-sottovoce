@@ -318,7 +318,7 @@ cannot be broken at all.
 
 | Not sent | Would break | Enforced by |
 |---|---|---|
-| Contract's **persona** | The crowd's entire value — collapses ~78 candidates to ~12 | `NET-S2C-CONTRACT-ASSIGNED` carries `peer_id` only |
+| ~~Contract's **persona**~~ | *Struck 2026-09-22 by ADR-0021: the persona IS sent to the hunter, as the reference shows the target's picture from assignment. It travels with the contract when players have one (US-0078) — one byte on `NET-S2C-CONTRACT-ASSIGNED`, a `PROTOCOL_VERSION` bump, recorded on that row when it lands.* | `NET-S2C-CONTRACT-ASSIGNED` carries `peer_id` only **today**, because nobody has a persona yet |
 | Contract's **exact position** | Deletes the search | `bearing` + `distance_bucket` only |
 | Contract's **elevation** | The Compass is 2D by design | No z component anywhere in `compass` |
 | Contract's **suspicion or tier** | You see the consequence, never the value | Not in the payload |

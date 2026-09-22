@@ -100,3 +100,6 @@ Drain being faster than fill pushes the hunter toward standing still and watchin
 keeps their own suspicion at zero. The mechanic and the thesis agree.
 
 The permanent portrait is what makes a lock worth its 1.6 s cost; the 1.5 s reveal alone is not.
+*(Superseded 2026-09-22 by ADR-0021: the persona is known from assignment, and the lock is worth
+its cost for the reveal — the only thing that names the body among the clones — and `SCORE-FOCUS`.
+The latch this story built stands; its meaning is "a lock completed for this contract".)*

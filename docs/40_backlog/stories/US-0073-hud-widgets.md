@@ -4,7 +4,7 @@ title: HUD — tier, portrait, crosshair, abilities, timer
 version: 0.3.0
 status: in-progress
 owner: Lead Game Designer
-last_updated: 2026-09-15
+last_updated: 2026-09-22
 depends_on: [BIBLE-UI-UX, TDD-11-UI]
 ---
 
@@ -43,14 +43,14 @@ The remaining widgets, each a pure renderer fed by a view model.
       fact and are not the same kind of thing, and folding them together would make
       *"does this take the whole screen"* a property of a branch rather than of a
       node. Fades over `TUN-UI-DAMAGE-VIGNETTE-TIME`, read rather than written.
-- [ ] Contract portrait shows UNKNOWN until a lock completes, then the persona permanently.
-      **Half done, and the other half is not a stub — it is ASM-0030.** UNKNOWN,
-      the reveal on lock, and the reset on reassignment are built. **Which persona
-      is not on the wire and must not be**: a client learns its contract's
-      appearance by *looking*, and the lock exists to make that looking cost
-      something. The honest source is the mesh the client is already drawing
-      (US-0046's `PersonaBody`), which needs the lock to name a slot. Adding the
-      persona to a payload instead is the leak `NETWORK_PROTOCOL` §9 forbids.
+- [ ] Contract portrait shows the contract's persona from assignment; a completed lock adds the `Identified` mark; both reset on reassignment.
+      **Reworded 2026-09-22 by ADR-0021**, which voided ASM-0030 — it read *"UNKNOWN until a
+      lock completes, then the persona permanently"*, and the reference shows the picture
+      from the start. The lock's mark and the reset are built. **The persona half is
+      blocked on US-0078**: a player has no persona server-side until the lobby exists,
+      and the persona will travel with the contract on `NET-S2C-CONTRACT-ASSIGNED` when it
+      does. The old note argued the persona *"must not be on the wire"* — that is the
+      argument ADR-0021 retires.
 - [x] Crosshair ring appears IF AND ONLY IF pressing kill would succeed, from a SERVER flag.
       `kill_ready`, computed by `SYS-KILL` against the same contract, range, cone,
       lockout, concealment and — since ADR-0015 — line-of-sight rules the press is

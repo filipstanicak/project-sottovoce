@@ -63,7 +63,8 @@ func test_the_alone_gain_is_not_cancelled_by_decay_either() -> void:
 
 
 func test_sources_sum_additively() -> void:
-	# ASM-0018. Sprinting on a roof with nobody nearby: 25 + 18 + 6 = 49/s.
+	# ASM-0018. Sprinting on a roof with nobody nearby: 25 + 18 + 6 = 49/s, with
+	# the alone gain restored on this copy (it is 0 in the shipped profile, ADR-0020).
 	_s.speed_state = PawnStateId.SPRINT
 	_s.speed = Tuning.movement.sprint
 	_s.on_roof = true
@@ -168,7 +169,7 @@ func test_the_value_is_clamped_at_both_ends() -> void:
 	_s.on_roof = true
 	_s.nearest_npc_distance = INF
 	_run(10.0)
-	assert_eq(_s.value, _t.max_value, "ten seconds of 49/s did not clamp at the maximum")
+	assert_eq(_s.value, _t.max_value, "ten seconds at the summed rate did not clamp at the maximum")
 	_s.value = 5.0
 	_s.speed_state = PawnStateId.STROLL
 	_s.on_roof = false

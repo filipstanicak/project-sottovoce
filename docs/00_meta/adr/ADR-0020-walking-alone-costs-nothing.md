@@ -56,8 +56,9 @@ word beside a value that is not rising is precisely the drift that file exists t
 (*"the list and the number are one decision"*). The bit keeps its wire slot — bit 3 of
 `active_sources`, NETWORK_PROTOCOL §4 — so no client on any build misreads a byte.
 Restoring the number restores the mechanic in one edit, and the tests that prove the
-crowd query is wired run on a copy of the profile with the number restored, so the day it
-returns nothing has rotted.
+crowd query is wired run with the number restored — the Core tests on a duplicated
+`SuspicionTuning`, the system test on the live profile for its own duration, put back in
+`after_each` — so the day it returns nothing has rotted.
 
 **`TUN-SUSPICION-OPEN-RADIUS` stays live.** `SpatialHash` sizes its cells from it and
 `SYS-SUSPICION` still answers the nearest-NPC query against it every tick; the reading is

@@ -100,11 +100,11 @@ Each element states **the question it answers, in the player's words**. Law 1.
 
 | | |
 |---|---|
-| **Question it answers** | *"Do I know what my target looks like yet?"* |
-| **Shows** | On assignment: a featureless silhouette and the word `UNKNOWN`. After a Compass lock completes: the contract's **persona** silhouette and name, permanently, until the contract changes (ASM-0030). |
-| **Why it is earned rather than given** | Knowing your contract's persona collapses the candidate set from 60–90 figures to 8–13. Handing that over on assignment would delete the search, which is the game. Making it the lock's payoff does two jobs: it preserves the search, and it makes the 1.6 s of standing still that a lock costs *worth paying* — the 1.5 s reveal alone is too brief to justify it. |
+| **Question it answers** | *"What does my target look like?"* |
+| **Shows** | On assignment: the contract's **persona** silhouette and name, for as long as the contract stands ([ADR-0021](../00_meta/adr/ADR-0021-the-hunter-knows-the-face.md), 2026-09-22). A completed Compass lock adds its own mark — the check and the word `Identified` — because the lock is still the only thing that names the *body* among the persona's clones. **Until players have a persona server-side (US-0078's lobby) the portrait shows `UNKNOWN`**, which is a fact about the build rather than a rule. |
+| **Why it is given rather than earned** | *Until 2026-09-22 it was earned (ASM-0030): `UNKNOWN` on assignment, the persona only when a lock completed, on the argument that knowing the persona collapses 60–90 figures to 8–13 and that the lock needed a payoff.* The reference shows the picture from assignment, and the collapse is the game: the clone system keeps the 8–13 indistinguishable from the player, and a hunter who does not know whose gait to compare against cannot learn the read the game is about. The lock keeps its 1.5 s silhouette reveal and `SCORE-FOCUS`, which is more than the reference's lock pays. |
 | **Never shows** | Player name. Position. Distance. Suspicion. Score. |
-| **Reset** | On contract reassignment, back to `UNKNOWN`. The work does not carry over. |
+| **Reset** | On contract reassignment, to the new contract's persona; the lock's mark clears. |
 
 #### C — Suspicion tier indicator  *(left, above abilities)*
 
@@ -446,7 +446,7 @@ Referenced by ID from the TDD, the implementation and the test plan. ID grammar
 |---|---|---|---|---|---|---|
 | `SFX-COMPASS-PULSE` | Every pulse period | INFO | ✗ | ✓ | — | Pitch rises a fifth across range; ducks AMB −6 dB |
 | `SFX-COMPASS-LOCK-FILL` | Lock arc filling | INFO | ✗ | ✓ | — | Rising sustained tone, tracks fill fraction |
-| `SFX-COMPASS-LOCK-COMPLETE` | Lock reaches 100 % | INFO | ✗ | ✓ | — | Resolves the fill tone; also fills the contract portrait (ASM-0030) |
+| `SFX-COMPASS-LOCK-COMPLETE` | Lock reaches 100 % | INFO | ✗ | ✓ | — | Resolves the fill tone; also marks the contract portrait `Identified` (it *filled* the portrait under ASM-0030, void since ADR-0021) |
 | `SFX-COMPASS-LOCK-BREAK` | Lock lost before completion | INFO | ✗ | ✓ | — | Deliberately unpleasant; a broken lock cost you 1.6 s |
 | `SFX-CONTRACT-ASSIGNED` | New contract issued | INFO | ✗ | ✓ | — | Must be unmistakable — Part 3 failure mode 18 is players not noticing reassignment |
 | `SFX-WARN-PREY-STING` | Prey warning fires | INFO | ✗ | ✓ | — | **Mono/centred, never positional.** Ducks everything −12 dB |
@@ -608,7 +608,7 @@ nothing else. Both are things you already know.
 - [ ] No HUD element exists that is not in §2.1.
 - [ ] The Compass renders as a cone of half-width `TUN-COMPASS-CONE-HALFWIDTH`, never as a needle.
 - [ ] The Compass never displays a numeric distance.
-- [ ] The contract portrait shows `UNKNOWN` on assignment and fills only on lock completion; it resets on reassignment (ASM-0030). Covered by `test_contract_portrait_gating.gd`.
+- [ ] The contract portrait shows the contract's persona from assignment and resets to the new persona on reassignment (ADR-0021; it read *`UNKNOWN` until a lock completes* under ASM-0030 until 2026-09-22). Needs US-0078's persona before it can be checked.
 - [ ] The suspicion indicator encodes tier in shape *and* colour *and* word, and is legible with the monochrome palette applied.
 - [ ] The suspicion indicator lists active suspicion sources when any is contributing.
 - [ ] The numeric suspicion value appears nowhere in the HUD.
@@ -646,7 +646,7 @@ nothing else. Both are things you already know.
 | 9 | **Music tells players something.** | A player says "I could hear when someone was near me." | A stem is keyed to something other than own tier or match phase. |
 | 10 | **The crosshair lies.** | Players press kill with the ring showing and nothing happens. | Client-side prediction of kill validity disagreeing with server validation — usually a lag-compensation or facing-cone discrepancy. Either fix the agreement or make the ring server-confirmed; a lying crosshair is worse than no crosshair. |
 | 11 | **The results screen is skipped.** | Players hammer through it; the teaching moment is lost. | Breakdown not readable in the time available, or the unanimous-skip rule not enforced. |
-| 12 | **The contract portrait reveals too much.** | Players report finding targets easily after their first lock. | Working as designed (ASM-0030) — but if `TEL-TIME-TO-KILL` drops sharply after first lock, the persona reveal may be too strong and should degrade (e.g. show silhouette class only). |
+| 12 | ~~**The contract portrait reveals too much.**~~ | *Retired 2026-09-22 with ASM-0030 (ADR-0021): the persona is shown from assignment by design, so "finding targets easily after the first lock" is no longer a symptom of anything.* | If targets are found too easily at all, the question is the clone floor (`TUN-CROWD-CLONE-LOCAL-MIN`) and the clones' fidelity, not the portrait. |
 
 ---
 
@@ -654,7 +654,7 @@ nothing else. Both are things you already know.
 
 | # | Question | Position taken | Needed by |
 |---|---|---|---|
-| 1 | Should the contract portrait reveal the full persona, or only a silhouette *class* (tall/broad/wide/round)? The full persona narrows 78 NPCs to ~12; a class narrows it to ~24. | Full persona for MVP — it is what the player saw during the reveal anyway, and withholding it would feel arbitrary. Degrade to class only if failure mode 12 fires. | M5 |
+| 1 | Should the contract portrait reveal the full persona, or only a silhouette *class* (tall/broad/wide/round)? The full persona narrows 78 NPCs to ~12; a class narrows it to ~24. | **Settled 2026-09-22 by ADR-0021: the full persona, from assignment.** The reference shows the picture from the start; a class would be halfway to it and would need four strings, a wire enum and a failure mode of its own. | — |
 | 2 | Should `AMB-CROWD-NEAR` (§5.6) be reclassified as information rather than atmosphere? It is driven by exactly the quantity that governs open-ground suspicion, so a player can hear whether they are alone — which is genuinely actionable. | Keep as atmosphere, because the tier indicator already carries it explicitly and the guarantee "muting ambience loses nothing" is worth more than the redundancy. Revisit if players report relying on it. | M5 |
 | 3 | Is a persistent on-screen scoreboard needed for the last 60 seconds? Currently it is hold-only. Trailing players may not know they need to take risks. | Hold-only. The Final Contract's ×2 makes risk correct for everyone regardless of position, so the information is less load-bearing than it looks. | M6 |
 | 4 | Should `SFX-KILL-INITIATE` be audible at 12 m? That is generous — it means a patient kill in a dense market is often heard. | Keep. A kill is meant to be a public event; the counter is to kill somewhere quiet, which is a positional decision the level design supports. | M4 |
