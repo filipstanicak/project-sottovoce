@@ -1,42 +1,53 @@
-# Installs the engine build pinned by .godot-version and puts it on PATH.
-#
-# Factored out because three jobs need it. The previous shape cached the engine
-# in `test` and `export` but only *installed* it in `import`, so those two jobs
-# worked purely because the cache happened to be warm. A cache eviction — 7-day
-# idle, or the 10 GB repo ceiling — would have failed them with
-# `godot: command not found`, which reads like a broken runner rather than a
-# missing dependency. Cache is an optimisation; it must never be the only path.
-
-name: setup-godot
-description: Install the pinned Godot build, cached, and add it to PATH.
-
-inputs:
-  tag:
-    description: Release tag from the version job, e.g. 4.7.1-stable
-    required: true
+name: Setup pinned Godot
+description: Install and verify the exact Godot build pinned by the repository.
 
 runs:
   using: composite
   steps:
-    - name: Cache engine
-      uses: actions/cache@v6
-      with:
-        path: ~/godot
-        key: godot-${{ inputs.tag }}
-
-    - name: Install engine
+    - id: pin
+      name: Resolve repository pin
       shell: bash
       run: |
         set -euo pipefail
-        TAG="${{ inputs.tag }}"
-        if [ ! -x "$HOME/godot/godot" ]; then
-          echo "engine cache miss — downloading $TAG"
-          mkdir -p "$HOME/godot"
-          URL="https://github.com/godotengine/godot/releases/download/${TAG}/Godot_v${TAG}_linux.x86_64.zip"
-          curl -fsSL "$URL" -o /tmp/godot.zip
-          unzip -q /tmp/godot.zip -d "$HOME/godot"
-          mv "$HOME"/godot/Godot_v*_linux.x86_64 "$HOME/godot/godot"
-          chmod +x "$HOME/godot/godot"
+        source <(bash .ci/resolve_godot_pin.sh)
+        echo "full=$GODOT_FULL" >> "$GITHUB_OUTPUT"
+        echo "tag=$GODOT_TAG" >> "$GITHUB_OUTPUT"
+        echo "archive=$GODOT_ARCHIVE" >> "$GITHUB_OUTPUT"
+        echo "sha256=$GODOT_SHA256" >> "$GITHUB_OUTPUT"
+
+    - name: Cache engine
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ~/godot/${{ steps.pin.outputs.tag }}
+        key: godot-${{ runner.os }}-${{ runner.arch }}-${{ steps.pin.outputs.tag }}-${{ steps.pin.outputs.sha256 }}
+
+    - name: Install and verify engine
+      shell: bash
+      env:
+        GODOT_ARCHIVE: ${{ steps.pin.outputs.archive }}
+        GODOT_FULL: ${{ steps.pin.outputs.full }}
+        GODOT_SHA256: ${{ steps.pin.outputs.sha256 }}
+        GODOT_TAG: ${{ steps.pin.outputs.tag }}
+      run: |
+        set -euo pipefail
+        engine_dir="$HOME/godot/$GODOT_TAG"
+        engine="$engine_dir/godot"
+        if [ ! -x "$engine" ]; then
+          echo "engine cache miss — downloading $GODOT_TAG"
+          mkdir -p "$engine_dir"
+          archive="$RUNNER_TEMP/$GODOT_ARCHIVE"
+          curl --fail --location --retry 3 --retry-all-errors \
+            "https://github.com/godotengine/godot/releases/download/$GODOT_TAG/$GODOT_ARCHIVE" \
+            --output "$archive"
+          printf '%s  %s\n' "$GODOT_SHA256" "$archive" | sha256sum --check --strict
+          unzip -q "$archive" -d "$engine_dir"
+          mv "$engine_dir"/Godot_v*_linux.x86_64 "$engine"
+          chmod +x "$engine"
         fi
-        echo "$HOME/godot" >> "$GITHUB_PATH"
-        "$HOME/godot/godot" --version
+        actual="$($engine --version | tr -d '[:space:]')"
+        if [ "$actual" != "$GODOT_FULL" ]; then
+          echo "setup-godot: expected $GODOT_FULL, got $actual" >&2
+          exit 1
+        fi
+        echo "$engine_dir" >> "$GITHUB_PATH"
+        echo "verified Godot $actual"

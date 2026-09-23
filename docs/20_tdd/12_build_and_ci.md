@@ -1,10 +1,10 @@
 ---
 id: TDD-12-BUILD
 title: "TDD Chapter 12 — Build, CI and Tooling"
-version: 0.1.0
+version: 0.2.0
 status: draft
 owner: Technical Director
-last_updated: 2026-08-03
+last_updated: 2026-09-23
 depends_on: [TDD-01-ARCHITECTURE, TDD-02-STRUCTURE, TDD-05-DATA, ADR-0001, ADR-0009, DOC-IP-GUARDRAILS]
 ---
 
@@ -28,37 +28,42 @@ depends_on: [TDD-01-ARCHITECTURE, TDD-02-STRUCTURE, TDD-05-DATA, ADR-0001, ADR-0
 
 ```mermaid
 flowchart LR
-    PUSH([push / PR]) --> IMPORT["import<br/>headless, cold<br/>≤ 90 s"]
-    IMPORT --> LINT["lint<br/>gdlint + gdformat --check"]
-    IMPORT --> IPG["ip-guard<br/>banned-terms grep"]
-    IMPORT --> ASSET["asset-inventory<br/>bidirectional"]
-    LINT --> TEST["test<br/>unit + arch ≤ 45 s"]
-    IPG --> TEST
-    ASSET --> TEST
-    TEST --> ITEST["integration<br/>headless 3-client"]
-    ITEST --> EXPORT["export<br/>win/linux client + server"]
-    EXPORT --> GREEN([green])
+    PUSH([push / PR]) --> VERSION["resolve engine version<br/>pin + checksum"]
+    PUSH --> IMPORT["import<br/>headless + generated resources"]
+    PUSH --> LINT["lint<br/>format + generated code"]
+    PUSH --> IPG["ip-guard"]
+    PUSH --> ASSET["asset-inventory"]
+    IMPORT --> CORE["architecture + unit"]
+    IMPORT --> INTEGRATION["integration<br/>headless 3-client"]
+    CORE --> TEST["test<br/>required aggregator"]
+    INTEGRATION --> TEST
+    IMPORT --> EXPORT["export<br/>3 release PCKs + server boot"]
+    VERSION --> GREEN([seven required checks green])
+    LINT --> GREEN
+    IPG --> GREEN
+    ASSET --> GREEN
+    TEST --> GREEN
+    EXPORT --> GREEN
 ```
 
-**Seven jobs run**, and all of them are **required checks** on `main` (ADR-0009) — see §1.3 for
-how far that is currently *enforced* as opposed to merely agreed. The table below listed six and
-called them all, which is the sort of drift a count invites; the names are now the workflow's.
+**Seven check names are required** on `main` (ADR-0009). Two internal test workers run the
+architecture and unit suites alongside the integration suite; the required `test` check succeeds
+only when both workers do. The ruleset remains stable while integration no longer delays them.
 
 | Job | Fails on | Typical |
 |---|---|---|
-| `version` | `.godot-version` missing or unparseable — it resolves the engine every other job uses | ~2 s |
-| `import` | Any import error or script parse failure | ~70 s cold, ~15 s cached |
-| `lint` | Any `gdlint` violation; any file `gdformat` would change | ~20 s |
+| `version` | Engine pin malformed, or its archive has no committed SHA-256 | ~2 s |
+| `import` | Import/parse error; generated tuning or either map is stale | ~70 s cold, ~15 s cached |
+| `lint` | Shell/GDScript syntax, lint or format failure; generated GDScript is stale | ~30 s |
 | `ip-guard` | **Any banned term anywhere in the repo** | ~5 s |
 | `asset-inventory` | An asset with no licence row, **or a stale row** | ~5 s |
-| `test` | Any architecture, unit **or integration** test failure | ~60 s |
-| `export` | Export failure, or a preset missing an exclusion | ~120 s |
+| `test` | Either parallel architecture+unit or integration partition fails or skips scripts | ~190 s |
+| `export` | A release PCK fails, an exclusion drifts, or the stripped server PCK cannot boot | ~25 s |
 
-> **An `integration` job is still not built, and the row for it has now been removed** rather
-> than left looking pending. The seven above are what runs: the 3-client harness is US-0036, in M2, and it needs the networking that does not
-> exist. What *does* run is `test/integration/` as a third step inside `test`, added in US-0016
-> — scene-booting tests on one peer, no harness. `.ci/run_gut.sh` skips the directory when it is
-> empty, so this cost nothing until there was something to run.
+> `test/integration/` is an internal job rather than an eighth required context. It runs the real
+> three-client harness in a separate imported workspace while architecture and unit tests run in
+> parallel. `.ci/run_gut.sh` streams output and still refuses a green result unless every
+> `test_*.gd` file was executed.
 >
 > It was worth adding early. Unit tests prove `step()` is correct; they cannot prove anything
 > ever *calls* it, and a broken boot path has now survived a fully green suite twice — once with
@@ -339,25 +344,23 @@ The fix is `.ci/repo_files.sh`, sourced by both:
 call `git ls-files`, every guard must load through it, and both refusals must
 still be there. **Do not relax it** — same reason as §1.4.
 
-### 1.6 Nothing in CI checks that generated code is fresh
+### 1.6 Generated outputs reproduce in CI — since 2026-09-23
 
-**KNOWN GAP, NOT YET CLOSED.** Two things in this repository are generated —
+Two things in this repository are generated —
 `scripts/core/ids.gd` plus `scripts/core/tuning/*` from
 `tools/tuning_codegen/run_all.py`, and the map scenes plus `MapData` from
-`tools/generate_map_vetraio.gd`. **No CI job regenerates either and diffs the
-result.**
+`tools/generate_map_vetraio.gd` and `tools/generate_map_sandbox.gd`.
 
-A stale generated file therefore passes every gate the pipeline has. It imports,
-it lints, it satisfies the architecture guards, and all three suites go green —
-because the tests exercise the *committed* file, which is self-consistent. It is
-wrong only against its source, and nothing compares the two.
+`lint` now regenerates the Python outputs, formats them and requires an empty diff.
+`import` regenerates the default tuning resources and both maps and requires an
+empty diff. A stale generated file therefore fails before tests consume it.
 
 This is not hypothetical: `movement_tuning.gd` was found stale against
 TUNABLES.md on 2026-08-14 (#65), by hand, during a checkpoint. Regenerated on
 2026-08-15 both artefacts reproduced byte-for-byte, so the tree is currently
-clean — but that was established by somebody running the generators, not by CI.
+clean — but that was established by somebody running the generators before CI closed the gap.
 
-Two details anyone closing this gap will need:
+The implementation preserves two details that make this check meaningful:
 
 1. **The codegen emits PRE-format output.** The committed files are
    post-`gdformat`, so a naive regenerate-and-diff reports a whitespace failure
@@ -366,9 +369,8 @@ Two details anyone closing this gap will need:
    That is noise from Godot's headless teardown, not a failure; judge it on the
    diff, not on stderr.
 
-Until a job exists, **regenerating and diffing is part of the checkpoint
-procedure** (`.claude/commands/save.md` §7), which means it happens at
-checkpoints rather than on every pull request.
+The checkpoint procedure still repeats the same proof locally; CI now performs it
+on every pull request as well.
 
 ---
 
@@ -416,18 +418,13 @@ Two things here are **not** yet true:
 | Owed | Why not yet |
 |---|---|
 | The server preset excluding `assets/` except map collision and navmesh | There are no assets. The exclusion cannot be written meaningfully until the greybox map exists (US-0012 part 2). |
-| `test_headless_server_runs_without_presentation.gd` | `test_server_root_has_no_presentation.gd` asserts the *static* half — no visual node in the scene, and the presets excluding the layers. Proving the server **runs** without presentation needs an actual export, which needs a map to run. |
+| `test_headless_server_runs_without_presentation.gd` | The named GUT test does not exist. The required `export` check performs its proof directly: build the filtered server PCK and boot that pack for 30 frames. |
 
-`test_export_excludes.gd` is specified to parse `export_presets.cfg` and assert every path above
-is listed — in particular that `addons/gut/` is excluded from all three, because a test framework
-inside a shipped build is both a size cost and an attack surface.
-
-**IT DOES NOT EXIST** (checked 2026-09-04), and the sentence above read as though it did until
-this line was added — trap 14's shape, and the claim is what stops anybody checking. §10's test
-table has said `No — US-0088` all along, so the two halves of this document disagreed. What
-actually parses the presets today is the `export` CI job's two `grep` calls (§2) and
-`test_sandbox_is_debug_only.gd`, which asserts one exclusion across every preset it can find and
-refuses a run that found none.
+`test_export_excludes.gd` parses all five presets and asserts every current layer exclusion,
+including `addons/gut/`, the sandbox and `.mcp.json`. The last one was found inside the first real
+server PCK; the former two `grep` calls could not see that leak. The `export` job now creates the
+server, Windows-client and Linux-client release PCKs and boots the stripped server pack. PCK export
+exercises the complete inclusion graph without downloading the 1.2 GB platform templates.
 
 ---
 
@@ -613,15 +610,19 @@ func flush_to(path: String) -> void        ## --record
 | Path | Purpose |
 |---|---|
 | `.github/workflows/ci.yml` | The seven jobs |
-| `.github/actions/setup-godot/action.yml` | Installs the pinned engine; used by `import`, `test`, `export` |
+| `.github/actions/setup-godot/action.yml` | Downloads, checksums and verifies the exact pinned engine; used by import, test workers and export |
+| `.github/dependabot.yml` | Weekly reviewable updates for pinned Actions and Python tools |
 | `.githooks/pre-push` | Refuses a direct push to `main` (§1.3) |
 | `.ci/run_gut.sh` | Runs a GUT suite and fails if it ran fewer scripts than exist (§1.4) |
+| `.ci/resolve_godot_pin.sh` · `godot_downloads.sha256` | Strict engine pin parsing and download integrity |
+| `.ci/check_generated_code.sh` · `check_generated_resources.sh` | Regenerate and require a clean tree (§1.6) |
+| `.ci/export_packs.sh` | Build three release PCKs and boot the stripped server |
 | `.ci/repo_files.sh` | Sourced file enumeration; refuses to hand back an empty list (§1.5) |
 | `.ci/banned_terms.txt` · `ip_guard_exclude.txt` · `ip_guard.sh` | IP enforcement |
 | `.ci/check_asset_inventory.sh` | Bidirectional asset check |
 | `.gdlintrc` · `.gdformatrc` | Lint config |
 | `.godot-version` | Pinned engine version |
-| `export_presets.cfg` | Three presets |
+| `export_presets.cfg` | Five presets: server, two release clients, two debug clients |
 | `scenes/boot.tscn` + `scripts/server/boot.gd` | `--server` branch. In `server/`, not the `scripts/` root: a script at the root belongs to no layer, and the layer rule is enforced by folder membership |
 | `scripts/server/server_main.gd` | Headless entry |
 | `scripts/debug/debug_console.gd` + `commands/*.gd` | The console |
@@ -647,12 +648,12 @@ func flush_to(path: String) -> void        ## --record
 
 | Test | Asserts | Built? |
 |---|---|---|
-| `test_export_excludes.gd` | Every §3 exclusion is present; `addons/gut/` excluded from all presets | No — US-0088 |
+| `test_export_excludes.gd` | Every current §3 exclusion is present; `addons/gut/`, sandbox and `.mcp.json` excluded from all presets | **Yes** |
 | `test_headless_server_runs_without_presentation.gd` | A server export with all presentation excluded completes a full match. **The architecture's proof** | No — needs a full match, M4. `test_server_root_has_no_presentation.gd` guards the static half |
 | `test_server_flag.gd` | `--server` produces server topology; its absence produces client topology | No. `test_launch_config.gd` covers the parse; the topology branch is unbooted (trap 4) |
 | `test_cli_args.gd` | Every §4 flag parses, with defaults | **Yes, as `test_launch_config.gd`** |
 | `test_debug_stripped.gd` | A release export contains no `scripts/debug/` symbol | No — needs an export, US-0088 |
-| `test_ci_required_checks.gd` | `ci.yml` defines all seven jobs and each is required | No. §1's table said six for two milestones while seven ran; this guard is what would have caught that |
+| `test_ci_required_checks.gd` | Workflow and ruleset agree on all seven required names; strict mode, read-only permissions and immutable Action pins survive | **Yes** |
 | `test_banned_terms_sync.gd` | `.ci/banned_terms.txt` matches IP_GUARDRAILS §2.1–2.3 exactly | No |
 | `test_ip_guard_exclusions.gd` | Exactly two files are exempt | No |
 | `test_ci_guards_refuse_empty_scan.gd` | Only `repo_files.sh` calls `git ls-files`; both guards load through it; both refusals survive (§1.5) | **Yes** — US-0020 |

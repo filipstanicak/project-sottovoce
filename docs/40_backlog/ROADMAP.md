@@ -110,8 +110,8 @@ exit criterion is somebody's named deliverable rather than a shared assumption.
 
 | Delivers | |
 |---|---|
-| `project.godot`, `.godot-version`, export presets | Engine pinned; three presets with their exclusion lists |
-| Seven CI jobs on `main` | version · import · lint · ip-guard · asset-inventory · test · export. *Required by agreement, not by the server; see §1.3 of TDD-12.* |
+| `project.godot`, `.godot-version`, export presets | Engine pinned; five presets with their exclusion lists |
+| Seven required CI checks on `main` | version · import · lint · ip-guard · asset-inventory · test · export. Enforced by the strict server-side ruleset; see §1.3 of TDD-12. |
 | The full folder tree + `test/arch/` guards | The layer rule is enforced from commit one |
 | `Ids`, all eight autoloads, the string table | |
 | `TuningProfile` + every sub-resource + `data/tuning/default/*.tres` | **All 269 values, from TUNABLES.md** |

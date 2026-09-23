@@ -1,19 +1,5 @@
-# Project Sottovoce — CI
-#
-# Seven required checks on `main` (TDD-12 §1) — version, import, lint, ip-guard,
-# asset-inventory, test, export. All seven must be green to merge; ADR-0009
-# forbids direct pushes to main. NAMED, not counted: this comment said six for
-# two milestones after `version` was added, and so did three documents.
-#
-# Note the triggers below: `push` is restricted to main, so a topic branch runs
-# CI only once a PR is open against main. Pushing a branch and waiting for a run
-# waits forever.
-#
-# `import` runs first because everything else depends on a clean import, and
-# import errors are the most common cause of works-on-my-machine.
-#
-# Engine version is pinned by .godot-version (ADR-0011). CI installs exactly
-# that build — a CI that installs "latest" is background drift with extra steps.
+# Project Sottovoce — required CI.
+# Keep the seven displayed job names aligned with .github/main-ruleset.json.
 
 name: CI
 
@@ -22,183 +8,172 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  # ---------------------------------------------------------------- version --
-  # Single source of truth for the engine version, read once and reused.
   version:
     name: resolve engine version
-    runs-on: ubuntu-22.04
-    outputs:
-      godot: ${{ steps.pin.outputs.godot }}
-      tag: ${{ steps.pin.outputs.tag }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
     steps:
-      - uses: actions/checkout@v7
-      - id: pin
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Validate engine pin and checksum
+        shell: bash
         run: |
-          FULL=$(tr -d '[:space:]' < .godot-version)
-          # 4.7.1.stable.official.<hash>  ->  4.7.1  /  4.7.1-stable
-          SEMVER=$(echo "$FULL" | cut -d. -f1-3)
-          echo "godot=$SEMVER" >> "$GITHUB_OUTPUT"
-          echo "tag=$SEMVER-stable" >> "$GITHUB_OUTPUT"
-          echo "Pinned engine: $FULL (download tag $SEMVER-stable)"
+          set -euo pipefail
+          source <(bash .ci/resolve_godot_pin.sh)
+          echo "Pinned engine: $GODOT_FULL"
+          echo "Download: $GODOT_ARCHIVE ($GODOT_SHA256)"
 
-  # ----------------------------------------------------------------- import --
   import:
     name: import
-    needs: version
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7
-        with: { lfs: true }
-
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          lfs: true
+          persist-credentials: false
       - uses: ./.github/actions/setup-godot
-        with: { tag: '${{ needs.version.outputs.tag }}' }
-
-      # Saved here, restored read-only by `test`. Passing it as an artifact
-      # instead does not work: `.godot` is a hidden path and upload-artifact
-      # silently skips hidden files, so the upload produced nothing and the
-      # download in `test` then hard-failed. A cache miss is merely slower.
-      #
-      # THE KEY MUST COVER EVERY INPUT GODOT IMPORTS. It once hashed only
-      # project.godot and **/*.import, so a commit that added .gd files produced
-      # an identical key: `import` hit the cache and never saved its fresh
-      # result, and `test` restored a .godot whose script registry predated the
-      # new files. GUT then scanned the directory, could not see them, and
-      # reported success on six scripts out of nine.
-      - name: Cache import artefacts
-        uses: actions/cache@v6
+      - name: Cache imported project
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .godot
-          key: import-${{ needs.version.outputs.tag }}-${{ hashFiles('project.godot', '**/*.import', '**/*.gd', '**/*.tscn', '**/*.tres') }}
+          key: godot-import-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.godot-version', 'project.godot', 'addons/**', 'assets/**', 'data/**', 'scenes/**', 'scripts/**', 'test/**', 'tools/**') }}
+      - name: Import project
+        run: godot --headless --path . --editor --quit-after 200
+      - name: Verify generated resources
+        run: bash .ci/check_generated_resources.sh
 
-      # TDD-12 §12: ≤ 90 s. Above ~2 min it stops being a fast gate.
-      - name: Headless import
-        timeout-minutes: 5
-        run: godot --headless --editor --quit-after 200
-
-  # ------------------------------------------------------------------- lint --
   lint:
     name: lint
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
-        with: { python-version: '3.12' }
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: .ci/requirements.txt
+      - name: Install lint tools
+        run: pip install --requirement .ci/requirements.txt
+      - name: Validate shell scripts
+        run: bash -n .ci/*.sh
+      - name: Lint GDScript
+        run: gdlint scripts/ test/ tools/
+      - name: Check GDScript formatting
+        run: gdformat --check scripts/ test/ tools/
+      - name: Verify generated code
+        run: bash .ci/check_generated_code.sh
 
-      - name: Install gdtoolkit
-        run: pip install --quiet "gdtoolkit==4.*"
-
-      # No .gd files exist yet at M0. Skip cleanly rather than failing on an
-      # empty glob — a job that fails when there is nothing to check teaches
-      # people to ignore it.
-      - name: gdlint
-        run: |
-          set -euo pipefail
-          if compgen -G "scripts/**/*.gd" > /dev/null || compgen -G "test/**/*.gd" > /dev/null; then
-            gdlint scripts/ test/ tools/
-          else
-            echo "no .gd files yet — skipping"
-          fi
-
-      - name: gdformat --check
-        run: |
-          set -euo pipefail
-          if compgen -G "scripts/**/*.gd" > /dev/null || compgen -G "test/**/*.gd" > /dev/null; then
-            gdformat --check scripts/ test/ tools/
-          else
-            echo "no .gd files yet — skipping"
-          fi
-
-  # --------------------------------------------------------------- ip-guard --
-  # HARD failure. See docs/00_meta/IP_GUARDRAILS.md §6.1.
   ip-guard:
     name: ip-guard
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - run: bash .ci/ip_guard.sh
 
-  # -------------------------------------------------------- asset-inventory --
-  # Bidirectional: a stale row is as much a defect as a missing one.
   asset-inventory:
     name: asset-inventory
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - run: bash .ci/check_asset_inventory.sh
 
-  # ------------------------------------------------------------------- test --
-  test:
-    name: test
-    needs: [version, import]
-    runs-on: ubuntu-22.04
+  test-core:
+    name: test / architecture + unit
+    needs: import
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7
-        with: { lfs: true }
-
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          lfs: true
+          persist-credentials: false
       - uses: ./.github/actions/setup-godot
-        with: { tag: '${{ needs.version.outputs.tag }}' }
-
-      # Restore-only: `import` owns writing this key. A miss is not an error —
-      # Godot simply re-imports, costing time rather than correctness.
-      - name: Restore import artefacts
-        uses: actions/cache/restore@v6
+      - name: Restore imported project
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .godot
-          key: import-${{ needs.version.outputs.tag }}-${{ hashFiles('project.godot', '**/*.import', '**/*.gd', '**/*.tscn', '**/*.tres') }}
-
-      # Reconcile whatever the cache handed us against the checked-out tree.
-      # Cheap on a warm cache, and it means a stale entry can never decide which
-      # files the suites below can see.
+          key: godot-import-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.godot-version', 'project.godot', 'addons/**', 'assets/**', 'data/**', 'scenes/**', 'scripts/**', 'test/**', 'tools/**') }}
       - name: Reconcile imports
-        run: godot --headless --editor --quit-after 200
-
-      # test/arch/ protects the architecture rather than behaviour. If one of
-      # these fails, the change is wrong or an ADR is needed — never the test.
-      #
-      # run_gut.sh fails if the suite runs fewer scripts than exist on disk.
-      # See its header: the green was the defect, not the red.
+        run: godot --headless --path . --editor --quit-after 200
       - name: Architecture guards
         run: bash .ci/run_gut.sh test/arch "architecture guards"
-
       - name: Unit tests
         run: bash .ci/run_gut.sh test/unit "unit tests"
 
-      # Boots real scenes. Unit tests prove step() is correct; they cannot prove
-      # anything ever CALLS it, and twice now a broken boot path has survived a
-      # fully green suite — once with 92 tests passing, once with 222.
+  test-integration:
+    name: test / integration
+    needs: import
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          lfs: true
+          persist-credentials: false
+      - uses: ./.github/actions/setup-godot
+      - name: Restore imported project
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .godot
+          key: godot-import-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.godot-version', 'project.godot', 'addons/**', 'assets/**', 'data/**', 'scenes/**', 'scripts/**', 'test/**', 'tools/**') }}
+      - name: Reconcile imports
+        run: godot --headless --path . --editor --quit-after 200
       - name: Integration tests
         run: bash .ci/run_gut.sh test/integration "integration tests"
 
-  # ----------------------------------------------------------------- export --
+  test:
+    name: test
+    if: ${{ always() }}
+    needs: [test-core, test-integration]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: Require both test partitions
+        env:
+          CORE_RESULT: ${{ needs.test-core.result }}
+          INTEGRATION_RESULT: ${{ needs.test-integration.result }}
+        run: |
+          test "$CORE_RESULT" = success
+          test "$INTEGRATION_RESULT" = success
+
   export:
     name: export
-    needs: [version, import]
-    runs-on: ubuntu-22.04
+    needs: import
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7
-        with: { lfs: true }
-
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          lfs: true
+          persist-credentials: false
       - uses: ./.github/actions/setup-godot
-        with: { tag: '${{ needs.version.outputs.tag }}' }
-
-      # The server preset's exclusion list is the architecture's proof: if the
-      # server build cannot run with all presentation code excluded, a
-      # dependency has leaked upward (TDD-01 §1.2).
-      - name: Verify export presets
-        run: |
-          set -euo pipefail
-          if [ -f export_presets.cfg ]; then
-            grep -q 'scripts/presentation' export_presets.cfg \
-              || { echo "server preset must exclude scripts/presentation/"; exit 1; }
-            grep -q 'addons/gut' export_presets.cfg \
-              || { echo "every preset must exclude addons/gut/"; exit 1; }
-            echo "export presets present and excluding correctly"
-          else
-            echo "export_presets.cfg not created yet (arrives with US-0012) — skipping"
-          fi
+      - name: Restore imported project
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .godot
+          key: godot-import-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.godot-version', 'project.godot', 'addons/**', 'assets/**', 'data/**', 'scenes/**', 'scripts/**', 'test/**', 'tools/**') }}
+      - name: Reconcile imports
+        run: godot --headless --path . --editor --quit-after 200
+      - name: Export release packs and boot server
+        run: bash .ci/export_packs.sh
