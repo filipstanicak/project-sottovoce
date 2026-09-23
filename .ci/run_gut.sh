@@ -36,15 +36,25 @@ echo "run_gut: $LABEL — expecting $expected script(s)"
 # test/unit/core/tuning/*.gd would simply not run — and GUT reports "nothing was
 # run" rather than failing, which is the same silent-skip shape this script
 # exists to catch.
-out=$(godot --headless -s addons/gut/gut_cmdln.gd "-gdir=res://$DIR" -ginclude_subdirs -gexit 2>&1) || {
-	echo "$out"
+out_file=$(mktemp)
+trap 'rm -f "$out_file"' EXIT
+
+# Stream the suite while retaining a parseable copy. The old command substitution
+# buffered the integration suite for three minutes, making a hung run and a busy
+# run indistinguishable in CI.
+set +e
+godot --headless -s addons/gut/gut_cmdln.gd "-gdir=res://$DIR" -ginclude_subdirs -gexit \
+	2>&1 | tee "$out_file"
+gut_status=${PIPESTATUS[0]}
+set -e
+
+if [ "$gut_status" -ne 0 ]; then
 	echo "run_gut: FAILED — GUT exited non-zero"
-	exit 1
-}
-echo "$out"
+	exit "$gut_status"
+fi
 
 # Strip ANSI before parsing; GUT colours its summary.
-actual=$(printf '%s' "$out" | sed 's/\x1b\[[0-9;]*m//g' \
+actual=$(sed 's/\x1b\[[0-9;]*m//g' "$out_file" \
 	| grep -E '^Scripts +[0-9]+' | tail -1 | grep -oE '[0-9]+' || true)
 
 if [ -z "$actual" ]; then
@@ -66,3 +76,8 @@ if [ "$actual" -ne "$expected" ]; then
 fi
 
 echo "run_gut: $LABEL ran all $expected script(s)"
+
+if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
+	printf -- '- **%s:** %s/%s test scripts ran\n' "$LABEL" "$actual" "$expected" \
+		>> "$GITHUB_STEP_SUMMARY"
+fi

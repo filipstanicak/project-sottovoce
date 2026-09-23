@@ -330,7 +330,7 @@ const PERSONA_VETRAIO  : StringName = &"PERSONA-VETRAIO"
 | `scripts/core/ids.gd` | ID constants (§7) |
 | `test/arch/README.md` | Why the architecture guards exist and why they must not be deleted |
 | `tools/tuning_docs_sync.gd` | Bidirectional TUNABLES.md ↔ `.tres` ID check |
-| `export_presets.cfg` | The three presets in §6 |
+| `export_presets.cfg` | The five presets in §6 |
 
 ---
 

@@ -217,7 +217,7 @@ Stated so nobody gates on the wrong thing, and so `SCOPE_FENCE` §5 is honoured 
 
 | Item class | Enforced by |
 |---|---|
-| Tests, lint, format, IP, assets, exports | CI — six required checks, cannot be merged around |
+| Tests, lint, format, IP, assets, exports | CI — seven required checks, cannot be merged around |
 | Tunables, docs-sync, protocol-sync, ID grammar | `test/arch/` source scans |
 | Multiplayer testing, feel checks, the review question | **Human. Honour system.** |
 
