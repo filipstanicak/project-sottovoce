@@ -249,6 +249,36 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 
 ## Where the work is right now
 
+### 2026-09-23 — `PawnContext.persona` has never had a writer, and four things wait on it
+
+**PREPARING OWNER DECISION 13 FOUND IT.** ADR-0021 was the fourth thing to end
+up waiting on US-0078, so the story was read criterion by criterion the way
+decision 1 read US-0079 — and the field the whole question turns on is declared
+in `pawn_context.gd` under *Identity*, two lines below `peer_id`, **with no
+writer anywhere under `scripts/`**. The only assignments in the tree are to
+`PersonaBody.persona`, in a test and a tool. Eighth instance of this corpus's
+most-repeated shape: *a field nobody reads and nobody writes is
+indistinguishable from one that works.*
+
+**THE FOUR ARE THE PORTRAIT (ADR-0021), THE RESULTS SCREEN'S SLOT LABELS
+(US-0077), `CloneBalance` BEING TOLD ALL FOUR PERSONAS ARE IN USE, AND
+US-0073's PORTRAIT CRITERION** — and **none of them wants a lobby**. They want
+a player to *have* a persona, which `MatchSystem.countdown_opened` could deal
+from `MatchContext.rng` in the same breath as the contract cycle. The lobby then
+**replaces** the deal rather than enabling it, which is decision 1's own
+argument about the countdown trigger, applied a second time.
+
+**AND THE REVIEW CORRECTED THE SHAPE OF THE PROPOSAL, WHICH IS WORTH MORE THAN
+THE PROPOSAL.** My first write-up read as though criteria *moved* from M6 to M5.
+None do: what the split extracts is a **precondition** — that a player has a
+persona — and all nine criteria stay. It also understated the wire: one byte on
+`NET-S2C-CONTRACT-ASSIGNED` feeds the portrait and nothing else, because
+`MatchEndReport` carries no persona field, so the **results table needs its own
+transport** and *persona selections are VISIBLE to all players* needs a roster
+that one per-contract byte can never be. And the three US-0071 blockers had one
+reason between them where they have three. Decision 13 says all of that now;
+splitting a story is still the owner's call.
+
 ### 2026-09-22 — the hunter knows the face from the start, ADR-0021
 
 **REPORTED FROM THE CONTROLS AFTER THE ALONE-GAIN PLAYTEST PASSED ON EVERY POINT:
@@ -1081,8 +1111,8 @@ collision scenes, MapData and navmesh resources; no bake value or assignment ord
 
 ## FIVE THINGS WAIT ON THE OWNER, AND NONE BLOCKS M5
 
-*Eleven rows, six live — two arrived with ADR-0020 on 2026-09-15 (decisions 11 and 12,
-at the end of the list) and decision 4 closed with ADR-0021 on 2026-09-22. The heading keeps its number because the section above it points
+*Twelve rows, seven live — two arrived with ADR-0020 on 2026-09-15 (decisions 11 and 12),
+decision 4 closed with ADR-0021 on 2026-09-22, and decision 13 arrived with it. The heading keeps its number because the section above it points
 at it by name. Struck through rather than deleted, because a list with a vanished row
 invites somebody to re-open it: decision 1 was settled on 2026-09-08 (`SYS-MATCH` moved to M5),
 decision 8 on 2026-09-03, and decision 3 by ADR-0017 on 2026-09-01 — which raised decision 7 in
@@ -1215,6 +1245,76 @@ because it is the same question decision 1 half-answered, and splitting it would
     **My recommendation is to keep it**: it is the one lever the design has against
     a runaway leader parking out the clock, and removing it is a format change
     (`PROTOCOL_VERSION`) for fidelity's own sake.
+13. **SHOULD THE PERSONA BE SPLIT OUT OF US-0078 AND DEALT AT M5?** Raised
+    2026-09-23 by ADR-0021, which is the fourth thing now waiting on one story.
+    **My recommendation is yes, and it is decision 1's own shape**: split
+    US-0078 into the *persona* and the *lobby screen*, deal the persona
+    server-side at the countdown at M5, and let the lobby **replace** that deal
+    at M6 rather than enable it.
+
+    **FOUR THINGS WAIT ON US-0078 AND ONLY ONE OF THEM WANTS A LOBBY.**
+    ADR-0021's portrait has nothing to draw; US-0077's results screen shows slot
+    labels because *"a player has no persona server-side at all"*; `CloneBalance`
+    is told every persona is in use, because `server_root` cannot ask which four
+    were chosen; and US-0073's portrait criterion is blocked behind all three.
+    None of those needs a player to have *picked* anything. They need a player to
+    **have** a persona.
+
+    **AND `PawnContext.persona` HAS EXISTED SINCE M1 WITH NO WRITER UNDER
+    `scripts/`** — the field is declared under *Identity*, two lines below
+    `peer_id`, and the only assignments in the tree are to `PersonaBody.persona`
+    in a test and a tool. That is this corpus's most-repeated shape for the eighth
+    time: *a field nobody reads and nobody writes is indistinguishable from one
+    that works.*
+
+    **THE DEAL IS THE CONTRACT DEAL, ONE STAGE EARLIER.**
+    `MatchSystem.countdown_opened` already hands `ContractSystem.open` the peer
+    list at the countdown, and `MatchContext.rng` is the seeded server-side source
+    gameplay randomness must come from (never-do #8). Dealing a persona there is
+    the same call with a four-element set and **duplicates permitted**, which
+    US-0078 already calls *GOOD: they add a candidate to each other's crowd*.
+    `NET-C2S-LOADOUT`'s `persona:u8` later overrides the deal for players who
+    chose; that is *"a minimum-player rule satisfies it and the lobby later
+    replaces it rather than enabling it"*, decision 1's exact argument.
+
+    **THE SPLIT TAKES NO CRITERION AWAY FROM US-0078, WHICH IS THE CORRECTION THE
+    REVIEW FORCED.** My first write-up listed criteria as *moving*; they do not.
+    What the split extracts is a **precondition** the story implies without
+    stating: that a player has a persona at all. All nine criteria stay at M6,
+    and the lobby's own selection replaces the deal when it arrives.
+
+    **THE WIRE COST IS TWO THINGS, NOT ONE.** ADR-0021's route — the persona with
+    the contract on `NET-S2C-CONTRACT-ASSIGNED`, `PROTOCOL_VERSION` 2 → 3 — feeds
+    the **portrait** and nothing else: that message reaches one hunter and names
+    one contract. **The results table needs its own transport**, because
+    `MatchEndReport` carries `anonymous_ticks`, `kits` and `events` and no persona
+    at all, so `ResultsRoot` builds a slot label, abilities and Anonymous time and
+    could not draw a persona if it wanted to. Either a persona per result row or a
+    **stable persona roster** is owed, and the roster is the one that also answers
+    criterion 4 — *persona selections are VISIBLE to all players* — which a
+    per-contract byte cannot, at M5 or ever.
+
+    **WHAT STAYS AT M6 IS THE WHOLE STORY, AND THE THREE BLOCKERS HAVE THREE
+    DIFFERENT REASONS.** Criterion 3 (*every passive shows its exact numeric
+    effect*) waits on **US-0071**, because a passive cannot state a number before
+    it has a reader. Criterion 9 (*a recommended default loadout is pre-selected*)
+    waits on US-0071 for a different reason — there is no loadout to recommend
+    until `NET-C2S-LOADOUT` defines one. Criterion 2 (*every ability shows
+    cooldown, suspicion cost and its tell*) waits on **neither**: `AbilityData` and
+    TUNABLES hold every figure today, and what is missing is the screen and one
+    string per ability. Criterion 6 (*duplicate personas are permitted*) is a rule
+    of the **selection**, so it stays even though the deal already allows
+    duplicates. Criterion 7 and the countdown half of 8 are **already built** by
+    US-0079 — `TUN-LOBBY-MIN-PLAYERS` with `--min-players`, and
+    `TUN-LOBBY-COUNTDOWN`; only the unready cancel is missing.
+
+    **THE COST, SAID PLAINLY.** A dealt persona is not a *chosen* one, so the M5
+    build still cannot test the thing the lobby exists for — a player living with
+    a pick for eight minutes. And it makes the clone floor real for the first time:
+    `CloneBalance` currently serves all four personas because it must; served four
+    real ones it will be measured against `TUN-CROWD-CLONE-LOCAL-MIN` in a live
+    match rather than in `test_clone_local_min.gd`, which may well find something.
+    **That is a reason to do it earlier, not later.**
 
 ---
 
