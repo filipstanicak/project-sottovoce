@@ -130,8 +130,9 @@ func test_the_source_bitfield_reaches_the_pawn_beside_the_value() -> void:
 func test_a_tier_change_is_announced_once_and_carries_its_sources() -> void:
 	watch_signals(_sys)
 	_pawn.state_id = PawnStateId.SPRINT
-	# Two seconds of sprinting alone: 31/s, so Noticed at ~1.0 s and Exposed at
-	# ~2.3 s. One crossing inside the window, announced exactly once.
+	# Two seconds of sprinting alone: 25/s on the shipped profile (31/s while the
+	# alone gain was 6, until ADR-0020), so Noticed at ~1.2 s and Exposed at ~2.8 s.
+	# One crossing inside the window, announced exactly once.
 	_tick(45)
 	assert_signal_emit_count(_sys, "tier_changed", 1, "a single crossing was not announced once")
 	var payload: Array = get_signal_parameters(_sys, "tier_changed", 0)

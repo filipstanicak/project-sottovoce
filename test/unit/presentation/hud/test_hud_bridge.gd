@@ -51,8 +51,8 @@ func _on_combat(kill: bool, stun: bool) -> void:
 	_combat.append([kill, stun])
 
 
-func _on_portrait(persona: StringName) -> void:
-	_portraits.append(persona)
+func _on_portrait() -> void:
+	_portraits.append(true)
 
 
 func _snapshot() -> Snapshot:
@@ -118,16 +118,22 @@ func test_the_wire_is_decoded_here_and_not_in_a_widget() -> void:
 	assert_almost_eq(float(_compass[0][2]), 1.0, 0.0001, "a full lock did not decode to 1.0")
 
 
-func test_the_portrait_reveal_carries_no_persona() -> void:
-	# **ASM-0030.** The persona is not on the wire and must not be guessed: a
-	# client learns its contract's appearance by *looking*, and the reveal is the
-	# moment it is allowed to. An invented value here would be the anonymity leak
-	# the whole lock exists to price.
+func test_the_lock_completion_reaches_the_bus_carrying_nothing() -> void:
+	# **THE SIGNAL IS PARAMETERLESS** (ADR-0021): the wire field is a per-contract
+	# lock-completion latch, and the persona is known from assignment rather than
+	# from this. It carried a `persona` the bridge could only fill with `&""` until
+	# 2026-09-22 — a payload that says nothing is worse than none.
 	var s := _snapshot()
 	s.portrait_revealed = true
 	_deliver(s)
-	assert_eq(_portraits.size(), 1, "the reveal never reached the bus")
-	assert_eq(_portraits[0], &"", "the bridge invented a persona it was never sent")
+	assert_eq(_portraits.size(), 1, "the lock completion never reached the bus")
+	for row: Dictionary in EventBus.get_signal_list():
+		if row["name"] == "contract_portrait_revealed":
+			assert_eq(
+				(row["args"] as Array).size(),
+				0,
+				"the signal grew a parameter; a lock completion has nothing to carry"
+			)
 
 
 func test_a_freed_bridge_stops_listening() -> void:

@@ -21,6 +21,8 @@ depends_on: [GDD-03-SOCIAL-STEALTH, TDD-07-SUSPICION]
 ## Description
 
 The lock arc, the silhouette reveal, and the permanent contract-portrait fill (ASM-0030).
+*What this built is unchanged; **ASM-0030 is void since 2026-09-22 (ADR-0021)** and the latch
+now means "a lock completed for this contract" rather than "the persona is known".*
 
 ## Acceptance criteria
 
@@ -77,7 +79,11 @@ unit suite's `pending` count going 7 to 8 with nothing red.
 
 ---
 
-## A protocol leak that would defeat ASM-0030, reported rather than fixed
+## ~~A protocol leak that would defeat ASM-0030~~ — CLOSED 2026-09-22 by ADR-0021
+
+*There is nothing left to defeat: the hunter is told the persona from assignment. Owner
+decision 4 closed with it, and TDD-07 §4.5.2 carries the closure. The original note follows.*
+
 
 `NET-S2C-PLAYER-JOINED` is specified as `peer_id:u8, persona:u8`, and `NET-S2C-CONTRACT-ASSIGNED`
 as `contract_peer:u8`. **A client holding both can join them and read its contract's persona
@@ -100,3 +106,6 @@ Drain being faster than fill pushes the hunter toward standing still and watchin
 keeps their own suspicion at zero. The mechanic and the thesis agree.
 
 The permanent portrait is what makes a lock worth its 1.6 s cost; the 1.5 s reveal alone is not.
+*(Superseded 2026-09-22 by ADR-0021: the persona is known from assignment, and the lock is worth
+its cost for the reveal — the only thing that names the body among the clones — and `SCORE-FOCUS`.
+The latch this story built stands; its meaning is "a lock completed for this contract".)*

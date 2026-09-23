@@ -66,7 +66,7 @@ depends_on: [GDD-06-UI-AUDIO, TDD-11-UI, BIBLE-ART, ADR-0006]
 | Element | Anchor | Size | Rationale |
 |---|---|---|---|
 | **A Compass** | Bottom-centre, 64 px from edge | 220 × 220 | Most-consulted element. Centre-bottom is reachable by peripheral vision without moving the eyes off the crowd |
-| **B Contract portrait** | Top-left | 180 × 220 | Consulted rarely (on assignment, after a lock). Corner is correct |
+| **B Contract portrait** | Top-left | 180 × 220 | Consulted rarely (on assignment, after a lock). Corner is correct. **Shows the persona from assignment as of ADR-0021 (2026-09-22)**; a completed lock adds the `Identified` mark |
 | **C Tier indicator** | Left, above abilities | 272 × 112 | Includes a 24 px tier word and up to two lines of 15 px source text; stays outside the central reading area |
 | **D Score feed** | Right, above centre | 320 × 220 | Peripheral by design — must be readable *without* looking |
 | **E Match timer** | Top-centre | 120 × 48 | Matters intensely for ~40 s of 480; ignorable otherwise. **Built 2026-09-13** (`MatchTimerWidget`, US-0073); the digits are `HEADING` 32 px, because a 48 px `DISPLAY` glyph and the bar beneath it do not fit in 48 px — §2 moved the timer to the `HEADING` row on 2026-09-15 so the two sections agree |
@@ -84,10 +84,11 @@ the tier is 96 px from the left and 160 px above the bottom, reserving the abili
 The vignette remains behind the instruments and reaches the full physical screen.
 Debug overlays start hidden; F3 restores them, and their map clears the portrait.
 
-**The portrait is still incomplete.** The real client has no earned persona source yet.
-Unknown uses a featureless bust; a completed lock shows a check and the localized word
-`Identified`. This reports only the received lock fact, never a guessed persona. The full
-persona silhouette and name remain US-0073's open criterion.
+**The portrait is still incomplete.** The real client has no persona source yet: players have
+no persona server-side until US-0078's lobby. Unknown uses a featureless bust; a completed lock
+shows a check and the localized word `Identified`. This reports only the received lock fact,
+never a guessed persona. The persona silhouette and name — **from assignment, since
+[ADR-0021](../00_meta/adr/ADR-0021-the-hunter-knows-the-face.md) voided ASM-0030 on 2026-09-22** — remain US-0073's open criterion.
 
 ---
 
@@ -445,7 +446,7 @@ can choose without having used it.
 | # | Question | Position | Needed by |
 |---|---|---|---|
 | 1 | Is 220 px enough for the Compass to be readable peripherally at 1080p? | Test at M5. If not, grow it before moving it — position is more load-bearing than size | M5 |
-| 2 | Should the contract portrait show the full persona on reveal, or only a silhouette class? Full narrows ~78 candidates to ~12. | Full for MVP (ASM-0030) — it is what the player saw during the reveal anyway. Degrade to class only if `TEL-TIME-TO-KILL` drops sharply after first lock | M5 |
+| 2 | Should the contract portrait show the full persona on reveal, or only a silhouette class? Full narrows ~78 candidates to ~12. | **Settled 2026-09-22 by ADR-0021: the full persona, and from assignment rather than on reveal** — the reference shows the picture from the start. (It read *Full for MVP (ASM-0030), degrade to class if `TEL-TIME-TO-KILL` drops after first lock* until then.) | — |
 | 3 | No HUD indication of stun-lockout remaining when you are the stunned player. Being unable to act with no visible reason is the worst kind of opacity. | Add to the tier widget at M5. Small addition, real cost if omitted | M5 |
 | 4 | Should the score feed show *which contract* a bonus was for during a fast multi-kill? | No. It would need identity information the protocol deliberately withholds | — |
 | 5 | Peripheral readability (§9.2) may be the binding constraint and is the least-tested condition. | Make it the *first* condition tested at M5, not the last | M5 |

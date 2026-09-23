@@ -44,10 +44,14 @@ signal suspicion_value_changed(value: float)
 ## EVT-CONTRACT-ASSIGNED
 signal contract_assigned(reason: int)
 
-## A Compass lock completed; the portrait fills permanently for this contract.
-## The only way a hunter ever learns their contract's persona (ASM-0030).
+## A Compass lock completed for this contract, and the latch holds until the
+## contract changes. **It carries nothing, and that is the contract** (ADR-0021,
+## 2026-09-22): the persona is known from assignment, so this is a lock-completion
+## fact and not an identity. Under ASM-0030 it was *the only way a hunter ever
+## learned their contract's persona* and carried a `PERSONA-*` id that no emitter
+## ever populated — a payload that says nothing is worse than none.
 ## EVT-CONTRACT-PORTRAIT-REVEALED
-signal contract_portrait_revealed(persona: StringName)
+signal contract_portrait_revealed
 
 ## Compass state for this snapshot. distance_bucket is an index, never metres —
 ## the imprecision is authored (design law 6).
@@ -103,9 +107,12 @@ signal score_event_appended(event: RefCounted)
 ##
 ## WHAT SURVIVES IS THE HALF THAT MATTERS MORE: it says WHERE, never WHO. A
 ## persona, a slot, a name or a colour here would collapse the crowd from
-## seventy-eight candidates to one, permanently and for free, and ASM-0030's
-## Compass lock would have nothing left to earn. test_prey_warning_signal_arity.gd
-## refuses an identifying parameter on this line.
+## seventy-eight candidates to one, permanently and for free — and it would hand
+## over the identity of somebody you have no relationship with: never-do #12's own
+## line, and GDD-03 §8.5's *who their pursuer is* row, which ADR-0021 did **not**
+## strike. (It struck the row about your own **contract**'s persona: you are told
+## that from assignment; a pursuer you are told nothing about.)
+## test_prey_warning_signal_arity.gd refuses an identifying parameter on this line.
 ##
 ## The bearing is WORLD. A widget rotates it by the local yaw every rendered
 ## frame, the same decision SYS-COMPASS made in US-0057.

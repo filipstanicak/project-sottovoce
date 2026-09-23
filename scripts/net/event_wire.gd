@@ -174,9 +174,12 @@ func send_prey_warning(peer: int, bearing_radians: float, bucket: int) -> void:
 ##
 ## **TWO FIELDS, AND NEITHER OF THEM NAMES ANYBODY.** GDD-03 §9.1: the warning says
 ## *where*, never *who*. A persona, a wire slot or a colour here would collapse the
-## crowd from seventy-eight candidates to one, permanently and for free, and
-## `ASM-0030`'s Compass lock — the only thing in the game that earns an identity —
-## would have nothing left to earn. `test_warning_names_nobody.gd` refuses it.
+## crowd from seventy-eight candidates to one, permanently and for free — and it
+## would hand over the identity of somebody you have no relationship with —
+## never-do #12's own line, and GDD-03 §8.5's *who their pursuer is* row, which
+## ADR-0021 did **not** strike. (It struck the row about your own **contract**'s
+## persona: you are told that from assignment; a pursuer you are told nothing about.)
+## `test_warning_names_nobody.gd` refuses it.
 @rpc("authority", "call_remote", "reliable", Messages.Channel.EVENT)
 func s2c_prey_warning(bearing_byte: int, bucket: int) -> void:
 	prey_warned.emit(Quantise.u8_to_yaw(bearing_byte), bucket)

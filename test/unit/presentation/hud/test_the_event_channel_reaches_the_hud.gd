@@ -10,11 +10,11 @@
 ## guess, and the guess is wrong in the one case that matters."*
 ##
 ## **AND ONE WIDGET HAD ALREADY SUBSCRIBED.** `PortraitWidget._on_assigned`
-## clears the reveal on a new contract, because — its own words — *"a portrait
-## that persisted across a repair would be free identification of somebody you
-## have never looked at."* Nothing emitted `contract_assigned`, so it never fired:
-## once revealed, the portrait stayed revealed for the rest of the match across
-## every reassignment. ASM-0030 defeated by an unwired signal.
+## clears the lock mark on a new contract, because a mark that persisted across a
+## repair would claim you had picked somebody out of the crowd that you never
+## looked at. Nothing emitted `contract_assigned`, so it never fired: once marked,
+## the portrait stayed marked for the rest of the match across every
+## reassignment — a rule defeated by an unwired signal.
 extends GutTest
 
 var _bridge: HudBridge
@@ -207,17 +207,17 @@ func test_both_slots_are_published_independently() -> void:
 # --- the portrait, which is what any of this was for ----------------------
 
 
-## **A NEW CONTRACT IS A NEW UNKNOWN**, and until now nothing said so.
-## `PortraitWidget` has cleared its reveal on `contract_assigned` since US-0073
-## and the signal had no emitter, so a portrait earned against one player stayed
-## lit against the next — free identification of somebody you have never looked
-## at, which is the thing ASM-0030 and the 1.6 s lock exist to charge for.
-func test_a_reassignment_clears_an_earned_portrait() -> void:
+## **A NEW CONTRACT IS A NEW BODY TO FIND**, and until now nothing said so.
+## `PortraitWidget` has cleared its lock mark on `contract_assigned` since US-0073
+## and the signal had no emitter, so a mark earned against one player stayed lit
+## against the next — a claim to have picked somebody out of the crowd that you
+## never looked at, which is what the 1.6 s lock exists to charge for.
+func test_a_reassignment_clears_an_earned_lock_mark() -> void:
 	var portrait := PortraitWidget.new()
 	add_child_autofree(portrait)
-	EventBus.contract_portrait_revealed.emit(&"")
-	assert_true(portrait.is_revealed(), "the fixture could not reveal the portrait")
+	EventBus.contract_portrait_revealed.emit()
+	assert_true(portrait.is_revealed(), "the fixture could not mark the portrait")
 	Net.events.contract_assigned.emit(6, ContractSystem.Reason.REPAIR)
 	assert_false(
-		portrait.is_revealed(), "a portrait earned against one contract stayed lit against the next"
+		portrait.is_revealed(), "a mark earned against one contract stayed lit against the next"
 	)

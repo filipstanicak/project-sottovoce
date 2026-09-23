@@ -90,7 +90,8 @@ static func rate_of(bit: int, t: SuspicionTuning) -> float:
 
 
 ## **ADDITIVE, NOT MAX-OF-SOURCES** (ASM-0018). A sprinting player on a roof with
-## nobody nearby pays 25 + 18 + 6 = 49/s and is Exposed in 1.4 s. Taking the
+## nobody nearby pays 25 + 18 = 43/s and is Exposed in 1.6 s — 49/s while the
+## alone gain was 6, until ADR-0020. Taking the
 ## maximum would make the second bad choice free, and compounding bad choices is
 ## exactly what should compound.
 static func rate(bits: int, t: SuspicionTuning) -> float:

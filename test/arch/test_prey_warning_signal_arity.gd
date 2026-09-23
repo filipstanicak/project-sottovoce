@@ -12,9 +12,11 @@
 ## **What survives is the more important half, and it is the reason this file was
 ## re-authored rather than deleted.** Direction tells you *where*; nothing here may
 ## ever tell you *who*. A persona, a slot, a name or a colour on this signal would
-## collapse the crowd from seventy-eight candidates to one, permanently, and
-## `ASM-0030`'s Compass lock — the only thing in the game that earns an identity —
-## would have nothing left to earn.
+## collapse the crowd from seventy-eight candidates to one, permanently, and hand
+## over the identity of somebody you have no relationship with: never-do #12's own
+## line, and GDD-03 §8.5's *who their pursuer is* row, which ADR-0021 did **not**
+## strike. (It struck the row about your own **contract**'s persona: you are told
+## that from assignment; a pursuer you are told nothing about.)
 ##
 ## Why review misses it: adding `persona: int` here is a one-token change that
 ## compiles, runs, and makes the HUD strictly more informative.

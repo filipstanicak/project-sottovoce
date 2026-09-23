@@ -1,18 +1,16 @@
-## **THE PORTRAIT IS EARNED, PERMANENT, AND RESET ON REASSIGNMENT.** US-0058,
-## ASM-0030, GDD-03 §8.5.
+## **THE LOCK LATCH IS EARNED, PERMANENT, AND RESET ON REASSIGNMENT.** US-0058,
+## ADR-0021.
 ##
-## The HUD's contract portrait is a featureless unknown when a contract is
-## assigned. Completing a lock fills it **for the duration of that contract**.
+## `CompassLock.portrait_revealed` answers *has a lock completed for this
+## contract* and holds true **for the duration of that contract**. Nothing here
+## changed with ADR-0021 — the record always stored the completion and the
+## contract it belongs to — but what it *means* did: under ASM-0030 it meant *the
+## hunter has learned the persona*, and the persona is now known from assignment.
+## What the lock earns is the **body**: which of that persona's lookalikes.
 ##
-## **A PORTRAIT POPULATED ON ASSIGNMENT WOULD GUT THE CROWD.** Knowing the
-## persona collapses the candidate set from 60–90 figures to 8–13, and GDD-03 §8.5
-## makes it the single most valuable piece of information in the game. Earning it
-## satisfies both halves: the search is preserved by default, and the hardest skill
-## in the game gets a payoff that outlasts the 1.5 s reveal.
-##
-## **THE 1.5 s REVEAL ALONE WOULD NOT PAY FOR THE 1.6 s LOCK.** That is ASM-0030's
-## own argument for why the portrait exists, and it is why "permanent" is a
-## criterion rather than a nicety.
+## **THE 1.5 s REVEAL ALONE WOULD NOT PAY FOR THE 1.6 s LOCK**, which is why
+## "permanent" is a criterion rather than a nicety — the mark outlasts the
+## silhouette, and `SCORE-FOCUS` rides the same condition.
 extends GutTest
 
 const HUNTER := 41
@@ -44,55 +42,56 @@ func _complete(contract: int) -> void:
 	fail_test("the lock did not complete inside TUN-COMPASS-LOCK-FILL-TIME")
 
 
-func test_the_portrait_is_unknown_before_any_lock() -> void:
+func test_the_latch_is_clear_before_any_lock() -> void:
 	_watch(FIRST, 0.5)
-	assert_false(_lock.portrait_revealed(HUNTER, FIRST), "the portrait was filled on assignment")
+	assert_false(
+		_lock.portrait_revealed(HUNTER, FIRST), "the latch was set without a completed lock"
+	)
 
 
-func test_completing_a_lock_fills_it() -> void:
+func test_completing_a_lock_sets_it() -> void:
 	# `_complete` returns on the tick the reveal lands, so it asserts nothing by
 	# itself — GUT counts a test with no assertions as risky, which is how this
 	# omission surfaced rather than passing quietly.
 	_complete(FIRST)
-	assert_true(_lock.portrait_revealed(HUNTER, FIRST), "a completed lock filled no portrait")
+	assert_true(_lock.portrait_revealed(HUNTER, FIRST), "a completed lock set no latch")
 	assert_true(_lock.revealing(HUNTER), "a completed lock granted no silhouette")
 	assert_eq(_lock.fraction_of(HUNTER), 1.0, "the arc was not full on completion")
 
 
 func test_it_survives_the_reveal_ending() -> void:
 	# **THE WHOLE POINT.** The silhouette lasts `TUN-COMPASS-REVEAL-DURATION` 1.5 s;
-	# the portrait does not go with it, or the lock would be worth 1.5 s of
+	# the latch does not go with it, or the lock would be worth 1.5 s of
 	# advantage for 1.6 s of standing still.
 	_complete(FIRST)
 	_watch(FIRST, _t.reveal_duration + 1.0, false)
 	assert_false(_lock.revealing(HUNTER), "the silhouette outlasted TUN-COMPASS-REVEAL-DURATION")
-	assert_true(_lock.portrait_revealed(HUNTER, FIRST), "the portrait went out with the reveal")
+	assert_true(_lock.portrait_revealed(HUNTER, FIRST), "the latch went out with the reveal")
 
 
 func test_it_survives_the_contract_walking_away() -> void:
 	_complete(FIRST)
 	_watch(FIRST, 30.0, false)
 	assert_eq(_lock.fraction_of(HUNTER), 0.0, "the arc did not drain — this proves nothing")
-	assert_true(_lock.portrait_revealed(HUNTER, FIRST), "the portrait was lost with the arc")
+	assert_true(_lock.portrait_revealed(HUNTER, FIRST), "the latch was lost with the arc")
 
 
-func test_it_resets_to_unknown_on_reassignment() -> void:
-	# ASM-0030's second half, and the reason the record stores *which* contract
-	# rather than a boolean: the reset is a comparison, not an event somebody has
-	# to remember to send.
+func test_it_resets_on_reassignment() -> void:
+	# The reason the record stores *which* contract rather than a boolean: the
+	# reset is a comparison, not an event somebody has to remember to send.
 	_complete(FIRST)
 	_watch(SECOND, 0.2)
-	assert_false(_lock.portrait_revealed(HUNTER, SECOND), "a new contract inherited the portrait")
+	assert_false(_lock.portrait_revealed(HUNTER, SECOND), "a new contract inherited the latch")
 
 
-func test_the_old_portrait_does_not_come_back_with_the_old_contract() -> void:
+func test_the_old_latch_does_not_come_back_with_the_old_contract() -> void:
 	# **A CONTRACT CYCLE CAN HAND YOU THE SAME PLAYER TWICE.** `ContractCycle`'s
-	# anti-repeat rule makes it unlikely rather than impossible, and a portrait that
-	# survived the gap would be an identification the hunter did not earn this time.
+	# anti-repeat rule makes it unlikely rather than impossible, and a latch that
+	# survived the gap would claim a body the hunter did not pick out this time.
 	_complete(FIRST)
 	_watch(SECOND, 0.2)
 	_watch(FIRST, 0.2)
-	assert_false(_lock.portrait_revealed(HUNTER, FIRST), "a stale portrait was restored")
+	assert_false(_lock.portrait_revealed(HUNTER, FIRST), "a stale latch was restored")
 
 
 func test_reassignment_also_empties_the_arc() -> void:
@@ -104,11 +103,11 @@ func test_reassignment_also_empties_the_arc() -> void:
 	assert_lt(_lock.fraction_of(HUNTER), 0.1, "a half-filled arc carried over to a new contract")
 
 
-func test_a_hunter_with_no_contract_has_no_portrait() -> void:
+func test_a_hunter_with_no_contract_has_no_latch() -> void:
 	_complete(FIRST)
 	assert_false(
 		_lock.portrait_revealed(HUNTER, ContractCycle.NOBODY),
-		"a hunter between contracts still had a portrait"
+		"a hunter between contracts still had a latch"
 	)
 
 

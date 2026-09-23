@@ -109,21 +109,23 @@ func test_the_crosshair_can_never_compute_readiness() -> void:
 # ------------------------------------------------------------- the portrait ---
 
 
-func test_the_portrait_is_unknown_until_a_lock_completes() -> void:
-	assert_false(_portrait.is_revealed(), "the portrait opens revealed")
-	EventBus.contract_portrait_revealed.emit(&"")
-	assert_true(_portrait.is_revealed(), "a completed lock revealed nothing")
+func test_the_portrait_carries_no_lock_mark_until_a_lock_completes() -> void:
+	# The *persona* is known from assignment (ADR-0021) and nothing draws one yet;
+	# what this mark reports is that a lock has completed for this contract.
+	assert_false(_portrait.is_revealed(), "the portrait opens marked")
+	EventBus.contract_portrait_revealed.emit()
+	assert_true(_portrait.is_revealed(), "a completed lock marked nothing")
 
 
-func test_a_new_contract_is_a_new_unknown() -> void:
-	# **`CompassLock` RESETS ITS PORTRAIT ON REASSIGNMENT** (US-0058), and the
-	# widget must follow: a reveal earned against one person says nothing about the
-	# next, and a portrait that persisted across a repair would be free
-	# identification of somebody you have never looked at.
-	EventBus.contract_portrait_revealed.emit(&"")
+func test_a_new_contract_is_a_new_body_to_find() -> void:
+	# **`CompassLock` RESETS ITS LATCH ON REASSIGNMENT** (US-0058), and the widget
+	# must follow: a lock earned against one person says nothing about the next, and
+	# a mark that persisted across a repair would claim you had picked somebody out
+	# of the crowd that you never looked at.
+	EventBus.contract_portrait_revealed.emit()
 	assert_true(_portrait.is_revealed())
 	EventBus.contract_assigned.emit(0)
-	assert_false(_portrait.is_revealed(), "the portrait survived a reassignment")
+	assert_false(_portrait.is_revealed(), "the lock mark survived a reassignment")
 
 
 # ------------------------------------------------------------- the vignette ---

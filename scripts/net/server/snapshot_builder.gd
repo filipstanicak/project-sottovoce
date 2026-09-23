@@ -290,7 +290,7 @@ func _fill_own(snapshot: Snapshot, peer: int) -> void:
 	# bearing is a **world** angle the client rotates into view space itself, and
 	# the distance is a bucket, so nothing downstream can recover a precision the
 	# server refused to send. `lock_fraction` is a byte of the arc and
-	# `portrait_revealed` is ASM-0030's earned identification, both US-0058's.
+	# `portrait_revealed` is the per-contract lock latch (ADR-0021), both US-0058's.
 	snapshot.bearing = Quantise.yaw_to_u8(_ctx.compass.bearing_of(peer))
 	snapshot.distance_bucket = _ctx.compass.bucket_of(peer)
 	snapshot.lock_fraction = int(round(_ctx.compass.lock_of(peer) * 255.0))

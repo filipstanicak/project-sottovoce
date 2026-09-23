@@ -1067,7 +1067,7 @@ This list is as important as the specification above. Each omission is a design 
 | Not told | Why |
 |---|---|
 | The contract's **exact position** | Deletes the search, which is the game. |
-| The contract's **persona** | **Critical.** If you knew your target was a Lucerna, the crowd would collapse from 60–90 candidates to 8–13. The whole crowd's value comes from not knowing which slice of it to look at. |
+| ~~The contract's **persona**~~ | **Struck 2026-09-22 by [ADR-0021](../00_meta/adr/ADR-0021-the-hunter-knows-the-face.md): the hunter IS told the persona, from assignment, as the reference does.** The row read *"Critical. If you knew your target was a Lucerna, the crowd would collapse from 60–90 candidates to 8–13"* — and that collapse is the game: the clone system (§6, `TUN-CROWD-CLONE-LOCAL-MIN`) exists so that the 8–13 are indistinguishable from the player, and hiding the persona on top of it made the one read the game is about unlearnable until a lock performed it. Kept as a row so nobody re-adds it as a discovery. |
 | The contract's **name or peer identity** | Same reason, and it prevents metagaming across matches. |
 | The contract's **suspicion or tier** | You see the *consequence* (tint/outline) but never the value. |
 | The contract's **elevation** | The Compass is 2D. A contract on the roof and one at street level 10 m away read identically. This is why the campanile exists as a place to *look from*. |
@@ -1108,8 +1108,9 @@ of lateral error, so it conceals nobody and is not meant to.
 
 **What it still does not tell you:** who they are. No persona, no name, no identity — a marker
 on a bearing. Working out which of the eleven people standing in that direction is the player
-remains the whole of the problem, and `ASM-0030`'s portrait is still the only thing that ever
-answers it.
+remains the whole of the problem. (Until 2026-09-22 `ASM-0030`'s lock-earned portrait was the
+only thing that named the persona; since [ADR-0021](../00_meta/adr/ADR-0021-the-hunter-knows-the-face.md) the persona is
+known from assignment, and the lock's 1.5 s reveal is still the only thing that names the *body*.)
 
 **Amended from directionless.** The warning used to carry a tick and nothing else, enforced at
 three layers — no protocol field, no signal parameter, no positional emitter — on the argument

@@ -124,7 +124,7 @@ extends ViewModel
 var bearing_rad: float          ## smoothed toward the authoritative value
 var pulse_phase: float          ## 0..1, advances at DISPLAY rate
 var lock_fraction: float
-var portrait_persona: StringName   ## &"" until a lock completes (ASM-0030)
+var portrait_persona: StringName   ## the contract's persona from assignment (ADR-0021; was &"" until a lock completed under ASM-0030)
 
 ## Advances at display rate so the pulse is smooth at any frame rate, but its
 ## PERIOD comes from the 30 Hz authoritative distance. A 144 Hz client and a
@@ -209,7 +209,7 @@ checked without a running match.
 | Widget | View model | Draws |
 |---|---|---|
 | `CompassWidget` | `CompassVm` | Cone arc, pulse ring, lock arc |
-| `ContractPortrait` | `CompassVm` | Unknown silhouette, or the revealed persona (ASM-0030) |
+| `ContractPortrait` | `CompassVm` | The contract's persona from assignment, with the lock's `Identified` mark once one completes (ADR-0021; unknown-until-lock under ASM-0030 until 2026-09-22) |
 | `TierIndicator` | `TierVM` | Shape + colour + word, plus the active-source list |
 | `ScoreFeedWidget` | `ScoreFeedVm` | Up to `TUN-UI-SCOREFEED-MAX-LINES` 4 lines. **Built US-0074** |
 | `AbilitySlots` | `AbilitySlotVM` | Two icons, radial sweeps, key labels |
@@ -249,7 +249,7 @@ extends Node
 ## --- Facts ---
 signal suspicion_tier_changed(tier: int, active_sources: int)
 signal contract_assigned(reason: int)
-signal contract_portrait_revealed(persona: StringName)
+signal contract_portrait_revealed  ## no payload: a lock-completion fact (ADR-0021)
 signal match_phase_changed(phase: int, multiplier: float)
 signal ability_cooldown_changed(slot: int, remaining_ticks: int)
 signal blend_state_changed(blend_type: int)
