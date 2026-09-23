@@ -268,11 +268,16 @@ from `MatchContext.rng` in the same breath as the contract cycle. The lobby then
 **replaces** the deal rather than enabling it, which is decision 1's own
 argument about the countdown trigger, applied a second time.
 
-**AND MOST OF US-0078 STAYS AT M6 UNDER THAT SPLIT**: three of its nine criteria
-are blocked on US-0071 (a passive cannot be *printed* before it can state its
-own number) and two are already built by US-0079 — the four-player floor and the
-5 s countdown, of which only the unready cancel is missing. Written up as
-decision 13 rather than acted on; splitting a story is the owner's call.
+**AND THE REVIEW CORRECTED THE SHAPE OF THE PROPOSAL, WHICH IS WORTH MORE THAN
+THE PROPOSAL.** My first write-up read as though criteria *moved* from M6 to M5.
+None do: what the split extracts is a **precondition** — that a player has a
+persona — and all nine criteria stay. It also understated the wire: one byte on
+`NET-S2C-CONTRACT-ASSIGNED` feeds the portrait and nothing else, because
+`MatchEndReport` carries no persona field, so the **results table needs its own
+transport** and *persona selections are VISIBLE to all players* needs a roster
+that one per-contract byte can never be. And the three US-0071 blockers had one
+reason between them where they have three. Decision 13 says all of that now;
+splitting a story is still the owner's call.
 
 ### 2026-09-22 — the hunter knows the face from the start, ADR-0021
 
@@ -1272,19 +1277,36 @@ because it is the same question decision 1 half-answered, and splitting it would
     chose; that is *"a minimum-player rule satisfies it and the lobby later
     replaces it rather than enabling it"*, decision 1's exact argument.
 
-    **THE WIRE COST IS ONE BYTE AND A VERSION BUMP, AND IT IS OWED ANYWAY.** The
-    persona travels with the contract on `NET-S2C-CONTRACT-ASSIGNED`, because the
-    portrait's reset is the contract's own event and joining it out of a lobby
-    message would need the lobby. `PROTOCOL_VERSION` 2 → 3. ADR-0021 already
-    records that route.
+    **THE SPLIT TAKES NO CRITERION AWAY FROM US-0078, WHICH IS THE CORRECTION THE
+    REVIEW FORCED.** My first write-up listed criteria as *moving*; they do not.
+    What the split extracts is a **precondition** the story implies without
+    stating: that a player has a persona at all. All nine criteria stay at M6,
+    and the lobby's own selection replaces the deal when it arrives.
 
-    **WHAT STAYS AT M6, AND IT IS MOST OF THE STORY.** Direct-IP host and join
-    with a port field, the ability and passive information surface, ready-up, the
-    unready cancel, and the recommended default loadout. Three of those criteria
-    are blocked on **US-0071** (a passive must be able to state its numeric effect
-    before a screen can print it), and two more are already built by US-0079 — the
-    four-player floor is `TUN-LOBBY-MIN-PLAYERS` and the 5 s countdown is
-    `TUN-LOBBY-COUNTDOWN`; what is missing there is only the cancel.
+    **THE WIRE COST IS TWO THINGS, NOT ONE.** ADR-0021's route — the persona with
+    the contract on `NET-S2C-CONTRACT-ASSIGNED`, `PROTOCOL_VERSION` 2 → 3 — feeds
+    the **portrait** and nothing else: that message reaches one hunter and names
+    one contract. **The results table needs its own transport**, because
+    `MatchEndReport` carries `anonymous_ticks`, `kits` and `events` and no persona
+    at all, so `ResultsRoot` builds a slot label, abilities and Anonymous time and
+    could not draw a persona if it wanted to. Either a persona per result row or a
+    **stable persona roster** is owed, and the roster is the one that also answers
+    criterion 4 — *persona selections are VISIBLE to all players* — which a
+    per-contract byte cannot, at M5 or ever.
+
+    **WHAT STAYS AT M6 IS THE WHOLE STORY, AND THE THREE BLOCKERS HAVE THREE
+    DIFFERENT REASONS.** Criterion 3 (*every passive shows its exact numeric
+    effect*) waits on **US-0071**, because a passive cannot state a number before
+    it has a reader. Criterion 9 (*a recommended default loadout is pre-selected*)
+    waits on US-0071 for a different reason — there is no loadout to recommend
+    until `NET-C2S-LOADOUT` defines one. Criterion 2 (*every ability shows
+    cooldown, suspicion cost and its tell*) waits on **neither**: `AbilityData` and
+    TUNABLES hold every figure today, and what is missing is the screen and one
+    string per ability. Criterion 6 (*duplicate personas are permitted*) is a rule
+    of the **selection**, so it stays even though the deal already allows
+    duplicates. Criterion 7 and the countdown half of 8 are **already built** by
+    US-0079 — `TUN-LOBBY-MIN-PLAYERS` with `--min-players`, and
+    `TUN-LOBBY-COUNTDOWN`; only the unready cancel is missing.
 
     **THE COST, SAID PLAINLY.** A dealt persona is not a *chosen* one, so the M5
     build still cannot test the thing the lobby exists for — a player living with
