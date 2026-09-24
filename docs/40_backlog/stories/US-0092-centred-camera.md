@@ -5,7 +5,7 @@ version: 1.0.0
 status: done
 owner: Lead Game Designer
 last_updated: 2026-08-12
-depends_on: [GDD-02-PLAYER, BIBLE-NAMING]
+depends_on: [GDD-02-PLAYER, BIBLE-NAMING-IDS]
 ---
 
 # US-0092 — The centred camera

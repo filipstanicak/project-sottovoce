@@ -5,7 +5,7 @@ version: 1.0.0
 status: accepted
 owner: Lead Game Designer
 last_updated: 2026-09-01
-depends_on: [ADR-0008, ADR-0013, GDD-02-PLAYER-CONTROLLER, GDD-04-ABILITIES, US-0060, US-0061, US-0070]
+depends_on: [ADR-0008, ADR-0013, GDD-02-PLAYER, GDD-04-ABILITIES, US-0060, US-0061, US-0070]
 ---
 
 # ADR-0017 — The stagger state
