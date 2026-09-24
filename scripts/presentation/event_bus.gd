@@ -42,7 +42,7 @@ signal suspicion_value_changed(value: float)
 ## A new contract was issued. Carries a REASON (START, KILL, RESPAWN, REPAIR),
 ## never an identity hint.
 ## EVT-CONTRACT-ASSIGNED
-signal contract_assigned(reason: int)
+signal contract_assigned(reason: int, persona: StringName)
 
 ## A Compass lock completed for this contract, and the latch holds until the
 ## contract changes. **It carries nothing, and that is the contract** (ADR-0021,

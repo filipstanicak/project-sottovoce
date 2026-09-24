@@ -47,7 +47,9 @@ func _init(ctx: MatchContext) -> void:
 ## contract is one of about seventy-eight candidates until you earn better, and a
 ## field on this message is the cheapest possible way to give that away.
 func contract_issued(peer: int, contract: int, reason: int) -> void:
-	Net.events.send_contract(peer, _ctx.slots.slot_of(contract), reason)
+	var pawn: PawnContext = _ctx.pawn_contexts.get(contract)
+	var persona := PersonaWire.to_u8(pawn.persona) if pawn != null else PersonaWire.NONE
+	Net.events.send_contract(peer, _ctx.slots.slot_of(contract), reason, persona)
 
 
 ## A landed kill reaches the two players in it and nobody else. There is no global

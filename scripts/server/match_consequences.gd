@@ -162,6 +162,63 @@ func phase_changed(from: int, to: int, _ctx: MatchContext) -> void:
 func countdown_opened(peers: PackedInt32Array, ctx: MatchContext) -> void:
 	if contracts != null and not peers.is_empty():
 		contracts.open(peers, ctx)
+	deal_personas(peers, ctx)
+
+
+## **WHAT A NEW PLAYER IS GIVEN**, in one place rather than spread through the
+## root's join handler. Both of these are consequences of somebody arriving, which
+## is this class's whole subject, and `server_root.gd` was at 399 of never-do #6's
+## 400 lines when the persona deal needed a second one.
+##
+## **THE LOADOUT IS A PLACEHOLDER AND SAYS SO.** `NET-C2S-LOADOUT` and the lobby
+## are US-0071's; until then every player carries the two MVP actives, because a
+## pipeline nobody can reach is a pipeline nobody can test.
+##
+## **AND A LATE JOINER IS DEALT A PERSONA** (US-0100), from the same generator as
+## the countdown's deal so the match stays reproducible from its seed. Without one
+## they have no clones at all — GDD-03 §6.3 rule 5's marked man.
+func peer_joined(peer: int) -> void:
+	if abilities != null:
+		abilities.loadout[peer] = [Ids.ABIL_CINDERFALL, Ids.ABIL_LUNGE]
+	deal_personas(PackedInt32Array([peer]), _ctx)
+
+
+## **THE PERSONA IS DEALT IN THE SAME BREATH AS THE CONTRACT**, US-0100 and owner
+## decision 13. `PawnContext.persona` is declared under *Identity* two lines below
+## `peer_id` and had **no writer under `scripts/`** until this line — the eighth
+## instance of a field nobody reads and nobody writes.
+##
+## **AND THE CLONE FLOOR BECOMES REAL HERE.** `CrowdDirector.personas_in_use`
+## defaulted to all four because nothing could say which were played; narrowed to
+## the dealt set, the 2 s rebalance pass fetches clones for the personas actually
+## in the district. **The boot roster is deliberately not re-derived** — it is
+## decided before any player has a persona, and re-rolling it at the countdown
+## would churn the whole district in front of the lobby.
+func deal_personas(peers: PackedInt32Array, ctx: MatchContext) -> void:
+	var dealt := PersonaDeal.deal(peers, ctx.rng)
+	for peer: int in dealt:
+		var pawn: PawnContext = ctx.pawn_contexts.get(peer)
+		if pawn != null:
+			pawn.persona = dealt[peer]
+	refresh_personas_in_use(ctx)
+
+
+## Which personas the district must keep clones of: the ones somebody is wearing,
+## in `CrowdRoster.PLAYABLE`'s order so the list is stable across ticks. **Empty
+## is never written** — an empty list turns layer 4 off entirely, which is what
+## `test_crowd_perf.gd` does on purpose to measure the pass, and a lobby that has
+## not dealt yet must not look like that measurement.
+func refresh_personas_in_use(ctx: MatchContext) -> void:
+	if crowd == null:
+		return
+	var worn: Array[StringName] = []
+	for persona: StringName in CrowdRoster.PLAYABLE:
+		for peer: int in ctx.pawn_contexts:
+			var pawn: PawnContext = ctx.pawn_contexts[peer]
+			if pawn != null and pawn.persona == persona:
+				worn.append(persona)
+				break
+	crowd.personas_in_use = worn if not worn.is_empty() else CrowdRoster.PLAYABLE.duplicate()
 
 
 ## **A WARNING THAT CHANGES NO RULE STILL HAS TO REACH SOMEBODY**, and today that

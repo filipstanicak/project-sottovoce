@@ -25,6 +25,11 @@ const LABEL_SIZE := 19
 var palette: Palette = null
 
 var _revealed: bool = false
+
+## The contract's persona, `&""` until one is dealt. **Never guessed** — an
+## unresolved index draws the featureless bust, because a plausible wrong face
+## would send a hunter to the wrong twelve people.
+var _persona: StringName = &""
 var _font: Font = null
 
 
@@ -60,13 +65,18 @@ func _on_revealed() -> void:
 ## one person says nothing about the next, and a mark that persisted across a
 ## repair would claim you had picked somebody out of the crowd that you never
 ## looked at. (The *persona* also changes with the contract, ADR-0021.)
-func _on_assigned(_reason: int) -> void:
+func _on_assigned(_reason: int, persona: StringName) -> void:
 	_revealed = false
+	_persona = persona
 	queue_redraw()
 
 
 func is_revealed() -> bool:
 	return _revealed
+
+
+func persona() -> StringName:
+	return _persona
 
 
 func _draw() -> void:
@@ -78,7 +88,21 @@ func _draw() -> void:
 	# A featureless bust communicates missing identity, never a guessed persona.
 	draw_circle(Vector2(90.0, 92.0), 22.0, palette.text_dim)
 	draw_style_box(_shoulders(), Rect2(46.0, 122.0, 88.0, 40.0))
-	_caption(Strings.get_text(&"ui.contract.unknown"), 196.0, LABEL_SIZE)
+	_caption(_name_or_unknown(), 196.0, LABEL_SIZE)
+
+
+## **THE NAME IS THE FACE THIS WIDGET CAN HONESTLY DRAW** (ADR-0021, US-0100). The
+## hunter is told the persona from assignment; what it does *not* have yet is a
+## per-persona silhouette, which is ART_BIBLE §6.1's four constructions and stays
+## US-0073's open line. A name plus the generic bust says exactly what is known.
+##
+## **`&""` FALLS BACK TO UNKNOWN**, which is a live state rather than a stub: no
+## persona is dealt before the countdown, and a client one build behind reads an
+## index it cannot resolve.
+func _name_or_unknown() -> String:
+	if _persona.is_empty():
+		return Strings.get_text(&"ui.contract.unknown")
+	return Strings.get_text("persona.%s.name" % String(_persona).trim_prefix("PERSONA-").to_lower())
 
 
 func _caption(text: String, baseline: float, font_size: int) -> void:
@@ -101,8 +125,9 @@ func _shoulders() -> StyleBoxFlat:
 	return shape
 
 
-## The mark for a completed lock. No persona is drawn beside it yet — nobody has
-## one server-side until US-0078 — so this does not complete US-0073's portrait.
+## The mark for a completed lock, drawn over the name. **A lock names the body,
+## the portrait names the persona** (ADR-0021), so the two are different facts and
+## both are shown. The per-persona silhouette is still US-0073's open line.
 func _draw_identified() -> void:
 	draw_arc(Vector2(90.0, 112.0), 32.0, 0.0, TAU, 48, palette.text_dim, FRAME_WIDTH, true)
 	draw_polyline(
@@ -111,4 +136,5 @@ func _draw_identified() -> void:
 		3.0,
 		true
 	)
-	_caption(Strings.get_text(&"ui.contract.identified"), 196.0, LABEL_SIZE)
+	_caption(_name_or_unknown(), 196.0, LABEL_SIZE)
+	_caption(Strings.get_text(&"ui.contract.identified"), 172.0, LABEL_SIZE)

@@ -182,8 +182,8 @@ func _publish_cooldowns(snapshot: Snapshot) -> void:
 ## is the **reason alone**, because GDD-03 §8.5 forbids a client learning anything
 ## about its contract it has not earned by looking. A bridge that forwarded the
 ## slot would hand every widget a free identification.
-func _on_contract(_contract_slot: int, reason: int) -> void:
-	EventBus.contract_assigned.emit(reason)
+func _on_contract(_contract_slot: int, reason: int, persona: int) -> void:
+	EventBus.contract_assigned.emit(reason, PersonaWire.from_u8(persona))
 
 
 ## **SLOTS, NEVER PEERS.** A client has no peer ids — `SlotTable` is what the wire
