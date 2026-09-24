@@ -160,8 +160,91 @@ func phase_changed(from: int, to: int, _ctx: MatchContext) -> void:
 ## permutation the story asks for — the first peer to connect always hunted the
 ## second, every match, on every seed.
 func countdown_opened(peers: PackedInt32Array, ctx: MatchContext) -> void:
+	# **THE DEAL COMES FIRST, AND THE ORDER IS THE WHOLE CORRECTNESS.**
+	# `ContractSystem.open` announces synchronously — `_announce_what_changed` runs
+	# inside it — and `MatchAnnouncer.contract_issued` reads `target.persona` on that
+	# line. Dealt afterwards, every hunter is told the persona their contract wore
+	# **before this countdown** while the server and `CloneBalance` already use the
+	# new one. Found in review; the client and the district disagreed about a face.
+	deal_personas(peers, ctx)
 	if contracts != null and not peers.is_empty():
 		contracts.open(peers, ctx)
+
+
+## **WHAT A NEW PLAYER IS GIVEN**, in one place rather than spread through the
+## root's join handler. Both of these are consequences of somebody arriving, which
+## is this class's whole subject, and `server_root.gd` was at 399 of never-do #6's
+## 400 lines when the persona deal needed a second one.
+##
+## **THE LOADOUT IS A PLACEHOLDER AND SAYS SO.** `NET-C2S-LOADOUT` and the lobby
+## are US-0071's; until then every player carries the two MVP actives, because a
+## pipeline nobody can reach is a pipeline nobody can test.
+##
+## **AND A LATE JOINER IS DEALT A PERSONA** (US-0100), from the same generator as
+## the countdown's deal so the match stays reproducible from its seed. Without one
+## they have no clones at all — GDD-03 §6.3 rule 5's marked man.
+func peer_joined(peer: int) -> void:
+	if abilities != null:
+		abilities.loadout[peer] = [Ids.ABIL_CINDERFALL, Ids.ABIL_LUNGE]
+	# **ONLY A JOIN AFTER THE COUNTDOWN IS DEALT TO.** `is_simulating` is exactly
+	# *the countdown has opened and the match has not folded* — `WARMUP`, `ACTIVE`,
+	# `FINAL` — which is the rule US-0100 states and `PersonaWire.NONE` encodes:
+	# nobody has a persona before the countdown.
+	#
+	# **AN UNGATED DEAL WAS WRONG TWICE.** It set `persona` during `LOBBY`, against
+	# the story's own definition, and it **spent the match generator on every lobby
+	# join** — so the seed no longer reproduced the district, which is the one
+	# property `PersonaDeal` exists to keep. The loadout above is not gated: a
+	# placeholder kit is a consequence of arriving, not of the clock.
+	if MatchPhase.is_simulating(_ctx.phase):
+		deal_personas(PackedInt32Array([peer]), _ctx)
+
+
+## **THE PERSONA IS DEALT IN THE SAME BREATH AS THE CONTRACT**, US-0100 and owner
+## decision 13. `PawnContext.persona` is declared under *Identity* two lines below
+## `peer_id` and had **no writer under `scripts/`** until this line — the eighth
+## instance of a field nobody reads and nobody writes.
+##
+## **AND THE CLONE FLOOR BECOMES REAL HERE.** `CrowdDirector.personas_in_use`
+## defaulted to all four because nothing could say which were played; narrowed to
+## the dealt set, the 2 s rebalance pass fetches clones for the personas actually
+## in the district. **The boot roster is deliberately not re-derived** — it is
+## decided before any player has a persona, and re-rolling it at the countdown
+## would churn the whole district in front of the lobby.
+func deal_personas(peers: PackedInt32Array, ctx: MatchContext) -> void:
+	var dealt := PersonaDeal.deal(peers, ctx.rng)
+	for peer: int in dealt:
+		var pawn: PawnContext = ctx.pawn_contexts.get(peer)
+		if pawn != null:
+			pawn.persona = dealt[peer]
+	refresh_personas_in_use(ctx)
+
+
+## Which personas the district must keep clones of: the ones somebody is wearing,
+## in `CrowdRoster.PLAYABLE`'s order so the list is stable across ticks. **Empty
+## is never written** — an empty list turns layer 4 off entirely, which is what
+## `test_crowd_perf.gd` does on purpose to measure the pass, and a lobby that has
+## not dealt yet must not look like that measurement.
+## **A DEPARTURE CHANGES WHO IS IN PLAY, AND NOTHING SAID SO.** `refresh` ran only
+## after a deal, so when the only wearer of a persona disconnected the 2 s pass went
+## on fetching clones for a persona nobody was wearing — for the rest of the match,
+## while the players still there went under-served. Found in review, and it is the
+## half of *actually in play* that was missing rather than merely untested.
+func peer_left(ctx: MatchContext) -> void:
+	refresh_personas_in_use(ctx)
+
+
+func refresh_personas_in_use(ctx: MatchContext) -> void:
+	if crowd == null:
+		return
+	var worn: Array[StringName] = []
+	for persona: StringName in CrowdRoster.PLAYABLE:
+		for peer: int in ctx.pawn_contexts:
+			var pawn: PawnContext = ctx.pawn_contexts[peer]
+			if pawn != null and pawn.persona == persona:
+				worn.append(persona)
+				break
+	crowd.personas_in_use = worn if not worn.is_empty() else CrowdRoster.PLAYABLE.duplicate()
 
 
 ## **A WARNING THAT CHANGES NO RULE STILL HAS TO REACH SOMEBODY**, and today that

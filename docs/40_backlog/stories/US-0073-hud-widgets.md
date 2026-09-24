@@ -46,11 +46,13 @@ The remaining widgets, each a pure renderer fed by a view model.
 - [ ] Contract portrait shows the contract's persona from assignment; a completed lock adds the `Identified` mark; both reset on reassignment.
       **Reworded 2026-09-22 by ADR-0021**, which voided ASM-0030 — it read *"UNKNOWN until a
       lock completes, then the persona permanently"*, and the reference shows the picture
-      from the start. The lock's mark and the reset are built. **The persona half is
-      blocked on US-0078**: a player has no persona server-side until the lobby exists,
-      and the persona will travel with the contract on `NET-S2C-CONTRACT-ASSIGNED` when it
-      does. The old note argued the persona *"must not be on the wire"* — that is the
-      argument ADR-0021 retires.
+      from the start. The lock's mark and the reset are built. **The persona arrived
+      2026-09-24 with US-0100**: it is dealt at the countdown and travels with the contract
+      on `NET-S2C-CONTRACT-ASSIGNED`, and the widget draws the persona's **name** beside the
+      generic bust. **Still unticked for the silhouette**: ART_BIBLE §6.1's four
+      constructions are what would make this a portrait rather than a label, and
+      `PersonaBody` builds them in 3D with no 2D counterpart. The old note argued the
+      persona *"must not be on the wire"* — that is the argument ADR-0021 retired.
 - [x] Crosshair ring appears IF AND ONLY IF pressing kill would succeed, from a SERVER flag.
       `kill_ready`, computed by `SYS-KILL` against the same contract, range, cone,
       lockout, concealment and — since ADR-0015 — line-of-sight rules the press is

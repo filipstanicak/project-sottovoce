@@ -124,7 +124,7 @@ func test_a_new_contract_is_a_new_body_to_find() -> void:
 	# of the crowd that you never looked at.
 	EventBus.contract_portrait_revealed.emit()
 	assert_true(_portrait.is_revealed())
-	EventBus.contract_assigned.emit(0)
+	EventBus.contract_assigned.emit(0, &"")
 	assert_false(_portrait.is_revealed(), "the lock mark survived a reassignment")
 
 

@@ -370,10 +370,7 @@ func _on_peer_joined(peer: int) -> void:
 	if pawns.spawn(peer):
 		router.set_pawn_owner(peer, true)
 		contracts.report_join(peer, director.ctx)
-		# **A PLACEHOLDER LOADOUT, AND IT SAYS SO.** `NET-C2S-LOADOUT` and the lobby
-		# are US-0071's; until then every player carries the two MVP actives, because
-		# a pipeline nobody can reach is a pipeline nobody can test.
-		abilities.loadout[peer] = [Ids.ABIL_CINDERFALL, Ids.ABIL_LUNGE]
+		consequences.peer_joined(peer)
 		match_state.players = pawns.pawn_count()
 		announcer.started_for(peer)
 
@@ -394,6 +391,7 @@ func _on_peer_left(peer: int) -> void:
 	director.forget(peer)
 	snapshots.forget(peer)
 	match_state.forget(peer)
+	consequences.peer_left(director.ctx)
 	# **AFTER THE DESPAWN, NOT BEFORE**, or the lobby reads one player fuller than it
 	# is — at the abandon floor, the difference between ending and not.
 	match_state.players = pawns.pawn_count()

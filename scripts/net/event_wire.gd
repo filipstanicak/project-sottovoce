@@ -19,7 +19,7 @@ extends Node
 ## `NET-S2C-CONTRACT-ASSIGNED` arrived. CLIENT SIDE. **A wire slot and a reason** —
 ## the client resolves the slot itself and learns nothing else about who it is
 ## hunting until a Compass lock earns it.
-signal contract_assigned(contract_slot: int, reason: int)
+signal contract_assigned(contract_slot: int, reason: int, persona: int)
 
 ## `NET-S2C-KILL-RESULT` arrived. CLIENT SIDE.
 ##
@@ -79,21 +79,27 @@ signal match_started(match_seed: int, start_tick: int, crowd_count: int)
 ##
 ## `contract_slot` is a wire slot, never a peer id — peer ids never travel
 ## (US-0029), and the mapping happens at the one call site in `server_root`.
-func send_contract(peer: int, contract_slot: int, reason: int) -> void:
+func send_contract(peer: int, contract_slot: int, reason: int, persona: int) -> void:
 	if not Net.is_server:
 		return
-	s2c_contract_assigned.rpc_id(peer, contract_slot, reason)
+	s2c_contract_assigned.rpc_id(peer, contract_slot, reason, persona)
 
 
 ## `NET-S2C-CONTRACT-ASSIGNED`. CLIENT SIDE.
 ##
-## **IT CARRIES A SLOT AND A REASON AND THERE IS NOWHERE TO PUT ANYTHING ELSE.**
-## GDD-03 §6 makes the crowd's whole value the fact that a contract is one of about
-## seventy-eight candidates until a Compass lock earns better; a persona field here
-## would collapse that to twelve, silently, in every match.
+## **IT CARRIES THE PERSONA AS OF ADR-0021, AND THIS DOCSTRING ARGUED THE
+## OPPOSITE UNTIL 2026-09-24.** It read: *"there is nowhere to put anything else …
+## a persona field here would collapse [seventy-eight candidates] to twelve,
+## silently, in every match."* That is ASM-0030's argument, void since ADR-0021 —
+## the collapse to twelve **is** the game, and the clone system is what protects
+## the player inside it. The sweep of #228 missed this passage because it states
+## the rule without naming the assumption, which is the half a grep cannot find.
+##
+## `contract_slot` is still a wire slot and never a peer id (US-0029). The persona
+## is a `PersonaWire` index, `NONE` until the countdown deals one.
 @rpc("authority", "call_remote", "reliable", Messages.Channel.EVENT)
-func s2c_contract_assigned(contract_slot: int, reason: int) -> void:
-	contract_assigned.emit(contract_slot, reason)
+func s2c_contract_assigned(contract_slot: int, reason: int, persona: int) -> void:
+	contract_assigned.emit(contract_slot, reason, persona)
 
 
 ## `NET-S2C-KILL-RESULT`. SERVER SIDE, **to the killer and the victim only**.

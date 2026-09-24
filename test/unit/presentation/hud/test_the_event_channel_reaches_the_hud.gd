@@ -57,7 +57,7 @@ func after_each() -> void:
 	EventBus.ability_cooldown_changed.disconnect(_on_cooldown)
 
 
-func _on_contract(reason: int) -> void:
+func _on_contract(reason: int, _persona: StringName) -> void:
 	_contracts.append(reason)
 
 
@@ -98,17 +98,43 @@ func _snapshot(a: int = 0, b: int = 0) -> Snapshot:
 ## **THE ONE THAT COST SOMETHING.** Everything else here is a channel nobody had
 ## subscribed to yet; this one had a subscriber and a documented reason.
 func test_a_new_contract_reaches_the_bus() -> void:
-	Net.events.contract_assigned.emit(3, ContractSystem.Reason.KILL)
+	Net.events.contract_assigned.emit(3, ContractSystem.Reason.KILL, PersonaWire.NONE)
 	assert_eq(_contracts.size(), 1, "a new contract was announced and the HUD was not told")
 	assert_eq(int(_contracts[0]), ContractSystem.Reason.KILL, "the reason was not forwarded")
 
 
-## **THE SLOT IS DROPPED AND THAT IS THE RULE, NOT AN OVERSIGHT.** `EventWire`
-## carries a contract slot; `EVT-CONTRACT-ASSIGNED`'s payload is the **reason
-## alone**, because GDD-03 §8.5 forbids the client learning anything about its
-## contract it has not earned by looking. The bridge is where that is enforced.
+## **THE PERSONA SURVIVES THE HOP, WHICH IS US-0100's WHOLE POINT.** The wire
+## carries a `PersonaWire` index; the bus carries the name; the widget draws it.
+## Tested here because this seam is where the corpus's most expensive recurring
+## gap lives — both halves proven separately while nothing ran the two together.
+func test_the_contract_persona_reaches_the_widget() -> void:
+	var portrait := PortraitWidget.new()
+	add_child_autofree(portrait)
+	var index := PersonaWire.to_u8(Ids.PERSONA_PESATORE)
+	Net.events.contract_assigned.emit(2, ContractSystem.Reason.START, index)
+	assert_eq(portrait.persona(), Ids.PERSONA_PESATORE, "the persona did not survive the hop")
+
+
+## **AN INDEX THE CLIENT CANNOT RESOLVE DRAWS NOTHING**, rather than a plausible
+## wrong face that would send a hunter to the wrong twelve people.
+func test_an_unresolvable_persona_leaves_the_portrait_unknown() -> void:
+	var portrait := PortraitWidget.new()
+	add_child_autofree(portrait)
+	Net.events.contract_assigned.emit(2, ContractSystem.Reason.START, PersonaWire.NONE)
+	assert_eq(portrait.persona(), &"", "the widget invented a face from NONE")
+
+
+## **THE SLOT IS DROPPED AND THAT IS STILL THE RULE.** `EventWire` carries a
+## contract slot; the bus gets the reason and the persona and **never the slot**,
+## because a slot is a *peer identity* — never-do #12, and GDD-03 §8.5's *who their
+## pursuer is* row, which ADR-0021 did not strike.
+##
+## **ITS REASON NARROWED ON 2026-09-24 AND THE RULE DID NOT.** This docstring said
+## §8.5 *"forbids the client learning anything about its contract it has not earned
+## by looking"* — that was ASM-0030, void since ADR-0021: the persona IS told from
+## assignment (US-0100). What may never travel is who somebody is.
 func test_the_contract_slot_never_reaches_the_bus() -> void:
-	Net.events.contract_assigned.emit(5, ContractSystem.Reason.REPAIR)
+	Net.events.contract_assigned.emit(5, ContractSystem.Reason.REPAIR, PersonaWire.NONE)
 	assert_eq(_contracts, [ContractSystem.Reason.REPAIR], "the bus carried an identity hint")
 
 
@@ -217,7 +243,7 @@ func test_a_reassignment_clears_an_earned_lock_mark() -> void:
 	add_child_autofree(portrait)
 	EventBus.contract_portrait_revealed.emit()
 	assert_true(portrait.is_revealed(), "the fixture could not mark the portrait")
-	Net.events.contract_assigned.emit(6, ContractSystem.Reason.REPAIR)
+	Net.events.contract_assigned.emit(6, ContractSystem.Reason.REPAIR, PersonaWire.NONE)
 	assert_false(
 		portrait.is_revealed(), "a mark earned against one contract stayed lit against the next"
 	)

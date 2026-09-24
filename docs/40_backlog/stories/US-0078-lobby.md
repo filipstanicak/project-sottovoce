@@ -38,6 +38,10 @@ The lobby is an INFORMATION SURFACE, not a menu, because loadouts lock for the w
 
 ## A split is proposed, and it is owner decision 13 (2026-09-23)
 
+**Taken 2026-09-24 and built as [US-0100](US-0100-persona-deal.md)**: the persona is dealt at
+the countdown, and `NET-C2S-LOADOUT` below replaces that deal rather than enabling it. All nine
+criteria stayed here. The analysis that led to it follows.
+
 **Four things now wait on this story and only one of them wants a lobby**: ADR-0021's
 contract portrait, US-0077's results screen (slot labels, because a player has no persona
 server-side), `CloneBalance` being told all four personas are in use, and US-0073's

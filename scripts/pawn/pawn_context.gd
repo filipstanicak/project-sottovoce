@@ -149,6 +149,10 @@ func arm_stagger(step_ticks: int) -> void:
 	stagger_ticks = maxi(step_ticks, 1)
 
 
+## **`persona` IS DELIBERATELY NOT RESET**, US-0100: a persona is *identity*, and a
+## respawn is the same player standing up somewhere else. Clearing it would take a
+## player's clones away for the rest of the match at the exact moment the crowd
+## matters most, and would be invisible — the field would simply read `&""` again.
 func reset_for_spawn(at: Vector3, facing: float) -> void:
 	position = at
 	velocity = Vector3.ZERO
