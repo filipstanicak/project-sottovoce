@@ -9,10 +9,16 @@
 ## which is trap 13's family: a probe that cannot see reports the same as a
 ## quiet machine.
 ##
-##     godot --path . -s res://tools/persona_lineup.gd
+##     godot --path . res://tools/persona_lineup.tscn
+##
+## **A SCENE SINCE US-0101, NOT A `-s` SCRIPT.** `PersonaBody` learned to ask
+## `CrowdRoster.PLAYABLE` whether it is dressed, and `CrowdRoster` reads `Tuning` —
+## so under `-s`, where no autoload exists yet, the body class stopped compiling.
+## `test_a_script_tool_gets_no_autoloads.gd` said so before anybody ran it; trap 1
+## is the rule, and this is its fourth tool.
 ##
 ## Writes `user://persona_lineup.png` and prints the path.
-extends SceneTree
+extends Node
 
 const PERSONAS: Array[StringName] = [
 	Ids.PERSONA_VETRAIO,
@@ -26,18 +32,18 @@ const PERSONAS: Array[StringName] = [
 const SPACING := 1.6
 
 
-func _init() -> void:
+func _ready() -> void:
 	_run.call_deferred()
 
 
 func _run() -> void:
 	if DisplayServer.get_name() == "headless":
 		print("REFUSING: headless renders nothing, and a blank PNG reads like a bad model.")
-		quit(1)
+		get_tree().quit(1)
 		return
 
 	var world := Node3D.new()
-	root.add_child(world)
+	add_child(world)
 	_light(world)
 	_ground(world)
 
@@ -55,16 +61,16 @@ func _run() -> void:
 	camera.make_current()
 
 	# Two frames: one to build, one with everything in place to capture.
-	await process_frame
-	await process_frame
-	await process_frame
+	await get_tree().process_frame
+	await get_tree().process_frame
+	await get_tree().process_frame
 
-	var image := root.get_texture().get_image()
+	var image := get_viewport().get_texture().get_image()
 	var path := "user://persona_lineup.png"
 	image.save_png(path)
 	print("wrote ", ProjectSettings.globalize_path(path))
 	print("left to right: Vetraio 1.68 | Cantatrice 1.72 | Lucerna 1.89 | Pesatore 1.75")
-	quit()
+	get_tree().quit()
 
 
 ## A pawn-shaped holder so `PersonaBody` measures a real collider, exactly as it

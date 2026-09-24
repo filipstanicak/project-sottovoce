@@ -24,7 +24,9 @@ extends GutTest
 ## The files that build what a clone looks like.
 const CLONE_VISUALS: Array[String] = [
 	"res://scripts/presentation/pawn_visuals/persona_body.gd",
-	"res://scripts/presentation/pawn_visuals/greybox_body.gd",
+	# Replaced `greybox_body.gd` at US-0101, which retired that class: the wardrobe
+	# is what now decides what every clone wears, so it is where a shuffle would go.
+	"res://scripts/presentation/pawn_visuals/wardrobe.gd",
 ]
 
 ## Randomness of any kind, and the properties it would be applied to.

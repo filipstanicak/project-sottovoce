@@ -5,7 +5,7 @@
 ## had two mutators and no test of its own — `replace` and `clear` were covered
 ## only through the handshake. `adopt_match` is the third, for
 ## `NET-S2C-MATCH-START`, and the hop that matters is the last test: the payload
-## goes in at `EventWire.s2c_match_start` and the fields come out here, which is
+## goes in at `SessionWire.s2c_match_start` and the fields come out here, which is
 ## the seam between the codec's test and this one that neither would see broken.
 extends GutTest
 
@@ -58,12 +58,12 @@ func test_clearing_forgets_the_match_before_anybody_hears_about_it() -> void:
 ## adopt would leave both files green and every client ignorant of its match.
 func test_the_message_lands_in_game_state() -> void:
 	var heard := []
-	Net.events.match_started.connect(
+	Net.session.match_started.connect(
 		func(seed_value: int, began_at: int, crowd: int) -> void:
 			heard.append([seed_value, began_at, crowd]),
 		CONNECT_ONE_SHOT
 	)
-	Net.events.s2c_match_start(MatchStartWire.pack(20190020, 450, 78))
+	Net.session.s2c_match_start(MatchStartWire.pack(20190020, 450, 78))
 	assert_true(GameState.has_match(), "the message arrived and GameState was not told")
 	assert_eq(GameState.match_seed, 20190020)
 	assert_eq(GameState.start_tick, 450)
@@ -79,6 +79,6 @@ func test_a_malformed_payload_adopts_nothing() -> void:
 	# refusal being softened. `test_npc_pool.gd`'s shape.
 	var was: Log.Level = Log.min_level
 	Log.min_level = Log.Level.ERROR + 1 as Log.Level
-	Net.events.s2c_match_start(PackedByteArray([1, 2, 3]))
+	Net.session.s2c_match_start(PackedByteArray([1, 2, 3]))
 	Log.min_level = was
 	assert_false(GameState.has_match(), "a three-byte payload was adopted as a match")

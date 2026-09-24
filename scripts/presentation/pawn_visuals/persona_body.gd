@@ -14,11 +14,20 @@
 ## If the greybox fails the test, no amount of art fixes it; if it passes, art is
 ## polish rather than rescue.
 ##
-## **WHY THIS IS NOT `GreyboxBody`.** That one is deliberately generic — a body
-## the size of the collider with enough shape to read a facing — and it says so,
-## because building a persona there would have asserted an untested claim. This is
-## the persona, and it inherits the two properties that made the generic one
-## correct: it is measured from the collider, and its head cannot poke out of it.
+## **AND IT IS ALSO THE UNDRESSED FIGURE, SINCE US-0101.** `GreyboxBody` drew a
+## deliberately generic body — the size of the collider, a head, a facing marker —
+## and it is retired: a body that can change what it wears is one node for players
+## and crowd alike, where swapping one class for another would have been a second
+## place the size and the facing had to agree. `persona` of `&""` builds that
+## generic figure, and `dress()` rebuilds in place when the wearer is known.
+##
+## **THE CLOTHING WEARS THE IDENTITY HUE, AND THE PROPS DO NOT.** The head keeps the
+## neutral value too, but it sits inside the capsule and is never seen, so nothing
+## rests on it.
+## ART_BIBLE §3 reserves four hues for persona identity and nothing else; they were
+## authored in `data/personas/*.tres` at US-0046 and read by nothing until US-0101.
+## Colour is a persona property, never an instance one — every Lucerna, player or
+## clone, is the same yellow, which is what keeps rule 6 below intact.
 ##
 ## **NO PER-INSTANCE VARIATION, EVER.** No tint, no accessory shuffle, no scale
 ## jitter — GDD-03 §6.3 rule 6. Any variation the player cannot also have is a
@@ -41,8 +50,13 @@ const FALLBACK_HEIGHT := 1.8
 const HEAD_FRACTION := 0.62
 const MARKER_SIZE := Vector3(0.30, 0.16, 0.12)
 
-## Which persona to build. Set before the node enters the tree.
-@export var persona: StringName = Ids.PERSONA_VETRAIO
+## `PersonaData.identity_hue` per persona, loaded once. Presentation-only reads of
+## a resource the client pack already carries.
+static var _hues: Dictionary = {}
+
+## Which persona to build, or `&""` for the undressed figure. Set before the node
+## enters the tree, or change it afterwards through `dress()`.
+@export var persona: StringName = &""
 
 var _radius: float = FALLBACK_RADIUS
 var _collider_height: float = FALLBACK_HEIGHT
@@ -70,7 +84,45 @@ func _capsule() -> Vector2:
 	return Vector2(FALLBACK_RADIUS, FALLBACK_HEIGHT)
 
 
+## **Re-dress in place.** False when there was nothing to change, so a caller that
+## re-dresses every body on every state change costs nothing for the unchanged ones.
+func dress(to: StringName) -> bool:
+	if to == persona and (get_child_count() > 0 or not is_inside_tree()):
+		return false
+	persona = to
+	if not is_inside_tree():
+		return true
+	# **FREED NOW, NOT QUEUED.** A queued part is already out of the tree and not yet
+	# gone, and a district re-dressed at once left ~150 of them orphaned for a frame.
+	for child: Node in get_children():
+		child.free()
+	_build()
+	return true
+
+
+## Whether this body is drawn as a persona rather than the undressed figure.
+func is_dressed() -> bool:
+	return CrowdRoster.PLAYABLE.has(persona)
+
+
+## The identity hue of `id`, or the neutral body colour for anything that is not a
+## playable persona. **Read from the persona's own resource**, so the hue has one
+## home — the `.tres` ART_BIBLE §3's law is written against.
+static func hue_of(id: StringName) -> Color:
+	if not CrowdRoster.PLAYABLE.has(id):
+		return BODY_COLOUR
+	if not _hues.has(id):
+		var slug := String(id).trim_prefix("PERSONA-").to_lower()
+		var data := load("res://data/personas/%s.tres" % slug) as PersonaData
+		_hues[id] = data.identity_hue if data != null else BODY_COLOUR
+	return _hues[id]
+
+
 func _build() -> void:
+	if not is_dressed():
+		_undressed()
+		_facing_marker()
+		return
 	match persona:
 		Ids.PERSONA_CANTATRICE:
 			_cantatrice()
@@ -110,7 +162,7 @@ func _cantatrice() -> void:
 	# a floor triangle at 40 m and keeps the lie under 20 cm a side.
 	skirt.bottom_radius = _radius * 1.5
 	skirt.height = 0.85
-	_attach("Skirt", skirt, Vector3(0.0, 0.425, 0.0), BODY_COLOUR)
+	_attach("Skirt", skirt, Vector3(0.0, 0.425, 0.0), hue_of(persona))
 	var crown := SphereMesh.new()
 	crown.radius = _radius * 0.34
 	crown.height = crown.radius * 2.0
@@ -151,12 +203,20 @@ func _pesatore() -> void:
 	)
 
 
-## The body capsule, drawn at the persona's own height and width.
+## **Undressed**: a capsule the size of the collider and a head, in the neutral
+## body colour. What every figure wears until the client knows both the seed and the
+## roster, because dressing some and not others names whoever is left over.
+func _undressed() -> void:
+	_torso(_collider_height, 1.0)
+	_head(_collider_height)
+
+
+## The body capsule, drawn at the persona's own height and width, in its hue.
 func _torso(height: float, width: float) -> void:
 	var mesh := CapsuleMesh.new()
 	mesh.radius = _radius * width
 	mesh.height = height
-	_attach("Body", mesh, Vector3(0.0, height * 0.5, 0.0), BODY_COLOUR)
+	_attach("Body", mesh, Vector3(0.0, height * 0.5, 0.0), hue_of(persona))
 
 
 ## **THE HEAD'S CROWN SITS AT THE CAPSULE'S TOP, NOT ON IT.** `GreyboxBody`
@@ -172,7 +232,7 @@ func _head(height: float) -> void:
 
 func _shoulders(height: float, scale: float) -> void:
 	var mesh := _box(Vector3(_radius * 2.0 * scale, 0.20, _radius * 1.2))
-	_attach("Shoulders", mesh, Vector3(0.0, height * 0.80, 0.0), BODY_COLOUR)
+	_attach("Shoulders", mesh, Vector3(0.0, height * 0.80, 0.0), hue_of(persona))
 
 
 ## **THE ONE PIECE THAT IS NOT SILHOUETTE.** A capsule is rotationally symmetric,

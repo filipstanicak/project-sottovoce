@@ -5,7 +5,7 @@ version: 0.1.0
 status: in-progress
 owner: Lead Game Designer
 last_updated: 2026-09-24
-depends_on: [GDD-03-SOCIAL, BIBLE-NETWORK-PROTOCOL]
+depends_on: [GDD-03-SOCIAL-STEALTH, BIBLE-NET-PROTOCOL]
 ---
 
 # US-0100 — The persona is dealt at the countdown

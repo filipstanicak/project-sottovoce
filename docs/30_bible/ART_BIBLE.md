@@ -111,7 +111,7 @@ because no player can be one.
 
 | Meaning | Hues | Used by |
 |---|---|---|
-| **Persona identity** | Four reserved hues, one per persona | Exposed outline, Noticed tint, contract portrait |
+| **Persona identity** | Four reserved hues, one per persona | **The clothing of every persona body, player and clone alike** (US-0101, `PersonaData.identity_hue`), Exposed outline, Noticed tint, contract portrait |
 | **Suspicion tint** | Saturation and rim intensity on the identity hue | Render state |
 | **Ability tells** | Cinderfall orange, Whisperbolt steel-white, Second Face violet shimmer | VFX only |
 
@@ -218,7 +218,13 @@ to playtest the entire anonymity system:
 | Lucerna | Capsule, 1.89 m, ×0.8 width, **cylinder pole 0.9 m above head** |
 | Pesatore | Capsule, 1.75 m, uniform, box under arm |
 
-> **NONE OF THE FOUR IS BUILT YET, AND THE M1 PLACEHOLDER IS NOT ONE OF THEM.**
+> **ALL FOUR ARE BUILT (`PersonaBody`, US-0046) AND WORN IN A MATCH AS OF US-0101**, in their
+> identity hues on the clothing and neutral on the props — every Lucerna the same yellow, so a
+> colour is a persona property and never an instance one (GDD-03 §6.3 rule 6). `GreyboxBody` is
+> retired; a `PersonaBody` with no persona draws its generic figure, which every body wears until
+> the client holds both the seed and the roster. **The note below is the M1 record.**
+>
+> ~~**NONE OF THE FOUR IS BUILT YET, AND THE M1 PLACEHOLDER IS NOT ONE OF THEM.**~~
 > `GreyboxBody` (US-0091) draws a deliberately generic figure — a capsule the size of the
 > collider, a head and a chest marker so facing can be read. It makes no silhouette claim,
 > because each row below *is* a claim that has to survive §1.2 at 40 m in solid black, and

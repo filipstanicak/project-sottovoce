@@ -27,12 +27,13 @@
 ## so one that leaves and returns is re-sent in full. Without that, this class
 ## could not safely free anything at all.
 ##
-## **EVERY NPC WEARS A GREYBOX BODY, AND THAT IS NOT A PLACEHOLDER DECISION TO
-## MAKE LIGHTLY.** `CrowdRoster` derives identity from `match_seed`, and a client
-## is never told the seed — `NET-S2C-MATCH-START` carries it and `SYS-MATCH` is
-## M4's. **Guessing a persona would be worse than showing none**: clone identity
-## is the mechanic the whole game rests on, and a body wearing the wrong one is an
-## anonymity leak that looks exactly like correct behaviour.
+## **EVERY NPC IS BORN UNDRESSED, AND THIS CLASS NEVER DRESSES ONE.** A body is
+## a `PersonaBody` with no persona; `Wardrobe` dresses it once the client holds the
+## seed (`NET-S2C-MATCH-START`) **and** the players' personas
+## (`NET-S2C-LOBBY-STATE`), and not a moment before — US-0101. This docstring said
+## until then that a client is never told the seed, which had been false since
+## 2026-09-13. **Guessing a persona is still worse than showing none**: a body
+## wearing the wrong one is an anonymity leak that looks like correct behaviour.
 class_name NpcView
 extends Node3D
 
@@ -218,7 +219,7 @@ func drop_margin() -> float:
 ## origin and then placed 60 m away is *slid* there over a frame.
 ## `reset_physics_interpolation()` is what tells the engine this one is a placement.
 func _spawn(index: int, at: Vector3) -> void:
-	var body := GreyboxBody.new()
+	var body := PersonaBody.new()
 	body.name = "Npc_%d" % index
 	add_child(body)
 	body.global_position = at
@@ -256,3 +257,14 @@ func count() -> int:
 
 func has_npc(index: int) -> bool:
 	return _bodies.has(index)
+
+
+## The body drawn for `index`, or null. For `Wardrobe`, which dresses what this
+## view creates rather than this view deciding what anybody wears.
+func body_of(index: int) -> PersonaBody:
+	return _bodies.get(index) as PersonaBody
+
+
+## Every index this view is drawing right now.
+func indices() -> Array:
+	return _bodies.keys()

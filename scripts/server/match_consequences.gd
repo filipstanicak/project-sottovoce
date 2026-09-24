@@ -167,6 +167,7 @@ func countdown_opened(peers: PackedInt32Array, ctx: MatchContext) -> void:
 	# **before this countdown** while the server and `CloneBalance` already use the
 	# new one. Found in review; the client and the district disagreed about a face.
 	deal_personas(peers, ctx)
+	_tell_everybody_who_wears_what()
 	if contracts != null and not peers.is_empty():
 		contracts.open(peers, ctx)
 
@@ -198,6 +199,10 @@ func peer_joined(peer: int) -> void:
 	# placeholder kit is a consequence of arriving, not of the clock.
 	if MatchPhase.is_simulating(_ctx.phase):
 		deal_personas(PackedInt32Array([peer]), _ctx)
+	# **ALWAYS, AND NOT ONLY AFTER A DEAL**: a lobby joiner is told a roster of
+	# undealt seats, which is true, and a late joiner in `RESULTS` still learns what
+	# everybody else is wearing. US-0101.
+	_tell_everybody_who_wears_what()
 
 
 ## **THE PERSONA IS DEALT IN THE SAME BREATH AS THE CONTRACT**, US-0100 and owner
@@ -220,11 +225,6 @@ func deal_personas(peers: PackedInt32Array, ctx: MatchContext) -> void:
 	refresh_personas_in_use(ctx)
 
 
-## Which personas the district must keep clones of: the ones somebody is wearing,
-## in `CrowdRoster.PLAYABLE`'s order so the list is stable across ticks. **Empty
-## is never written** — an empty list turns layer 4 off entirely, which is what
-## `test_crowd_perf.gd` does on purpose to measure the pass, and a lobby that has
-## not dealt yet must not look like that measurement.
 ## **A DEPARTURE CHANGES WHO IS IN PLAY, AND NOTHING SAID SO.** `refresh` ran only
 ## after a deal, so when the only wearer of a persona disconnected the 2 s pass went
 ## on fetching clones for a persona nobody was wearing — for the rest of the match,
@@ -232,8 +232,24 @@ func deal_personas(peers: PackedInt32Array, ctx: MatchContext) -> void:
 ## half of *actually in play* that was missing rather than merely untested.
 func peer_left(ctx: MatchContext) -> void:
 	refresh_personas_in_use(ctx)
+	_tell_everybody_who_wears_what()
 
 
+## **EVERY SEAT AND ITS PERSONA TO EVERY CLIENT, WHENEVER EITHER CHANGES.**
+## `NET-S2C-LOBBY-STATE`, US-0101. Without it a client can dress the crowd from the
+## seed and not the players — and a district of coloured clones walking beside
+## grey players is every player named at once.
+func _tell_everybody_who_wears_what() -> void:
+	if announcer != null:
+		announcer.personas_changed()
+
+
+## Which personas the district must keep clones of: the ones somebody is wearing,
+## in `CrowdRoster.PLAYABLE`'s order so the list is stable across ticks. **Empty
+## is never written** — an empty list turns layer 4 off entirely, which is what
+## `test_crowd_perf.gd` does on purpose to measure the pass, and a lobby that has
+## not dealt yet must not look like that measurement. **This docstring sat above
+## `peer_left` until US-0101** — trap 11's shape in prose, a third time.
 func refresh_personas_in_use(ctx: MatchContext) -> void:
 	if crowd == null:
 		return

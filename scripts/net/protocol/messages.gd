@@ -43,7 +43,15 @@ const CHANNEL_COUNT := 3
 ## **2 (2026-09-13): the snapshot's `multiplier` byte carries tenths.** Same width,
 ## different meaning — an old client would read 20 for 2.0 — which is exactly the
 ## misreading this number exists to refuse at the door.
-const PROTOCOL_VERSION := 3
+##
+## **3 (2026-09-24, US-0100): `NET-S2C-CONTRACT-ASSIGNED` carries the persona.**
+## This line was not written when the number moved; US-0101 adds it.
+##
+## **4 (2026-09-24, US-0101): `NET-S2C-LOBBY-STATE` has a handler.** A version-3
+## client would drop the roster as an unknown RPC and never dress anybody — the
+## gate in `Wardrobe` would hold forever and the district would stay grey on that
+## one screen while every other client drew it in colour.
+const PROTOCOL_VERSION := 4
 
 ## How often a client sends `NET-C2S-PING`. The catalogue's rate column, and
 ## **not a tunable**: it changes nothing a player can perceive. The server does

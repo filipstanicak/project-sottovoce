@@ -24,6 +24,13 @@ var phase: Phase = Phase.LOBBY
 ## never receives it cannot leak it.
 var roster: Dictionary = {}
 
+## **slot -> persona, from `NET-S2C-LOBBY-STATE` (US-0101).** Kept apart from
+## `roster` on purpose: that one is identity, this one is what a body is *drawn*
+## as — which every client sees the moment the figure is in view, so knowing it
+## gives away nothing the district does not. What stays server-side is which
+## figure is a player, and no field here says so. `&""` is a seat not dealt yet.
+var personas: Dictionary = {}
+
 ## **THE MATCH SEED, AND IT IS NOT A DEBUG FIELD.** `CrowdRoster` derives every
 ## NPC's persona from it, identically on every peer — which is how ninety
 ## identities reach a client for nothing. Zero until `NET-S2C-MATCH-START`
@@ -85,8 +92,22 @@ func adopt_match(seed_value: int, began_at: int, crowd: int) -> void:
 	state_replaced.emit()
 
 
-## Reset to lobby. Called on disconnect, so a stale roster never outlives the
-## session that produced it.
+## Adopt `NET-S2C-LOBBY-STATE`'s roster whole. **Replaced, never merged**: a seat
+## the server stopped mentioning is a player who left, and a merge would keep
+## dressing a body nobody is wearing.
+func adopt_personas(by_slot: Dictionary) -> void:
+	personas = by_slot.duplicate()
+	state_replaced.emit()
+
+
+## Reset to lobby, from `Net.stop()` — on a lost server, a failed connection and a
+## deliberate stop — so a stale roster never outlives the session that produced it.
+##
+## **THIS DOCSTRING SAID "CALLED ON DISCONNECT" FROM M0, AND NOTHING CALLED IT.**
+## It cost nothing while the mirror held a phase and a roster nobody drew; from
+## US-0101 the wardrobe dresses the district from the seed and the personas here,
+## so a client that lost its server kept both halves and could dress the next
+## match's crowd from the last one's. Found in review of #232.
 func clear() -> void:
 	# **A SEED OUTLIVING ITS SESSION WOULD DRESS THE NEXT MATCH'S CROWD**, which
 	# is the exact failure this function exists to prevent for the roster. Reset
@@ -95,4 +116,5 @@ func clear() -> void:
 	start_tick = 0
 	crowd_count = 0
 	match_known = false
+	personas = {}
 	replace(0, Phase.LOBBY, {})

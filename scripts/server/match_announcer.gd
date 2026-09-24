@@ -30,6 +30,9 @@ var starts_sent: int = 0
 ## bytes. Nothing reads it to make a decision.
 var results_sent: int = 0
 
+## How many `NET-S2C-LOBBY-STATE` rosters left, for the same no-socket test seam.
+var lobby_states_sent: int = 0
+
 var _ctx: MatchContext
 
 ## How far into `ScoreLog` this has already sent. **An index, not an event id**,
@@ -289,7 +292,30 @@ func started_for(peer: int) -> void:
 	if _ctx.active_started_at == MatchContext.NO_MATCH:
 		return
 	starts_sent += 1
-	Net.events.send_match_start(peer, _ctx.match_seed, _ctx.active_started_at, _crowd_count())
+	Net.session.send_match_start(peer, _ctx.match_seed, _ctx.active_started_at, _crowd_count())
+
+
+## **EVERY SEAT AND WHAT IT WEARS, TO EVERYBODY.** `NET-S2C-LOBBY-STATE`, US-0101.
+## One roster, packed once: it is identical for every recipient, because every
+## client draws the same district.
+func personas_changed() -> void:
+	var peers := _ctx.slots.peers()
+	if peers.is_empty():
+		return
+	lobby_states_sent += 1
+	Net.session.send_lobby_state(peers, LobbyStateWire.pack(personas_by_slot()))
+
+
+## `{slot: persona}` for every seat with a pawn in the world. **A seat with no pawn
+## is left out** rather than sent as undealt: the departed are still in the slot
+## table for the length of the leave handler, and nobody is drawn for them.
+func personas_by_slot() -> Dictionary:
+	var by_slot: Dictionary = {}
+	for peer: int in _ctx.slots.peers():
+		var pawn: PawnContext = _ctx.pawn_contexts.get(peer)
+		if pawn != null:
+			by_slot[_ctx.slots.slot_of(peer)] = pawn.persona
+	return by_slot
 
 
 ## **READ OFF THE CONTEXT, WHICH ALREADY HOLDS THE POOL**, rather than wired in as
