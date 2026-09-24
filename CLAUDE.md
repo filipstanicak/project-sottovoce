@@ -288,8 +288,9 @@ which reads `Tuning`. It is `persona_lineup.tscn` now, trap 1's fourth tool.
 who they hunt *"until a Compass lock earns it"*. Found while moving code past it,
 which is how every one of the five has been found — never by a grep for the id.
 Also fixed on the way: US-0100's `depends_on` named `BIBLE-NETWORK-PROTOCOL` and
-`GDD-03-SOCIAL`, neither of which exists; **42 frontmatters corpus-wide name an id
-that resolves to nothing** and no guard checks them. Offered as its own task.
+`GDD-03-SOCIAL`, neither of which exists. Corpus-wide it is **five** such links, not
+the 42 first written here — that count was a substring grep matching every correct
+`GDD-03-SOCIAL-STEALTH` too. The guard for them is #233.
 
 **WHAT IS STILL NOT THE DESIGN.** Colour is a placeholder for costume. The Noticed
 tint and Exposed outline are unbuilt on the client, so every figure of a persona is
