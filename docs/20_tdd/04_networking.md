@@ -283,10 +283,10 @@ evaluated by the server against the lag-compensated world. A client cannot expre
 |---|---|---|---|---|
 | `NET-S2C-WELCOME` | X | Reliable | Once | `peer_id:u8`, `tuning_hash:u64`, `map_id:u8`, `phase:u8` |
 | `NET-S2C-TUNING-SYNC` | X | Reliable | On mismatch | Full serialised `TuningProfile`. Client adopts it — **corrected, never kicked** (ADR-0005 rule 4) |
-| `NET-S2C-LOBBY-STATE` | X | Reliable | On change | `players[]{peer_id, persona, ready}`. **Loadouts deliberately excluded** ([`../10_gdd/06_ui_audio.md`](../10_gdd/06_ui_audio.md) §4.1) |
+| `NET-S2C-LOBBY-STATE` | X | Reliable | On change | `count:u8`, then `players[]{peer_id:u8, persona:u8}` — `peer_id` is the slot, `persona` a `PersonaWire` byte with `NONE` 255 for a seat not dealt yet. **Loadouts deliberately excluded** ([`../10_gdd/06_ui_audio.md`](../10_gdd/06_ui_audio.md) §4.1). **Built 2026-09-24 (US-0101)**, `LobbyStateWire` on `SessionWire`, re-sent to everybody on the deal, every join and every departure; it is what lets a client dress the players beside the crowd. **`ready` is deferred to US-0078**: nothing readies up yet, so the byte would be written as a constant and read by nobody, and the lobby appends it with its own `PROTOCOL_VERSION` bump. Version 4 |
 | `NET-S2C-MATCH-START` | X | Reliable | Once | `match_seed:u64`, `start_tick:u32`, `crowd_count:u8`. **Built 2026-09-13**, `MatchStartWire`. *Once* is per recipient — every player at `ACTIVE`, and a late joiner from `peer_joined`. `SESSION` for the ordering against `NET-S2C-WELCOME` |
 | `NET-S2C-SNAPSHOT` | S | Unreliable | **30 Hz** | §6.3 |
-| `NET-S2C-CONTRACT-ASSIGNED` | E | Reliable | On change | `contract_peer:u8`, `reason:u8`. **Contains no persona, position or identity hint** — see §6.4 |
+| `NET-S2C-CONTRACT-ASSIGNED` | E | Reliable | On change | `contract_peer:u8`, `reason:u8`, `persona:u8`. **Contains no position or identity hint; the persona IS carried as of US-0100 (ADR-0021)**, a `PersonaWire` byte, `NONE` until the countdown deals one — `PROTOCOL_VERSION` 3. This cell said *"contains no persona"* until US-0101's review, a sweep behind the row in NETWORK_PROTOCOL — see §6.4 |
 | `NET-S2C-KILL-RESULT` | E | Reliable | On event | `killer:u8`, `victim:u8`, `tick:u32`, `bonus_group:u16` |
 | `NET-S2C-STUN-RESULT` | E | Reliable | On event | `stunner:u8`, `target:u8`, `tick:u32`, `valid:bool`, `lockout_ticks:u16`. **To the stunner and target only; a refusal goes to the stunner alone with `target` = 0** (US-0061) |
 | `NET-S2C-ABILITY-STARTED` | E | Reliable | On event | `peer:u8`, `ability:u8`, `origin:3×f32`, `dir:3×f32`, `tick:u32`. **Broadcast to all clients within tell radius** — this is the legibility law on the wire |
@@ -353,7 +353,7 @@ cannot be broken at all.
 
 | Not sent | Would break | Enforced by |
 |---|---|---|
-| Contract's **persona** | The crowd's entire value — it would collapse 78 candidates to ~12 ([`../10_gdd/03_social_stealth.md`](../10_gdd/03_social_stealth.md) §8.5) | `NET-S2C-CONTRACT-ASSIGNED` carries `peer_id` only; the client cannot map peer→persona for a player it has not seen |
+| ~~Contract's **persona**~~ | ~~The crowd's entire value — it would collapse 78 candidates to ~12~~. **Struck: ASM-0030 is void by [ADR-0021](../00_meta/adr/ADR-0021-the-hunter-knows-the-face.md)** — the collapse to the clones of one persona *is* the game, and the clone system protects the player inside it. This row survived #228's sweep unstruck while NETWORK_PROTOCOL's twin was struck; found in review of US-0101, the sixth leftover of that argument | Carried since US-0100 on `NET-S2C-CONTRACT-ASSIGNED`; every seat's persona reaches every client on `NET-S2C-LOBBY-STATE` since US-0101, because the district draws it |
 | Contract's **exact position** | Deletes the search | `compass.bearing` + `distance_bucket` only |
 | Contract's **elevation** | The Compass is 2D by design | No z component anywhere in `compass` |
 | Contract's **suspicion or tier** | You see the consequence, never the value | Not in the payload |
