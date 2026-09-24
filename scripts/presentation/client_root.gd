@@ -35,6 +35,20 @@ func _ready() -> void:
 	results.skip_requested.connect(Net.requests.send_skip_results)
 	add_child(results)
 	($Hud/HudBridge as HudBridge).results_time_changed.connect(results.results_time_changed)
+	_open_the_wardrobe()
+
+
+## **ONE NODE DECIDES WHAT EVERY FIGURE WEARS** — crowd, other players and this one
+## (US-0101). Composition, so it lives with the rest of the root's wiring.
+func _open_the_wardrobe() -> void:
+	var wardrobe := Wardrobe.new()
+	wardrobe.name = "Wardrobe"
+	add_child(wardrobe)
+	wardrobe.bind(
+		get_node_or_null("ClientNet/NpcView") as NpcView,
+		get_node_or_null("ClientNet/RemotePawns") as RemotePawns,
+		get_node_or_null("World/PawnLocal/PersonaVisuals") as PersonaBody
+	)
 
 
 func _results_active(active: bool) -> void:

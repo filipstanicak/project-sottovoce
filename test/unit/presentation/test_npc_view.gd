@@ -191,30 +191,30 @@ func test_a_record_that_moved_is_pushed() -> void:
 # ---------------------------------------------------------------------------
 
 
-## **NO NPC WEARS A PERSONA, AND THAT IS ASSERTED RATHER THAN LEFT TO DRIFT.**
-## `CrowdRoster` derives identity from `match_seed` and no client is ever told it
-## — `NET-S2C-MATCH-START` carries it and `SYS-MATCH` is M4's. Guessing would put
-## the wrong clone on screen, which is an anonymity leak that looks exactly like
-## correct behaviour. This goes red the day a client learns the seed, which is
-## when somebody should be deciding this deliberately.
-func test_nothing_is_dressed_as_a_persona_yet() -> void:
+## **THIS VIEW DRESSES NOBODY, AND THAT IS ASSERTED RATHER THAN LEFT TO DRIFT.**
+## Until US-0101 this test read *"nothing is dressed as a persona yet"* and said it
+## would go red the day a client learned the seed, *"which is when somebody should
+## be deciding this deliberately"*. The client learned the seed on 2026-09-13 and
+## the owner decided on 2026-09-24: the crowd is dressed — by `Wardrobe`, behind a
+## gate that holds the seed **and** the players' personas. So what this view must
+## still never do is dress a body itself, which would bypass that gate and colour
+## the crowd while the players stayed grey.
+func test_this_view_dresses_nobody_by_itself() -> void:
 	var here := Vector3.ZERO
 	_view.apply_snapshot(_snapshot(1, here, _line(here, 2, 5.0)))
+	assert_gt(_view.count(), 0, "no NPC was drawn, so nothing was proven")
 	for child: Node in _view.get_children():
+		assert_true(child is PersonaBody, "an NPC body is not a PersonaBody")
 		assert_false(
-			child is PersonaBody,
-			(
-				"an NPC is wearing a persona. The client cannot know the roster without "
-				+ "match_seed, so this is a guess — and a wrong clone is an anonymity leak."
-			)
+			(child as PersonaBody).is_dressed(),
+			"NpcView dressed a body itself, past the wardrobe's all-or-nobody gate"
 		)
-		assert_true(child is GreyboxBody, "an NPC body is neither greybox nor a persona")
 
 
 ## **A CLONE DRAWN A DIFFERENT SIZE FROM A PLAYER IS A SILENT DISCRIMINATOR**, and
 ## right now three separate declarations happen to agree with nothing tying them
 ## together: `pawn_local.tscn`'s collider, `npc_server.tscn`'s collider, and
-## `GreyboxBody`'s fallback — which is what an NPC body actually uses, because it
+## `PersonaBody`'s fallback — which is what an NPC body actually uses, because it
 ## reads its size from a parent collider and `NpcView` is not a pawn.
 ##
 ## Resize the pawn and the crowd keeps the old silhouette. Nothing errors, no test
@@ -226,7 +226,7 @@ func test_an_npc_is_drawn_the_same_size_as_a_player() -> void:
 	var npc := _capsule_in("res://scenes/npc/npc_server.tscn")
 	assert_eq(pawn, npc, "the NPC collider and the pawn collider are different sizes")
 	assert_eq(
-		Vector2(GreyboxBody.FALLBACK_RADIUS, GreyboxBody.FALLBACK_HEIGHT),
+		Vector2(PersonaBody.FALLBACK_RADIUS, PersonaBody.FALLBACK_HEIGHT),
 		pawn,
 		(
 			"the body an NPC is DRAWN with is a different size from the pawn. A crowd "

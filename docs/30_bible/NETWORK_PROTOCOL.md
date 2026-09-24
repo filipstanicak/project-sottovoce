@@ -133,7 +133,7 @@ frame, absorbed silently by the reconciler.
 |---|---|---|---|---|
 | `NET-S2C-WELCOME` | X | Rel | once | `peer_id:u8`, `tuning_hash:u64`, `map_id:u8`, `phase:u8` |
 | `NET-S2C-TUNING-SYNC` | X | Rel | on mismatch | Full `TuningProfile` (~6 KB). Client adopts — **corrected, never kicked** |
-| `NET-S2C-LOBBY-STATE` | X | Rel | on change | `players[]{peer_id, persona, ready}`. **Loadouts deliberately excluded** |
+| `NET-S2C-LOBBY-STATE` | X | Rel | on change | `count:u8`, then `players[]{peer_id:u8, persona:u8}`. **Loadouts deliberately excluded.** **BUILT 2026-09-24 (US-0101)** — `LobbyStateWire` on `SessionWire`, to every player whenever a seat or what it wears changes: the deal at the countdown, a join (dealt or not), a departure. `peer_id` is the slot. **`ready` is not in it yet**: nothing readies up before US-0078, so the byte would be written as a constant and read by nobody; the lobby appends it with its own `PROTOCOL_VERSION` bump. It is what lets a client dress the players beside the crowd, and it gives away nothing a body in view does not — which figure is a player is never on it. `PROTOCOL_VERSION` 3 → 4 |
 | `NET-S2C-MATCH-START` | X | Rel | once | `match_seed:u64`, `start_tick:u32`, `crowd_count:u8`. **BUILT 2026-09-13** — `MatchStartWire`, thirteen bytes hand-packed so the seed travels as a true `u64` (a Variant-encoded argument would have let a 32-bit encoder pass every seed under four billion). *Once* is **per recipient**: every player at the transition into `ACTIVE`, and a late joiner from `peer_joined`, because the crowd is replicated positionally and never by identity, so nothing else on the wire carries what `CrowdRoster` derives from this. **On `SESSION` rather than `EVENT` for the order**: a late joiner is welcomed from the handshake and told the seed a moment later, and only the same ordered channel as `NET-S2C-WELCOME` guarantees the second lands after the first. Sent at `ACTIVE`, not at the countdown, because `start_tick` does not exist before then |
 | `NET-S2C-SNAPSHOT` | S | Unrel | **30 Hz** | §4 |
 | `NET-S2C-CONTRACT-ASSIGNED` | E | Rel | on change | `contract_peer:u8`, `reason:u8`, `persona:u8`. **No position or identity hint; the persona IS carried as of US-0100 (ADR-0021)** — a `PersonaWire` index into `CrowdRoster.PLAYABLE`, `NONE` 255 until the countdown deals one. That array's order is a protocol now and is append-only, guarded by `test_persona_wire.gd`. `reason` is an index into `ContractSystem.Reason` and that enum is **append-only** — a name inserted in the middle silently retells every client a different story about why its contract moved. `START` 0, `KILL` 1, `RESPAWN` 2, `REPAIR` 3, `ESCAPE` 4, `STUNNED` 5 (ADR-0019, 2026-09-04) |
@@ -318,7 +318,7 @@ cannot be broken at all.
 
 | Not sent | Would break | Enforced by |
 |---|---|---|
-| ~~Contract's **persona**~~ | *Struck 2026-09-22 by ADR-0021: the persona IS sent to the hunter, as the reference shows the target's picture from assignment. It travels with the contract when players have one (US-0078) — one byte on `NET-S2C-CONTRACT-ASSIGNED`, a `PROTOCOL_VERSION` bump, recorded on that row when it lands.* | `NET-S2C-CONTRACT-ASSIGNED` carries `peer_id` only **today**, because nobody has a persona yet |
+| ~~Contract's **persona**~~ | *Struck 2026-09-22 by ADR-0021: the persona IS sent to the hunter, as the reference shows the target's picture from assignment.* | **Carried since US-0100** (2026-09-24): one byte on `NET-S2C-CONTRACT-ASSIGNED`, `PROTOCOL_VERSION` 3. Every seat's persona reaches every client on `NET-S2C-LOBBY-STATE` as of US-0101 — the district draws them, so it is what a player sees anyway |
 | Contract's **exact position** | Deletes the search | `bearing` + `distance_bucket` only |
 | Contract's **elevation** | The Compass is 2D by design | No z component anywhere in `compass` |
 | Contract's **suspicion or tier** | You see the consequence, never the value | Not in the payload |
@@ -395,7 +395,7 @@ reach, putting the cost of a bad connection on the player who has one.
 - [ ] Every C2S message has a non-empty authority check, and the handler calls `_authorise` first.
 - [ ] No C2S message contains an outcome field.
 - [ ] `NET-S2C-PREY-WARNING` has exactly two fields, and neither names a player.
-- [ ] No payload contains the contract's exact position, elevation or tier. **The persona was on this line until 2026-09-22 and is not (ADR-0021)**: the hunter is told what their target looks like from assignment, and the persona will ride `NET-S2C-CONTRACT-ASSIGNED` once US-0078 gives players one.
+- [ ] No payload contains the contract's exact position, elevation or tier. **The persona was on this line until 2026-09-22 and is not (ADR-0021)**: the hunter is told what their target looks like from assignment, and the persona rides `NET-S2C-CONTRACT-ASSIGNED` as of US-0100.
 - [ ] `render_state` is computed per observer.
 - [ ] `KillSystem` / `StunSystem` never read `client_tick`.
 - [ ] This document and TDD-04 §6 agree (`test_protocol_docs_sync.gd`).

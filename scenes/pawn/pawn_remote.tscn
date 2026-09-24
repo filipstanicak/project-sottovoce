@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3]
 
-[ext_resource type="Script" path="res://scripts/presentation/pawn_visuals/greybox_body.gd" id="1_body"]
+[ext_resource type="Script" path="res://scripts/presentation/pawn_visuals/persona_body.gd" id="1_body"]
 
 ; CLIENT — interpolated only. TDD-06 §1 rule 2.
 ;

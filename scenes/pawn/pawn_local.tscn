@@ -5,7 +5,7 @@
 
 [ext_resource type="Script" path="res://scripts/pawn/pawn_state_machine.gd" id="1_fsm"]
 [ext_resource type="Script" path="res://scripts/pawn/traversal/traversal_probes.gd" id="2_probes"]
-[ext_resource type="Script" path="res://scripts/presentation/pawn_visuals/greybox_body.gd" id="3_body"]
+[ext_resource type="Script" path="res://scripts/presentation/pawn_visuals/persona_body.gd" id="3_body"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_pawn"]
 radius = 0.35

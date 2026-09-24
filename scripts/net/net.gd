@@ -51,6 +51,10 @@ var events := EventWire.new()
 ## the `STATE` channel and it is not a request.
 var requests := RequestWire.new()
 
+## The `SESSION`-channel S2C messages — the seed and the persona roster. See
+## `SessionWire` for why they left `EventWire` (US-0101).
+var session := SessionWire.new()
+
 var _peer: ENetMultiplayerPeer = null
 var _peers := PeerRegistry.new()
 var _router: RpcRouter = null
@@ -74,6 +78,8 @@ func _ready() -> void:
 	add_child(events)
 	requests.name = "RequestWire"
 	add_child(requests)
+	session.name = "SessionWire"
+	add_child(session)
 
 
 ## Listen on `port` for at most `max_players` peers. Returns false and logs

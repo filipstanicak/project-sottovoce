@@ -108,5 +108,16 @@ func count() -> int:
 	return _pawns.size()
 
 
+## The node drawn for `slot`, or null. **A `Node3D` and not the body class**: this
+## is the net layer, and what the pawn wears is decided above it (US-0101).
+func pawn_of(slot: int) -> Node3D:
+	return _pawns.get(slot) as Node3D
+
+
+## Every slot this client is drawing right now.
+func slots() -> Array:
+	return _pawns.keys()
+
+
 func has_slot(slot: int) -> bool:
 	return _pawns.has(slot)

@@ -24,6 +24,13 @@ var phase: Phase = Phase.LOBBY
 ## never receives it cannot leak it.
 var roster: Dictionary = {}
 
+## **slot -> persona, from `NET-S2C-LOBBY-STATE` (US-0101).** Kept apart from
+## `roster` on purpose: that one is identity, this one is what a body is *drawn*
+## as — which every client sees the moment the figure is in view, so knowing it
+## gives away nothing the district does not. What stays server-side is which
+## figure is a player, and no field here says so. `&""` is a seat not dealt yet.
+var personas: Dictionary = {}
+
 ## **THE MATCH SEED, AND IT IS NOT A DEBUG FIELD.** `CrowdRoster` derives every
 ## NPC's persona from it, identically on every peer — which is how ninety
 ## identities reach a client for nothing. Zero until `NET-S2C-MATCH-START`
@@ -85,6 +92,14 @@ func adopt_match(seed_value: int, began_at: int, crowd: int) -> void:
 	state_replaced.emit()
 
 
+## Adopt `NET-S2C-LOBBY-STATE`'s roster whole. **Replaced, never merged**: a seat
+## the server stopped mentioning is a player who left, and a merge would keep
+## dressing a body nobody is wearing.
+func adopt_personas(by_slot: Dictionary) -> void:
+	personas = by_slot.duplicate()
+	state_replaced.emit()
+
+
 ## Reset to lobby. Called on disconnect, so a stale roster never outlives the
 ## session that produced it.
 func clear() -> void:
@@ -95,4 +110,5 @@ func clear() -> void:
 	start_tick = 0
 	crowd_count = 0
 	match_known = false
+	personas = {}
 	replace(0, Phase.LOBBY, {})

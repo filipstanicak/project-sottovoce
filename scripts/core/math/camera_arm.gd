@@ -54,7 +54,7 @@ static func forward(yaw: float) -> Vector3:
 ##
 ## It shipped without this conversion in US-0072 and the Compass cone was drawn
 ## half a turn out. Nothing else in the project meets both conventions:
-## `PawnMotion` writes `body.rotation.y = ctx.yaw` and `GreyboxBody` is authored
+## `PawnMotion` writes `body.rotation.y = ctx.yaw` and `PersonaBody` is authored
 ## front-on-+Z to match, so the pawn is self-consistent. **The camera is the one
 ## node whose heading the engine computes**, which is why it is the one that had to
 ## be converted and the one nobody had converted.
