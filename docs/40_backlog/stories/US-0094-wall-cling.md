@@ -5,7 +5,7 @@ version: 1.0.0
 status: draft
 owner: Lead Game Designer
 last_updated: 2026-08-13
-depends_on: [GDD-02-PLAYER, GDD-05-LEVEL, BIBLE-ANIMATION]
+depends_on: [GDD-02-PLAYER, GDD-05-LEVEL, BIBLE-ANIMATION-SPEC]
 ---
 
 # US-0094 — The wall cling
