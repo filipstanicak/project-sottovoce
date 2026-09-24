@@ -33,32 +33,23 @@
 extends Node
 
 const HUNT := preload("res://tools/bot_hunt.gd")
+const CIVILIAN := preload("res://tools/bot_civilian.gd")
+const CENSUS := preload("res://tools/bot_census.gd")
 
 const CLIENT_ROOT := "res://scenes/client_root.tscn"
 
 ## Handshake, first snapshot, render clock.
 const SETTLE := 3.0
 
-## How long a leg of the walk lasts, in seconds. Long enough to cross a plaza.
-const LEG_MIN := 2.5
-const LEG_MAX := 6.0
-
-## How long a turn lasts. `input_look_left` is an axis binding, so a press is full
-## deflection and a second of it is a large turn.
-const TURN_MIN := 0.25
-const TURN_MAX := 0.9
-
 ## How often the bot says where it is.
 const REPORT_EVERY := 5.0
 
 var _root: Node = null
-var _rng := RandomNumberGenerator.new()
 var _held: PackedStringArray = []
 
 ## The held set as one string, so an unchanged set compares by value.
 var _held_key := ""
 var _index: int = 1
-var _walking := true
 
 ## `--ability <slot>`, or -1 for a bot that only walks.
 var _ability: int = -1
@@ -89,6 +80,15 @@ var _suspicion: float = -1.0
 
 ## The hunting brain, made only when `--hunt` is given.
 var _hunt: RefCounted = null
+## **THE CIVILIAN BRAIN, WHICH IS THE DEFAULT SINCE US-0102.** Until then a bot walked
+## straight legs of 2.5-6 s between random turns and was the one figure of its colour
+## that nobody had to look at twice. It walks the crowd's walk now — `bot_civilian.gd`.
+var _civilian: RefCounted = null
+## Built at `_ready` so the navigation map has synchronised by the end of the settle.
+var _find_path: Callable
+## `--census <seconds>`: measure how the crowd, the other players and this bot move,
+## and print the comparison. Zero is off.
+var _census_for := 0.0
 
 
 func _ready() -> void:
@@ -97,7 +97,7 @@ func _ready() -> void:
 	_ability = _int_after(args, "--ability", -1)
 	_hunting = Array(args).has("--hunt")
 	_reckless = Array(args).has("--reckless")
-	_rng.seed = hash("sottovoce-bot-%d" % _index)
+	_census_for = float(_string_after(args, "--census", "0"))
 	var address := _string_after(args, "--connect", "127.0.0.1:27015")
 	var host := address.get_slice(":", 0)
 	var port := int(address.get_slice(":", 1)) if address.contains(":") else 27015
@@ -111,6 +111,7 @@ func _ready() -> void:
 	LaunchConfig.active = LaunchConfig.parse(
 		args, Tuning.match_rules.max_players, Tuning.match_rules.min_players
 	)
+	_find_path = CIVILIAN.path_finder(LaunchConfig.active.map_name)
 	_root = (load(CLIENT_ROOT) as PackedScene).instantiate()
 	get_tree().get_root().add_child.call_deferred(_root)
 	print("bot %d joining %s:%d" % [_index, host, port])
@@ -127,17 +128,18 @@ func _run() -> void:
 	if _hunting:
 		_hunt = HUNT.new(_index)
 		EventBus.compass_updated.connect(_hunt.on_compass)
-	print("bot %d: %s" % [_index, "hunting" if _hunting else "walking"])
+	else:
+		_civilian = CIVILIAN.new(_index, _anchors(), _find_path)
+	print("bot %d: %s" % [_index, "hunting" if _hunting else "walking like a civilian"])
+	if _census_for > 0.0:
+		_take_census()
 	_report()
 	if _ability >= 0:
 		await _press_the_ability()
 	if _reckless:
 		_be_reckless()
 	while true:
-		if _hunting:
-			await _stalk()
-		else:
-			await _leg()
+		await _follow_brain(_hunt if _hunting else _civilian)
 
 
 ## **PRESS AN ABILITY OVER THE REAL WIRE.** `--ability 1` presses `INPUT-ABILITY-2`
@@ -256,29 +258,48 @@ func _be_reckless() -> void:
 		await get_tree().create_timer(maxf(every, 1.0)).timeout
 
 
-func _stalk() -> void:
-	var plan: Array = _hunt.decide(_pawn())
+## One decision from whichever brain drives this bot, held for as long as it asks.
+## A zero-length answer still yields a frame, so a brain that decides twice in a row
+## cannot spin the loop.
+func _follow_brain(brain: RefCounted) -> void:
+	var plan: Array = brain.decide(_pawn())
 	_hold(plan[0])
-	await get_tree().create_timer(float(plan[1])).timeout
+	await get_tree().create_timer(maxf(float(plan[1]), 0.02)).timeout
+
+
+## The district's idle anchors, from the same `MapData` the server's crowd reads.
+func _anchors() -> Array:
+	var data := load(MapCatalogue.data_path(LaunchConfig.active.map_name)) as MapData
+	return data.idle_anchors if data != null else []
+
+
+## **SAMPLE WHAT THIS CLIENT DRAWS, THEN PRINT THE GROUPS SIDE BY SIDE.** Drawn
+## positions for the crowd and the other players alike, so both are measured through
+## the same interpolation a hunter watches — `bot_census.gd` says why a comparison
+## rather than a verdict.
+func _take_census() -> void:
+	var census: RefCounted = CENSUS.new()
+	var npcs := _find_named(_root, "NpcView") as NpcView
+	var remotes := _find_named(_root, "RemotePawns") as RemotePawns
+	var start := Time.get_ticks_msec() / 1000.0
+	var now := start
+	while now - start < _census_for:
+		await get_tree().create_timer(0.2).timeout
+		now = Time.get_ticks_msec() / 1000.0
+		for index: int in npcs.indices():
+			census.add("npc:%d" % index, now, npcs.body_of(index).global_position)
+		for slot: int in remotes.slots():
+			census.add("player:%d" % slot, now, remotes.pawn_of(slot).global_position)
+		if _pawn() != null:
+			census.add("self", now, _pawn().position)
+	print("bot %d census over %.0f s:" % [_index, _census_for])
+	for group: Array in [["crowd", "npc:"], ["players", "player:"], ["this bot", "self"]]:
+		print("  " + CENSUS.line(group[0], census.summary(census.keys_with_prefix(group[1]))))
 
 
 func _pawn() -> PawnContext:
 	var driver := _find_named(_root, "LocalPawnDriver")
 	return driver.get("ctx") as PawnContext if driver != null else null
-
-
-## One leg: walk for a while, then turn for a while. **Blend-walk, not run** —
-## a bot sprinting in circles would sit at Exposed all match and make every
-## suspicion reading meaningless.
-func _leg() -> void:
-	_hold(["input_move_forward", "input_slow"])
-	await get_tree().create_timer(_rng.randf_range(LEG_MIN, LEG_MAX)).timeout
-	_hold([_turn()])
-	await get_tree().create_timer(_rng.randf_range(TURN_MIN, TURN_MAX)).timeout
-
-
-func _turn() -> String:
-	return "input_look_left" if _rng.randf() < 0.5 else "input_look_right"
 
 
 ## Release whatever was held and press these instead. **One place**, so a bot
