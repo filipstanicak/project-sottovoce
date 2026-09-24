@@ -120,6 +120,18 @@ func for_tier(tier: int) -> Color:
 	return neutral
 
 
+## A persona's identity hue, for a widget that draws one — ART_BIBLE §3 names the
+## contract portrait. **Read from the same `PersonaData` the 3D bodies wear**, through
+## `PersonaBody.hue_of`, so the portrait and the figures it sends a hunter looking for
+## cannot disagree about a colour. Anything that is not a dealt persona is `text_dim`:
+## the featureless bust, never a guessed hue. A colourblind palette (US-0083)
+## overrides this, which is why it is a palette method and not a widget's own read.
+func for_persona(persona: StringName) -> Color:
+	if not CrowdRoster.PLAYABLE.has(persona):
+		return text_dim
+	return PersonaBody.hue_of(persona)
+
+
 ## One of the palette's colours at a different alpha. **Lives here rather than in
 ## each widget**: two widgets needed it, and a `Color(x.r, x.g, x.b, a)` in a
 ## widget is exactly the shape `test_no_colour_literals.gd` forbids — even though

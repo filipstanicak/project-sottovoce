@@ -109,6 +109,30 @@ func test_the_crosshair_can_never_compute_readiness() -> void:
 # ------------------------------------------------------------- the portrait ---
 
 
+## **THE BUST WEARS THE COLOUR THE HUNTER IS SENT TO FIND.** Reported from the
+## controls after US-0101: every figure in the district wore its persona's hue and
+## the portrait stayed grey. Held to the hue read **straight from the resource**, not
+## through `PersonaBody.hue_of`, so a palette that stopped delegating is caught too.
+func test_the_bust_wears_the_persona_hue() -> void:
+	for persona: StringName in CrowdRoster.PLAYABLE:
+		EventBus.contract_assigned.emit(0, persona)
+		var slug := String(persona).trim_prefix("PERSONA-").to_lower()
+		var data := load("res://data/personas/%s.tres" % slug) as PersonaData
+		assert_eq(_portrait.bust_colour(), data.identity_hue, "%s's bust is not its hue" % persona)
+
+
+func test_an_undealt_contract_draws_a_neutral_bust() -> void:
+	EventBus.contract_assigned.emit(0, &"")
+	assert_eq(_portrait.bust_colour(), _portrait.palette.text_dim, "an unknown bust was coloured")
+
+
+func test_a_new_contract_changes_the_colour() -> void:
+	EventBus.contract_assigned.emit(0, Ids.PERSONA_LUCERNA)
+	var before := _portrait.bust_colour()
+	EventBus.contract_assigned.emit(0, Ids.PERSONA_PESATORE)
+	assert_ne(_portrait.bust_colour(), before, "the bust kept the last contract's colour")
+
+
 func test_the_portrait_carries_no_lock_mark_until_a_lock_completes() -> void:
 	# The *persona* is known from assignment (ADR-0021) and nothing draws one yet;
 	# what this mark reports is that a lock has completed for this contract.

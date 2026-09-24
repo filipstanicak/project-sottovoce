@@ -7,13 +7,13 @@
 ## in a 25° cone with a clear line, which is the price of turning *a direction*
 ## into *a body*, and it resets with the contract.
 ##
-## **IT DRAWS NO FACE YET, AND THAT IS A BUILD STATE RATHER THAN A RULE.** Under
-## ASM-0030 — void since ADR-0021 — the persona was withheld until the lock, and
-## this docstring said the widget *must not* name one. What is true now is simpler:
-## **no player has a persona server-side at all** until US-0078's lobby assigns
-## one, so there is nothing to draw. When there is, the persona travels with the
-## contract on `NET-S2C-CONTRACT-ASSIGNED` and this widget draws it from
-## assignment, with the lock mark beside it.
+## **IT DRAWS THE PERSONA'S NAME AND COLOUR, NOT YET ITS SILHOUETTE.** The persona
+## is dealt at the countdown (US-0100) and travels with the contract on
+## `NET-S2C-CONTRACT-ASSIGNED`; the bust wears its identity hue from `Palette`, the
+## same hue every figure of that persona wears in the district (US-0101). What is
+## still generic is the *shape* — ART_BIBLE §6.1's four constructions in 2D, which
+## is US-0073's open line. This docstring said until then that *"no player has a
+## persona server-side at all"*, true when written and false since US-0100.
 class_name PortraitWidget
 extends Control
 
@@ -79,14 +79,21 @@ func persona() -> StringName:
 	return _persona
 
 
+## What the bust is drawn in. **Public so a test can hold it to the district**: the
+## hunter is sent to look for figures of this colour, and a portrait that disagreed
+## with the bodies would send them to the wrong twelve people.
+func bust_colour() -> Color:
+	return palette.for_persona(_persona)
+
+
 func _draw() -> void:
 	draw_rect(Rect2(Vector2.ZERO, size), palette.plate, true)
 	_caption(Strings.get_text(&"ui.contract.label"), 32.0, 15)
 	if _revealed:
 		_draw_identified()
 		return
-	# A featureless bust communicates missing identity, never a guessed persona.
-	draw_circle(Vector2(90.0, 92.0), 22.0, palette.text_dim)
+	# The bust wears the persona's hue; an undealt one is neutral, never guessed.
+	draw_circle(Vector2(90.0, 92.0), 22.0, bust_colour())
 	draw_style_box(_shoulders(), Rect2(46.0, 122.0, 88.0, 40.0))
 	_caption(_name_or_unknown(), 196.0, LABEL_SIZE)
 
@@ -119,7 +126,7 @@ func _caption(text: String, baseline: float, font_size: int) -> void:
 
 func _shoulders() -> StyleBoxFlat:
 	var shape := StyleBoxFlat.new()
-	shape.bg_color = palette.text_dim
+	shape.bg_color = bust_colour()
 	shape.corner_radius_top_left = 32
 	shape.corner_radius_top_right = 32
 	return shape
@@ -129,7 +136,8 @@ func _shoulders() -> StyleBoxFlat:
 ## the portrait names the persona** (ADR-0021), so the two are different facts and
 ## both are shown. The per-persona silhouette is still US-0073's open line.
 func _draw_identified() -> void:
-	draw_arc(Vector2(90.0, 112.0), 32.0, 0.0, TAU, 48, palette.text_dim, FRAME_WIDTH, true)
+	# The ring keeps the persona's hue, so the colour to look for survives the lock.
+	draw_arc(Vector2(90.0, 112.0), 32.0, 0.0, TAU, 48, bust_colour(), FRAME_WIDTH * 2.0, true)
 	draw_polyline(
 		PackedVector2Array([Vector2(74.0, 112.0), Vector2(86.0, 124.0), Vector2(108.0, 100.0)]),
 		palette.text,
