@@ -42,25 +42,35 @@ makes, from the same sources, rather than trying to be clever.
 - [x] `--census <seconds>` prints the crowd, the other players and the bot itself side by side
       on four numbers a watcher reads a walk by — speed while moving, share of time standing,
       stop length, turn rate — from drawn positions, so both groups pass through the same
-      interpolation a hunter watches. `test_bot_census.gd` holds each number to a synthetic
-      track whose answer is known, including a figure that left the view and came back.
+      interpolation a hunter watches — the bot's own body included. `test_bot_census.gd` holds
+      each number to a synthetic track whose answer is known, including a figure that left the
+      view and came back, moving or standing.
 - [x] `play.bat` and `sandbox.bat` bots walk this way by default; `--hunt` is unchanged.
 
 ## Test notes
 
-**Measured on a live server, seed 42, three bots and a census bot, 120 s each:**
+**Measured on a live server, seed 42, three bots and a census bot, 120 s each** — remeasured
+after review of #236 corrected the instrument (below):
 
 | | moving | standing | stop | turning (median) |
 |---|---|---|---|---|
-| the crowd | 1.36 m/s | 32–37 % | 8.6–10.7 s | 0.06 rad/s |
-| the old bots (`main`) | 1.35 m/s | 21 % | **1.0 s** | 0.03 rad/s |
-| the civilian bots | 1.35 m/s | 41 % | **13.5 s** | 0.03 rad/s |
+| the crowd | 1.40 m/s | 33–35 % | 9.7–10.3 s | 0.06–0.07 rad/s |
+| the old bots (`main`) | 1.39 m/s | 22 % | **1.1 s** | 0.05 rad/s |
+| the civilian bots | 1.39 m/s | 28 % | **7.7 s** | **0.11 rad/s** |
 
 **The speed was never the tell** — the old bot already held `input_slow`, and the first write-up
 of this story said otherwise before it was measured. **The stops were**: the old bot only ever
-paused to turn, where the crowd stands 8–25 s at a time. **The median turn rate does not separate
-anybody**, because every group walks mostly straight; sharp turns would show in the tail, which
-the census does not yet report. Said rather than tuned away.
+paused to turn, where the crowd stands 8–25 s at a time. **And the civilian bot now turns more
+than the crowd** — 0.11 against 0.07 rad/s — which the first census could not show: the look keys
+sweep, so its corners are squarer than an agent's. It is the next thing to close, and it is said
+here rather than tuned away.
+
+**The review of #236 corrected the instrument twice, and both are why the table changed.** The
+bot's own track was read from `PawnContext.position`, the unsmoothed simulation, while the other
+two groups came off drawn nodes; `BotCensus.sample` now reads every group through `drawn()` and
+takes the local body as a node, so the old read cannot be written. And a view gap did not end a
+stop, so a figure standing on both sides of it was one long stop — planted, it reads **6.0 s**
+for two stops of 3. Both have tests; both plants are red by name.
 
 What the numbers cannot answer is the owner's eye at a windowed client — the Turing-test half of
 this story, which stays with the next playtest.

@@ -281,17 +281,14 @@ func _take_census() -> void:
 	var census: RefCounted = CENSUS.new()
 	var npcs := _find_named(_root, "NpcView") as NpcView
 	var remotes := _find_named(_root, "RemotePawns") as RemotePawns
+	var own := _find_named(_root, "PawnLocal") as Node3D
+	own = own.get_node_or_null("PersonaVisuals") as Node3D if own != null else null
 	var start := Time.get_ticks_msec() / 1000.0
 	var now := start
 	while now - start < _census_for:
 		await get_tree().create_timer(0.2).timeout
 		now = Time.get_ticks_msec() / 1000.0
-		for index: int in npcs.indices():
-			census.add("npc:%d" % index, now, npcs.body_of(index).global_position)
-		for slot: int in remotes.slots():
-			census.add("player:%d" % slot, now, remotes.pawn_of(slot).global_position)
-		if _pawn() != null:
-			census.add("self", now, _pawn().position)
+		CENSUS.sample(census, now, npcs, remotes, own)
 	print("bot %d census over %.0f s:" % [_index, _census_for])
 	for group: Array in [["crowd", "npc:"], ["players", "player:"], ["this bot", "self"]]:
 		print("  " + CENSUS.line(group[0], census.summary(census.keys_with_prefix(group[1]))))

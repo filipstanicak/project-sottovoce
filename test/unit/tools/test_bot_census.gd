@@ -72,3 +72,28 @@ func test_groups_are_kept_apart_by_prefix() -> void:
 	assert_eq(census.keys_with_prefix("npc:").size(), 2, "the crowd group is wrong")
 	var players: Dictionary = census.summary(census.keys_with_prefix("player:"))
 	assert_almost_eq(float(players["moving_speed"]), 2.2, 0.01, "players read the crowd's speed")
+
+
+## **A FIGURE STANDING ON BOTH SIDES OF A GAP STOOD TWICE** (review of #236). Before
+## the fix the two visible pieces were summed into one stop of their total length.
+func test_a_gap_ends_a_stop() -> void:
+	var census: RefCounted = CENSUS.new()
+	for i: int in 16:
+		census.add("a", i * 0.2, Vector3.ZERO)
+	for i: int in 16:
+		census.add("a", 6.0 + i * 0.2, Vector3.ZERO)
+	var s: Dictionary = census.summary(["a"])
+	assert_almost_eq(float(s["mean_stop"]), 3.0, 0.1, "two stops across a gap were read as one")
+
+
+## **EVERY GROUP IS READ FROM WHERE IT IS DRAWN.** The bot's own body is a node like
+## every other figure here; a sample that took the simulation position instead would
+## put `self` somewhere its body is not.
+func test_the_own_track_is_read_off_the_drawn_body() -> void:
+	var census: RefCounted = CENSUS.new()
+	var body := Node3D.new()
+	add_child_autofree(body)
+	body.global_position = Vector3(5.0, 0.0, 7.0)
+	CENSUS.sample(census, 0.0, null, null, body)
+	assert_eq(census.keys_with_prefix("self").size(), 1, "the own body was not sampled")
+	assert_eq(census.points("self")[0], Vector3(5.0, 0.0, 7.0), "self was not read off its body")

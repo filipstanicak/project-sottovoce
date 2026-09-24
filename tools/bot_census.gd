@@ -18,7 +18,12 @@ extends RefCounted
 ## about what is close enough — that is the owner's eye at a windowed client, which is
 ## the Turing-test half of this story and cannot be replaced by a threshold.
 ##
-## PURE: positions and times in, numbers out, so it is tested on synthetic tracks.
+## `summary` is PURE — positions and times in, numbers out — so it is tested on
+## synthetic tracks. `sample` is the one place that reads the scene, and it reads
+## **every group through `drawn()`**: review of #236 found the bot's own track taken
+## from `PawnContext.position`, the unsmoothed simulation, while the crowd and the
+## other players came off their drawn nodes. The signature now takes the local body as
+## a node, so that mistake cannot be written again.
 
 ## Below this, a figure is standing. Well under the 1.4 m/s stroll and above the
 ## jitter of an interpolated position.
@@ -45,6 +50,11 @@ func add(key: Variant, t: float, at: Vector3) -> void:
 
 func track_count() -> int:
 	return _tracks.size()
+
+
+## The positions recorded for `key`, in order. For the tests.
+func points(key: Variant) -> Array:
+	return (_tracks.get(key, []) as Array).map(func(sample: Array) -> Vector3: return sample[1])
 
 
 ## Every key that starts with `prefix`, so a caller can group `npc:*` against `player:*`.
@@ -94,7 +104,13 @@ func _walk_the_track(track: Array) -> Array:
 	for i: int in range(1, track.size()):
 		var dt := float(track[i][0]) - float(track[i - 1][0])
 		if dt > MAX_GAP:
+			# **A GAP ENDS A STOP AS IT ENDS A HEADING** (review of #236): a figure
+			# standing on both sides of it is two visible stops, not one long one. The
+			# part seen is kept, as a track's own ends keep theirs.
 			heading = INF
+			if stop_run > 0.0:
+				stops.append(stop_run)
+				stop_run = 0.0
 			continue
 		var step := CompassMath.distance_to(track[i - 1][1], track[i][1])
 		var speed := step / dt
@@ -115,6 +131,27 @@ func _walk_the_track(track: Array) -> Array:
 	if stop_run > 0.0:
 		stops.append(stop_run)
 	return [speeds, turns, stops, standing, total]
+
+
+## One sample of every figure this client draws: the crowd, the other players and the
+## bot's own body, all through `drawn()`.
+static func sample(
+	census: RefCounted, now: float, npcs: NpcView, remotes: RemotePawns, own_body: Node3D
+) -> void:
+	if npcs != null:
+		for index: int in npcs.indices():
+			census.add("npc:%d" % index, now, drawn(npcs.body_of(index)))
+	if remotes != null:
+		for slot: int in remotes.slots():
+			census.add("player:%d" % slot, now, drawn(remotes.pawn_of(slot)))
+	if own_body != null:
+		census.add("self", now, drawn(own_body))
+
+
+## Where a node is **drawn** this frame — the physics-interpolated transform, which is
+## what reaches the screen, rather than the last physics tick's.
+static func drawn(node: Node3D) -> Vector3:
+	return node.get_global_transform_interpolated().origin
 
 
 ## A group summary as one fixed-width line, for the bot's log.
