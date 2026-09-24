@@ -33,7 +33,7 @@ func test_the_clothing_wears_the_identity_hue_from_the_resource() -> void:
 func test_the_four_hues_are_four() -> void:
 	var seen: Dictionary = {}
 	for persona: StringName in CrowdRoster.PLAYABLE:
-		seen[PersonaBody.hue_of(persona)] = persona
+		seen[Palette.authored_hue(persona)] = persona
 	assert_eq(seen.size(), 4, "two personas share a colour, so colour tells them apart less")
 
 
@@ -54,7 +54,7 @@ func test_dressing_rebuilds_in_place() -> void:
 	assert_true(body.dress(Ids.PERSONA_LUCERNA), "dressing reported nothing changed")
 	await wait_physics_frames(1)
 	assert_not_null(body.get_node_or_null("Pole"), "the Lucerna has no pole after dressing")
-	assert_eq(_albedo(body, "Body"), PersonaBody.hue_of(Ids.PERSONA_LUCERNA), "wrong colour")
+	assert_eq(_albedo(body, "Body"), Palette.authored_hue(Ids.PERSONA_LUCERNA), "wrong colour")
 
 
 func test_dressing_as_the_same_persona_changes_nothing() -> void:

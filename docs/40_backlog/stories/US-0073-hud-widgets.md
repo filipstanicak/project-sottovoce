@@ -49,7 +49,10 @@ The remaining widgets, each a pure renderer fed by a view model.
       from the start. The lock's mark and the reset are built. **The persona arrived
       2026-09-24 with US-0100**: it is dealt at the countdown and travels with the contract
       on `NET-S2C-CONTRACT-ASSIGNED`, and the widget draws the persona's **name** beside the
-      generic bust. **Still unticked for the silhouette**: ART_BIBLE §6.1's four
+      generic bust. **The bust wears the persona's identity hue as of 2026-09-24**, reported from
+      the controls once the district was dressed (US-0101) and the portrait was the one grey
+      thing left: `Palette.for_persona` reads the same `PersonaData` the 3D bodies wear, so the
+      colour a hunter is sent to find cannot disagree with the figures. **Still unticked for the silhouette**: ART_BIBLE §6.1's four
       constructions are what would make this a portrait rather than a label, and
       `PersonaBody` builds them in 3D with no 2D counterpart. The old note argued the
       persona *"must not be on the wire"* — that is the argument ADR-0021 retired.

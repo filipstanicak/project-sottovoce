@@ -21,6 +21,10 @@
 class_name Wardrobe
 extends Node
 
+## The palette every body is dressed from — the HUD's, set by the client root, so
+## the portrait and the district cannot disagree about a colour under any palette.
+var palette: Palette = null
+
 var _npcs: NpcView
 var _remotes: RemotePawns
 var _local: PersonaBody
@@ -94,12 +98,14 @@ func refresh() -> void:
 		for slot: int in _remotes.slots():
 			_on_remote_appeared(slot)
 	if _local != null:
+		_local.palette = palette
 		_local.dress(player_persona(GameState.local_peer_id))
 
 
 func _on_npc_appeared(index: int) -> void:
 	var body := _npcs.body_of(index)
 	if body != null:
+		body.palette = palette
 		body.dress(npc_persona(index))
 
 
@@ -107,4 +113,5 @@ func _on_remote_appeared(slot: int) -> void:
 	var pawn := _remotes.pawn_of(slot)
 	var body := null if pawn == null else pawn.get_node_or_null("PersonaVisuals") as PersonaBody
 	if body != null:
+		body.palette = palette
 		body.dress(player_persona(slot))

@@ -148,6 +148,28 @@ func test_a_failed_connection_clears_the_gate_too() -> void:
 	assert_false(Wardrobe.can_dress(), "a failed connection left the gate open")
 
 
+## **ONE PALETTE COLOURS THE PORTRAIT AND THE DISTRICT, WHATEVER IT SAYS.** Review
+## of #235: the first version let the portrait read a palette while the bodies read
+## the resource, so a colourblind palette would have moved one and not the other —
+## the very disagreement #235 fixes, returning under every palette but the default.
+## An override no persona resource holds is the proof: both must draw exactly it.
+func test_the_portrait_and_the_figures_follow_one_palette() -> void:
+	var odd := Palette.new()
+	odd.persona_hues[Ids.PERSONA_CANTATRICE] = Color(0.1, 0.9, 0.2)
+	_wardrobe.palette = odd
+	GameState.adopt_personas(_roster())
+	GameState.adopt_match(SEED, 0, CROWD)
+	var portrait := PortraitWidget.new()
+	portrait.palette = odd
+	add_child_autofree(portrait)
+	EventBus.contract_assigned.emit(0, Ids.PERSONA_CANTATRICE)
+	var body := _remote_body()
+	assert_eq(body.persona, Ids.PERSONA_CANTATRICE, "the fixture did not dress a Cantatrice")
+	var worn := (body.get_node("Body") as MeshInstance3D).mesh.material as StandardMaterial3D
+	assert_eq(worn.albedo_color, Color(0.1, 0.9, 0.2), "the figure ignored the palette")
+	assert_eq(portrait.bust_colour(), Color(0.1, 0.9, 0.2), "the portrait ignored the palette")
+
+
 ## **THE CLIENT DERIVES THE CROWD WITH THE SERVER'S OWN ARGUMENTS.** The server
 ## stands its pool up over `CrowdRoster.PLAYABLE` and `TUN-LOBBY-MAX-PLAYERS`, not
 ## over the dealt set; a wardrobe that used the dealt personas would dress a

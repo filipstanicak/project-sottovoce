@@ -50,14 +50,17 @@ const FALLBACK_HEIGHT := 1.8
 const HEAD_FRACTION := 0.62
 const MARKER_SIZE := Vector3(0.30, 0.16, 0.12)
 
-## `PersonaData.identity_hue` per persona, loaded once. Presentation-only reads of
-## a resource the client pack already carries.
-static var _hues: Dictionary = {}
-
 ## Which persona to build, or `&""` for the undressed figure. Set before the node
 ## enters the tree, or change it afterwards through `dress()`.
 @export var persona: StringName = &""
 
+## The palette the clothing is coloured from — **the same instance the HUD draws
+## the contract portrait with**, handed over by `Wardrobe`, so a colourblind palette
+## moves the figures and the portrait together. Null means the default palette.
+var palette: Palette = null
+
+## The clothing colour, resolved once per build rather than once per part.
+var _cloth: Color = BODY_COLOUR
 var _radius: float = FALLBACK_RADIUS
 var _collider_height: float = FALLBACK_HEIGHT
 
@@ -105,20 +108,13 @@ func is_dressed() -> bool:
 	return CrowdRoster.PLAYABLE.has(persona)
 
 
-## The identity hue of `id`, or the neutral body colour for anything that is not a
-## playable persona. **Read from the persona's own resource**, so the hue has one
-## home — the `.tres` ART_BIBLE §3's law is written against.
-static func hue_of(id: StringName) -> Color:
-	if not CrowdRoster.PLAYABLE.has(id):
-		return BODY_COLOUR
-	if not _hues.has(id):
-		var slug := String(id).trim_prefix("PERSONA-").to_lower()
-		var data := load("res://data/personas/%s.tres" % slug) as PersonaData
-		_hues[id] = data.identity_hue if data != null else BODY_COLOUR
-	return _hues[id]
+## The clothing's colour for the persona being worn.
+func cloth() -> Color:
+	return (palette if palette != null else Palette.fallback()).for_persona(persona)
 
 
 func _build() -> void:
+	_cloth = cloth() if is_dressed() else BODY_COLOUR
 	if not is_dressed():
 		_undressed()
 		_facing_marker()
@@ -162,7 +158,7 @@ func _cantatrice() -> void:
 	# a floor triangle at 40 m and keeps the lie under 20 cm a side.
 	skirt.bottom_radius = _radius * 1.5
 	skirt.height = 0.85
-	_attach("Skirt", skirt, Vector3(0.0, 0.425, 0.0), hue_of(persona))
+	_attach("Skirt", skirt, Vector3(0.0, 0.425, 0.0), _cloth)
 	var crown := SphereMesh.new()
 	crown.radius = _radius * 0.34
 	crown.height = crown.radius * 2.0
@@ -216,7 +212,7 @@ func _torso(height: float, width: float) -> void:
 	var mesh := CapsuleMesh.new()
 	mesh.radius = _radius * width
 	mesh.height = height
-	_attach("Body", mesh, Vector3(0.0, height * 0.5, 0.0), hue_of(persona))
+	_attach("Body", mesh, Vector3(0.0, height * 0.5, 0.0), _cloth)
 
 
 ## **THE HEAD'S CROWN SITS AT THE CAPSULE'S TOP, NOT ON IT.** `GreyboxBody`
@@ -232,7 +228,7 @@ func _head(height: float) -> void:
 
 func _shoulders(height: float, scale: float) -> void:
 	var mesh := _box(Vector3(_radius * 2.0 * scale, 0.20, _radius * 1.2))
-	_attach("Shoulders", mesh, Vector3(0.0, height * 0.80, 0.0), hue_of(persona))
+	_attach("Shoulders", mesh, Vector3(0.0, height * 0.80, 0.0), _cloth)
 
 
 ## **THE ONE PIECE THAT IS NOT SILHOUETTE.** A capsule is rotationally symmetric,

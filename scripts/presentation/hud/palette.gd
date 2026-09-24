@@ -18,6 +18,10 @@
 class_name Palette
 extends Resource
 
+## `PersonaData.identity_hue` per persona, loaded once — the default every palette
+## falls back to where it does not override.
+static var _authored: Dictionary = {}
+
 ## Tier shapes and words. `neutral` carries Anonymous, which is the absence of a
 ## signal rather than a signal of its own.
 @export var neutral: Color = Color(0.86, 0.88, 0.90)
@@ -105,6 +109,12 @@ extends Resource
 ## variants cannot separate.
 @export var timer_warning: Color = Color(0.93, 0.84, 0.55)
 
+## **Per-persona hue overrides, as data.** Empty in the default palette, which then
+## reads each persona's authored hue. US-0083's colourblind palettes are `.tres`
+## files, and a resource can override a *value* but never a method — so the mapping
+## lives here as a field, which is the half review of #235 asked for.
+@export var persona_hues: Dictionary[StringName, Color] = {}
+
 ## The timer's plate through `FINAL` — the phase treatment GDD-06 §E asks for.
 @export var timer_final_plate: Color = Color(0.18, 0.11, 0.04, 0.96)
 
@@ -118,6 +128,34 @@ func for_tier(tier: int) -> Color:
 	if tier >= SuspicionMath.Tier.NOTICED:
 		return noticed
 	return neutral
+
+
+## A persona's identity hue — for the contract portrait (ART_BIBLE §3) **and for
+## every figure in the district**, which is the point: `PersonaBody` is handed this
+## palette by `Wardrobe` and dresses from this method, so no palette can colour the
+## portrait one way and the crowd another. Review of #235 found the first version
+## delegating the other way, to the body, which would have let a colourblind palette
+## move the portrait and leave the figures behind.
+##
+## An override in `persona_hues` wins; otherwise the persona's own
+## `PersonaData.identity_hue`, the resource ART_BIBLE §3's law is written against.
+## Anything that is not a dealt persona is `text_dim`: the featureless bust.
+func for_persona(persona: StringName) -> Color:
+	if not CrowdRoster.PLAYABLE.has(persona):
+		return text_dim
+	if persona_hues.has(persona):
+		return persona_hues[persona]
+	return authored_hue(persona)
+
+
+## The hue authored on the persona's own resource, loaded once. Public so a test can
+## hold a palette's answer to the resource independently of the palette.
+static func authored_hue(persona: StringName) -> Color:
+	if not _authored.has(persona):
+		var slug := String(persona).trim_prefix("PERSONA-").to_lower()
+		var data := load("res://data/personas/%s.tres" % slug) as PersonaData
+		_authored[persona] = data.identity_hue if data != null else Color.GRAY
+	return _authored[persona]
 
 
 ## One of the palette's colours at a different alpha. **Lives here rather than in

@@ -53,6 +53,12 @@ func _run(frames: int) -> void:
 
 func test_the_client_scene_boots_with_a_driven_pawn() -> void:
 	assert_not_null(_driver, "client_root.tscn has no LocalPawnDriver")
+	# **THE WARDROBE DRESSES FROM THE HUD'S OWN PALETTE**, not a copy (review of #235):
+	# the one hop no unit test sees, and a second palette would let the portrait and
+	# the district disagree about a colour the moment a non-default one is loaded.
+	var wardrobe := _root.get_node("Wardrobe") as Wardrobe
+	var hud := _root.get_node("Hud") as HudRoot
+	assert_same(wardrobe.palette, hud.palette, "the wardrobe and the HUD hold different palettes")
 	assert_not_null(_driver.ctx.body, "the driver is not attached to a body")
 	assert_eq(_driver.ctx.state_id, PawnStateId.IDLE, "the pawn did not spawn into Idle")
 
