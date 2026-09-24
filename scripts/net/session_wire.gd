@@ -7,7 +7,9 @@
 ## not `EVENT` — so the file whose docstring called itself the `EVENT`-channel
 ## doorway held one message that was not. Both messages here are the catalogue's
 ## `X` rows, reliable, and ordered after `NET-S2C-WELCOME` on the same channel:
-## a late joiner is welcomed, then told the seed, then told who wears what.
+## a late joiner is welcomed, told who wears what (`MatchConsequences.peer_joined`)
+## and then the seed (`MatchAnnouncer.started_for`). The wardrobe's gate makes the
+## order irrelevant to what is drawn; this says which one is built.
 ##
 ## **THE TWO MESSAGES ARE THE TWO HALVES `Wardrobe` WAITS FOR**, which is the other
 ## reason they belong together: the seed dresses the crowd and the roster dresses

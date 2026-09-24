@@ -115,12 +115,37 @@ func test_a_body_that_arrives_later_is_dressed_on_arrival() -> void:
 	)
 
 
-func test_a_lost_session_undresses_everybody() -> void:
+## **THROUGH THE PATH A REAL DISCONNECT TAKES, NOT THROUGH `GameState.clear()`.**
+## This test called `clear()` directly until review of #232 — and `clear()` had no
+## caller under `scripts/` at all, so the test proved a function nobody ran. The
+## signal below is the one ENet raises; `Net` answers it with `stop()`.
+func test_a_lost_server_undresses_everybody() -> void:
 	GameState.adopt_personas(_roster())
 	GameState.adopt_match(SEED, 0, CROWD)
-	GameState.clear()
+	assert_true(Wardrobe.can_dress(), "the fixture never dressed anybody, so nothing was proven")
+	Net.multiplayer.server_disconnected.emit()
+	assert_false(Wardrobe.can_dress(), "a lost server left both halves of the gate standing")
+	_assert_nobody_dressed("after the server that dressed them was lost")
+
+
+## **THE INTERLEAVING THE REVIEW NAMED.** With the last match's seed surviving, the
+## next lobby's roster — every seat undealt, and not empty — reopens the gate: the
+## crowd is dressed from the old seed and every player stands undressed among it.
+func test_the_next_lobby_is_not_dressed_from_the_last_match() -> void:
+	GameState.adopt_personas(_roster())
+	GameState.adopt_match(SEED, 0, CROWD)
+	Net.multiplayer.server_disconnected.emit()
 	GameState.replace(OWN_SLOT, GameState.Phase.LOBBY, {})
-	_assert_nobody_dressed("after the session that dressed them was cleared")
+	GameState.adopt_personas({OWN_SLOT: &"", OTHER_SLOT: &""})
+	_assert_nobody_dressed("in a new lobby, from the seed of the match before it")
+
+
+func test_a_failed_connection_clears_the_gate_too() -> void:
+	GameState.adopt_personas(_roster())
+	GameState.adopt_match(SEED, 0, CROWD)
+	Net.multiplayer.connection_failed.emit()
+	assert_push_error_count(1, "a failed connection is logged loudly, and that is not the defect")
+	assert_false(Wardrobe.can_dress(), "a failed connection left the gate open")
 
 
 ## **THE CLIENT DERIVES THE CROWD WITH THE SERVER'S OWN ARGUMENTS.** The server

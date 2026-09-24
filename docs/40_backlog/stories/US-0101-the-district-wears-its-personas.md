@@ -48,14 +48,18 @@ seed (`NET-S2C-MATCH-START`, at `ACTIVE`) for the crowd and the roster
       `test_lobby_state_wire.gd`, `test_the_personas_reach_every_client.gd`.
 - [x] **Nobody is dressed until everybody can be**: the seed alone dresses nobody, the roster
       alone dresses nobody, both dress the crowd, the other players and the local pawn in one
-      pass, a body admitted later is dressed on arrival, and a lost session undresses everybody.
+      pass, a body admitted later is dressed on arrival, and **a lost server or a failed
+      connection undresses everybody through `Net.stop()`** — asserted through ENet's own
+      signals, because `GameState.clear()` had no production caller until review of #232 found it.
 - [x] `NpcView` never dresses a body itself, so nothing can go around the gate.
 
 ## Test notes
 
 Falsified, one plant at a time against the suite that owns each, all six red by name: the gate
 opened on the seed alone; the crowd derived from the dealt set instead of `PLAYABLE`; the torso
-drawn neutral; a departure not announced; a short roster packet read; `NpcView` dressing a body.
+drawn neutral; a departure not announced; a short roster packet read; `NpcView` dressing a body;
+and, after review, `Net.stop()` not clearing the mirror — three tests red, including the next
+lobby being dressed from the last match's seed.
 
 `tools/persona_lineup.tscn` renders the four side by side, windowed. It became a scene here:
 `PersonaBody` now asks `CrowdRoster.PLAYABLE` whether it is dressed, `CrowdRoster` reads

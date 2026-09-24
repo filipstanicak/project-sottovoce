@@ -141,6 +141,7 @@ func stop() -> void:
 	_peer = null
 	_peers.clear()
 	_pings.clear()
+	GameState.clear()  # The only caller: see `GameState.clear` for what it cost (US-0101).
 
 
 ## Smoothed round-trip time to `peer`, in milliseconds. 0.0 when unknown.

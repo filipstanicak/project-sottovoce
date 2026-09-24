@@ -100,8 +100,14 @@ func adopt_personas(by_slot: Dictionary) -> void:
 	state_replaced.emit()
 
 
-## Reset to lobby. Called on disconnect, so a stale roster never outlives the
-## session that produced it.
+## Reset to lobby, from `Net.stop()` — on a lost server, a failed connection and a
+## deliberate stop — so a stale roster never outlives the session that produced it.
+##
+## **THIS DOCSTRING SAID "CALLED ON DISCONNECT" FROM M0, AND NOTHING CALLED IT.**
+## It cost nothing while the mirror held a phase and a roster nobody drew; from
+## US-0101 the wardrobe dresses the district from the seed and the personas here,
+## so a client that lost its server kept both halves and could dress the next
+## match's crowd from the last one's. Found in review of #232.
 func clear() -> void:
 	# **A SEED OUTLIVING ITS SESSION WOULD DRESS THE NEXT MATCH'S CROWD**, which
 	# is the exact failure this function exists to prevent for the roster. Reset

@@ -92,9 +92,10 @@ func dress(to: StringName) -> bool:
 	persona = to
 	if not is_inside_tree():
 		return true
+	# **FREED NOW, NOT QUEUED.** A queued part is already out of the tree and not yet
+	# gone, and a district re-dressed at once left ~150 of them orphaned for a frame.
 	for child: Node in get_children():
-		remove_child(child)
-		child.queue_free()
+		child.free()
 	_build()
 	return true
 
