@@ -391,6 +391,7 @@ func _on_peer_left(peer: int) -> void:
 	director.forget(peer)
 	snapshots.forget(peer)
 	match_state.forget(peer)
+	consequences.peer_left(director.ctx)
 	# **AFTER THE DESPAWN, NOT BEFORE**, or the lobby reads one player fuller than it
 	# is — at the abandon floor, the difference between ending and not.
 	match_state.players = pawns.pawn_count()

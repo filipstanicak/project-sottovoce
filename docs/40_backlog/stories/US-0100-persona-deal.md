@@ -36,21 +36,29 @@ second time. This story moves no criterion out of US-0078.
 ## Acceptance criteria
 
 - [x] Every player holds a persona from the countdown, dealt from the seeded `MatchContext.rng`
-      and never from `randf`/`randi` (never-do #8). Duplicates are permitted.
-- [ ] A player who joins *after* the countdown is dealt one too, or they are the only figure in
-      the district with no clones — GDD-03 §6.3 rule 5's marked man.
-      **Built and deliberately left unticked**: `MatchConsequences.peer_joined` deals it, and
-      **nothing asserts it**. The respawn rule in this same story had only a docstring and the
-      plant ran the whole suite green; ticking a second untested claim on the strength of
-      having written the line is exactly that mistake again.
+      and never from `randf`/`randi` (never-do #8). Duplicates are permitted. **The deal runs
+      before `ContractSystem.open`**, because that call announces synchronously and a hunter
+      told the persona from the *previous* deal is a client and a district disagreeing about a
+      face — found in review, asserted at the seam now.
+- [x] A player who joins *after* the countdown is dealt one too, or they are the only figure in
+      the district with no clones — GDD-03 §6.3 rule 5's marked man. **And a join *before* the
+      countdown is not**, because US-0100's own rule is that nobody holds a persona until the
+      deal. **Ticked only after the review found two defects in the untested version**: it
+      dealt in `LOBBY`, and every lobby join spent the match generator, so the recorded seed
+      stopped reproducing the district. `MatchPhase.is_simulating` is the gate and
+      `test_the_persona_deal_ordering.gd` asserts both halves.
 - [x] The deal survives death: `reset_for_spawn` must not clear it, because a persona is
       identity and a respawn is not a new player.
-- [ ] `CloneBalance` fetches clones for the personas **actually in play** rather than all four.
-      The boot roster is unchanged; only the 2 s rebalance pass narrows.
-      **Built and unticked for the same reason as the late joiner**: `refresh_personas_in_use`
-      writes the list and no test drives the 2 s pass against a narrowed one. The measurement
-      that would tick it is US-0047's clone-floor census run on a dealt district, which is a
-      day's work and belongs with the human playtest rather than with this story.
+- [x] `CloneBalance` fetches clones for the personas **actually in play** rather than all four.
+      The boot roster is unchanged; only the 2 s rebalance pass narrows. **Ticked only after
+      the review found the missing half**: the list was refreshed after a *deal* and never
+      after a *departure*, so the last wearer of a persona leaving left the pass fetching
+      clones nobody wore for the rest of the match. `MatchConsequences.peer_left` closes it and
+      three tests hold it — the drop, the persona somebody else still wears, and the empty
+      district that must fall back to all four rather than look like `test_crowd_perf.gd`'s
+      deliberate layer-4-off measurement.
+      **What is still owed is the census, not the rule**: US-0047's clone-floor measurement run
+      on a dealt district belongs with the human playtest.
 - [x] The hunter is told their contract's persona (ADR-0021), on
       `NET-S2C-CONTRACT-ASSIGNED`, with `PROTOCOL_VERSION` raised and the handshake refusing
       the old width.
@@ -60,8 +68,10 @@ second time. This story moves no criterion out of US-0078.
 
 ## Test notes
 
-Falsify: a deal that uses `randi`, a `reset_for_spawn` that clears the persona, a late joiner
-skipped, an inserted `PLAYABLE` member, and the wire index read one off.
+Falsify: a deal that uses `randi`, a `reset_for_spawn` that clears the persona, an inserted
+`PLAYABLE` member, the wire index read one off — and the three the review found: the deal after
+`contracts.open`, the join gate removed, and `peer_left` not refreshing the list. All six red by
+name.
 
 ## Notes
 

@@ -42,10 +42,19 @@ func _init(ctx: MatchContext) -> void:
 	_ctx = ctx
 
 
-## **`NET-S2C-CONTRACT-ASSIGNED` CARRIES THE SLOT AND THE REASON AND NOTHING
-## ELSE**: no persona, no position, no tier. The crowd's entire value is that a
-## contract is one of about seventy-eight candidates until you earn better, and a
-## field on this message is the cheapest possible way to give that away.
+## **`NET-S2C-CONTRACT-ASSIGNED` CARRIES THE SLOT, THE REASON AND THE PERSONA.**
+##
+## **THIS DOCSTRING ARGUED THE OPPOSITE UNTIL 2026-09-24**, and it is the *second*
+## passage to survive ADR-0021's sweep by stating the rule without naming the
+## assumption: *"no persona, no position, no tier … a field on this message is the
+## cheapest possible way to give that away."* That is ASM-0030, void since
+## ADR-0021 — the collapse to twelve **is** the game, and the clone system is what
+## protects the player inside it. `event_wire.gd` carried the same sentence and was
+## corrected at US-0100; a grep for the id found neither.
+##
+## Position and tier are still refused, and the slot is still a slot rather than a
+## peer id (US-0029). The persona is a `PersonaWire` index, `NONE` until the
+## countdown deals one.
 func contract_issued(peer: int, contract: int, reason: int) -> void:
 	var pawn: PawnContext = _ctx.pawn_contexts.get(contract)
 	var persona := PersonaWire.to_u8(pawn.persona) if pawn != null else PersonaWire.NONE

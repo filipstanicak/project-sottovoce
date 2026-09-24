@@ -160,9 +160,15 @@ func phase_changed(from: int, to: int, _ctx: MatchContext) -> void:
 ## permutation the story asks for — the first peer to connect always hunted the
 ## second, every match, on every seed.
 func countdown_opened(peers: PackedInt32Array, ctx: MatchContext) -> void:
+	# **THE DEAL COMES FIRST, AND THE ORDER IS THE WHOLE CORRECTNESS.**
+	# `ContractSystem.open` announces synchronously — `_announce_what_changed` runs
+	# inside it — and `MatchAnnouncer.contract_issued` reads `target.persona` on that
+	# line. Dealt afterwards, every hunter is told the persona their contract wore
+	# **before this countdown** while the server and `CloneBalance` already use the
+	# new one. Found in review; the client and the district disagreed about a face.
+	deal_personas(peers, ctx)
 	if contracts != null and not peers.is_empty():
 		contracts.open(peers, ctx)
-	deal_personas(peers, ctx)
 
 
 ## **WHAT A NEW PLAYER IS GIVEN**, in one place rather than spread through the
@@ -180,7 +186,18 @@ func countdown_opened(peers: PackedInt32Array, ctx: MatchContext) -> void:
 func peer_joined(peer: int) -> void:
 	if abilities != null:
 		abilities.loadout[peer] = [Ids.ABIL_CINDERFALL, Ids.ABIL_LUNGE]
-	deal_personas(PackedInt32Array([peer]), _ctx)
+	# **ONLY A JOIN AFTER THE COUNTDOWN IS DEALT TO.** `is_simulating` is exactly
+	# *the countdown has opened and the match has not folded* — `WARMUP`, `ACTIVE`,
+	# `FINAL` — which is the rule US-0100 states and `PersonaWire.NONE` encodes:
+	# nobody has a persona before the countdown.
+	#
+	# **AN UNGATED DEAL WAS WRONG TWICE.** It set `persona` during `LOBBY`, against
+	# the story's own definition, and it **spent the match generator on every lobby
+	# join** — so the seed no longer reproduced the district, which is the one
+	# property `PersonaDeal` exists to keep. The loadout above is not gated: a
+	# placeholder kit is a consequence of arriving, not of the clock.
+	if MatchPhase.is_simulating(_ctx.phase):
+		deal_personas(PackedInt32Array([peer]), _ctx)
 
 
 ## **THE PERSONA IS DEALT IN THE SAME BREATH AS THE CONTRACT**, US-0100 and owner
@@ -208,6 +225,15 @@ func deal_personas(peers: PackedInt32Array, ctx: MatchContext) -> void:
 ## is never written** — an empty list turns layer 4 off entirely, which is what
 ## `test_crowd_perf.gd` does on purpose to measure the pass, and a lobby that has
 ## not dealt yet must not look like that measurement.
+## **A DEPARTURE CHANGES WHO IS IN PLAY, AND NOTHING SAID SO.** `refresh` ran only
+## after a deal, so when the only wearer of a persona disconnected the 2 s pass went
+## on fetching clones for a persona nobody was wearing — for the rest of the match,
+## while the players still there went under-served. Found in review, and it is the
+## half of *actually in play* that was missing rather than merely untested.
+func peer_left(ctx: MatchContext) -> void:
+	refresh_personas_in_use(ctx)
+
+
 func refresh_personas_in_use(ctx: MatchContext) -> void:
 	if crowd == null:
 		return
