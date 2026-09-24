@@ -1,0 +1,184 @@
+extends RefCounted
+## **HOW A FIGURE MOVES, MEASURED THE WAY AN OBSERVER SEES IT.** US-0102. DEBUG TOOL.
+##
+## The civilian bot claims behavioural parity with the crowd; this is what checks the
+## claim instead of taking it. It is fed drawn positions — what a hunter's client puts
+## on screen, NPC and player alike — and summarises each group of tracks with the
+## four numbers a watching player actually reads a walk by:
+##
+## - **speed while moving**, because a figure faster than its crowd is the first tell;
+## - **the share of time spent standing**, because a figure that never stops is the
+##   second;
+## - **how long a stop lasts**, because a crowd that idles 8–25 s and a bot that
+##   pauses for one is the third;
+## - **how sharply it turns while walking**, because a walk made of straight legs and
+##   snap turns is the one the owner reported.
+##
+## **A COMPARISON, NOT A VERDICT.** It prints the groups side by side and says nothing
+## about what is close enough — that is the owner's eye at a windowed client, which is
+## the Turing-test half of this story and cannot be replaced by a threshold.
+##
+## `summary` is PURE — positions and times in, numbers out — so it is tested on
+## synthetic tracks. `sample` is the one place that reads the scene, and it reads
+## **every group through `drawn()`**: review of #236 found the bot's own track taken
+## from `PawnContext.position`, the unsmoothed simulation, while the crowd and the
+## other players came off their drawn nodes. The signature now takes the local body as
+## a node, so that mistake cannot be written again.
+
+## Below this, a figure is standing. Well under the 1.4 m/s stroll and above the
+## jitter of an interpolated position.
+const STANDING := 0.25
+## Samples closer together than this are skipped: a speed over a few milliseconds is
+## mostly interpolation noise.
+const MIN_DT := 0.1
+## A longer gap is a figure that left the view and came back — an NPC crosses the
+## cull radius whenever the observer walks — and the displacement across it is not
+## a walk anybody saw. Such intervals are skipped rather than read as a sprint.
+const MAX_GAP := 1.0
+
+## key -> Array of `[t, position]`.
+var _tracks: Dictionary = {}
+
+
+func add(key: Variant, t: float, at: Vector3) -> void:
+	var track: Array = _tracks.get(key, [])
+	if not track.is_empty() and t - float(track[-1][0]) < MIN_DT:
+		return
+	track.append([t, at])
+	_tracks[key] = track
+
+
+func track_count() -> int:
+	return _tracks.size()
+
+
+## The positions recorded for `key`, in order. For the tests.
+func points(key: Variant) -> Array:
+	return (_tracks.get(key, []) as Array).map(func(sample: Array) -> Vector3: return sample[1])
+
+
+## Every key that starts with `prefix`, so a caller can group `npc:*` against `player:*`.
+func keys_with_prefix(prefix: String) -> Array:
+	return _tracks.keys().filter(func(k: Variant) -> bool: return str(k).begins_with(prefix))
+
+
+## `{tracks, moving_speed, standing_share, mean_stop, turn_rate}` over the given keys.
+## `moving_speed` is a median in m/s, `turn_rate` a median in rad/s while walking,
+## `mean_stop` seconds. A group with no usable samples answers `tracks: 0`.
+func summary(keys: Array) -> Dictionary:
+	var speeds: Array[float] = []
+	var turns: Array[float] = []
+	var stops: Array[float] = []
+	var standing := 0.0
+	var total := 0.0
+	var used := 0
+	for key: Variant in keys:
+		var track: Array = _tracks.get(key, [])
+		if track.size() < 3:
+			continue
+		used += 1
+		var result := _walk_the_track(track)
+		speeds.append_array(result[0])
+		turns.append_array(result[1])
+		stops.append_array(result[2])
+		standing += float(result[3])
+		total += float(result[4])
+	return {
+		"tracks": used,
+		"moving_speed": _median(speeds),
+		"standing_share": standing / total if total > 0.0 else 0.0,
+		"mean_stop": _mean(stops),
+		"turn_rate": _median(turns),
+	}
+
+
+## `[speeds, turn_rates, stop_lengths, standing_seconds, total_seconds]` for one track.
+func _walk_the_track(track: Array) -> Array:
+	var speeds: Array[float] = []
+	var turns: Array[float] = []
+	var stops: Array[float] = []
+	var standing := 0.0
+	var total := 0.0
+	var stop_run := 0.0
+	var heading := INF
+	for i: int in range(1, track.size()):
+		var dt := float(track[i][0]) - float(track[i - 1][0])
+		if dt > MAX_GAP:
+			# A gap ends a stop as it ends a heading: two visible stops, not one (#236).
+			heading = INF
+			if stop_run > 0.0:
+				stops.append(stop_run)
+				stop_run = 0.0
+			continue
+		var step := CompassMath.distance_to(track[i - 1][1], track[i][1])
+		var speed := step / dt
+		total += dt
+		if speed < STANDING:
+			standing += dt
+			stop_run += dt
+			heading = INF
+			continue
+		if stop_run > 0.0:
+			stops.append(stop_run)
+			stop_run = 0.0
+		speeds.append(speed)
+		var now := CompassMath.bearing_to(track[i - 1][1], track[i][1])
+		if heading != INF:
+			turns.append(absf(CompassMath.angle_between(heading, now)) / dt)
+		heading = now
+	if stop_run > 0.0:
+		stops.append(stop_run)
+	return [speeds, turns, stops, standing, total]
+
+
+## One sample of every figure this client draws: the crowd, the other players and the
+## bot's own body, all through `drawn()`.
+static func sample(
+	census: RefCounted, now: float, npcs: NpcView, remotes: RemotePawns, own_body: Node3D
+) -> void:
+	if npcs != null:
+		for index: int in npcs.indices():
+			census.add("npc:%d" % index, now, drawn(npcs.body_of(index)))
+	if remotes != null:
+		for slot: int in remotes.slots():
+			census.add("player:%d" % slot, now, drawn(remotes.pawn_of(slot)))
+	if own_body != null:
+		census.add("self", now, drawn(own_body))
+
+
+## Where a node is **drawn** this frame — the physics-interpolated transform, which is
+## what reaches the screen, rather than the last physics tick's.
+static func drawn(node: Node3D) -> Vector3:
+	return node.get_global_transform_interpolated().origin
+
+
+## A group summary as one fixed-width line, for the bot's log.
+static func line(label: String, s: Dictionary) -> String:
+	return (
+		"%-10s %3d tracks  moving %.2f m/s  standing %3.0f %%  stop %5.1f s  turning %.2f rad/s"
+		% [
+			label,
+			s["tracks"],
+			s["moving_speed"],
+			100.0 * float(s["standing_share"]),
+			s["mean_stop"],
+			s["turn_rate"]
+		]
+	)
+
+
+static func _median(values: Array[float]) -> float:
+	if values.is_empty():
+		return 0.0
+	var sorted := values.duplicate()
+	sorted.sort()
+	return sorted[sorted.size() / 2]
+
+
+static func _mean(values: Array[float]) -> float:
+	if values.is_empty():
+		return 0.0
+	var sum := 0.0
+	for v: float in values:
+		sum += v
+	return sum / values.size()
