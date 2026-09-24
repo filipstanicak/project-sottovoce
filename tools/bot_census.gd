@@ -104,9 +104,7 @@ func _walk_the_track(track: Array) -> Array:
 	for i: int in range(1, track.size()):
 		var dt := float(track[i][0]) - float(track[i - 1][0])
 		if dt > MAX_GAP:
-			# **A GAP ENDS A STOP AS IT ENDS A HEADING** (review of #236): a figure
-			# standing on both sides of it is two visible stops, not one long one. The
-			# part seen is kept, as a track's own ends keep theirs.
+			# A gap ends a stop as it ends a heading: two visible stops, not one (#236).
 			heading = INF
 			if stop_run > 0.0:
 				stops.append(stop_run)
