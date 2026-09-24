@@ -112,7 +112,7 @@ func test_the_crosshair_can_never_compute_readiness() -> void:
 ## **THE BUST WEARS THE COLOUR THE HUNTER IS SENT TO FIND.** Reported from the
 ## controls after US-0101: every figure in the district wore its persona's hue and
 ## the portrait stayed grey. Held to the hue read **straight from the resource**, not
-## through `PersonaBody.hue_of`, so a palette that stopped delegating is caught too.
+## through the palette, so a palette that stopped reading the resource is caught too.
 func test_the_bust_wears_the_persona_hue() -> void:
 	for persona: StringName in CrowdRoster.PLAYABLE:
 		EventBus.contract_assigned.emit(0, persona)

@@ -43,6 +43,7 @@ func _ready() -> void:
 func _open_the_wardrobe() -> void:
 	var wardrobe := Wardrobe.new()
 	wardrobe.name = "Wardrobe"
+	wardrobe.palette = ($Hud as HudRoot).palette
 	add_child(wardrobe)
 	wardrobe.bind(
 		get_node_or_null("ClientNet/NpcView") as NpcView,
