@@ -1,3 +1,13 @@
+---
+id: ADR-0019
+title: A stun costs the pursuer the contract
+version: 1.0.0
+status: accepted
+owner: Lead Game Designer
+last_updated: 2026-09-04
+depends_on: [ADR-0013, ADR-0014, ADR-0018, GDD-03-SOCIAL-STEALTH, US-0061, US-0097]
+---
+
 # ADR-0019 — A stun costs the pursuer the contract
 
 - **Status:** accepted
