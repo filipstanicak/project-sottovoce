@@ -1,3 +1,13 @@
+---
+id: ADR-0018
+title: The prey has more than one tooth
+version: 1.0.0
+status: accepted
+owner: Lead Game Designer
+last_updated: 2026-09-03
+depends_on: [ADR-0013, ADR-0014, GDD-01-VISION, GDD-03-SOCIAL-STEALTH, US-0061, US-0070]
+---
+
 # ADR-0018 — The prey has more than one tooth
 
 - **Status:** accepted

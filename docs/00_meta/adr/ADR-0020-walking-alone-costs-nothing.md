@@ -1,3 +1,13 @@
+---
+id: ADR-0020
+title: Walking alone costs nothing
+version: 1.0.0
+status: accepted
+owner: Lead Game Designer
+last_updated: 2026-09-15
+depends_on: [ADR-0013, GDD-03-SOCIAL-STEALTH, GDD-05-LEVEL, TDD-07-SUSPICION, US-0051, US-0052]
+---
+
 # ADR-0020 — Walking alone costs nothing
 
 - **Status:** accepted
