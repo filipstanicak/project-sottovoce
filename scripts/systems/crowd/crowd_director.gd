@@ -81,6 +81,8 @@ var _rebalance_ticks: int = 60
 ## rather than a local, because the hash copies out of it and a fresh
 ## `PackedVector3Array` every tick is ninety NPCs' worth of garbage a second.
 var _here: PackedVector3Array = PackedVector3Array()
+## NPCs a Cinderfall cloud holds this tick (ADR-0023), from `_here`.
+var _held: Dictionary = {}
 
 ## How many brains actually stepped last tick. §4.1 predicts ~34 of 90; there is
 ## no other way to see the reduction from outside.
@@ -165,7 +167,7 @@ func tick(ctx: MatchContext, dt: float) -> void:
 	_serve_repaths()
 	# Last, because a formation slot is where an NPC must be *after* its brain has
 	# decided it is still in the group.
-	_formations.advance(_pool, _steering, dt)
+	_formations.advance(_pool, _steering, dt, _held)
 
 
 ## **THE HASH IS BUILT BEFORE THE BRAINS, NOT AFTER.** TDD-08 §1's diagram feeds
@@ -186,6 +188,9 @@ func _reindex(ctx: MatchContext) -> void:
 		if body != null:
 			_here[index] = body.global_position
 	ctx.crowd_hash.rebuild(_here, _pool.roster, active)
+	# **ADR-0023: AN NPC IN A CLOUD COUGHS WHERE IT STANDS, AS A PLAYER DOES**, or the
+	# still figures in the cloud would be exactly the players. From the same positions.
+	_held = ctx.cinderfall.held_among(_here, active, ctx.tick)
 
 
 ## How many brains stepped on the last tick, and how many were active. §4.1's
@@ -262,7 +267,8 @@ func _advance(index: int, dt: float) -> void:
 	# get two desired velocities a tick and take whichever was set last.
 	if brain.state == NpcBrain.State.WALKING_GROUP:
 		return
-	_steering.drive(_pool.body_of(index), agent, _intent.speed_for(brain.state))
+	var speed := 0.0 if _held.has(index) else _intent.speed_for(brain.state)
+	_steering.drive(_pool.body_of(index), agent, speed)
 
 
 ## **EVENTS ARE CLEARED ONLY WHEN SOMEBODY READ THEM.** Clearing every tick

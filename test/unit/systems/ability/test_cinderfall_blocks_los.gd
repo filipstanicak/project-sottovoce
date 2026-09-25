@@ -9,15 +9,22 @@
 ## **THIS FILE DRIVES A REAL CAST RATHER THAN CALLING `add()`.** `CinderfallVolumes`
 ## has been unit-tested since US-0056 with **no caller at all**; what US-0067 adds
 ## is the caller, so what is worth asserting is that pressing the button reaches it.
+##
+## **THE SWITCH IS OFF IN THE SHIPPED PROFILE SINCE ADR-0023** (US-0104): the
+## reference's cloud guarantees a Focus kill, which a sight block could never allow.
+## Neutralised rather than removed, so the one test about the block turns the switch
+## back on for its own duration, ADR-0020's pattern, and `after_each` puts it back.
 extends GutTest
 
 const CASTER := 61
 
 var _ctx: MatchContext
 var _system: AbilitySystem
+var _shipped_blocks_los: bool
 
 
 func before_each() -> void:
+	_shipped_blocks_los = Tuning.ability_data(Ids.ABIL_CINDERFALL).blocks_los
 	_ctx = MatchContext.new()
 	_ctx.tick = 400
 	_system = AbilitySystem.new()
@@ -29,6 +36,10 @@ func before_each() -> void:
 	pawn.state_id = PawnStateId.IDLE
 	_ctx.pawn_contexts[CASTER] = pawn
 	_system.loadout[CASTER] = [Ids.ABIL_CINDERFALL, Ids.ABIL_LUNGE]
+
+
+func after_each() -> void:
+	Tuning.ability_data(Ids.ABIL_CINDERFALL).blocks_los = _shipped_blocks_los
 
 
 func _advance(ticks: int) -> void:
@@ -53,12 +64,22 @@ func test_the_cloud_lands_where_it_was_thrown() -> void:
 	_throw_ahead()
 	var reach: float = Tuning.ability_data(Ids.ABIL_CINDERFALL).throw_range
 	assert_true(
-		_ctx.cinderfall.contains_at(Vector3(0.0, 0.0, reach), _ctx.tick),
+		_ctx.cinderfall.catches(Vector3(0.0, 0.0, reach), -1, _ctx.tick),
 		"the cloud is not at TUN-CINDERFALL-THROW-RANGE ahead of the caster"
 	)
 
 
-func test_it_blocks_a_line_drawn_through_it() -> void:
+func test_the_shipped_cloud_blocks_no_line() -> void:
+	# ADR-0023: sight passes through it, so a Focus kill inside one is possible.
+	_throw_ahead()
+	assert_false(
+		_ctx.cinderfall.blocks(Vector3.ZERO, Vector3(0.0, 0.0, 10.0), _ctx.tick),
+		"the shipped cloud still blocks sight, which ADR-0023 turned off"
+	)
+
+
+func test_with_the_switch_on_it_blocks_a_line_drawn_through_it() -> void:
+	Tuning.ability_data(Ids.ABIL_CINDERFALL).blocks_los = true
 	_throw_ahead()
 	var reach: float = Tuning.ability_data(Ids.ABIL_CINDERFALL).throw_range
 	assert_true(

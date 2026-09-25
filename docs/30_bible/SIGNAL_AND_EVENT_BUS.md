@@ -94,9 +94,9 @@ where it was pointed would let a VFX author draw an arrow at the target"*.
 **That rule was written when nothing drew anything, and it made the one ability that changes
 the world undrawable.** A cinder cloud lands up to `TUN-CINDERFALL-THROW-RANGE` **8 m** from the
 thrower, so a consumer given only the origin puts cover where there is none and leaves none
-where there is cover. `ABIL-CINDERFALL` blocks line of sight and forbids kill initiation, and a
-player standing inside an invisible one is told nothing at all about why the reticle has stopped
-offering — **a larger information failure than the one the old rule prevented.**
+where there is cover. `ABIL-CINDERFALL` blocked line of sight and forbade kill initiation until ADR-0023 (it holds
+everyone inside it now), and a player standing inside an invisible one was told nothing at all
+about why the reticle had stopped offering — **a larger information failure than the one the old rule prevented.**
 
 **The replacement is a property rather than an omission, and it is stronger.** The payload
 carries two *points* and names **nobody**: no slot, peer, persona or tier of a target appears in
@@ -144,7 +144,7 @@ bridge belongs to the first presentation node that wants it, which is US-0073's 
 | Another player's cooldowns or loadout | Kit-reading is a skill |
 | ~~The contract's persona before a lock completes~~ | *Struck 2026-09-22 (ADR-0021): the persona is told from assignment. The crowd's value is the clone system — 8–13 lookalikes the player must be picked out of — not a hidden persona.* |
 | Any world position of the contract | The Compass gives bearing and a distance bucket only |
-| Kills that did not involve you | There is no global kill feed |
+| Kills that did not involve you | None today. **ADR-0024 (2026-09-25) lifts the global kill feed**; its event is added here by US-0105 |
 | NPC state changes | 90 agents × 30 Hz would be 2 700 signals/s for zero player-facing value |
 
 ---

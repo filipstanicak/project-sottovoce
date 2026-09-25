@@ -37,7 +37,7 @@ func test_the_table_scan_found_the_rows() -> void:
 ## name is a claim nobody re-reads — trap 3's reading hazard, in the one place
 ## that exists to stop exactly this.
 func test_the_state_count_matches_the_normative_table() -> void:
-	assert_eq(PawnStateId.ALL.size(), 16, "GDD-02 §3.1 lists sixteen states")
+	assert_eq(PawnStateId.ALL.size(), 17, "GDD-02 §3.1 lists seventeen states")
 
 
 ## **`ALL`'s ORDER IS THE PROTOCOL AND `Staggered` MUST STAY LAST.**
@@ -58,6 +58,11 @@ func test_the_wire_order_is_append_only() -> void:
 		PawnStateId.ALL[15],
 		PawnStateId.LUNGING,
 		"US-0070 consumed index 15; a state inserted before it remaps the wire"
+	)
+	assert_eq(
+		PawnStateId.ALL[16],
+		PawnStateId.CHOKING,
+		"ADR-0023 consumed index 16; a state inserted before it remaps the wire"
 	)
 
 

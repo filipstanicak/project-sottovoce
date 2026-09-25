@@ -1,11 +1,14 @@
-## **THE KILL-BLOCK APPLIES TO THE CASTER, AND THAT SYMMETRY IS THE ABILITY.**
-## GDD-04 §3.1, TDD-10 §3, US-0067.
+## **THE KILL-BLOCK, NOW A SWITCH THAT IS OFF.** GDD-04 §3.1, TDD-10 §3, US-0067,
+## ADR-0023.
 ##
-## The GDD says it in one sentence: *"without it, the dominant play would be
-## 'cloud, then kill inside it', and a kill nobody can see is a legibility-law
-## violation wearing an ability's clothes."* So this is not a fairness detail — it
-## is the thing that makes Cinderfall **purely defensive**, and it is the first
-## thing anybody balancing the ability will be tempted to remove.
+## Until 2026-09-25 this block, applied to the caster too, *was* the ability: *"without
+## it, the dominant play would be 'cloud, then kill inside it'."* **In the reference
+## that is exactly the dominant play**, and the owner took the reference's
+## (ADR-0023). `TUN-CINDERFALL-BLOCKS-KILL` is false in the shipped profile,
+## neutralised rather than removed, so this file checks both halves: the shipped
+## cloud forbids nothing, and **with the switch back on the block still covers the
+## caster**, so restoring the number restores the rule in one edit. The switch is
+## turned on in `before_each` for that half, and `after_each` puts it back.
 extends GutTest
 
 const CASTER := 71
@@ -13,9 +16,12 @@ const VICTIM := 72
 
 var _ctx: MatchContext
 var _system: AbilitySystem
+var _shipped_blocks_kill: bool
 
 
 func before_each() -> void:
+	_shipped_blocks_kill = _data().blocks_kill
+	_data().blocks_kill = true
 	_ctx = MatchContext.new()
 	_ctx.tick = 300
 	_system = AbilitySystem.new()
@@ -24,6 +30,10 @@ func before_each() -> void:
 	for peer: int in [CASTER, VICTIM]:
 		_place(peer)
 	_system.loadout[CASTER] = [Ids.ABIL_CINDERFALL, Ids.ABIL_LUNGE]
+
+
+func after_each() -> void:
+	_data().blocks_kill = _shipped_blocks_kill
 
 
 func _place(peer: int) -> void:
@@ -59,7 +69,18 @@ func test_the_cast_is_accepted_at_all() -> void:
 	assert_eq(_ctx.cinderfall.count_at(_ctx.tick), 1, "no cloud was placed")
 
 
-func test_a_kill_cannot_be_initiated_inside_the_cloud() -> void:
+func test_the_shipped_cloud_forbids_no_kill() -> void:
+	# ADR-0023: the caster, and everybody else, may kill inside it.
+	assert_false(_shipped_blocks_kill, "TUN-CINDERFALL-BLOCKS-KILL is not the shipped false")
+	_data().blocks_kill = _shipped_blocks_kill
+	_throw_and_land()
+	assert_false(
+		_ctx.cinderfall.contains_at(Vector3.ZERO, _ctx.tick),
+		"the shipped cloud still forbids a kill at the caster's feet"
+	)
+
+
+func test_with_the_switch_on_a_kill_cannot_be_initiated_inside_the_cloud() -> void:
 	_throw_and_land()
 	assert_true(
 		_ctx.cinderfall.contains_at(Vector3.ZERO, _ctx.tick),
@@ -89,8 +110,8 @@ func test_the_block_stops_at_the_radius() -> void:
 
 
 func test_the_radius_is_at_least_twice_the_kill_range() -> void:
-	# Invariant 12, restated where it can be read beside the rule it exists for:
-	# *"the cloud must actually deny a kill attempt, not merely obscure one."*
+	# Invariant 12, restated beside the cloud it measures: since ADR-0023 the reason
+	# is that the cloud must reach somebody standing at kill range from its caster.
 	assert_gte(_data().radius, 2.0 * Tuning.combat.kill_range)
 
 
@@ -121,13 +142,13 @@ func test_the_cloud_bursts_on_the_caster_however_far_they_aimed() -> void:
 		_ctx.cinderfall.count_at(_ctx.tick), 1, "the long aim was refused rather than clamped"
 	)
 	assert_true(
-		_ctx.cinderfall.contains_at(Vector3.ZERO, _ctx.tick),
+		_ctx.cinderfall.catches(Vector3.ZERO, -1, _ctx.tick),
 		"the caster is outside their own cloud, so it was thrown rather than dropped"
 	)
 	# The far end of where a throw used to reach must now be clear, or the clamp
 	# moved the centre without removing the throw.
 	assert_false(
-		_ctx.cinderfall.contains_at(Vector3(0.0, 0.0, 8.0), _ctx.tick),
+		_ctx.cinderfall.catches(Vector3(0.0, 0.0, 8.0), -1, _ctx.tick),
 		"the cloud still covers the old throw range, so it did not land on the caster"
 	)
 

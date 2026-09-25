@@ -325,7 +325,7 @@ cannot be broken at all.
 | **Prey-warning IDENTITY** | A persona here collapses ~78 candidates to one, permanently and for free | `NET-S2C-PREY-WARNING` carries a bearing and a bucket and **has no field that names anybody**. `test_warning_names_nobody.gd` refuses one on the wire and in this row; `test_prey_warning_signal_arity.gd` refuses one on the event bus |
 | Other players' **suspicion values** | Anonymity | `render_state` is 2 bits, per observer |
 | Other players' **cooldowns or loadouts** | Kit-reading is a skill | Not in the payload |
-| A **global kill feed** | Would reveal how the contract cycle shifted, for free | `NET-S2C-KILL-RESULT` goes to killer and victim only |
+| ~~A **global kill feed**~~ | **Lifted 2026-09-25 by ADR-0024** (was: would reveal how the contract cycle shifted, for free) | `NET-S2C-KILL-RESULT` still goes to killer and victim only; the feed will be its own message (US-0105) |
 | NPCs beyond 70 m | — | Culled server-side |
 
 > **If the client never receives it, no future UI change, mod, or bug can reveal it.**

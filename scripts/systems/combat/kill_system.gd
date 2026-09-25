@@ -163,6 +163,9 @@ func forget(peer: int) -> void:
 ## `KillAnim` by the time their prey's press is judged, and `SYS-STUN` refuses it.
 func tick(ctx: MatchContext, _dt: float) -> void:
 	_resolve_contact_frames(ctx)
+	# **BEFORE THE PRESSES**, so a figure caught this tick is already busy when its
+	# own kill press is judged, and already killable when its hunter's is.
+	CinderfallCatch.tick(ctx, stun)
 	_resolve_requests(ctx)
 	stun.tick(ctx)
 	KillReadiness.publish(ctx, lockouts, sight, _is_busy)

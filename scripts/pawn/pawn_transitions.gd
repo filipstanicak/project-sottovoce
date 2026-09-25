@@ -28,6 +28,7 @@ const LOCO_EXITS: Array[StringName] = [
 	PawnStateId.DEAD,
 	PawnStateId.STAGGERED,
 	PawnStateId.LUNGING,
+	PawnStateId.CHOKING,
 ]
 
 ## Edges *within* the locomotion group. Escalation UPWARD is strict — there is no
@@ -78,6 +79,11 @@ const NON_LOCO: Dictionary = {
 	# later, through edges that already exist. Adding them here would declare two
 	# transitions nothing ever makes.
 	PawnStateId.LUNGING: [LOCO_MARKER, PawnStateId.STUNNED, PawnStateId.DEAD],
+	# **ADR-0023.** Released into locomotion when no cloud holds the pawn any more;
+	# stunnable and killable throughout, because a caught figure is the one the
+	# cloud was thrown at. Entered from locomotion only: a stagger, a traversal or a
+	# committed action finishes first and is caught the tick after.
+	PawnStateId.CHOKING: [LOCO_MARKER, PawnStateId.STUNNED, PawnStateId.DEAD],
 }
 
 

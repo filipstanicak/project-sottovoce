@@ -1,11 +1,12 @@
 ## **`ABIL-CINDERFALL`: THE FIRST ABILITY IN THIS GAME THAT CHANGES THE WORLD.**
 ## GDD-04 §3.1, TDD-09 §3, US-0067. SERVER ONLY.
 ##
-## A thrown ash-pot bursts into a cloud of radius `TUN-CINDERFALL-RADIUS` 5.0 m
-## that blocks line of sight and **forbids kill initiation inside it — including
-## the caster's own**. That symmetry is the whole ability: without it the dominant
-## play is *cloud, then kill inside it*, and a kill nobody can see is design law
-## 3's violation wearing an ability's clothes.
+## An ash-pot dashed at the caster's feet bursts into a cloud of radius
+## `TUN-CINDERFALL-RADIUS` 5.0 m that **holds everyone in it but the caster** and
+## lets the caster kill there (ADR-0023). *Cloud, then kill inside it* is the
+## reference's main use of the ability; until 2026-09-25 this cloud forbade exactly
+## that. The hold is not here: `CinderfallCatch` re-decides it every tick from the
+## clouds, so the caster is recorded with the cloud and nothing else is.
 ##
 ## **IT IS ELEVEN LINES BECAUSE EVERYTHING ELSE ALREADY EXISTED AND HAD NO
 ## CALLER.** `CinderfallVolumes` was built at US-0056 and sharpened at US-0060,
@@ -34,8 +35,8 @@ extends AbilityEffect
 ## volume reaches the street under it either way. A downward raycast here would be
 ## a seventh query against TDD-07 §4.3's budget of 2-6, to move a sphere centre by
 ## a metre.
-func begin(ctx: MatchContext, _caster: int, aim: AimData) -> void:
-	ctx.cinderfall.add(aim.point, ctx.tick)
+func begin(ctx: MatchContext, caster: int, aim: AimData) -> void:
+	ctx.cinderfall.add(aim.point, ctx.tick, caster)
 
 
 ## **TRUE FOR AS LONG AS THE SYSTEM WILL HAVE IT, AND THE BASE SAYS FALSE.**

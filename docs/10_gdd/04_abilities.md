@@ -88,23 +88,27 @@ ability specification with a blank field is not ready to implement.
 
 ### 3.1 **Cinderfall** — `ABIL-CINDERFALL`
 
+> **REWRITTEN 2026-09-25 BY [ADR-0023](../00_meta/adr/ADR-0023-cinderfall-catches-everyone-in-it.md) (US-0104), FOR REFERENCE FIDELITY.** Until then this was a pure escape: it blocked sight and forbade any kill inside it, the caster's included, and this section called that symmetry *the design detail that carries the ability*. In the reference, *cloud, then kill inside it* is the ability's main use, and a recorded match shows it three times. The old text is quoted where it changed.
+
 | Field | Specification |
 |---|---|
 | **Fiction** | A fired ash-pot **dashed at your own feet**. It bursts into a low, choking cloud of hot cinders and glass dust — the district's own material, turned into cover. |
 | **Input & cast** | `INPUT-ABILITY-*`. Cast `TUN-CINDERFALL-CAST-TIME` 0.45 s (the wind-and-throw). |
-| **Effect** | A cloud of radius `TUN-CINDERFALL-RADIUS` 5.0 m **centred on the caster**. **Amended 2026-09-03 (ADR-0013)**: it was *"placeable up to `TUN-CINDERFALL-THROW-RANGE` 8.0 m away or at your feet"*, and the reference has no throw — it deploys at the player's own feet, and the **sequel** is what added throwing. `TUN-CINDERFALL-THROW-RANGE` is **0.0**, so the aim is clamped to the origin and the two uses collapse into the one the *Why it exists* row already names: the escape. Blocks line of sight for all detection, Compass lock and `SCORE-FOCUS` accumulation (`TUN-CINDERFALL-BLOCKS-LOS`). **Forbids kill *initiation* inside the radius, by anyone, including the caster** (`TUN-CINDERFALL-BLOCKS-KILL`). A kill already in progress completes. |
-| **Duration** | `TUN-CINDERFALL-DURATION` **6.0 s**. Long enough to break a 1.6 s lock and leave; short enough that it cannot camp a corner. **Raised from 4.0 on 2026-09-03, judged at the controls**, after the cloud became self-centred — you now spend the whole duration inside your own smoke, which is a different thing to price than a cloud thrown 8 m away. **This is a ruled divergence from the reference** (3 s base, 4 s upgraded) and it leaves this ability at **twice the reference's uptime**: 6 s per 45 s against 4 s per 60 s. The *Failure mode* row below is the one to watch. |
+| **Effect** | A cloud of radius `TUN-CINDERFALL-RADIUS` 5.0 m **centred on the caster**. **Amended 2026-09-03 (ADR-0013)**: it was *"placeable up to `TUN-CINDERFALL-THROW-RANGE` 8.0 m away or at your feet"*, and the reference has no throw — it deploys at the player's own feet, and the **sequel** is what added throwing. `TUN-CINDERFALL-THROW-RANGE` is **0.0**, so the aim is clamped to the origin and the cloud always bursts where the caster stands. **It catches everyone inside it but the caster, for as long as it stands** — anyone there at the burst and anyone who walks in afterwards. A caught figure is `Choking`: held in place, no kill, stun or cast, and killable, until the cloud ends. **The caster's own pursuer, caught in it, is stunned by the caster** instead, with `SCORE-STUN` and the contract loss. **NPCs inside are held too**, or the still figures in the cloud would be exactly the players. *Until ADR-0023 it blocked line of sight (`TUN-CINDERFALL-BLOCKS-LOS`) and forbade kill initiation inside it, by anyone, including the caster (`TUN-CINDERFALL-BLOCKS-KILL`); both switches are false now, neutralised rather than removed.* |
+| **Duration** | `TUN-CINDERFALL-DURATION` **6.0 s**, **which is also how long a caught figure is held** (ADR-0023) — longer than a pressed stun's 4 s, and put back to the owner as ADR-0023 C. Long enough to break a 1.6 s lock and leave; short enough that it cannot camp a corner. **Raised from 4.0 on 2026-09-03, judged at the controls**, after the cloud became self-centred — you now spend the whole duration inside your own smoke, which is a different thing to price than a cloud thrown 8 m away. **This is a ruled divergence from the reference** (3 s base, 4 s upgraded) and it leaves this ability at **twice the reference's uptime**: 6 s per 45 s against 4 s per 60 s. The *Failure mode* row below is the one to watch. |
 | **Cooldown** | `TUN-CINDERFALL-COOLDOWN` 45 s. Roughly once per hunt cycle. |
-| **Suspicion** | `TUN-CINDERFALL-SUSPICION` +40 (= `TUN-SUSPICION-GAIN-LOUD-ABILITY`). From Anonymous this is instant **Noticed**, requiring 5 s of walking to clear. |
+| **Suspicion** | `TUN-CINDERFALL-SUSPICION` **0** (ADR-0023; was +40, equal to `TUN-SUSPICION-GAIN-LOUD-ABILITY`). A recorded reference kill inside the caster's own cloud still paid the top stealth rung, and the owner confirmed that using an ability is not high-profile. Its cost is the crack and the Startle wave. |
 | **Tell** | *A hot orange burst and a hard crack, and every NPC within 9 m runs.* Visual: the cloud itself, visible at 40 m. Audio: a sharp crack at `TUN-CINDERFALL-TELL-AUDIO-RADIUS`, ducked ambience. Animation: `ANIM-CINDERFALL-THROW`, 0.45 s — **now a wind-and-smash at the feet rather than an underarm throw (2026-09-03)**; the ID is unchanged because it is merged and no clip exists yet to contradict. **Startle radius `TUN-CINDERFALL-STARTLE-RADIUS` 9.0 m** — the crowd itself becomes the tell. |
-| **Counterplay** | Do not enter the cloud — you cannot initiate a kill inside it either, so pursuing into it is pointless. Instead **wait at its edge**: it lasts 4 s, the caster is now Noticed for at least 5 s afterwards, and the Startle wave has told everyone within 30 m roughly where they are. The correct counter to Cinderfall is patience, which is the correct counter to most things here. |
-| **Why it exists** | **To give a punished attacker exactly one escape.** Without it, a hunter who is spotted and locked has no recourse but to sprint, and sprinting into Exposed is a death sentence. Cinderfall converts "I have lost this hunt" into "I have lost this hunt but I will survive to try again". One per 45 s, and it costs your anonymity to use. |
-| **Failure mode** | *If the radius or duration grows*, it becomes a corner-camping tool: a player who cannot be killed inside a cloud they refresh. Symptom: players deploying it *pre-emptively* rather than reactively. *If the kill-block is removed*, it becomes an offensive tool for forcing blind kills, which is the opposite of legible. |
+| **Counterplay** | **Do not let a figure you have not placed reach arm's length**, and **do not walk into a cloud**: it catches late entrants too. The burst is short-ranged (5 m) and loud, so a contract who reads a figure closing steps away or stuns first; a pursuer who chases the caster into their own cloud is stunned by it. Outside it, **wait at its edge** for the caster to come out. *Was: "do not enter the cloud — you cannot initiate a kill inside it either, so pursuing into it is pointless."* |
+| **Why it exists** | **Escape and ambush, in one pot.** Caught by a pursuer, it freezes them and stuns the one hunting you; closing on a contract, it holds them for the kill. It rewards reaching arm's length unseen, which is the skill the game is about, and it is on a 45 s cooldown. *Was: "to give a punished attacker exactly one escape."* |
+| **Failure mode** | *If the radius or the hold grows*, the approach stops mattering: a cloud that catches from far enough away skips the part of the hunt that is the game. Symptom: `TEL-KILLS-BY-METHOD` showing kills inside a cloud above ~30 %. The levers are the radius and `TUN-CINDERFALL-DURATION`, not the rule. *The old row warned that removing the kill-block would make it an offensive tool; ADR-0023 removed it on purpose, because that is the reference's ability.* |
 
-**The design detail that carries the ability:** the kill-block applies **to the caster too**.
-That single symmetry is what makes Cinderfall purely defensive. Without it, the dominant play
-would be "cloud, then kill inside it", and a kill nobody can see is a legibility-law violation
-wearing an ability's clothes.
+**The design detail that carries the ability:** **everybody but the caster is caught,
+including late entrants and the crowd.** The legibility worry that used to sit here — *"a kill
+nobody can see is a legibility-law violation"* — does not hold, because the victim is the one
+coughing inside the cloud and watched it burst beside them. What design law 3 needs is that
+the victim had a chance to read it, and a 0.45 s wind-up, a crack audible at 25 m and a 9 m
+Startle are that chance.
 
 ---
 
@@ -164,7 +168,7 @@ abilities reward map and crowd knowledge, which is what this game is about.
 | **Effect** | A committed dash of `TUN-LUNGE-DISTANCE` 6.0 m at `TUN-LUNGE-SPEED` 9.0 m/s (0.67 s of travel — faster than sprint). **It resolves against whoever it connects with (ADR-0018): a kill on your contract, and a stun on a pursuer.** If the dash **passes within `TUN-KILL-RANGE` of your contract at any point along its path**, the kill **auto-initiates** (`TUN-LUNGE-AUTO-KILL`); if it does not, and it passed within `TUN-STUN-RANGE` of the player hunting *you*, they are stunned. **The kill is asked first** — the reference's own ordering, *a kill is always prioritised over a stun* — and a dash that stuns pays **no whiff stagger**, because that stagger is priced for arriving at nothing. The stun obeys every gate a pressed one does, `TUN-STUN-MIN-TIER` included, so an Anonymous pursuer is unstunnable by this route as by every other. **Amended 2026-09-03**: this read *"if the dash ends within `TUN-KILL-RANGE` and cone"*, and the cone made it unusable — a cone is an angle, so the ground it covers shrinks as you close, and **measured at a 6 m approach two degrees of aim error whiffed** with the contract 0.26 m away. Arriving accurately made the test *harder*. The corridor is what the reference does (it resolves against whoever the dash connects with) and it also closes the overshoot: a contract the dash went **through** now dies: it is one button, not two, because it is the panic button. Direction is locked at wind-up; you cannot steer mid-dash. |
 | **Duration** | 0.92 s total (wind-up + dash). |
 | **Cooldown** | `TUN-LUNGE-COOLDOWN` 30 s. The shortest in the set — it is the weakest ability by expected value and the strongest by desperation value. |
-| **Suspicion** | `TUN-LUNGE-SUSPICION` +40 (= `TUN-SUSPICION-GAIN-LOUD-ABILITY`), applied at wind-up. You are **Noticed the instant you press it**, and if the kill lands from a suspicion above 70 you take `SCORE-RECKLESS` (−50). |
+| **Suspicion** | `TUN-LUNGE-SUSPICION` +40 (= `TUN-SUSPICION-GAIN-LOUD-ABILITY`), applied at wind-up. You are **Noticed the instant you press it**, and if the kill lands from a suspicion above 70 you take `SCORE-RECKLESS`, which pays **0** since ADR-0013 (it read −50 here until 2026-09-25). |
 | **Tell** | *A shout, a drop into a run, and the crowd scatters along your path.* Audio: a sharp intake and footfall at 0.25 s wind-up, audible at `TUN-LUNGE-TELL-AUDIO-RADIUS`. Visual: a movement speed no civilian has. **`TUN-LUNGE-STARTLE-RADIUS` 7.0 m** — the dash paints a fleeing-NPC arrow directly at you. |
 | **Counterplay** | **Stun it.** `TUN-LUNGE-STUNNABLE` is true for the entire wind-up and dash (`TUN-STUN-VS-LUNGE-WINDOW`), and the +40 suspicion at wind-up guarantees the lunger is at least Noticed, which satisfies `TUN-STUN-MIN-TIER`. A prepared defender **always** beats a Lunge: 0.92 s of telegraphed, unsteerable approach against a 0.7 s stun animation with a 120° cone. Missing costs the lunger `TUN-LUNGE-WHIFF-STAGGER` 1.2 s standing in the open, Noticed. |
 | **Why it exists** | **The "I have been made, commit now" button.** [`02_player_controller.md`](02_player_controller.md) §1.5 deliberately makes sprint awkward to enter, because sprint is for *planned* speed. Lunge is for *unplanned* speed: one press, no timing, when your target has turned and you have one second to decide whether to abandon the hunt or spend everything on it. It is the mechanically correct answer to panic, which means panic has an answer that is not "mash sprint". |
@@ -201,15 +205,15 @@ record of what returns when the deferral is lifted.*
 
 | | Cinderfall | Whisperbolt | Second Face | Lunge |
 |---|---|---|---|---|
-| **Role** | Escape | Reach | Concealment | Commitment |
+| **Role** | Escape and ambush | Reach | Concealment | Commitment |
 | **Cooldown** | 45 s | 40 s | 60 s | 30 s |
-| **Suspicion** | +40 | forced Exposed | +10 | +40 |
+| **Suspicion** | 0 (was +40) | forced Exposed | +10 | +40 |
 | **Loudness** | Very (9 m startle) | Very (Exposed 2.5 s) | Quiet | Very (7 m startle) |
-| **Wins you** | Time | Distance | Identity | Range |
-| **Costs you** | Anonymity | Anonymity, publicly | 60 s and a tell | Anonymity and the initiative |
-| **Best used** | Reactively, when locked | From cover, at a camper | Pre-emptively, in a crowd | When already discovered |
+| **Wins you** | Time, or a held contract | Distance | Identity | Range |
+| **Costs you** | 45 s and a loud tell | Anonymity, publicly | 60 s and a tell | Anonymity and the initiative |
+| **Best used** | At arm's length, or on a pursuer who closes | From cover, at a camper | Pre-emptively, in a crowd | When already discovered |
 | **Enables bonus** | — | — | `SCORE-MASKED` +150 | — |
-| **Countered by** | Waiting at the edge | Breaking LOS, or closing to 3 m | Watching for the morph | Stun |
+| **Countered by** | Keeping unknown figures out of 5 m; not walking in | Breaking LOS, or closing to 3 m | Watching for the morph | Stun |
 
 **Note the pattern:** three of four abilities cost anonymity — **two of the three MVP
 abilities, after the Whisperbolt deferral** — and the one that does not
@@ -336,7 +340,7 @@ Every tell decomposes into three channels. An ability must have at least two of 
 
 | Ability | Visual direct | Visual environmental | Audio | Animation | State | Survives not-looking? |
 |---|---|---|---|---|---|---|
-| **Cinderfall** | — | ✅ 5 m cloud, 40 m visibility | ✅ crack, 25 m | ✅ throw | ✅ +40 | ✅✅ (environment + audio) |
+| **Cinderfall** | ✅ everyone inside coughing | ✅ 5 m cloud, 40 m visibility | ✅ crack, 25 m | ✅ throw | — (0 since ADR-0023) | ✅✅ (environment + audio) |
 | **Whisperbolt** | ✅ pose | — | ✅ metallic draw | ✅ static hold | ✅ **forced Exposed** | ⚠️ audio + state only |
 | **Second Face** | ✅ morph | — | ✅ cloth rush, 8 m | ✅ 0.8 s in, 0.6 s out | — | ⚠️ audio only, and quiet |
 | **Lunge** | — | ✅ 7 m Startle wave | ✅ shout + footfall, 20 m | ✅ dash | ✅ +40 | ✅✅ (environment + audio) |
@@ -372,14 +376,14 @@ counterplay rather than adding options.
 | | |
 |---|---|
 | **The theoretical combo** | Whisperbolt from range; if it misses, Cinderfall to break the retaliation. |
-| **Degenerate?** | **No.** The two cooldowns are 40 s and 45 s but the *sequence* costs both, leaving you with nothing for 40+ seconds. And Cinderfall does not remove the +40 suspicion you now carry on top of Whisperbolt's Exposed tail — you emerge from your own cloud Noticed at minimum, having announced yourself twice. |
+| **Degenerate?** | **No.** The two cooldowns are 40 s and 45 s but the *sequence* costs both, leaving you with nothing for 40+ seconds, and Whisperbolt's Exposed tail is still on you when the cloud ends. *(Re-read 2026-09-25: Cinderfall costs no suspicion any more, and it holds whoever retaliates into it, so the pair is stronger than this row first priced. Whisperbolt is deferred, so it does not bite in the MVP.)* |
 | **Verdict** | Strong and fair. This is the "commit to range" build. |
 
 #### Cinderfall + Second Face — "the disappearing act"
 
 | | |
 |---|---|
-| **The theoretical combo** | Cinderfall to break line of sight, then Second Face *inside the cloud* so nobody sees the morph. Emerge as a different persona with no witnesses. |
+| **The theoretical combo** | Cinderfall, then Second Face *inside the cloud* so nobody sees the morph. Emerge as a different persona. *(Since ADR-0023 the cloud no longer blocks line of sight, only the eye, and everyone else inside is coughing.)* |
 | **Degenerate?** | **This is the one genuinely concerning combination**, and it is the reason `TUN-CINDERFALL-STARTLE-RADIUS` is 9 m rather than 5 m. The cloud hides the morph, but the Startle wave marks the position for everyone within 30 m, and anyone watching sees a Vetraio enter a cloud and a Lucerna leave it — the *absence* of the expected persona is itself the tell. |
 | **Mitigation in place** | Second Face's `nearest_clone` rule: inside a cloud you may have no visible clone, triggering the random-persona fallback. You do not control what you become. |
 | **Residual risk** | Real but bounded. Watch `TEL-SECONDFACE-IN-CLOUD` frequency. If it exceeds ~20 % of Second Face uses, the fix is to forbid casting Second Face inside a Cinderfall volume — a one-line validation, deliberately not applied pre-emptively because the combo is *clever*, and clever should be allowed to exist until it is proven dominant. |
@@ -388,8 +392,8 @@ counterplay rather than adding options.
 
 | | |
 |---|---|
-| **The theoretical combo** | Lunge in, kill, Cinderfall to escape the aftermath. |
-| **Degenerate?** | **No, and it is barely viable.** Lunge costs +40 suspicion; the kill from that state incurs `SCORE-RECKLESS` (−50) if you crossed 70, which Lunge alone nearly does. Then Cinderfall costs another +40. Net result: a 50-point kill and 6+ seconds at Exposed, during which your own pursuer sees you outlined through walls. |
+| **The theoretical combo** | Lunge in, kill, Cinderfall to escape the aftermath — **or, since ADR-0023, the other way round**: Lunge to arm's length, then the cloud holds the contract for the kill. |
+| **Degenerate?** | **Watch it.** Lunge still costs +40, so the kill after it pays a low stealth rung; Cinderfall no longer adds another +40. The new order — dash in, then hold — is the strongest opener in the kit, and it is on two cooldowns (30 s and 45 s). *Was: "barely viable … a 50-point kill and 6+ seconds at Exposed".* |
 | **Verdict** | Self-punishing. This is the "I have given up on scoring" build, and the scoring makes that explicit. |
 
 #### Whisperbolt + Second Face — "the masked shot"
@@ -423,12 +427,13 @@ counterplay rather than adding options.
 | Second Face + **Stillness** | Faster recovery while disguised and stationary — the maximally passive ambush build. | No. It is the thesis build. If it dominates, the thesis is working. |
 | Whisperbolt + **Cold Read** | Faster identification at range, then a ranged kill: the observation-post build. | Watch it. Cold Read's 1.23 s lock plus Whisperbolt's 12 m reach makes the campanile strong. `TUN-SUSPICION-GAIN-ROOF` (+18/s) is the counter, and it is applied for *presence*, so a camper is permanently Noticed. |
 | Lunge + **Second Wind** | Aggression with faster recovery from the stun that aggression invites. | No. It is the correct passive for that playstyle and it does not reduce `TUN-STUN-FREEZE`. |
-| Cinderfall + **Stillness** | Cloud, then stand still inside it and clear 40 suspicion in 3.6 s. | **Mildly concerning.** The cloud blocks LOS for exactly `TUN-CINDERFALL-DURATION` 4.0 s, and 40 suspicion clears in 3.6 s at 11.2/s. The timings are suspiciously aligned. Watch whether "cloud and stand" becomes the default escape; if so, the fix is shortening the cloud to 3.5 s, not nerfing Stillness. |
+| Cinderfall + **Stillness** | Cloud, then stand still inside it. | **No longer a pair** (ADR-0023): the cloud costs no suspicion to clear and blocks no line of sight. *Was: "mildly concerning — 40 suspicion clears in 3.6 s inside a 4.0 s cloud".* |
 
 ### 7.3 The audit's conclusion
 
-**No pair is degenerate. Two need monitoring** (Cinderfall + Second Face; Cinderfall +
-Stillness), both with a named telemetry signal and a named one-line fix.
+**No pair is degenerate. Two need monitoring** (Cinderfall + Second Face; and, since
+ADR-0023, Cinderfall + Lunge, which replaced Cinderfall + Stillness), each with a named
+telemetry signal and a named lever.
 
 The reason the space is clean is structural rather than lucky: three of four abilities cost
 anonymity, and anonymity is a *shared* resource across everything you do. Abilities cannot
@@ -512,7 +517,7 @@ The process, so it is not improvised:
 |---|---|---|---|
 | 1 | **An ability becomes the opener.** | `TEL-KILLS-BY-METHOD` shows any single ability above ~15 % of kills. | Almost certainly Lunge (distance or cooldown) or Whisperbolt (wind-up). The approach phase is the game; if an ability short-circuits it, the ability is wrong. |
 | 2 | **Abilities are never used.** | Below ~1 use per player per match. | Cooldowns too long, or the suspicion costs make them net-negative. An unused ability is a wasted loadout slot and a wasted design. |
-| 3 | **Cinderfall becomes proactive.** | Players deploy it before being spotted, to pre-place cover. | Duration or radius too large. Cinderfall must be a *reaction*. |
+| 3 | **Cinderfall becomes the only way to kill.** | Kills inside a cloud above ~30 % of kills. | Radius or `TUN-CINDERFALL-DURATION` too large. *Was "Cinderfall becomes proactive … it must be a reaction"; ADR-0023 made the proactive use the ability.* |
 | 4 | **Second Face is invisible.** | Players report opponents "just becoming someone else" with no warning. | Morph tell too subtle, or the 0.8 s cast is being masked (by Cinderfall — see §7.1). |
 | 5 | **Second Face is useless.** | Nobody takes it; the morph is spotted every time. | Either the tell is too strong, or players are always being watched — which would suggest the crowd is too small, not that the ability is weak. Diagnose before tuning. |
 | 6 | **Whisperbolt kills from safety.** | Mean kill distance rises above ~4 m; rooftop kill rate rises. | Wind-up too short, range too long, or the Exposed tail too short. |

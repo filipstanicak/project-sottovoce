@@ -156,17 +156,17 @@ func test_two_throws_draw_two_clouds() -> void:
 	assert_eq(_view.live_count(), 2, "a second cloud replaced the first instead of joining it")
 
 
-## **AS OPAQUE AS THE RULE IS.** `TUN-CINDERFALL-BLOCKS-LOS` makes every sight
-## query through this cloud fail, so a drawing you can see the district through
-## promises **less** concealment than the game grants — and a player who watches
-## their cover fail to hide anything stops using it. It shipped at 0.72 and was
+## **THICK, AS THE REFERENCE'S IS.** Until ADR-0023 the reason was the rule:
+## `TUN-CINDERFALL-BLOCKS-LOS` failed every sight query through the cloud, so a
+## see-through drawing promised less cover than the game granted. The switch is off
+## now and the cloud is drawn as thick anyway, because it is the burst's tell and the
+## thing everyone caught in it is coughing inside. It shipped at 0.72 once and was
 ## caught by looking at `tools/cinderfall_probe.tscn`, not by any assertion here.
-func test_the_cloud_is_as_opaque_as_the_rule_that_makes_it_cover() -> void:
-	assert_true(_data().blocks_los, "the premise: this test is about an ability that blocks sight")
+func test_the_cloud_is_drawn_thick() -> void:
 	assert_gt(
 		_view.density(),
 		0.85,
-		"the cloud is see-through, so it draws less cover than TUN-CINDERFALL-BLOCKS-LOS grants"
+		"the cloud is see-through, so it no longer reads as the thick cloud the burst is"
 	)
 
 
