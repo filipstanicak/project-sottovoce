@@ -1,3 +1,13 @@
+---
+id: ADR-0021
+title: The hunter knows the face from the start
+version: 1.0.0
+status: accepted
+owner: Lead Game Designer
+last_updated: 2026-09-22
+depends_on: [ADR-0013, GDD-03-SOCIAL-STEALTH, GDD-06-UI-AUDIO, BIBLE-UI-UX, BIBLE-NET-PROTOCOL, US-0058, US-0073, US-0078]
+---
+
 # ADR-0021 — The hunter knows the face from the start
 
 - **Status:** accepted
