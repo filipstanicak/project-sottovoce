@@ -221,12 +221,15 @@ Target branch lifetime ≤ 2 days, hard ceiling 5. Squash merge. **Never push di
 10. **Never put a user-facing string in a script or scene.** It goes in `data/strings/en.csv`.
 11. **Never add an asset without a licence row** in `docs/00_meta/ASSET_LICENSES.md`, in the same
     commit.
-12. **Never add a minimap, a kill-cam, a global kill feed, or player nameplates.** Each would
-    convert an earned inference into a given fact. **Narrowed 2026-08-26 (ADR-0013):** the
-    hit-direction ban is lifted — the prey warning carries a bearing, as the reference's does —
-    and "nameplate" means a **name**. A *relationship* marker on your own contract or your own
-    revealed pursuer is permitted; a marker that names anybody, or that marks a player you have
-    no relationship with, is not.
+12. **Never add a minimap, a kill-cam, or a name or marker over a body you have no
+    relationship with.** Each would convert an earned inference into a given fact.
+    **Narrowed 2026-08-26 (ADR-0013):** the hit-direction ban is lifted — the prey warning
+    carries a bearing, as the reference's does — and a *relationship* marker on your own
+    contract or your own revealed pursuer is permitted. **Narrowed again 2026-09-25
+    (ADR-0024), by owner decision for reference fidelity:** the global kill feed, player names
+    in the HUD (feed, portrait, death card, scoreboard) and your own placement on screen are
+    lifted, because the reference has all three. Names over bodies stay banned — the reference
+    has none — and the kill-cam is an open question in ADR-0024, not lifted.
 13. **Never weaken stun** to make hunting feel better. If hunters are frustrated, make the
     *Anonymous approach* more reliable instead. **One exception, decided 2026-08-26 for
     reference fidelity (ADR-0013): a committed kill is not interruptible.** Range advantage,
@@ -253,6 +256,39 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 ---
 
 ## Where the work is right now
+
+### 2026-09-25 — a reference match, watched frame by frame: three ADRs
+
+**THE OWNER SENT A RECORDED REFERENCE MATCH AND ASKED FOR A DETAILED COMPARISON.** Ten minutes,
+eight players, read at 0.5 fps and then at full resolution on the moments that matter (no audio
+yet). The recording and the wiki pages that explain it are in the chat log, never here
+(never-do #5). The owner answered the three divergences it raised the same day, all toward the
+reference:
+
+- **[ADR-0022](docs/00_meta/adr/ADR-0022-suspicion-is-what-your-contract-sees.md), proposed:
+  suspicion becomes a meter per (hunter, contract), moved only by high-profile acts in the
+  contract's sight, never recovering within a contract.** The recording shows a hunter crossing
+  roofs out of sight and still paid the top rung; ours would have paid 50 or nothing. Proposed,
+  not accepted. Of its six sourcing questions the owner answered two the same day: **any
+  pursuer can be stunned**, so `TUN-STUN-MIN-TIER` goes, and **no ability use is
+  high-profile**.
+- **[ADR-0023](docs/00_meta/adr/ADR-0023-cinderfall-catches-everyone-in-it.md), accepted:
+  Cinderfall catches everyone in it but the caster, and the caster may kill there.** The
+  reference's main use of the ability is exactly the one GDD-04 §3.1 forbade. Built by US-0104.
+- **[ADR-0024](docs/00_meta/adr/ADR-0024-the-hud-shows-what-the-reference-shows.md), accepted:
+  never-do #12 narrowed again.** The global kill feed, player names in the HUD and your own
+  placement come back; names over bodies stay banned. Built by US-0105, which waits on player
+  names for half of it.
+
+**THE RECORDING MEASURED A NUMBER WE HAD ONLY INFERRED.** `TUN-SCORE-HALFSEEN` 50 was *"the
+weakest-sourced number in this table"*. The results screen gives count and total for every
+bonus, and the lowest stealth rung is 50. So are all our other shared values: 100, 200, 300,
+150, 200, 100.
+
+**AND THE SWEEP FOUND GDD-06 §2.3 A MONTH STALE.** It listed hit direction as a permanent law
+with `TUN-COMPASS-WARN-GIVES-DIRECTION` false, a value ADR-0013 set to true on 2026-08-26. It
+also said the Compass never shows the persona *"until earned"*, which ADR-0021 voided. GDD-04
+priced the Lunge with `SCORE-RECKLESS` −50, which ADR-0013 zeroed. All three are corrected.
 
 ### 2026-09-25 — the portrait wears the colour, and the crowd walks in rows
 
@@ -1439,7 +1475,9 @@ because it is the same question decision 1 half-answered, and splitting it would
    where it would go.
 
 11. **SHOULD DETECTION BE PER RELATIONSHIP AND GATED ON SIGHT, AS THE
-    REFERENCE'S IS?** Raised 2026-09-15 by ADR-0020. The reference keeps one meter per
+    REFERENCE'S IS?** **ANSWERED 2026-09-25: the owner asked for the ADR rather than the
+    wait recommended below, on the evidence of a recorded reference match. ADR-0022 is
+    proposed; the decision closes when it is accepted.** Raised 2026-09-15 by ADR-0020. The reference keeps one meter per
     (pursuer, target) pair, moved only by the pursuer's high-profile actions *while
     the target can see them*; ours is one suspicion value per player, moved by the
     player's own actions wherever they happen, and read by the Compass warning, the
@@ -1554,7 +1592,14 @@ because it is the same question decision 1 half-answered, and splitting it would
     streak**, five deaths without a kill doubling the next — which is new information
     for decision 12. **My recommendation is to take this after the first playtest with
     human hunters**, beside decision 11: it changes `SYS-CONTRACT`'s structure, not a
-    number.
+    number. **A recorded match (2026-09-25) shows 0 to 3 pursuers on one player's HUD within
+    ten minutes.**
+16. ~~**KEEP CINDERFALL A PURE ESCAPE, OR TAKE THE REFERENCE'S?**~~ **SETTLED 2026-09-25
+    by the owner: the reference's** (ADR-0023). A recorded match shows three kills inside
+    the killer's own cloud. Built by US-0104.
+17. ~~**KEEP THE GLOBAL KILL FEED, NAMES IN THE HUD AND OWN PLACEMENT BANNED?**~~
+    **SETTLED 2026-09-25 by the owner: "so treu wie möglich"** (ADR-0024). Never-do #12
+    narrowed a second time. Built by US-0105.
 
 ---
 

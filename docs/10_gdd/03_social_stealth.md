@@ -181,6 +181,8 @@ Stated as prohibitions, because the temptation to add each of these will recur:
 
 ### 3.1 The scalar
 
+> **UNDER PROPOSAL: [ADR-0022](../00_meta/adr/ADR-0022-suspicion-is-what-your-contract-sees.md) (2026-09-25)** would make suspicion a value per (hunter, contract) that rises only for high-profile acts in the contract's sight and never falls within a contract, which is the reference's rule. Proposed, not accepted: **nothing is built on it** and this section still describes the game.
+
 A hidden per-player float in `[0, 100]`, evaluated on the 30 Hz server tick (ASM-0020), and
 replicated to the owning client (as a value) and to the relevant observers (as a tier only).
 
