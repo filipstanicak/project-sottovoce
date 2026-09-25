@@ -577,7 +577,7 @@ These are the rules that make anonymity real. Each is a release blocker if viola
 | 4 | Clone personas are assigned from `match_seed` (ASM-0025), identically on every peer. | "I saw a Lucerna by the furnace" becomes a lie; the social layer breaks. |
 | 5 | **Every persona in use by a player must have clones.** If nobody plays Cantatrice, Cantatrice clones may still spawn (harmless). If someone plays Cantatrice, clones are mandatory. | A player with zero clones is a marked man. |
 | 6 | Per-instance variation (colour, accessory) is **forbidden** on clones. | Any variation the player cannot also have is a discriminator. Any variation the player *can* have is a cosmetic system, which is out of scope (`SCOPE_FENCE` OUT #3) for exactly this reason. |
-| 7 | Clones must be able to occupy every blend action a player can. | A player sitting on a bench that no NPC ever sits on is a player sitting alone on a bench. |
+| 7 | Clones must be able to occupy every blend action a player can. **NOT BUILT — found 2026-09-25**: no crowd code uses a blend prop, lean spot or hiding spot, and the conversation-cluster tunables have no reader. Owned by US-0103. | A player sitting on a bench that no NPC ever sits on is a player sitting alone on a bench. |
 
 #### Rule 3 does not bind at the instant a player is placed
 

@@ -4,7 +4,7 @@ title: HUD — tier, portrait, crosshair, abilities, timer
 version: 0.3.0
 status: in-progress
 owner: Lead Game Designer
-last_updated: 2026-09-22
+last_updated: 2026-09-25
 depends_on: [BIBLE-UI-UX, TDD-11-UI]
 ---
 

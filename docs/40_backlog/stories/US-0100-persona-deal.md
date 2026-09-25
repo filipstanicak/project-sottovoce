@@ -2,9 +2,9 @@
 id: US-0100
 title: The persona is dealt at the countdown
 version: 0.1.0
-status: in-progress
+status: done
 owner: Lead Game Designer
-last_updated: 2026-09-24
+last_updated: 2026-09-25
 depends_on: [GDD-03-SOCIAL-STEALTH, BIBLE-NET-PROTOCOL]
 ---
 
