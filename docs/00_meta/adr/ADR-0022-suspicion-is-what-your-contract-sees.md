@@ -124,19 +124,20 @@ before then.
 2. The ladder switches.
 3. The chase trigger and the prey marker.
 4. The HUD and the wire.
-5. The stun floor, once open question A is answered.
+5. The stun floor goes (open question A, answered).
 6. The global tunables are neutralised on ADR-0020's pattern, IDs kept.
 
 ## Open questions (sourcing, not preference)
 
-- **A. Can an unrevealed pursuer be stunned?** Ours says no (`TUN-STUN-MIN-TIER`, GDD-03 §10.2
-  point 2: *an Anonymous hunter is unstunnable*). If the reference allows stunning any pursuer
-  you have identified, the floor goes. That is a strengthening of the prey, so never-do #13
-  does not forbid it. **A reference clip of a stun on a pursuer who had done nothing
-  high-profile would settle it.**
-- **B. Is ability use high-profile?** The recording shows a kill inside the hunter's own
-  Cinderfall-equivalent at 2 m from the contract that still paid the top rung, so at least that
-  ability is not. The others (Lunge, Second Face) are unknown.
+- ~~**A. Can an unrevealed pursuer be stunned?**~~ **ANSWERED 2026-09-25 by the owner: yes.**
+  In the reference any pursuer you have identified can be stunned, whatever they have done.
+  `TUN-STUN-MIN-TIER` and GDD-03 §10.2 point 2 (*an Anonymous hunter is unstunnable*) go in
+  slice 5. That strengthens the prey, so never-do #13 does not stand in the way. What still
+  protects a patient hunter is that the prey has to **pick them out of the crowd** first.
+- ~~**B. Is ability use high-profile?**~~ **ANSWERED 2026-09-25 by the owner: no.** Using an
+  ability is not a high-profile act, the disguise and the charge included. The recording
+  already showed it for the Cinderfall equivalent. What an ability *does* may still be one: a
+  Lunge's dash is a sprint.
 - **C. The exact high-profile list.** Running, sprinting, climbing and freerunning jumps are;
   walking on a roof apparently is not. The bump and a whiffed kill are unknown.
 - **D. What is "in sight"?** Line of sight within a range is certain. Whether the contract's

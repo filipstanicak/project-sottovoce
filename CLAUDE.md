@@ -269,8 +269,9 @@ reference:
   suspicion becomes a meter per (hunter, contract), moved only by high-profile acts in the
   contract's sight, never recovering within a contract.** The recording shows a hunter crossing
   roofs out of sight and still paid the top rung; ours would have paid 50 or nothing. Proposed,
-  not accepted, with six sourcing questions open. The first is whether an unrevealed pursuer can
-  be stunned.
+  not accepted. Of its six sourcing questions the owner answered two the same day: **any
+  pursuer can be stunned**, so `TUN-STUN-MIN-TIER` goes, and **no ability use is
+  high-profile**.
 - **[ADR-0023](docs/00_meta/adr/ADR-0023-cinderfall-catches-everyone-in-it.md), accepted:
   Cinderfall catches everyone in it but the caster, and the caster may kill there.** The
   reference's main use of the ability is exactly the one GDD-04 §3.1 forbade. Built by US-0104.

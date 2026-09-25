@@ -27,9 +27,10 @@ rule. This story builds it and rewrites GDD-04 §3.1 in the same commit.
 
 ## Acceptance criteria
 
-- [ ] **The burst catches everyone in `TUN-CINDERFALL-RADIUS` except the caster.** Each is
-      incapacitated for `TUN-CINDERFALL-CATCH-DURATION` (new tunable, row in TUNABLES, the value
-      marked as ours): no movement, kill, stun or cast. A caught figure can be killed.
+- [ ] **The cloud catches everyone in `TUN-CINDERFALL-RADIUS` except the caster, for as long
+      as it stands**: anyone there at the burst and anyone who walks in afterwards. A caught
+      figure coughs until the cloud ends, with no movement, kill, stun or cast, and can be
+      killed.
 - [ ] **NPCs in the radius are caught too**, with the same visible reaction, so the cloud does
       not name the players inside it (clone parity, GDD-03 §6.5).
 - [ ] **A caught pursuer of the caster counts as stunned by the caster.** `SCORE-STUN`, the
@@ -49,7 +50,7 @@ Falsify each rule by planting its opposite, one at a time, against the suite tha
 flag back to true, the caster caught by their own burst, an NPC left out, a caught pursuer not
 paid.
 
-## Open (from ADR-0023, needs a reference clip)
+## Open (ADR-0023 C, the owner's)
 
-Whether people who walk into the cloud after the burst are caught, and how long the caught are
-held. Until then the catch happens at the burst only.
+`TUN-CINDERFALL-DURATION` 6.0 s is now how long a caught figure is held, longer than a pressed
+stun (4 s). The reference's cloud lasts about 4 s. Left at 6.0 until the owner decides.

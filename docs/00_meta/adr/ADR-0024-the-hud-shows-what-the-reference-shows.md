@@ -63,7 +63,7 @@ killed you. Recorded as open question A.
 
 | Element | Depends on |
 |---|---|
-| Up/down on the Compass, and the glow while the contract is in sight | nothing: buildable now |
+| **The Compass moves to the character's feet** (owner, 2026-09-25), with up/down and the glow while the contract is in sight. The camera framing is checked against the reference first, so that the feet are where the eye already is | nothing: buildable now |
 | One-line notices (new pursuer, contract poisoned, you take the lead) | nothing for the first and third; poison is dormant |
 | *"Your pursuer killed a civilian"* | owner decision 14 (a kill on a chosen figure) |
 | Kill feed, contract name and rank, death card, results names | **player names**, which do not exist anywhere yet (US-0078's lobby) |

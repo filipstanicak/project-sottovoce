@@ -18,8 +18,8 @@ depends_on: [ADR-0013, ADR-0017, GDD-04-ABILITIES]
 - **Supersedes:** GDD-04 §3.1's *"the design detail that carries the ability"* (the caster's
   own kill-block). **Amends:** GDD-04 §3.1, §3.5 and the §7 pair audit; `TUN-CINDERFALL-BLOCKS-KILL`
   true → **false** and `TUN-CINDERFALL-BLOCKS-LOS` true → **false**, both neutralised rather
-  than removed; `TUN-CINDERFALL-SUSPICION` 40 → **0**; invariant 12's reason; adds
-  `TUN-CINDERFALL-CATCH-DURATION`
+  than removed; `TUN-CINDERFALL-SUSPICION` 40 → **0**; invariant 12's reason;
+  `TUN-CINDERFALL-DURATION`'s meaning (how long a caught figure is held)
 - **Related:** ADR-0013 (the reference wins where a rule diverges), ADR-0017 (the `Staggered`
   state), ADR-0018 (the prey's teeth), ADR-0019 (a stun costs the contract), ADR-0022 (what a
   kill pays), design laws 3 and 5
@@ -52,11 +52,13 @@ it arrive.
 
 ## Decision
 
-1. **The burst catches everyone inside `TUN-CINDERFALL-RADIUS` except the caster.** Each
-   caught figure is incapacitated for `TUN-CINDERFALL-CATCH-DURATION`: no movement, no kill, no
-   stun, no cast, but able to be killed. The candidate state is ADR-0017's `Staggered`, which
-   already means *a timed incapacitation that is not a stun*. The value is new and ours: no
-   source gives it.
+1. **The cloud catches everyone inside `TUN-CINDERFALL-RADIUS` except the caster, for as
+   long as it stands.** That means anyone there at the burst and **anyone who walks in
+   afterwards** (open question A, answered by the owner). A caught figure coughs **until the
+   cloud ends** (open question B, answered): no movement, no kill, no stun, no cast, but able
+   to be killed. So `TUN-CINDERFALL-DURATION` is a gameplay number again, and no separate catch
+   duration is needed. The candidate state is ADR-0017's `Staggered`, which already means *a
+   timed incapacitation that is not a stun*.
 2. **NPCs in the radius are caught too, with the same animation.** This is clone parity rather
    than a guess about the reference (GDD-03 §6.5): if only players coughed, the cloud would name
    every player inside it.
@@ -70,21 +72,22 @@ it arrive.
    never allow.
 6. **Using it is not high-profile.** `TUN-CINDERFALL-SUSPICION` becomes 0, because the recorded
    ambush kill still paid the top rung. The Startle wave and the crack remain the honest cost.
-   Whether other abilities are high-profile is ADR-0022's open question B.
+   The owner confirmed on 2026-09-25 that no ability use is high-profile (ADR-0022 B).
 7. **Unchanged:** the burst at the caster's feet (ADR-0013 already took this from the
    reference), the radius, the 45 s cooldown (the recording reads roughly 40–50 s) and every
    tell.
 
 ## Open questions (sourcing)
 
-- **A. Does the cloud catch people who walk into it after the burst**, or only those inside at
-  the burst? If it catches them later, `TUN-CINDERFALL-DURATION` becomes a gameplay number
-  again rather than a visual one.
-- **B. How long are the caught incapacitated?** The recording suggests about 2 s from the burst
-  to the kill. That is a lower bound, not a measurement.
-- **C. `TUN-CINDERFALL-DURATION` stays at 6.0 s until A is answered.** The owner raised it from
-  4.0 at the controls on 2026-09-03. The reference's cloud is about 3 s (4 s for the stronger
-  variant), and if the cloud stops catching after the burst, the question matters much less.
+- ~~**A. Does the cloud catch people who walk in after the burst?**~~ **Yes** (owner,
+  2026-09-25).
+- ~~**B. How long are the caught incapacitated?**~~ **For the whole of the cloud** (owner,
+  2026-09-25).
+- **C. `TUN-CINDERFALL-DURATION` is now how long a caught figure is held, and it is 6.0 s.**
+  The owner raised it from 4.0 at the controls on 2026-09-03, when the cloud was only cover.
+  Now it holds a caught pursuer longer than a pressed stun (`TUN-STUN-FREEZE` 4 s). The
+  reference's cloud lasts about 3 s, or 4 s for the stronger variant the recording shows.
+  **Left at 6.0 and put to the owner**, because they set it by hand.
 
 ## What this costs, said plainly
 
