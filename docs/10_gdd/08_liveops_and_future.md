@@ -286,7 +286,7 @@ a design solution before they are an engineering task).
 | **Kill-cam / death replay** | Reveals the killer's **identity and position**. The paranoia economy depends on never knowing where your hunter was. | The death card (§3.3 item 4) is the deliberate 80 % solution: killer's name and their tier, no position, no camera. If more is wanted, someone must argue that knowing position is worth losing the fear. |
 | **Voice chat** | Destroys the information economy. Players narrate positions aloud and the Compass stops being the primary channel. | Proximity-only voice with occlusion, designed as an *information channel* with a row in the §11 master table — including its latency and reliability. That is a design job, not an integration job. |
 | **Minimap** | **Permanent.** Replaces the Compass with certainty and deletes the search. | Nothing. This one does not return. |
-| **Global kill feed** | Tells every player how the contract cycle shifted, for free. | Nothing obvious. Deaths are learned diegetically by design. |
+| ~~**Global kill feed**~~ | *Was: tells every player how the contract cycle shifted, for free.* | **Returned 2026-09-25 by ADR-0024**: the reference has one. Built by US-0105. |
 
 ### 5.2 Schedule cuts — will likely return
 

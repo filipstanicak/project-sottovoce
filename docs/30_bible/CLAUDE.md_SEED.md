@@ -224,12 +224,15 @@ Target branch lifetime ≤ 2 days, hard ceiling 5. Squash merge. **Never push di
 10. **Never put a user-facing string in a script or scene.** It goes in `data/strings/en.csv`.
 11. **Never add an asset without a licence row** in `docs/00_meta/ASSET_LICENSES.md`, in the same
     commit.
-12. **Never add a minimap, a kill-cam, a global kill feed, or player nameplates.** Each would
-    convert an earned inference into a given fact. **Narrowed 2026-08-26 (ADR-0013):** the
-    hit-direction ban is lifted — the prey warning carries a bearing, as the reference's does —
-    and "nameplate" means a **name**. A *relationship* marker on your own contract or your own
-    revealed pursuer is permitted; a marker that names anybody, or that marks a player you have
-    no relationship with, is not.
+12. **Never add a minimap, a kill-cam, or a name or marker over a body you have no
+    relationship with.** Each would convert an earned inference into a given fact.
+    **Narrowed 2026-08-26 (ADR-0013):** the hit-direction ban is lifted — the prey warning
+    carries a bearing, as the reference's does — and a *relationship* marker on your own
+    contract or your own revealed pursuer is permitted. **Narrowed again 2026-09-25
+    (ADR-0024), by owner decision for reference fidelity:** the global kill feed, player names
+    in the HUD (feed, portrait, death card, scoreboard) and your own placement on screen are
+    lifted, because the reference has all three. Names over bodies stay banned — the reference
+    has none — and the kill-cam is an open question in ADR-0024, not lifted.
 13. **Never weaken stun** to make hunting feel better. If hunters are frustrated, make the
     *Anonymous approach* more reliable instead. **One exception, decided 2026-08-26 for
     reference fidelity (ADR-0013): a committed kill is not interruptible.** Range advantage,

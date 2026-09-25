@@ -66,18 +66,24 @@ extends Resource
 ## TUN-CINDERFALL-DURATION
 @export_range(3.0, 6.0, 0.1) var duration: float = 0.0
 
-## Blocks line of sight for detection, Compass lock, and SCORE-FOCUS accumulation.
+## Blocks line of sight for detection, Compass lock, and SCORE-FOCUS accumulation. Goes to false
+## by ADR-0023 (accepted 2026-09-25) when US-0104 lands: the reference's cloud guarantees a Focus
+## kill, which a line-of-sight block could never allow.
 ## Used by: Cinderfall.
 ## TUN-CINDERFALL-BLOCKS-LOS
 @export var blocks_los: bool = false
 
 ## No kill may be initiated inside the radius, by anyone, including the caster. A kill already in
-## progress completes. Otherwise it becomes an offensive tool for forcing blind kills.
+## progress completes. Otherwise it becomes an offensive tool for forcing blind kills. Goes to
+## false by ADR-0023 (accepted 2026-09-25) when US-0104 lands: in the reference, cloud, then kill
+## inside it is the ability's main use, and the victim, coughing inside it, is the one who sees
+## it coming. Neutralised, not removed.
 ## Used by: Cinderfall.
 ## TUN-CINDERFALL-BLOCKS-KILL
 @export var blocks_kill: bool = false
 
-## Equals TUN-SUSPICION-GAIN-LOUD-ABILITY.
+## Equals TUN-SUSPICION-GAIN-LOUD-ABILITY. Goes to 0 by ADR-0023 when US-0104 lands: a recorded
+## reference kill inside the caster's own cloud at arm's length still paid the top stealth rung.
 ## Used by: Cinderfall, Lunge, Secondface.
 ## TUN-CINDERFALL-SUSPICION
 @export var suspicion_cost: float = 0.0

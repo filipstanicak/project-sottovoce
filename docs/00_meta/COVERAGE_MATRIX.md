@@ -137,7 +137,7 @@ Things the design forbids need enforcement too, or they reappear.
 | Forbidden | Enforced by |
 |---|---|
 | Minimap | No positional data in any payload beyond bearing + distance bucket (`test_payload_omissions`) |
-| Global kill feed | `NET-S2C-KILL-RESULT` sent only to killer and victim |
+| Global kill feed | `NET-S2C-KILL-RESULT` sent only to killer and victim. **Lifted 2026-09-25 by ADR-0024**; a feed message is US-0105's |
 | Nameplates | No identity field in `remote_pawns[]` |
 | Hit-direction indicator | `NET-S2C-PREY-WARNING` has exactly one field; the signal has zero parameters (`test_warning_payload_empty`, `test_prey_warning_signal_arity`) |
 | Kill-cam | No positional or temporal data in `NET-S2C-KILL-RESULT` beyond killer, victim, tick |
