@@ -94,9 +94,9 @@ where it was pointed would let a VFX author draw an arrow at the target"*.
 **That rule was written when nothing drew anything, and it made the one ability that changes
 the world undrawable.** A cinder cloud lands up to `TUN-CINDERFALL-THROW-RANGE` **8 m** from the
 thrower, so a consumer given only the origin puts cover where there is none and leaves none
-where there is cover. `ABIL-CINDERFALL` blocks line of sight and forbids kill initiation, and a
-player standing inside an invisible one is told nothing at all about why the reticle has stopped
-offering — **a larger information failure than the one the old rule prevented.**
+where there is cover. `ABIL-CINDERFALL` blocked line of sight and forbade kill initiation until ADR-0023 (it holds
+everyone inside it now), and a player standing inside an invisible one was told nothing at all
+about why the reticle had stopped offering — **a larger information failure than the one the old rule prevented.**
 
 **The replacement is a property rather than an omission, and it is stronger.** The payload
 carries two *points* and names **nobody**: no slot, peer, persona or tier of a target appears in

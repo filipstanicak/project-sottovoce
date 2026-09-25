@@ -86,9 +86,18 @@ wide bell skirt and a tall coiled headdress — the widest-at-the-floor silhouet
 cast. See [`../30_bible/ART_BIBLE.md`](../30_bible/ART_BIBLE.md).
 
 ### Cinderfall
-**ABIL-CINDERFALL.** The area-denial ability. Throws a fired ash-pot that blocks line of
-sight and forbids kill initiation inside its radius. Loud: costs
-`TUN-SUSPICION-GAIN-LOUD-ABILITY`. Exists to give a punished attacker exactly one escape.
+**ABIL-CINDERFALL.** The escape-and-ambush ability. A fired ash-pot dashed at the caster's
+feet: for as long as the cloud stands, everyone inside it but the caster is caught, coughing
+and held (see *Choking*), the caster's own pursuer is stunned by it, and the caster may kill
+inside it (ADR-0023). Loud by its tell rather than its cost: a crack and a Startle wave.
+*Until 2026-09-25 it blocked line of sight and forbade kill initiation inside it, and was
+described as an escape only.*
+
+### Choking
+**A pawn state (ADR-0023).** Caught in a Cinderfall cloud somebody else threw: held in place,
+unable to kill, stun or cast, and killable, until no cloud holds you. Done to you by another
+player's ability, which is what separates it from *Staggered* (your own failure) and *Stunned*
+(another player's stun).
 
 ### Clone
 An NPC instance that uses a **persona**'s mesh, materials and animation set — visually

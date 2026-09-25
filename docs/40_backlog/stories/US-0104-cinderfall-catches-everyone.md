@@ -2,7 +2,7 @@
 id: US-0104
 title: Cinderfall catches everyone in it, and the caster may kill there
 version: 0.1.0
-status: draft
+status: done
 owner: Lead Game Designer
 last_updated: 2026-09-25
 depends_on: [ADR-0023, GDD-04-ABILITIES, US-0067]
@@ -27,22 +27,40 @@ rule. This story builds it and rewrites GDD-04 §3.1 in the same commit.
 
 ## Acceptance criteria
 
-- [ ] **The cloud catches everyone in `TUN-CINDERFALL-RADIUS` except the caster, for as long
+- [x] **The cloud catches everyone in `TUN-CINDERFALL-RADIUS` except the caster, for as long
       as it stands**: anyone there at the burst and anyone who walks in afterwards. A caught
       figure coughs until the cloud ends, with no movement, kill, stun or cast, and can be
       killed.
-- [ ] **NPCs in the radius are caught too**, with the same visible reaction, so the cloud does
+- [x] **NPCs in the radius are caught too**, with the same visible reaction, so the cloud does
       not name the players inside it (clone parity, GDD-03 §6.5).
-- [ ] **A caught pursuer of the caster counts as stunned by the caster.** `SCORE-STUN`, the
+- [x] **A caught pursuer of the caster counts as stunned by the caster.** `SCORE-STUN`, the
       contract loss (ADR-0019), and every consequence a pressed stun has.
-- [ ] `TUN-CINDERFALL-BLOCKS-KILL` → false and `TUN-CINDERFALL-BLOCKS-LOS` → false, neutralised
+- [x] `TUN-CINDERFALL-BLOCKS-KILL` → false and `TUN-CINDERFALL-BLOCKS-LOS` → false, neutralised
       rather than removed. **A kill initiated by the caster inside their own cloud lands**, as a
       test at the system's seam.
-- [ ] `TUN-CINDERFALL-SUSPICION` → 0.
-- [ ] Invariant 12 keeps its inequality with its new reason (catch somebody standing at kill
+- [x] `TUN-CINDERFALL-SUSPICION` → 0.
+- [x] Invariant 12 keeps its inequality with its new reason (catch somebody standing at kill
       range).
-- [ ] GDD-04 §3.1, §3.5 and the §7 pair audit are rewritten. TUNABLES rows, TDD-09 and the
+- [x] GDD-04 §3.1, §3.5 and the §7 pair audit are rewritten. TUNABLES rows, TDD-09 and the
       CLAUDE.md state row say the new rule.
+
+## As built
+
+- **A seventeenth pawn state, `Choking`**, rather than the `Staggered` ADR-0023 first named as
+  the candidate. `Staggered` is your own failure for a fixed time; `Stunned` is another player's
+  stun, 4 s, camera taken; this is another player's ability for however long the cloud has
+  left, which no fixed number can say. So it has no exit of its own and the server releases it.
+  Appended to `PawnStateId.ALL` at index 16, the wire's order, and drawn in GDD-02 §3.
+- **`CinderfallCatch` re-decides the hold every tick from the clouds**, before `SYS-KILL` judges
+  any press, and remembers nothing: a stored catch would outlive a cloud whose caster died.
+  Entered from locomotion only; a stagger, a traversal or a committed action finishes first.
+- **NPCs are held by `CrowdDirector` from the same clouds**, at speed 0, and a procession waits
+  for a held member as it waits for any straggler. Neither rig has clips, so a caught player
+  and a caught NPC both simply stand, which is parity today; the cough clip is owed to both
+  rigs together (US-0046's set).
+- **The caster's pursuer is stunned through `StunSystem.stun_from_cloud`**, which raises the
+  same `stunned` signal a pressed stun does, so the score, the announcement and the contract
+  loss follow unchanged. No tier floor on this route, by the owner's answer of 2026-09-25.
 
 ## Test notes
 

@@ -101,7 +101,11 @@ func test_a_cinder_cloud_blocks_and_an_expired_one_does_not() -> void:
 	# `TUN-CINDERFALL-BLOCKS-LOS` is the one thing that stops sight and is not
 	# geometry, and it is checked against the **segment** rather than the endpoints:
 	# a cloud placed in the gap touches neither player, which is the point of area
-	# denial.
+	# denial. **The switch is off in the shipped profile since ADR-0023**, so this
+	# turns it back on for its own duration: neutralised, not removed.
+	var data := Tuning.ability_data(Ids.ABIL_CINDERFALL)
+	var shipped := data.blocks_los
+	data.blocks_los = true
 	assert_true(await _look(), "the premise failed")
 	_system.cinderfall.add(FAR * 0.5, 0)
 	assert_false(await _look(), "a cinder cloud across the line did not block it")
@@ -114,6 +118,7 @@ func test_a_cinder_cloud_blocks_and_an_expired_one_does_not() -> void:
 	_ctx.tick = duration + 1
 	assert_eq(_system.cinderfall.count_at(_ctx.tick), 0, "an expired cloud was still alight")
 	assert_true(await _look(), "an expired cloud still blocked")
+	data.blocks_los = shipped
 
 
 func test_a_burnt_out_cloud_is_kept_until_no_rewind_can_reach_it() -> void:
@@ -128,7 +133,7 @@ func test_a_burnt_out_cloud_is_kept_until_no_rewind_can_reach_it() -> void:
 	assert_eq(_system.cinderfall.count(), 1, "the cloud was dropped while a rewind could reach it")
 	assert_eq(_system.cinderfall.count_at(duration + 1), 0, "it was still alight after its expiry")
 	assert_true(
-		_system.cinderfall.contains_at(FAR * 0.5, duration - 1),
+		_system.cinderfall.catches(FAR * 0.5, -1, duration - 1),
 		"a rewind to before the expiry could not see it"
 	)
 

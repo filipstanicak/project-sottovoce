@@ -303,7 +303,7 @@ static func _abilities(p: TuningProfile) -> Array[String]:
 			(
 				(
 					"12. cinderfall.radius (%.2f) must be >= 2 x combat.kill_range (%.2f) — "
-					+ "the cloud must deny a kill attempt, not merely obscure one"
+					+ "the cloud must reach somebody standing at kill range from its caster"
 				)
 				% [cinderfall.get(&"radius"), 2.0 * p.combat.kill_range]
 			)

@@ -261,6 +261,8 @@ func _is_busy(ctx: MatchContext, peer: int) -> bool:
 	var pawn: PawnContext = ctx.pawn_contexts.get(peer)
 	if pawn == null:
 		return true
+	if pawn.state_id == PawnStateId.CHOKING:
+		return true
 	if pawn.state_id == PawnStateId.STUN_ANIM or pawn.state_id == PawnStateId.KILL_ANIM:
 		return true
 	return not _is_stunnable(pawn)
@@ -331,12 +333,36 @@ func stun_from_arrival(ctx: MatchContext, lunger: int, from: Vector3) -> bool:
 	return true
 
 
-func _land(ctx: MatchContext, stunner: int, target: int) -> void:
+## **A CLOUD'S PURSUER IS A FREE STUN.** ADR-0023: the caster's own pursuer,
+## inside the caster's own cloud, is stunned by the caster, with everything a pressed
+## stun does except the swing, because nobody swung. **No tier floor on this route**:
+## the owner confirmed on 2026-09-25 that the reference stuns any pursuer, and a
+## cough does not ask how careful the hunter had been. Concealment, protection and a
+## committed kill still refuse it.
+func stun_from_cloud(ctx: MatchContext, caster: int, centre: Vector3, radius: float) -> bool:
+	var pursuer := pursuer_of(caster, ctx)
+	if pursuer == ContractCycle.NOBODY:
+		return false
+	var them: PawnContext = ctx.pawn_contexts.get(pursuer)
+	if them == null or not _is_stunnable(them) or them.state_id == PawnStateId.KILL_ANIM:
+		return false
+	if them.blend_state == BlendKind.Kind.PROP_CONCEAL:
+		return false
+	if lockouts != null and lockouts.is_protected(pursuer, ctx.tick):
+		return false
+	if them.position.distance_squared_to(centre) > radius * radius:
+		return false
+	_land(ctx, caster, pursuer, false)
+	return true
+
+
+func _land(ctx: MatchContext, stunner: int, target: int, swing: bool = true) -> void:
 	var exile := lockout_ticks(_has_second_wind(ctx, target))
 	if lockouts != null:
 		lockouts.exile(target, stunner, ctx.tick + exile)
 	CombatEntry.into(ctx, target, PawnStateId.STUNNED, PawnState.PRIORITY_COMBAT)
-	CombatEntry.into(ctx, stunner, PawnStateId.STUN_ANIM, PawnState.PRIORITY_COMBAT)
+	if swing:
+		CombatEntry.into(ctx, stunner, PawnStateId.STUN_ANIM, PawnState.PRIORITY_COMBAT)
 	stuns_landed += 1
 	stunned.emit(stunner, target, exile)
 
