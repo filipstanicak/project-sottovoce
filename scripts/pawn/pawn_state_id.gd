@@ -46,6 +46,13 @@ const STAGGERED := &"Staggered"
 ## rubber-band; see `LungingState`.
 const LUNGING := &"Lunging"
 
+## **ADR-0023, US-0104.** Caught in somebody else's Cinderfall cloud: coughing,
+## held in place, unable to kill, stun or cast, and killable. **Done to you by
+## another player's ability, for as long as the cloud stands** — which is why it
+## is neither `Staggered` (your own failure, a fixed duration) nor `Stunned`
+## (another player's stun, a fixed 4 s, and the camera taken).
+const CHOKING := &"Choking"
+
 ## **THIS ORDER IS THE WIRE, AND IT IS APPEND-ONLY.** `Snapshot.state_index`
 ## encodes `state_id` as an index into this array, so inserting a name in the
 ## middle silently remaps every remote pawn's animation to a different state —
@@ -72,6 +79,7 @@ const ALL: Array[StringName] = [
 	DEAD,
 	STAGGERED,
 	LUNGING,
+	CHOKING,
 ]
 
 ## The locomotion sub-machine. GDD-02 §3 draws these inside `state "Locomotion"`,

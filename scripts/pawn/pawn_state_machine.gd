@@ -47,6 +47,7 @@ const REGISTERED: Array[GDScript] = [
 	preload("res://scripts/pawn/states/respawning_state.gd"),
 	preload("res://scripts/pawn/states/staggered_state.gd"),
 	preload("res://scripts/pawn/states/lunging_state.gd"),
+	preload("res://scripts/pawn/states/choking_state.gd"),
 ]
 
 ## id -> PawnState. ONE INSTANCE PER STATE, shared by every pawn.

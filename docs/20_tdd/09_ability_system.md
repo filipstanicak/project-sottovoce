@@ -12,7 +12,7 @@ depends_on: [TDD-01-ARCHITECTURE, TDD-04-NET, TDD-05-DATA, TDD-07-SUSPICION, GDD
 
 > **Context restated.** Players equip **two abilities and one passive**, chosen in the lobby and
 > locked for the whole match including across deaths. The MVP set is **Cinderfall**
-> (area denial, blocks line of sight and forbids kill initiation in a 5 m radius for 4 s),
+> (a 5 m cloud at the caster's feet for 6 s that holds everyone in it but the caster, stuns the caster's pursuer and allows kills inside it — ADR-0023; it blocked sight and forbade kills until 2026-09-25),
 > **Whisperbolt** (ranged kill at 3–12 m after a 1.0 s wind-up during which the thrower is
 > forced Exposed), **Second Face** (adopt the nearest visible clone's persona for 15 s), and
 > **Lunge** (a 6 m committed dash that auto-initiates a kill, stunnable throughout).

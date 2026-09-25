@@ -41,7 +41,7 @@ static func is_busy(pawn: PawnContext, committed: bool, staggered: bool) -> bool
 		return true
 	if pawn.state_id == PawnStateId.KILL_ANIM or pawn.state_id == PawnStateId.STUNNED:
 		return true
-	if pawn.state_id == PawnStateId.STUN_ANIM:
+	if pawn.state_id == PawnStateId.STUN_ANIM or pawn.state_id == PawnStateId.CHOKING:
 		return true
 	return is_dead(pawn)
 

@@ -22,9 +22,9 @@ const VALUES := {
 		"throw_range": 0.0,
 		"radius": 5.0,
 		"duration": 6.0,
-		"blocks_los": true,
-		"blocks_kill": true,
-		"suspicion_cost": 40.0,
+		"blocks_los": false,
+		"blocks_kill": false,
+		"suspicion_cost": 0.0,
 		"startle_radius": 9.0,
 		"tell_audio_radius": 25.0
 	},
