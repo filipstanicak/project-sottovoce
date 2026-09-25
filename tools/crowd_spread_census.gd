@@ -19,22 +19,20 @@
 ##     godot --headless --path . res://tools/crowd_spread_census.tscn
 ##
 ## Prints, per state: the share of the crowd in it, and the share of walking samples
-## with **company** — another walker within `COMPANY_RADIUS` heading the same way. And
+## with **company** — another walker within `COMPANY_RADIUS` heading the same way —
+## counted twice: among walkers **in the same state**, which is the stroller-rows
+## figure, and among **anyone**, which also counts a stroller beside a procession. And
 ## for strollers: the share of their walking spent on **shared lanes**, one-metre cells
-## that `SHARED_LANE` or more different NPCs walked through.
+## that `SHARED_LANE` or more different NPCs walked through. The constants and the
+## arithmetic live in `crowd_spread.gd`.
 extends Node
 
 const SERVER_ROOT := "res://scenes/server_root.tscn"
 const PEER := 910
 const SAMPLE_EVERY := 0.5
 const WATCH := 120.0
-## Another walker this close and heading this similarly is company.
-const COMPANY_RADIUS := 3.0
-const COMPANY_HEADING := 0.6
-## Faster than this between two samples is walking.
-const WALKING := 0.5
-## A cell this many different strollers crossed is a shared lane.
-const SHARED_LANE := 5
+## The arithmetic, pure and tested: `test/unit/tools/test_crowd_spread.gd`.
+const SPREAD := preload("res://tools/crowd_spread.gd")
 
 var _root: Node
 var _pool: NpcPool
@@ -85,79 +83,26 @@ func _watch() -> Array:
 
 
 func _report(samples: Array) -> void:
-	var t := _tally(samples)
+	var t := SPREAD.tally(samples, SAMPLE_EVERY, NpcBrain.State.STROLL)
 	var total := 0
 	for state: int in t["share"]:
 		total += t["share"][state]
 	for state: int in t["share"]:
+		var walking := maxi(int(t["walking"].get(state, 0)), 1)
 		print(
 			(
-				"%-14s %3.0f %% of the crowd   walking with company %3.0f %%"
+				"%-14s %3.0f %% of the crowd   company: same state %3.0f %%, anyone %3.0f %%"
 				% [
 					NpcBrain.State.keys()[state],
 					100.0 * t["share"][state] / maxi(total, 1),
-					100.0 * int(t["company"].get(state, 0)) / maxi(t["walking"].get(state, 0), 1)
+					100.0 * int(t["same"].get(state, 0)) / walking,
+					100.0 * int(t["any"].get(state, 0)) / walking,
 				]
 			)
 		)
-	var cells: Array = t["cells"]
-	var lanes: Dictionary = t["lanes"]
-	var shared := cells.filter(
-		func(c: Vector2i) -> bool: return (lanes[c] as Dictionary).size() >= SHARED_LANE
-	)
 	print(
 		(
 			"strollers: %3.0f %% of walking on shared lanes (cells crossed by %d+ strollers)"
-			% [100.0 * shared.size() / maxi(cells.size(), 1), SHARED_LANE]
+			% [100.0 * SPREAD.shared_lane_share(t), SPREAD.SHARED_LANE]
 		)
 	)
-
-
-## Counted once over the whole watch: samples per state, walkers and walkers with
-## company per state, and for strollers the cells they crossed and by whom.
-func _tally(samples: Array) -> Dictionary:
-	var t := {"share": {}, "walking": {}, "company": {}, "lanes": {}, "cells": []}
-	for i: int in range(1, samples.size()):
-		for index: int in samples[i]:
-			var state: int = samples[i][index][1]
-			t["share"][state] = int(t["share"].get(state, 0)) + 1
-		var moving := _walkers(samples[i - 1], samples[i])
-		for index: int in moving:
-			var state: int = moving[index][2]
-			t["walking"][state] = int(t["walking"].get(state, 0)) + 1
-			if _has_company(index, moving):
-				t["company"][state] = int(t["company"].get(state, 0)) + 1
-			if state == NpcBrain.State.STROLL:
-				var cell := Vector2i(floori(moving[index][0].x), floori(moving[index][0].z))
-				var seen: Dictionary = t["lanes"].get(cell, {})
-				seen[index] = true
-				t["lanes"][cell] = seen
-				(t["cells"] as Array).append(cell)
-	return t
-
-
-## `{index: [position, heading, state]}` for everybody walking between two samples.
-func _walkers(before: Dictionary, now: Dictionary) -> Dictionary:
-	var out := {}
-	for index: int in now:
-		if not before.has(index):
-			continue
-		var a: Vector3 = before[index][0]
-		var b: Vector3 = now[index][0]
-		if CompassMath.distance_to(a, b) / SAMPLE_EVERY < WALKING:
-			continue
-		out[index] = [b, CompassMath.bearing_to(a, b), now[index][1]]
-	return out
-
-
-func _has_company(index: int, moving: Dictionary) -> bool:
-	var me: Array = moving[index]
-	for other: int in moving:
-		if other == index:
-			continue
-		var them: Array = moving[other]
-		if CompassMath.distance_to(me[0], them[0]) > COMPANY_RADIUS:
-			continue
-		if absf(CompassMath.angle_between(me[1], them[1])) < COMPANY_HEADING:
-			return true
-	return false

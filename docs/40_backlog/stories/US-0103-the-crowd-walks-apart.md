@@ -27,15 +27,15 @@ player does the same to blend. Sources for that are in the chat log of 2026-09-2
 (never-do #5).
 
 **MEASURED BEFORE ANYTHING WAS CHANGED** — `tools/crowd_spread_census.tscn`, the district, one
-synthetic player, 120 s:
+synthetic player, 120 s, two runs:
 
-| state | share of the crowd | walking with company |
-|---|---|---|
-| `IDLE` | 20 % | 15 % |
-| `STROLL` | 63–65 % | **33–40 %** |
-| `WALKING_GROUP` | 17 % | 93 % (by design) |
+| state | share of the crowd | walking with company, **same state** | with anyone |
+|---|---|---|---|
+| `IDLE` | 19 % | 0 % | 0 % |
+| `STROLL` | 63–64 % | **39 %** (both runs) | 40 % |
+| `WALKING_GROUP` | 17–18 % | 93–94 % (by design) | 93–95 % |
 
-and **58 % of stroller walking lies on shared lanes** (one-metre cells five or more strollers
+and **58–64 % of stroller walking lies on shared lanes** (one-metre cells five or more strollers
 crossed). The rows are the *strollers*: each picks its own anchor and takes the **shortest**
 navmesh path, so they share corners and street centres — lane formation as an artefact of
 pathing. The four processions (GDD-03 §5.2) are the "few groups" and stay.
@@ -55,8 +55,8 @@ becomes a tell. Benches and circles are smart objects both can use — the refer
 
 - [ ] **Walk apart.** Strollers take a seeded per-NPC lateral offset and scatter their path
       corners inside the walkable corridor (new tunables, none changed). Measured with
-      `crowd_spread_census`: strollers with company fall from 33–40 % toward the idle level, and
-      shared-lane walking falls well below 58 %. The civilian test bots (US-0102) follow the
+      `crowd_spread_census`: strollers' same-state company falls well below 39 %, and
+      shared-lane walking well below 58–64 %. The civilian test bots (US-0102) follow the
       same rule, or they become the one figure on the centre line.
 - [ ] **Gather.** Some idle NPCs form conversation circles of `TUN-CROWD-IDLE-GROUP-SIZE-MIN`..
       `-MAX` at anchors, and a player can stand into one and blend there (the crowd-pocket blend;
@@ -69,9 +69,17 @@ becomes a tell. Benches and circles are smart objects both can use — the refer
 ## Test notes
 
 `tools/crowd_spread_census.tscn` is the instrument and landed with this story's checkpoint,
-before any fix, so the "before" is on record. It has no unit test of its own yet. **Two runs
-read company at 40 % and 33 %** — the server's timing is not seeded, so one run is not a figure
-— while shared lanes read **58 % both times**. Compare the fix against a range of runs, not one.
+before any fix, so the "before" is on record. Its arithmetic is `tools/crowd_spread.gd`, tested
+in `test/unit/tools/test_crowd_spread.gd`.
+
+**THE FIRST FIGURES WERE WRONG IN TWO WAYS, AND THE REVIEW OF #237 FOUND BOTH.** A walk whose
+two samples straddled a state change was booked to the new state, which is why `IDLE` read 15 %
+company for figures that do not walk. And a stroller beside a procession counted as company, so
+the stroller figure measured rows *or* processions. Both are fixed, each with a synthetic test
+that reddens without its half. **Remeasured: 39 % same-state company in both runs** (the old
+figure was 33–40 %), with anyone 40 %, so the processions add one point and the rows are the
+strollers' own. Shared lanes read 58 % and 64 %. The server's timing is not seeded, so compare
+the fix against a range of runs, not one.
 
 ## Notes
 
