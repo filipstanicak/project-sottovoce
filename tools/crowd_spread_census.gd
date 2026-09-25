@@ -85,51 +85,55 @@ func _watch() -> Array:
 
 
 func _report(samples: Array) -> void:
-	var share := {}
-	var walking := {}
-	var company := {}
-	var lanes := {}
-	var stroll_cells: Array = []
-	for i: int in range(1, samples.size()):
-		var moving := _walkers(samples[i - 1], samples[i])
-		for index: int in samples[i]:
-			var state: int = samples[i][index][1]
-			share[state] = int(share.get(state, 0)) + 1
-		for index: int in moving:
-			var state: int = moving[index][2]
-			walking[state] = int(walking.get(state, 0)) + 1
-			if _has_company(index, moving):
-				company[state] = int(company.get(state, 0)) + 1
-			if state == NpcBrain.State.STROLL:
-				var cell := Vector2i(floori(moving[index][0].x), floori(moving[index][0].z))
-				var seen: Dictionary = lanes.get(cell, {})
-				seen[index] = true
-				lanes[cell] = seen
-				stroll_cells.append(cell)
+	var t := _tally(samples)
 	var total := 0
-	for state: int in share:
-		total += share[state]
-	for state: int in share:
-		var walked: int = walking.get(state, 0)
+	for state: int in t["share"]:
+		total += t["share"][state]
+	for state: int in t["share"]:
 		print(
 			(
 				"%-14s %3.0f %% of the crowd   walking with company %3.0f %%"
 				% [
 					NpcBrain.State.keys()[state],
-					100.0 * share[state] / maxi(total, 1),
-					100.0 * int(company.get(state, 0)) / maxi(walked, 1)
+					100.0 * t["share"][state] / maxi(total, 1),
+					100.0 * int(t["company"].get(state, 0)) / maxi(t["walking"].get(state, 0), 1)
 				]
 			)
 		)
-	var shared := stroll_cells.filter(
+	var cells: Array = t["cells"]
+	var lanes: Dictionary = t["lanes"]
+	var shared := cells.filter(
 		func(c: Vector2i) -> bool: return (lanes[c] as Dictionary).size() >= SHARED_LANE
 	)
 	print(
 		(
 			"strollers: %3.0f %% of walking on shared lanes (cells crossed by %d+ strollers)"
-			% [100.0 * shared.size() / maxi(stroll_cells.size(), 1), SHARED_LANE]
+			% [100.0 * shared.size() / maxi(cells.size(), 1), SHARED_LANE]
 		)
 	)
+
+
+## Counted once over the whole watch: samples per state, walkers and walkers with
+## company per state, and for strollers the cells they crossed and by whom.
+func _tally(samples: Array) -> Dictionary:
+	var t := {"share": {}, "walking": {}, "company": {}, "lanes": {}, "cells": []}
+	for i: int in range(1, samples.size()):
+		for index: int in samples[i]:
+			var state: int = samples[i][index][1]
+			t["share"][state] = int(t["share"].get(state, 0)) + 1
+		var moving := _walkers(samples[i - 1], samples[i])
+		for index: int in moving:
+			var state: int = moving[index][2]
+			t["walking"][state] = int(t["walking"].get(state, 0)) + 1
+			if _has_company(index, moving):
+				t["company"][state] = int(t["company"].get(state, 0)) + 1
+			if state == NpcBrain.State.STROLL:
+				var cell := Vector2i(floori(moving[index][0].x), floori(moving[index][0].z))
+				var seen: Dictionary = t["lanes"].get(cell, {})
+				seen[index] = true
+				t["lanes"][cell] = seen
+				(t["cells"] as Array).append(cell)
+	return t
 
 
 ## `{index: [position, heading, state]}` for everybody walking between two samples.

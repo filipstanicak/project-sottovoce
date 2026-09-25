@@ -32,7 +32,7 @@ synthetic player, 120 s:
 | state | share of the crowd | walking with company |
 |---|---|---|
 | `IDLE` | 20 % | 15 % |
-| `STROLL` | 63 % | **40 %** |
+| `STROLL` | 63–65 % | **33–40 %** |
 | `WALKING_GROUP` | 17 % | 93 % (by design) |
 
 and **58 % of stroller walking lies on shared lanes** (one-metre cells five or more strollers
@@ -55,7 +55,7 @@ becomes a tell. Benches and circles are smart objects both can use — the refer
 
 - [ ] **Walk apart.** Strollers take a seeded per-NPC lateral offset and scatter their path
       corners inside the walkable corridor (new tunables, none changed). Measured with
-      `crowd_spread_census`: strollers with company fall from 40 % toward the idle level, and
+      `crowd_spread_census`: strollers with company fall from 33–40 % toward the idle level, and
       shared-lane walking falls well below 58 %. The civilian test bots (US-0102) follow the
       same rule, or they become the one figure on the centre line.
 - [ ] **Gather.** Some idle NPCs form conversation circles of `TUN-CROWD-IDLE-GROUP-SIZE-MIN`..
@@ -69,8 +69,9 @@ becomes a tell. Benches and circles are smart objects both can use — the refer
 ## Test notes
 
 `tools/crowd_spread_census.tscn` is the instrument and landed with this story's checkpoint,
-before any fix, so the "before" is on record. It has no unit test of its own yet; its numbers
-above were read once, on one seed.
+before any fix, so the "before" is on record. It has no unit test of its own yet. **Two runs
+read company at 40 % and 33 %** — the server's timing is not seeded, so one run is not a figure
+— while shared lanes read **58 % both times**. Compare the fix against a range of runs, not one.
 
 ## Notes
 

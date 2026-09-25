@@ -271,7 +271,8 @@ boot asserts the wardrobe and the HUD hold the same instance.
 **THE CROWD WALKS IN ROWS, AND IT IS THE STROLLERS, NOT THE PROCESSIONS.** Reported
 from the controls with a screenshot; `tools/crowd_spread_census.tscn` measured
 **40 %** of stroller walking with company and **58 %** on lanes five or more strollers
-share — every one takes the *shortest* navmesh path. The four processions are 17 % of
+share — every one takes the *shortest* navmesh path. A second run read 33 % company and
+58 % lanes again: the lanes are the stable figure, company varies run to run. The four processions are 17 % of
 the crowd and are the "few groups" the owner wants kept. **US-0103 (draft)** owns the
 fix; GOAP was evaluated for it and not chosen — it decides *what*, not *how* one walks.
 
