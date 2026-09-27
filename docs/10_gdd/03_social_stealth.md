@@ -148,7 +148,7 @@ Three consequences that must be internalised:
 | Aspect | Specification |
 |---|---|
 | **To your hunter** | A hard silhouette: a full-strength outline in the persona's identity hue, drawn through geometry at up to `TUN-COMPASS-RANGE-MAX` 60 m. Unmistakable. Reading it requires no comparison and no attention. |
-| **To your prey** | Their Compass flashes red and stings if you are within 15 m (`TUN-COMPASS-WARN-RADIUS`). They know they are hunted. They do not learn from where (`TUN-COMPASS-WARN-GIVES-DIRECTION` = false). |
+| **To your prey** | Their Compass flashes red and stings if you are within 15 m (`TUN-COMPASS-WARN-RADIUS`), and **marks your bearing and distance bucket on their ring** (`TUN-COMPASS-WARN-GIVES-DIRECTION` = true since ADR-0013 (2026-08-26); §9.1). They know they are hunted and roughly from where; they do not learn **which figure** you are. *Until ADR-0013: "they do not learn from where".* |
 | **To everyone else** | Still nothing. Even at 100 suspicion, four of five other players see an ordinary civilian. |
 | **Compass effect on your hunter** | The lock arc completes **immediately**. They get the reveal for free. |
 | **Score effect** | Killing while Exposed incurs `SCORE-RECKLESS` (−50), reducing a base kill to 50 points. |
@@ -1076,7 +1076,7 @@ This list is as important as the specification above. Each omission is a design 
 | Whether the contract is **moving toward or away** | Only the cadence changes, and it changes for both. |
 | Whether the contract is **in a blend action** | A blended player is invisible to every channel except direct observation. |
 | Whether the contract has **already been engaged** by someone else | No shared-state information ever. |
-| **Who their pursuer is** | Structural — nobody is ever told this except through the prey warning, which is directionless. |
+| **Who their pursuer is** | Structural — nobody is ever told **which figure** their pursuer is. The prey warning gives a bearing and a distance bucket since ADR-0013 (2026-08-26) (§9.1), never an identity. *Until then it was directionless.* |
 
 **The design principle behind the whole list:** the Compass answers *where roughly*, and
 nothing else. Every other question must be answered by looking at people.
@@ -1336,7 +1336,7 @@ in detection, not in stun.
 | 2 | **Compass direction cone** | Visual arc | Hunter, about their contract | ≤ 33 ms | ±12° with 4° deterministic wobble — *bounded and learnable* | No |
 | 3 | **Compass lock arc** | Visual fill | Hunter, about their own progress | Continuous | Exact | Broken by LOS loss, Cinderfall |
 | 4 | **Reveal silhouette** | 1.5 s outline | Hunter, about their contract | Instant on lock completion | Exact while it lasts | 4 s cooldown limits it |
-| 5 | **Prey warning** | Red flash + `TUN-AUDIO-STING-DUCK` sting | Prey, about their pursuer | ≤ 33 ms | Binary and directionless. *Absence is ambiguous* — either nobody is near, or someone very good is. | No |
+| 5 | **Prey warning** | Red flash + `TUN-AUDIO-STING-DUCK` sting + a bearing on the ring | Prey, about their pursuer | ≤ 33 ms | A bearing and a distance bucket, drifting as the hunter's own reading does since ADR-0013 (2026-08-26); never an identity. *Absence is ambiguous* — either nobody is near, or someone very good is. *Was: binary and directionless.* | No |
 | 6 | **Noticed tint** | Faint rim light | Hunter only, about their contract | ≤ 33 ms | Reliable but easy to miss; requires comparison against the crowd | Distance (~35 m), occlusion |
 | 7 | **Exposed outline** | Hard through-wall outline | Hunter about contract; prey about pursuer | ≤ 33 ms | Unmissable | Nothing — the only x-ray in the game |
 | 8 | **NPC Startle wave** | Fleeing NPCs, decaying propagation | **Anyone who can see it**, up to ~30 m | 0.3–1.2 s (propagation delay) | Directional but imprecise; tells you *roughly where*, never *who* | Occlusion only |

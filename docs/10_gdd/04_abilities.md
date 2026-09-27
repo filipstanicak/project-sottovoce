@@ -391,8 +391,8 @@ counterplay rather than adding options.
 | | |
 |---|---|
 | **The theoretical combo** | Lunge in, kill, Cinderfall to escape the aftermath. |
-| **Degenerate?** | **No, and it is barely viable.** Lunge costs +40 suspicion; the kill from that state takes `SCORE-RECKLESS` (0 since ADR-0013; this read −50) if you crossed 70, which Lunge alone nearly does. Then Cinderfall costs another +40. Net result: a 50-point kill and 6+ seconds at Exposed, during which your own pursuer sees you outlined through walls. |
-| **Verdict** | Self-punishing. This is the "I have given up on scoring" build, and the scoring makes that explicit. |
+| **Degenerate?** | **No, in today's build.** Lunge costs +40 suspicion; the kill from that state takes `SCORE-RECKLESS` if you crossed 70, which Lunge alone nearly does — and Reckless pays **0** since ADR-0013, so the kill is worth the base **100** and no stealth rung (this row read *"a 50-point kill"*, arithmetic from the old −50). Then Cinderfall costs another +40: 6+ seconds at Exposed, during which your own pursuer sees you outlined through walls. **ADR-0023 re-prices this pair** — Cinderfall will cost nothing and hold whoever is in it — and US-0104 re-audits it in the same commit as that behaviour. |
+| **Verdict** | Self-punishing **as built today**: the "I have given up on scoring" build. Not after ADR-0023, see above. |
 
 #### Whisperbolt + Second Face — "the masked shot"
 

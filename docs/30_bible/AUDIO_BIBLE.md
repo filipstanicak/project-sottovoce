@@ -194,8 +194,11 @@ The single most important sound in the game.
 
 ### 5.1 Why the mono requirement gets its own test
 
-`TUN-COMPASS-WARN-GIVES-DIRECTION` is `false`. The panicked scan of a crowd — not knowing which
-of eleven figures is looking back — is the best moment in the game.
+`TUN-COMPASS-WARN-GIVES-DIRECTION` is `true` since ADR-0013 (2026-08-26): the ring shows a
+drifting bearing, so a positional sting would add nothing the eye does not already have, and it
+stays mono as a choice until US-0075 rather than as a rule. *This paragraph used to say the
+switch was `false`.* What the warning still never gives is **which of the eleven figures on that
+bearing** is looking back — the panicked scan of a crowd, which is the best moment in the game.
 
 Rendering this sting positionally would hand over the direction the design deliberately
 withholds, and it is **the easiest rule in the corpus to break by accident**: attaching an

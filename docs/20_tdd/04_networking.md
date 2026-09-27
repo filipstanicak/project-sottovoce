@@ -357,7 +357,7 @@ cannot be broken at all.
 | Contract's **exact position** | Deletes the search | `compass.bearing` + `distance_bucket` only |
 | Contract's **elevation** | The Compass is 2D by design | No z component anywhere in `compass` |
 | Contract's **suspicion or tier** | You see the consequence, never the value | Not in the payload |
-| **Direction of the prey warning** | `TUN-COMPASS-WARN-GIVES-DIRECTION` is `false`. The panicked scan of a crowd is the game's best moment | `NET-S2C-PREY-WARNING` carries **only a tick**. There is no field to leak |
+| ~~**Direction of the prey warning**~~ | **Lifted since ADR-0013 (2026-08-26)**: `TUN-COMPASS-WARN-GIVES-DIRECTION` is `true`. *Was: "the panicked scan of a crowd is the game's best moment"* | `NET-S2C-PREY-WARNING` carries `bearing:u8` and `bucket:u8` (NETWORK_PROTOCOL §3) and **still no identity**: no slot, no persona. `test_warning_names_nobody.gd` holds that |
 | Other players' **suspicion values** | Anonymity | `render_state` is 2 bits and per-observer |
 | Other players' **cooldowns or loadouts** | Kit-reading is a skill ([`../10_gdd/04_abilities.md`](../10_gdd/04_abilities.md) §5.1) | Not in the payload |
 | ~~A **global kill feed**~~ | **Lifted 2026-09-25 by ADR-0024** (was: would reveal how the contract cycle shifted, for free) | `NET-S2C-KILL-RESULT` still goes to the killer and the victim only; the feed will be its own message (US-0105) |

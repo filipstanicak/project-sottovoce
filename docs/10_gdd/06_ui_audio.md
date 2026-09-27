@@ -364,7 +364,7 @@ The single most important sound in the game.
 | **Trigger** | Your pursuer within `TUN-COMPASS-WARN-RADIUS` 15 m **and** at least Noticed. |
 | **Character** | The inverted motif (§5.4), short, dry, close-miked — it should feel like it happened *inside your head*, not in the district. Non-diegetic and deliberately so. |
 | **Ducking** | `TUN-AUDIO-STING-DUCK` −12 dB on everything else, including `BUS-INFO`. This is the only sound in the game that ducks other information. |
-| **Positional?** | **No.** `TUN-COMPASS-WARN-GIVES-DIRECTION` is false. Rendering it positionally would hand over the direction the design deliberately withholds — and this is the easiest possible way to break that rule by accident. The sound must be authored and routed as strictly mono/centred, and this is worth a test. |
+| **Positional?** | **Mono/centred for now, and the reason changed.** It used to be a rule: *"`TUN-COMPASS-WARN-GIVES-DIRECTION` is false; rendering it positionally would hand over the direction the design deliberately withholds."* Since ADR-0013 the switch is **true** and the ring shows the bearing, so a positional sting would leak nothing the ring does not already say. Whether it becomes positional is US-0075's call; until then it is authored mono, as a choice rather than a law. |
 | **Duration** | `TUN-COMPASS-WARN-DURATION` 1.2 s including the visual flash. |
 | **Cooldown** | `TUN-COMPASS-WARN-COOLDOWN` 2.5 s, so a pursuer hovering at the tier boundary does not produce a strobe. |
 | **Caption** | `⚠ You are being hunted` — no direction, matching the audio exactly. |
