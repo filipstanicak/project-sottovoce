@@ -265,7 +265,7 @@ Values, units and rationales are in TUNABLES.md at the section noted. Reproduced
 | `longhunt_t1` / `_t2` | float | 15–30 / 35–70 | 20.0 / 45.0 |
 | `vendetta` | int | 75–150 | 100 |
 | `variety_per_type` | int | 25–75 | 50 |
-| `reckless` | int | −100–−25 | **−50** |
+| `reckless` | float | −100–0 | **0** — ADR-0013, neutralised. *Was int, −100–−25, default −50.* |
 | `stun` | int | 75–150 | 100 |
 
 ### 3.9 `CameraTuning` — TUNABLES §12

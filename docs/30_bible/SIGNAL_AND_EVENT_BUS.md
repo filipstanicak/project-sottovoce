@@ -184,7 +184,7 @@ func _subscribe() -> void:
 - [ ] `event_bus.gd` contains only `signal` declarations, comments and blank lines.
 - [ ] Every signal in `event_bus.gd` has a row in §3 with a matching arity.
 - [ ] Every row in §3 exists in `event_bus.gd`.
-- [ ] `prey_warning_triggered` has zero parameters.
+- [ ] `prey_warning_triggered` has exactly `(bearing, bucket)` and nothing that names anybody (ADR-0013; it had zero parameters until then).
 - [ ] No file under `scripts/systems/` references `EventBus`.
 - [ ] No bus handler emits another bus signal.
 - [ ] Every view model holding a derived tuning value handles `tuning_reloaded`.

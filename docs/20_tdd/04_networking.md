@@ -292,7 +292,7 @@ evaluated by the server against the lag-compensated world. A client cannot expre
 | `NET-S2C-ABILITY-STARTED` | E | Reliable | On event | `peer:u8`, `ability:u8`, `origin:3×f32`, `dir:3×f32`, `tick:u32`. **Broadcast to all clients within tell radius** — this is the legibility law on the wire |
 | `NET-S2C-ABILITY-DENIED` | E | Reliable | On event | `slot:u8`, `reason:u8`. To the requester only |
 | `NET-S2C-BLEND-DENIED` | E | Reliable | On event | `reason:u8`. To the requester only (US-0054). `NET-C2S-BLEND-REQUEST` had no answer at all, so a press at an occupied hiding spot was indistinguishable from a broken button |
-| `NET-S2C-PREY-WARNING` | E | Reliable | On event | **`tick:u32` only.** §6.4 |
+| `NET-S2C-PREY-WARNING` | E | Reliable | On event | `bearing:u8`, `bucket:u8` since ADR-0013 (2026-08-26), and nothing that names anybody (NETWORK_PROTOCOL §3). *Was `tick:u32` only.* §6.4 |
 | `NET-S2C-SCORE-EVENT` | E | Reliable | On event | `event_id:u32`, `tick:u32`, `kind:u8`, `actor:u8`, `subject:u8`, `base:i16`, `mult:u8`, `group:u16` — 16 B, hand-packed by `ScoreWire`. **Built US-0074.** To the event's own actor alone; `SCORE-DEATH` is withheld. See `NETWORK_PROTOCOL.md` §4 |
 | `NET-S2C-PHASE-CHANGED` | E | Reliable | On change | `phase:u8`, `tick:u32`, `multiplier:u8` |
 | `NET-S2C-MATCH-END` | E | Reliable | Once | Full `ScoreEvent` log for the results fold |
@@ -959,8 +959,8 @@ server authority. What that buys, and what it does not:
 | Score injection | **Yes** | `ScoreEvent`s are appended server-side only |
 | Suspicion spoofing | **Yes** | Never client-writable, never predicted |
 | Infinite abilities | **Yes** | Cooldown authority is server-side |
-| Reveal contract's persona | **Yes** | Not in any payload (§6.4) |
-| Reveal prey-warning direction | **Yes** | The message carries only a tick |
+| ~~Reveal contract's persona~~ | **Not a secret since ADR-0021** | `NET-S2C-CONTRACT-ASSIGNED` carries it to the hunter by design. *Was: "Yes — not in any payload".* |
+| Reveal **who** the pursuer is | **Yes** | `NET-S2C-PREY-WARNING` carries a bearing and a bucket and no identity (`test_warning_names_nobody.gd`). *This row was "reveal prey-warning direction — prevented, the message carries only a tick"; the direction is given since ADR-0013 (2026-08-26).* |
 | Wallhack on other players | **Partially** | Clients receive positions of players within snapshot range regardless of LOS. A modified client could render them. **Mitigated by relevance culling being positional, not visual** — but not eliminated |
 | See culled NPCs | **Yes** | Not sent |
 | Aimbot | **N/A** | There is no aiming skill to automate; `TUN-KILL-FACING-CONE` is 60° |

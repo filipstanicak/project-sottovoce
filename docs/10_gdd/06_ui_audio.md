@@ -191,12 +191,12 @@ happens.
 
 | Property | Value | Why |
 |---|---|---|
-| **Named, not numeric** | `+150 Patient`, not `+150` | The name *is* the lesson. A player who reads "Patient" three times learns the word, then the condition, then the behaviour. |
+| **Named, not numeric** | `+100 Patient`, not `+100` | The name *is* the lesson. A player who reads "Patient" three times learns the word, then the condition, then the behaviour. |
 | **Sequenced, not blocked** | `TUN-UI-SCOREFEED-STAGGER` 0.12 s between lines from one kill | Four bonuses arriving simultaneously is one event. Arriving 0.12 s apart, they are four events, each individually readable — and the sequence is *more satisfying*, which is a real effect and not a small one. |
 | **At the moment earned** | Immediate | A bonus explained at the results screen five minutes later teaches nothing, because the behaviour that earned it is no longer in working memory. |
 | **Persistent enough to read** | `TUN-UI-SCOREFEED-DURATION` 4.0 s, raisable to 8 s in accessibility options | |
 | **Peripheral, not central** | Right side, above centre | It must be readable *without looking at it*. A player who has to look at the HUD to learn is a player who is not watching the crowd. |
-| **Penalties are visually distinct** | `−50 Reckless` in the penalty treatment | The one negative event must not read as a smaller positive one. |
+| **Penalties are visually distinct** | The penalty treatment — **built and dormant**: Reckless pays 0 since ADR-0013, so no shipped bonus is negative (UI_UX_SPEC §5.2). *Was: "`−50 Reckless` in the penalty treatment".* | The one negative event must not read as a smaller positive one. |
 
 ### 3.3 The teaching sequence, by design
 
@@ -204,10 +204,10 @@ A new player's first ten minutes, as the feed intends it:
 
 | Match minute | What they see | What they learn |
 |---|---|---|
-| ~1:30 | `+100 Contract Fulfilled` — bare, after a sprinting kill, followed by `−50 Reckless` | *Killing works. Something about how I did it was wrong.* |
+| ~1:30 | `+100 Contract Fulfilled` — bare, after a sprinting kill, followed by `Reckless` at **0** (ADR-0013; this read `−50 Reckless`) | *Killing works. Something about how I did it was wrong* — the zero line is the lesson, and it is why the event still fires. |
 | ~2:30 | Someone else's `+650` announced on the results screen later | *That number is possible.* |
-| ~3:00 | Their own `+100 Contract` `+100 Silent` | *"Silent" — I did something differently that time.* |
-| ~4:30 | `+100 Contract` `+100 Silent` `+150 Patient` | *Slower is worth more. Substantially more.* |
+| ~3:00 | Their own `+100 Contract` `+200 Silent` (ADR-0013; this read +100) | *"Silent" — I did something differently that time.* |
+| ~4:30 | `+100 Contract` `+200 Silent` `+100 Patient` (ADR-0013; this read +100 and +150) | *Slower is worth more. Substantially more.* |
 | ~6:00 | `+200 Blended` | *Waiting in the crowd is the biggest one.* |
 | Results | Their bonus breakdown next to the winner's | *The winner did the same things, more often.* |
 
@@ -367,7 +367,7 @@ The single most important sound in the game.
 | **Positional?** | **Mono/centred for now, and the reason changed.** It used to be a rule: *"`TUN-COMPASS-WARN-GIVES-DIRECTION` is false; rendering it positionally would hand over the direction the design deliberately withholds."* Since ADR-0013 the switch is **true** and the ring shows the bearing, so a positional sting would leak nothing the ring does not already say. Whether it becomes positional is US-0075's call; until then it is authored mono, as a choice rather than a law. |
 | **Duration** | `TUN-COMPASS-WARN-DURATION` 1.2 s including the visual flash. |
 | **Cooldown** | `TUN-COMPASS-WARN-COOLDOWN` 2.5 s, so a pursuer hovering at the tier boundary does not produce a strobe. |
-| **Caption** | `⚠ You are being hunted` — no direction, matching the audio exactly. |
+| **Caption** | `⚠ You are being hunted` — names nobody; the bearing is on the ring. *Was: "no direction, matching the audio exactly".* |
 
 ### 5.6 Crowd ambience layers
 

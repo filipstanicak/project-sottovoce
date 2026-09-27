@@ -474,7 +474,7 @@ Concretely:
 
 | Hunting produces | Being hunted produces |
 |---|---|
-| A pulse cadence (predictable, controllable) | A red flash with no direction (sudden, uncontrollable) |
+| A pulse cadence (predictable, controllable) | A red flash on a bearing that names nobody (sudden, uncontrollable). *Was "with no direction", until ADR-0013.* |
 | Progress you can measure | A fact you cannot act on precisely |
 | A payoff you chose the timing of | A threat whose timing belongs to someone else |
 | Satisfaction | Fear |

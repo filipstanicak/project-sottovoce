@@ -13,7 +13,8 @@ depends_on: [TDD-01-ARCHITECTURE, TDD-04-NET, TDD-10-SCORING, GDD-06-UI-AUDIO, A
 > **Context restated.** In Project Sottovoce the HUD is not decoration — it is the game's
 > primary information channel. The **Compass** is how you hunt (a ±12° direction cone and a
 > distance-mapped pulse, never a position). The **prey warning** is how you survive (a red flash
-> and a sting when your pursuer is within 15 m *and* at least Noticed — carrying no direction).
+> and a sting when your pursuer is within 15 m *and* at least Noticed — carrying a bearing and
+> a distance bucket since ADR-0013 (2026-08-26), and never an identity).
 > The **score feed** is how you learn, naming each bonus at the instant it is earned.
 >
 > **The consequence:** a UI bug here is a gameplay bug. A Compass showing a stale bearing is not
@@ -256,7 +257,7 @@ signal blend_state_changed(blend_type: int)
 
 ## --- Moments ---
 signal score_event_appended(event: ScoreEvent)
-signal prey_warning_triggered()          ## NO PARAMETERS. There is no direction to pass.
+signal prey_warning_triggered(bearing: float, bucket: int)  ## WHERE, never WHO (ADR-0013)
 signal ability_started(peer: int, ability: StringName, origin: Vector3)
 signal compass_pulsed()
 signal kill_resolved(killer: int, victim: int)
@@ -264,10 +265,12 @@ signal stun_resolved(stunner: int, target: int, valid: bool)
 signal tuning_reloaded()
 ```
 
-> **`prey_warning_triggered()` takes no parameters, deliberately.** The protocol already carries
-> nothing but a tick ([`04_networking.md`](04_networking.md) §6.4); the signal signature makes
-> it *impossible* for a future widget to render a direction that does not exist. A rule enforced
-> at three layers — protocol, signal, and widget — is a rule that survives refactoring.
+> **`prey_warning_triggered(bearing, bucket)` takes exactly those two, deliberately.** Until
+> ADR-0013 it took **no parameters**, the middle of three layers keeping the warning
+> directionless; the reference gives a bearing, so this does too. What the three layers
+> enforce now is that it says **where and never who** — a slot, a persona or a name here would
+> hand over the identity the crowd exists to hide. `test_prey_warning_signal_arity.gd` and
+> `test_warning_names_nobody.gd` hold the signal and the wire.
 
 ---
 

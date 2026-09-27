@@ -139,10 +139,10 @@ Things the design forbids need enforcement too, or they reappear.
 | Minimap | No positional data in any payload beyond bearing + distance bucket (`test_payload_omissions`) |
 | Global kill feed | `NET-S2C-KILL-RESULT` sent only to killer and victim. **Lifted 2026-09-25 by ADR-0024**; a feed message is US-0105's |
 | Nameplates | No identity field in `remote_pawns[]` |
-| Hit-direction indicator | `NET-S2C-PREY-WARNING` has exactly one field; the signal has zero parameters (`test_warning_payload_empty`, `test_prey_warning_signal_arity`) |
+| ~~Hit-direction indicator~~ **Pursuer identity** | **The direction is given since ADR-0013 (2026-08-26)**; what is withheld is who. `NET-S2C-PREY-WARNING` carries a bearing and a bucket only (`test_warning_names_nobody`, `test_prey_warning_signal_arity`). *This row cited `test_warning_payload_empty`, which never existed (trap 14).* |
 | Kill-cam | No positional or temporal data in `NET-S2C-KILL-RESULT` beyond killer, victim, tick |
 | Cosmetics | No per-instance variation on clones (`test_clone_animation_parity`) |
-| Contract's persona before a lock | Not in any payload (`test_payload_omissions`) |
+| ~~Contract's persona before a lock~~ | **Struck: told from assignment since ADR-0021.** *This row cited `test_payload_omissions`, which never existed (trap 14).* |
 | A ninth autoload | `test_autoload_inventory` |
 | Franchise terminology | `ip-guard` CI job, hard failure |
 

@@ -715,7 +715,7 @@ func is_staggered(peer: int, now: int) -> bool
 
 | Test | Asserts |
 |---|---|
-| `test_score_fold.gd` | Every bonus in isolation; the maximal stack; the final-phase multiplier; Variety across a death boundary; a Reckless kill netting 50; an empty log folding to zeroes. **Reproduces every reference value in GDD-07 §3.2 exactly** |
+| `test_score_fold.gd` | Every bonus in isolation; the maximal stack; the final-phase multiplier; Variety across a death boundary; a Reckless kill netting **100** (Reckless 0 since ADR-0013; was 50); an empty log folding to zeroes. **Reproduces every reference value in GDD-07 §3.2 exactly** |
 | `test_score_no_direct_mutation.gd` | **Source scan:** no assignment to a player's score outside `ScoreLog.fold()` |
 | `test_score_event_immutable.gd` | `ScoreEvent` has no setter and no mutating method |
 | `test_score_fold_pure.gd` | `fold()` references no autoload, scene or clock |
