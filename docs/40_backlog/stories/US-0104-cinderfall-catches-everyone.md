@@ -64,6 +64,16 @@ rule. This story builds it and rewrites GDD-04 §3.1 in the same commit.
 - **`PROTOCOL_VERSION` 4 → 5**, found missing by the review of #239: `state_id` is an index
   into `PawnStateId.ALL`, so a version-4 client would decode index 16 as no state at all.
   `test_the_state_list_is_part_of_the_protocol.gd` pairs the state count with the version.
+  **The second review found that first guard passable**: a later state appended with a row
+  `18: 5` — a new count at the version already in force — kept all three tests green. Every
+  new count must now carry a strictly newer version, the shipped rows are pinned so the
+  history cannot be rewritten to make room, and the review's own row is the falsification.
+- **The second review's sweep outside the diff** found the player-facing description
+  (`ability.cinderfall.desc` still read *"Blocks sight"*), TUNABLES §8.1 and GDD-04 §3.1 still
+  saying the cloud *breaks a lock* and *hides you* (and the generated `AbilityData` docstrings
+  carrying both), GDD-04's Whisperbolt counterplay stepping *into a Cinderfall* for cover, the
+  IP guide's naming example, and a startle docstring in `match_consequences.gd` sitting over
+  the wrong function (trap 11, already so on `main`).
 - **The NPC hold is proven through the running crowd**, also at the review's request:
   `test_walking_groups.gd` holds a stroller and a procession member under two clouds and
   asserts both stand, and that their procession falls behind a free one. Each of the three

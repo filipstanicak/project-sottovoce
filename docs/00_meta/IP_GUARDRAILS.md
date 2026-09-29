@@ -130,7 +130,7 @@ it in another company's trademark register.
 **Every document lists the original name first**, with any functional description second and
 subordinate:
 
-> ✅ **Cinderfall** — an area-denial ability that blocks line of sight for 4 s.
+> ✅ **Cinderfall** — a cloud of ash that holds everyone in it but its thrower.
 >
 > ❌ The smoke ability, which we're calling Cinderfall.
 

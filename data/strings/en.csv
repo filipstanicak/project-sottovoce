@@ -40,7 +40,7 @@ bonus.poisoned,Poisoned
 bonus.reckless,Reckless
 bonus.death,Death
 ability.cinderfall.name,Cinderfall
-ability.cinderfall.desc,A burst of ember and ash. Blocks sight and scatters the crowd.
+ability.cinderfall.desc,A burst of ember and ash at your feet. Everyone else in it coughs and cannot move.
 ability.lunge.name,Lunge
 ability.lunge.desc,Close the last few metres at a speed no civilian has.
 ability.secondface.name,Second Face

@@ -21,8 +21,9 @@ class_name Snapshot
 extends RefCounted
 
 ## `state_id` on the wire is an index into `PawnStateId.ALL`. **THAT ARRAY'S
-## ORDER IS THEREFORE PART OF THE PROTOCOL** — appending is safe, reordering
-## silently remaps every remote pawn's animation to a different state.
+## ORDER IS THEREFORE PART OF THE PROTOCOL** — appending keeps every existing
+## index but still needs a `PROTOCOL_VERSION` bump (an older client cannot decode
+## the new one); reordering silently remaps every remote pawn's animation.
 const NO_STATE := 255
 
 ## **THE MEASURED RECORD SIZES**, from the fields §4 declares. They are constants

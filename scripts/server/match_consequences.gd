@@ -86,10 +86,6 @@ func escaped(hunter: int, prey: int, close_call: bool) -> void:
 	kills.scoring.pay_for_escape(_ctx, prey, hunter, close_call)
 
 
-## **THE CLOUD HIDES YOU AND PAINTS AN ARROW AT YOUR POSITION, AND THAT IS THE
-## ABILITY'S HONEST COST.** GDD-04 §3.1: *"every NPC within 9 m runs"* — so
-## Cinderfall buys line of sight at the price of telling everybody within 30 m
-## roughly where you are. The radius is the caster's, not the violence default.
 func _announce_the_start() -> void:
 	if announcer != null:
 		announcer.match_started()
@@ -101,6 +97,11 @@ func _announce_the_results() -> void:
 	announcer.match_ended(abilities.loadout if abilities != null else {})
 
 
+## **THE CLOUD PAINTS AN ARROW AT YOUR POSITION, AND THAT IS THE ABILITY'S HONEST
+## COST.** GDD-04 §3.1: *"every NPC within 9 m runs"*, so everybody within 30 m
+## learns roughly where you are. The radius is the caster's, not the violence
+## default. *This sat over `_announce_the_start` until US-0104's review, and said
+## the cloud bought line of sight, which it has not since ADR-0023.*
 func ability_startled(at: Vector3, radius: float) -> void:
 	crowd.startle_at(at, radius)
 

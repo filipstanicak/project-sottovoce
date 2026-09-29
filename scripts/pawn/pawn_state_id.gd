@@ -57,7 +57,10 @@ const CHOKING := &"Choking"
 ## encodes `state_id` as an index into this array, so inserting a name in the
 ## middle silently remaps every remote pawn's animation to a different state —
 ## a defect that would look like a rendering fault and read as plausible at every
-## position. Appending is safe and is the only safe edit.
+## position. Appending is the only safe edit — **and it is still a protocol
+## change**: it keeps every existing index, but a client built before it cannot
+## decode the new one, so an append ships with a `Messages.PROTOCOL_VERSION` bump
+## (`test_the_state_list_is_part_of_the_protocol.gd`; `Choking` is version 5).
 ##
 ## It also happens to be GDD-02 §3.1's table order, which is a **coincidence
 ## worth not relying on**: the table is free to be reordered for readability and

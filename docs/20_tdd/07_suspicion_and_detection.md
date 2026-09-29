@@ -404,7 +404,7 @@ occlusion can never disagree:
 
 ```gdscript
 ## The ONLY line-of-sight query in the project.
-## Blocked by: world geometry, active Cinderfall volumes.
+## Blocked by: world geometry; active Cinderfall volumes only while TUN-CINDERFALL-BLOCKS-LOS is on, which it is not since ADR-0023.
 ## NOT blocked by: NPCs, other players, corpses.
 func has_los(from: Vector3, to: Vector3, at_tick: int = -1) -> bool
 ```
@@ -710,7 +710,7 @@ trap 14's shape, and the claim is worse than the absence because it stops anybod
 | `scripts/core/blend/blend_record.gd` | One player's blend: kind, phase, grace | **Built**, US-0053 |
 | `scripts/systems/blend/blend_system.gd` | `SYS-BLEND` | **Built**, US-0053 |
 | `scripts/systems/detection/detection_system.gd` | `SYS-DETECTION` and the one LOS query | **Built**, US-0055/0056 |
-| `scripts/systems/detection/cinderfall_volumes.gd` | The only occluder that is not geometry | **Built**, US-0056 |
+| `scripts/systems/detection/cinderfall_volumes.gd` | Who a cloud holds (ADR-0023), and — only while `TUN-CINDERFALL-BLOCKS-LOS` is on, which it is not since ADR-0023 — the only occluder that is not geometry | **Built**, US-0056; caster and `catches` US-0104 |
 | `scripts/core/detection/render_state.gd` | `RenderState` enum and the anonymity rule | **Built**, US-0055 |
 | `scripts/core/detection/render_matrix.gd` | Per-observer states for one tick | **Built**, US-0055 |
 | `scripts/core/compass/compass_math.gd` | The pulse curve and the wobbling cone (§8.2-8.3) | **Built**, US-0057 |

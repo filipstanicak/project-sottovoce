@@ -75,9 +75,10 @@ during the wind-up, because a Second Face that has not been put on yet is not a 
 `SCORE-MASKED` must not pay for one. **An ability with no `cast_time` begins on the press tick**,
 so this costs nothing where it is not wanted.
 
-**The duration runs from the burst, not from the press.** A 0.45 s throw followed by a 4.0 s
-cloud is 4.0 s of cloud, which is what `TUN-CINDERFALL-DURATION`'s row promises and what GDD-04
-§3.1's counterplay is priced against.
+**The duration runs from the burst, not from the press.** A 0.45 s throw followed by a 6.0 s
+cloud is 6.0 s of cloud, which is what `TUN-CINDERFALL-DURATION`'s row promises and, since
+ADR-0023, how long a caught figure is held. *Was: "4.0 s … what GDD-04 §3.1's counterplay is
+priced against".*
 
 **And a caster killed during the wind-up drops nothing.** The cooldown and the suspicion were
 spent at the press and stay spent, so a victim who read the tell and acted is paid for reading
@@ -161,17 +162,19 @@ func end(ctx: MatchContext) -> void:
 
 | Ability | `begin()` | `tick()` | `end()` |
 |---|---|---|---|
-| **Cinderfall** | Spawn a `CinderVolume` at the clamped aim point; register it with `DetectionSystem` as an LOS blocker and with `KillSystem` as a kill-initiation blocker; `CrowdDirector.startle_at(pos, 9 m)` | Decrement lifetime | Deregister the volume from both systems |
+| **Cinderfall** | **As built (US-0067, US-0104):** `CinderfallVolumes.add(point, tick, caster)` on `MatchContext`; the startle is raised by the system, not the effect. Every tick `CinderfallCatch` holds everyone inside but the caster as `Choking` and stuns the caster's pursuer, and `CrowdDirector` holds the NPCs. The LOS and kill-initiation blocks are switches, off since ADR-0023. *Sketched as: "register it with `DetectionSystem` as an LOS blocker and with `KillSystem` as a kill-initiation blocker".* | Nothing — the volume expires on its own clock | Nothing — `end()` deliberately leaves the cloud for the lag-compensation window |
 | **Whisperbolt** | Force Exposed; begin wind-up timer; broadcast the tell | On wind-up completion, spawn a server-side projectile; on impact, validate LOS against the **lag-compensated** world and resolve a kill if the target is the caster's contract | Apply `TUN-WHISPERBOLT-EXPOSED-TAIL` 1.5 s; on miss apply +30 |
 | **Second Face** | Query `CrowdDirector` for the nearest **visible clone**; set `caster.apparent_persona`; broadcast morph | Check break conditions: sprint, damage, stun | Broadcast un-morph. **Ends *after* kill resolution** so `SCORE-MASKED` still applies |
 | **Lunge** | Apply +40 suspicion; set `caster.lunge_target_dir` (locked, unsteerable); transition the pawn to a dash | Advance the dash; on arrival, if the caster's **contract** is within `TUN-KILL-RANGE` and cone, auto-initiate the kill | On whiff apply `TUN-LUNGE-WHIFF-STAGGER` 1.2 s |
 
 ### 3.2 Two implementation details that carry design weight
 
-**Cinderfall blocks the caster too.** `TUN-CINDERFALL-BLOCKS-KILL` applies to *everyone* inside
-the radius, including whoever threw it. That single symmetry is what makes Cinderfall purely
-defensive — without it the dominant play is "cloud, then kill inside it", and a kill nobody can
-see is a legibility-law violation wearing an ability's clothes.
+**Cinderfall catches everyone but the caster (ADR-0023, US-0104).** *This paragraph read:
+"Cinderfall blocks the caster too … that single symmetry is what makes Cinderfall purely
+defensive — without it the dominant play is 'cloud, then kill inside it'."* In the reference
+that is the dominant play, and the owner took it: `TUN-CINDERFALL-BLOCKS-KILL` is false, and the
+sketch below describes the gate that switch still reaches — with the switch on, it applies to
+the caster too.
 
 ```gdscript
 ## KillSystem consults this BEFORE the contest window. No exception for the caster.
@@ -322,7 +325,7 @@ func tick(ctx: MatchContext, dt: float) -> void
 func request(ctx: MatchContext, peer: int, slot: int, aim: AimData) -> int   ## returns a DenyReason, or OK
 func cooldown_remaining_ticks(peer: int, slot: int) -> int
 func is_effect_active(peer: int, ability: StringName) -> bool
-func blocks_kill_initiation(position: Vector3) -> bool                       ## Cinderfall volumes
+func blocks_kill_initiation(position: Vector3) -> bool                       ## sketch; built as CinderfallVolumes.contains_at, off since ADR-0023
 func lock_loadouts(ctx: MatchContext) -> void
 func on_death(peer: int) -> void
 ```
@@ -354,8 +357,9 @@ func on_death(peer: int) -> void
 | `test_cooldown_authority.gd` | A client spoofing a ready cooldown is denied; the server clock governs |
 | `test_cooldown_reset_on_death.gd` | Both slots and the GCD reset |
 | `test_global_cooldown.gd` | Two abilities cannot resolve within `TUN-ABILITY-GLOBAL-COOLDOWN` |
-| `test_cinderfall_self_block.gd` | The caster cannot initiate a kill inside their own cloud |
-| `test_cinderfall_blocks_los.gd` | The volume blocks `DetectionSystem.has_los`, lock progression and `SCORE-FOCUS` |
+| `test_cinderfall_self_block.gd` | The shipped cloud forbids no kill; **with `TUN-CINDERFALL-BLOCKS-KILL` back on**, the caster cannot initiate a kill inside their own cloud (ADR-0023) |
+| `test_cinderfall_blocks_los.gd` | The shipped cloud blocks no line; **with `TUN-CINDERFALL-BLOCKS-LOS` back on**, the volume blocks `DetectionSystem.has_los`, lock progression and `SCORE-FOCUS` |
+| `test_cinderfall_catch.gd` | Everyone inside but the caster is `Choking` until no cloud holds them, late entrants included; the caster's pursuer is stunned by the cloud; the caster kills inside; NPCs are held (US-0104) |
 | `test_cinderfall_startle.gd` | NPCs within 9 m startle |
 | `test_whisperbolt_exposed.gd` | Forced Exposed for wind-up + tail, **on hit and on miss** |
 | `test_whisperbolt_min_range.gd` | Release below `TUN-WHISPERBOLT-RANGE-MIN` is refused (invariant §17.11) |

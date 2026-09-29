@@ -92,8 +92,8 @@ and the bridge dropped the aim outright — *"a tell says something happened the
 where it was pointed would let a VFX author draw an arrow at the target"*.
 
 **That rule was written when nothing drew anything, and it made the one ability that changes
-the world undrawable.** A cinder cloud lands up to `TUN-CINDERFALL-THROW-RANGE` **8 m** from the
-thrower, so a consumer given only the origin puts cover where there is none and leaves none
+the world undrawable.** A cinder cloud landed up to `TUN-CINDERFALL-THROW-RANGE` **8 m** from the
+thrower when this was written (0 since ADR-0013, 2026-09-03), so a consumer given only the origin puts cover where there is none and leaves none
 where there is cover. `ABIL-CINDERFALL` blocked line of sight and forbade kill initiation until ADR-0023 (it holds
 everyone inside it now), and a player standing inside an invisible one was told nothing at all
 about why the reticle had stopped offering — **a larger information failure than the one the old rule prevented.**

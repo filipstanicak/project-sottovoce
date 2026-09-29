@@ -1,9 +1,10 @@
-## **THE CLOUD HIDES YOU AND PAINTS AN ARROW AT YOUR POSITION.** GDD-04 §3.1,
+## **THE CLOUD PAINTS AN ARROW AT YOUR POSITION.** GDD-04 §3.1,
 ## TUNABLES §8.1, US-0067.
 ##
 ## `TUN-CINDERFALL-STARTLE-RADIUS` 9.0 m is the ability's **honest cost**, and the
-## GDD says so in as many words: *"the cloud hides you and simultaneously paints a
-## fleeing-crowd arrow at your position for everyone in the district."* Design law
+## TUNABLES says so in as many words: *"the cloud holds everybody around you and
+## simultaneously paints a fleeing-crowd arrow at your position for everyone in the
+## district."* Design law
 ## 2 — the crowd is a mechanic, not a backdrop — is what makes that a real price
 ## rather than a flourish: a startle wave is readable at 30 m, so the counterplay
 ## is to walk toward the people running away.

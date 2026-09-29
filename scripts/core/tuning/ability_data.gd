@@ -27,7 +27,8 @@ extends Resource
 ## Tell channel 3. Arrives with the VFX pass.
 @export var tell_vfx: PackedScene = null
 
-## Roughly once per 90-second hunt cycle. It is an escape, not a tool.
+## Roughly once per 90-second hunt cycle. Since ADR-0023 the cloud is escape and ambush in one
+## pot, and this is what keeps the ambush rare. Was: "It is an escape, not a tool."
 ## Used by: Cinderfall, Lunge, Secondface, Whisperbolt.
 ## TUN-CINDERFALL-COOLDOWN
 @export_range(35.0, 60.0, 0.1) var cooldown: float = 0.0
@@ -58,10 +59,10 @@ extends Resource
 
 ## Since ADR-0023 (US-0104) this is also how long a caught figure is held: the cloud catches
 ## everyone in it but the caster, including late entrants, until it ends, which at 6.0 s is
-## longer than a pressed stun (TUN-STUN-FREEZE 4.0). Put back to the owner as ADR-0023 C. Long
-## enough to break a lock (TUN-COMPASS-LOCK-FILL-TIME is 1.6 s) and leave; short enough that it
-## cannot be used to camp a corner. 4.0 → 6.0 on 2026-09-03, judged at the controls once the
-## cloud became self-centred (TUN-CINDERFALL-THROW-RANGE 0.0) — four seconds of cover you are
+## longer than a pressed stun (TUN-STUN-FREEZE 4.0). Put back to the owner as ADR-0023 C. Was:
+## "long enough to break a lock and leave" — a cloud blocks no lock since ADR-0023. Short enough
+## that it cannot be used to camp a corner. 4.0 → 6.0 on 2026-09-03, judged at the controls once
+## the cloud became self-centred (TUN-CINDERFALL-THROW-RANGE 0.0) — four seconds of cover you are
 ## standing in is not four seconds of cover you threw. A deliberate divergence, ruled by the
 ## owner: the reference's smoke is 3 s base and 4 s upgraded, so this is 1.5× its best. It is the
 ## top of the band, so the next increase needs an ADR rather than a value.
@@ -92,8 +93,9 @@ extends Resource
 ## TUN-CINDERFALL-SUSPICION
 @export var suspicion_cost: float = 0.0
 
-## NPCs within this radius Startle. The cloud hides you and simultaneously paints a fleeing-crowd
-## arrow at your position for everyone in the district. This is the ability's honest cost.
+## NPCs within this radius Startle. The cloud holds everybody around you and simultaneously
+## paints a fleeing-crowd arrow at your position for everyone in the district. This is the
+## ability's honest cost. Was: "the cloud hides you and …" — it blocks no sight since ADR-0023.
 ## Used by: Cinderfall, Lunge.
 ## TUN-CINDERFALL-STARTLE-RADIUS
 @export_range(6.0, 14.0, 0.1) var startle_radius: float = 0.0

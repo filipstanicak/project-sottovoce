@@ -198,7 +198,7 @@ replicated to the owning client (as a value) and to the relevant observers (as a
 | **Climbing** | gain | +12.0 /s | `TUN-SUSPICION-GAIN-CLIMB` | 2.5 s | 5.8 s |
 | **Alone** (no NPC within 6 m) | gain | **0** — was +6.0 /s until 2026-09-15 | `TUN-SUSPICION-GAIN-OPEN` | — (was 5.0 s) | — (was 11.7 s). Neutralised by [ADR-0020](../00_meta/adr/ADR-0020-walking-alone-costs-nothing.md): the reference charges nothing for walking alone, and a player at the civilian speed was reaching Exposed for it. The row stays because the ID, the bit and the condition stay, dormant |
 | **Bumping an NPC** | impulse | +15.0 | `TUN-SUSPICION-GAIN-NPC-BUMP` | 2 bumps | 5 bumps |
-| **Loud ability** (Cinderfall, Lunge) | impulse | +40.0 | `TUN-SUSPICION-GAIN-LOUD-ABILITY` | immediate | +1 more |
+| **Loud ability** (Lunge; *Cinderfall until ADR-0023, 0 now*) | impulse | +40.0 | `TUN-SUSPICION-GAIN-LOUD-ABILITY` | immediate | +1 more |
 | **Failed kill** | impulse | +30.0 | `TUN-SUSPICION-GAIN-FAILED-KILL` | immediate | — |
 | **Whisperbolt wind-up** | forced | tier = Exposed | `TUN-WHISPERBOLT-FORCES-EXPOSED` | immediate | immediate |
 | **Kill witnessed by another player** | impulse | +25.0 | `TUN-SUSPICION-GAIN-WITNESSED-KILL` | — | — |
@@ -1152,7 +1152,7 @@ All line-of-sight determinations are **server-side** and use the same query, so 
 ```
 func has_los(a: Vector3, b: Vector3, at_tick: int) -> bool:
     # Rewound to `at_tick` for kill/stun validation (ADR-0010); current otherwise.
-    # Blocked by: world geometry, active Cinderfall volumes.
+    # Blocked by: world geometry; active Cinderfall volumes only while TUN-CINDERFALL-BLOCKS-LOS is on, which it is not since ADR-0023.
     # NOT blocked by: NPCs, other players, corpses.
 ```
 
@@ -1335,7 +1335,7 @@ in detection, not in stun.
 |---|---|---|---|---|---|---|
 | 1 | **Compass pulse cadence** | Audio + visual pulse | Hunter, about their contract | ≤ 33 ms (server tick) | **Exact.** Distance is never lied about. | No |
 | 2 | **Compass direction cone** | Visual arc | Hunter, about their contract | ≤ 33 ms | ±12° with 4° deterministic wobble — *bounded and learnable* | No |
-| 3 | **Compass lock arc** | Visual fill | Hunter, about their own progress | Continuous | Exact | Broken by LOS loss, Cinderfall |
+| 3 | **Compass lock arc** | Visual fill | Hunter, about their own progress | Continuous | Exact | Broken by LOS loss (*and by Cinderfall until ADR-0023*) |
 | 4 | **Reveal silhouette** | 1.5 s outline | Hunter, about their contract | Instant on lock completion | Exact while it lasts | 4 s cooldown limits it |
 | 5 | **Prey warning** | Red flash + `TUN-AUDIO-STING-DUCK` sting + a bearing on the ring | Prey, about their pursuer | ≤ 33 ms | A bearing and a distance bucket, drifting as the hunter's own reading does since ADR-0013 (2026-08-26); never an identity. *Absence is ambiguous* — either nobody is near, or someone very good is. *Was: binary and directionless.* | No |
 | 6 | **Noticed tint** | Faint rim light | Hunter only, about their contract | ≤ 33 ms | Reliable but easy to miss; requires comparison against the crowd | Distance (~35 m), occlusion |
