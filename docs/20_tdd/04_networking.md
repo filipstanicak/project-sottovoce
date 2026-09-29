@@ -292,7 +292,7 @@ evaluated by the server against the lag-compensated world. A client cannot expre
 | `NET-S2C-ABILITY-STARTED` | E | Reliable | On event | `peer:u8`, `ability:u8`, `origin:3×f32`, `dir:3×f32`, `tick:u32`. **Broadcast to all clients within tell radius** — this is the legibility law on the wire |
 | `NET-S2C-ABILITY-DENIED` | E | Reliable | On event | `slot:u8`, `reason:u8`. To the requester only |
 | `NET-S2C-BLEND-DENIED` | E | Reliable | On event | `reason:u8`. To the requester only (US-0054). `NET-C2S-BLEND-REQUEST` had no answer at all, so a press at an occupied hiding spot was indistinguishable from a broken button |
-| `NET-S2C-PREY-WARNING` | E | Reliable | On event | **`tick:u32` only.** §6.4 |
+| `NET-S2C-PREY-WARNING` | E | Reliable | On event | `bearing:u8`, `bucket:u8` since ADR-0013 (2026-08-26), and nothing that names anybody (NETWORK_PROTOCOL §3). *Was `tick:u32` only.* §6.4 |
 | `NET-S2C-SCORE-EVENT` | E | Reliable | On event | `event_id:u32`, `tick:u32`, `kind:u8`, `actor:u8`, `subject:u8`, `base:i16`, `mult:u8`, `group:u16` — 16 B, hand-packed by `ScoreWire`. **Built US-0074.** To the event's own actor alone; `SCORE-DEATH` is withheld. See `NETWORK_PROTOCOL.md` §4 |
 | `NET-S2C-PHASE-CHANGED` | E | Reliable | On change | `phase:u8`, `tick:u32`, `multiplier:u8` |
 | `NET-S2C-MATCH-END` | E | Reliable | Once | Full `ScoreEvent` log for the results fold |
@@ -357,10 +357,10 @@ cannot be broken at all.
 | Contract's **exact position** | Deletes the search | `compass.bearing` + `distance_bucket` only |
 | Contract's **elevation** | The Compass is 2D by design | No z component anywhere in `compass` |
 | Contract's **suspicion or tier** | You see the consequence, never the value | Not in the payload |
-| **Direction of the prey warning** | `TUN-COMPASS-WARN-GIVES-DIRECTION` is `false`. The panicked scan of a crowd is the game's best moment | `NET-S2C-PREY-WARNING` carries **only a tick**. There is no field to leak |
+| ~~**Direction of the prey warning**~~ | **Lifted since ADR-0013 (2026-08-26)**: `TUN-COMPASS-WARN-GIVES-DIRECTION` is `true`. *Was: "the panicked scan of a crowd is the game's best moment"* | `NET-S2C-PREY-WARNING` carries `bearing:u8` and `bucket:u8` (NETWORK_PROTOCOL §3) and **still no identity**: no slot, no persona. `test_warning_names_nobody.gd` holds that |
 | Other players' **suspicion values** | Anonymity | `render_state` is 2 bits and per-observer |
 | Other players' **cooldowns or loadouts** | Kit-reading is a skill ([`../10_gdd/04_abilities.md`](../10_gdd/04_abilities.md) §5.1) | Not in the payload |
-| A **global kill feed** | Would reveal how the contract cycle shifted, for free | `NET-S2C-KILL-RESULT` is sent only to the killer and the victim |
+| ~~A **global kill feed**~~ | **Lifted 2026-09-25 by ADR-0024** (was: would reveal how the contract cycle shifted, for free) | `NET-S2C-KILL-RESULT` still goes to the killer and the victim only; the feed will be its own message (US-0105) |
 | NPCs beyond `TUN-NET-NPC-CULL-RADIUS` | — | Culled server-side (§7.2) |
 
 > **The design rule this section expresses:** if the client never receives it, no future UI
@@ -959,8 +959,8 @@ server authority. What that buys, and what it does not:
 | Score injection | **Yes** | `ScoreEvent`s are appended server-side only |
 | Suspicion spoofing | **Yes** | Never client-writable, never predicted |
 | Infinite abilities | **Yes** | Cooldown authority is server-side |
-| Reveal contract's persona | **Yes** | Not in any payload (§6.4) |
-| Reveal prey-warning direction | **Yes** | The message carries only a tick |
+| ~~Reveal contract's persona~~ | **Not a secret since ADR-0021** | `NET-S2C-CONTRACT-ASSIGNED` carries it to the hunter by design. *Was: "Yes — not in any payload".* |
+| Reveal **who** the pursuer is | **Yes** | `NET-S2C-PREY-WARNING` carries a bearing and a bucket and no identity (`test_warning_names_nobody.gd`). *This row was "reveal prey-warning direction — prevented, the message carries only a tick"; the direction is given since ADR-0013 (2026-08-26).* |
 | Wallhack on other players | **Partially** | Clients receive positions of players within snapshot range regardless of LOS. A modified client could render them. **Mitigated by relevance culling being positional, not visual** — but not eliminated |
 | See culled NPCs | **Yes** | Not sent |
 | Aimbot | **N/A** | There is no aiming skill to automate; `TUN-KILL-FACING-CONE` is 60° |
@@ -1084,7 +1084,7 @@ func sample(entity_id: int, render_time_ms: float) -> EntityState
 | `test_npc_delta.gd` | **BUILT, US-0031.** A standing NPC is dropped and a walking one is not, in the same tick; **an unacknowledged record is re-sent**; a peer that left leaves no baseline behind |
 | `test_upstream_bandwidth.gd` | Upstream within `TUN-NET-BANDWIDTH-BUDGET-UP` — **currently expected to FAIL without input coalescing (§7.3)** |
 | `test_npc_cull_radius.gd` | `TUN-NET-NPC-CULL-RADIUS >= TUN-COMPASS-RANGE-MAX` (invariant §17.17) |
-| `test_payload_omissions.gd` | The snapshot and `NET-S2C-CONTRACT-ASSIGNED` contain **no** persona, exact position, elevation or tier field for the contract; `NET-S2C-PREY-WARNING` has exactly one field |
+| ~~`test_payload_omissions.gd`~~ | **Never written as its own file: US-0029 folded it into `test_snapshot.gd`**, whose `test_the_snapshot_carries_no_persona_and_no_exact_contract_position` asserts the snapshot has no persona, exact position, elevation or tier field for the contract. Two halves of the old row are no longer the rule: **`NET-S2C-CONTRACT-ASSIGNED` carries the persona** since ADR-0021 / US-0100, and **`NET-S2C-PREY-WARNING` carries `bearing` and `bucket`** since ADR-0013, held to naming nobody by `test_warning_names_nobody.gd`. *Was: "… contain **no** persona …; `NET-S2C-PREY-WARNING` has exactly one field".* |
 | `test_render_state_per_observer.gd` | With one player at suspicion 100, five observers receive `PLAIN` and only their hunter/prey receives `HARD` |
 | `test_lagcomp_rewind.gd` | **BUILT, US-0060** — `test/unit/core/combat/`. Kill valid at 150 ms rewind, invalid at 0, invalid at 250 ms **and the counterfactual beside it**: the same unclamped request finds the victim, so the fixture can tell a clamped rewind from an unclamped one. **The two crowd clauses are not built and will not be as written**: NPCs are not recorded (see §8.2's amendment) and kill validation performs no line-of-sight query at all, so there is no past line for an NPC to be clear of. The Cinderfall clause **is** honoured, in `test_kill_system.gd` and `test_los_ignores_npcs.gd` |
 | `test_lagcomp_no_exploit.gd` | **ABSORBED into `test_lagcomp_rewind.gd`, US-0060.** The property is structural rather than behavioural: `RewoundWorld` carries ids, positions, yaws and a tick, and the test asserts that field list **exactly** — so there is nowhere for a tier, a contract or a cooldown to come back from the past. A second file would have had to invent a way to put one there in order to prove it could not |

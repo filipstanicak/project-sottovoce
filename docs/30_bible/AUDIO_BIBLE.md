@@ -189,26 +189,34 @@ The single most important sound in the game.
 | Character | The "exposed" motif's first two notes, **inverted (rising)** — related but distinct, so a player distinguishes "I am exposed" from "someone near me is" without conscious effort |
 | Texture | Short, dry, close-miked. It should feel like it happened **inside your head**, not in the district |
 | Ducking | −12 dB on everything, including other information |
-| **Positional?** | **NO.** Mono, centred, authored and routed as such |
-| Caption | `⚠ You are being hunted` — **no direction**, matching the audio exactly |
+| **Positional?** | **No — mono, centred, authored and routed as such, as an audio decision until US-0075.** Not a secrecy rule any more: the ring shows the bearing since ADR-0013 (2026-08-26) |
+| Caption | `⚠ You are being hunted` — **names nobody**; the bearing is on the ring, not in the words. *Was: "no direction, matching the audio exactly".* |
 
-### 5.1 Why the mono requirement gets its own test
+### 5.1 Why the sting is mono, and what the rule used to be
 
-`TUN-COMPASS-WARN-GIVES-DIRECTION` is `false`. The panicked scan of a crowd — not knowing which
-of eleven figures is looking back — is the best moment in the game.
+`TUN-COMPASS-WARN-GIVES-DIRECTION` is `true` since ADR-0013 (2026-08-26): the ring shows a
+drifting bearing, so a positional sting would add nothing the eye does not already have, and it
+stays mono as a choice until US-0075 rather than as a rule. *This paragraph used to say the
+switch was `false`.* What the warning still never gives is **which of the eleven figures on that
+bearing** is looking back — the panicked scan of a crowd, which is the best moment in the game.
 
-Rendering this sting positionally would hand over the direction the design deliberately
-withholds, and it is **the easiest rule in the corpus to break by accident**: attaching an
-`AudioStreamPlayer3D` instead of an `AudioStreamPlayer` is a one-word mistake that silently
-deletes a core design property.
+**Mono is now a sound-design choice, not a secret being kept.** It used to be the third of
+three layers enforcing a directionless warning — *"rendering this sting positionally would hand
+over the direction the design deliberately withholds"* — and that argument ended with ADR-0013.
+It stays mono because a centred sting reads as *inside your head*, which is the character
+above, and because a second, positional channel for the same bearing would drift from the
+ring's. US-0075 may revisit it.
 
-Hence three layers of enforcement:
+What the layers enforce today is the **identity** rule, which is stronger than the old one:
 
 | Layer | Mechanism |
 |---|---|
-| Protocol | `NET-S2C-PREY-WARNING` carries a tick and nothing else |
-| Signal | `prey_warning_triggered()` takes zero parameters |
-| Audio | `test_prey_sting_nonpositional.gd` asserts the emitter has no 3D position component |
+| Protocol | `NET-S2C-PREY-WARNING` carries `bearing:u8` and `bucket:u8` and **nothing that names anybody** — `test_warning_names_nobody.gd` |
+| Signal | `prey_warning_triggered(bearing, bucket)` takes exactly those two — `test_prey_warning_signal_arity.gd` |
+| Audio | **No test exists.** This table used to cite `test_prey_sting_nonpositional.gd`, which was never written (trap 14). `Audio.play()` is a stub until US-0075, which owes it if mono is kept |
+
+*Until ADR-0013 the protocol row read "carries a tick and nothing else" and the signal row "takes
+zero parameters".*
 
 ---
 

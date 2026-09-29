@@ -405,7 +405,7 @@ last two touch the bonuses that *are* the thesis.
 | 1 | Change `SCORE-VARIETY`'s reset from death to contract (§3.1) | −187 → ~−60 for Patient, −73 → ~−30 for Aggressor. Net gap −97. | Fixes a bonus that is currently not doing its stated job. Pure improvement, no thesis cost. |
 | 2 | Raise `TUN-SCORE-FROMABOVE` 100 → 150 | +25 expected for Aggressor. | Pays for the roof route, which is the aggressive player's distinctive tool, without making speed safe. |
 | 3 | Reduce `TUN-STUN-LOCKOUT` 12 s → 10 s | Lowers the Aggressor's effective `T` from 86 s to ~82 s. | Softens the punishment without weakening the counter itself. **Do not go below 8 s** — see [`03_social_stealth.md`](03_social_stealth.md) §10.4. |
-| 4 | Reduce `TUN-SCORE-RECKLESS` −50 → −25 | +14 expected for Aggressor. | Now touching the thesis, mildly. |
+| 4 | ~~Reduce `TUN-SCORE-RECKLESS` −50 → −25~~ **Overtaken: 0 since ADR-0013** | *Was: +14 expected for Aggressor.* | *Was: now touching the thesis, mildly.* The reference levies no penalty at all, and that went further than this lever. |
 | 5 | Reduce `TUN-SCORE-BLENDED` 200 → 150 | −18 expected for Patient. | **Last resort.** This is the thesis priced, and it is the one value in the table the reference agrees with exactly. TUNABLES invariant §17.18 no longer constrains it — **amended 2026-08-26 to `SILENT + PATIENT >= 3 × CONTRACT`**, a floor on the stealth ladder rather than an ordering — so nothing mechanical stops this change, which is precisely why it is last. |
 
 **Explicitly not on the list:** weakening stun, adding a suspicion decay while running, or

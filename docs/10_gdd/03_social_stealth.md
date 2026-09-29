@@ -148,10 +148,10 @@ Three consequences that must be internalised:
 | Aspect | Specification |
 |---|---|
 | **To your hunter** | A hard silhouette: a full-strength outline in the persona's identity hue, drawn through geometry at up to `TUN-COMPASS-RANGE-MAX` 60 m. Unmistakable. Reading it requires no comparison and no attention. |
-| **To your prey** | Their Compass flashes red and stings if you are within 15 m (`TUN-COMPASS-WARN-RADIUS`). They know they are hunted. They do not learn from where (`TUN-COMPASS-WARN-GIVES-DIRECTION` = false). |
+| **To your prey** | Their Compass flashes red and stings if you are within 15 m (`TUN-COMPASS-WARN-RADIUS`), and **marks your bearing and distance bucket on their ring** (`TUN-COMPASS-WARN-GIVES-DIRECTION` = true since ADR-0013 (2026-08-26); §9.1). They know they are hunted and roughly from where; they do not learn **which figure** you are. *Until ADR-0013: "they do not learn from where".* |
 | **To everyone else** | Still nothing. Even at 100 suspicion, four of five other players see an ordinary civilian. |
 | **Compass effect on your hunter** | The lock arc completes **immediately**. They get the reveal for free. |
-| **Score effect** | Killing while Exposed incurs `SCORE-RECKLESS` (−50), reducing a base kill to 50 points. |
+| **Score effect** | Killing while Exposed takes `SCORE-RECKLESS`, which pays **0** since ADR-0013 (2026-08-26): the kill is worth its base 100 and no stealth rung, so recklessness costs what it forfeits rather than a penalty. *Was: −50, "reducing a base kill to 50 points".* |
 | **How long to clear** | From 100 → below 65 at 8/s ≈ 4.4 s; to Anonymous ≈ 8.8 s. With `PASV-STILLNESS` while stationary, 6.3 s. |
 
 > **Mock screenshot — Exposed.** The hunter's view again. One figure in the plaza is outlined
@@ -180,6 +180,8 @@ Stated as prohibitions, because the temptation to add each of these will recur:
 ## 3. Suspicion — `SYS-SUSPICION`
 
 ### 3.1 The scalar
+
+> **UNDER PROPOSAL: [ADR-0022](../00_meta/adr/ADR-0022-suspicion-is-what-your-contract-sees.md) (2026-09-25)** would make suspicion a value per (hunter, contract) that rises only for high-profile acts in the contract's sight and never falls within a contract, which is the reference's rule. Proposed, not accepted: **nothing is built on it** and this section still describes the game.
 
 A hidden per-player float in `[0, 100]`, evaluated on the 30 Hz server tick (ASM-0020), and
 replicated to the owning client (as a value) and to the relevant observers (as a tier only).
@@ -307,14 +309,15 @@ across the plaza. Track suspicion, tier, and what the world does about it.
 | 26.0 | Presses kill. | — | 0.0 | Anonymous | 1.4 s committed animation, fully visible to anyone in line of sight. |
 | 27.4 | Kill resolves. | +25 if witnessed | 0.0 or 25.0 | Anonymous | Corpse spawns at 26.9 s. Gawk cluster forms within 10 m. NPCs within 12 m Startle. |
 
-**Score for that kill:** `SCORE-CONTRACT` 100 + `SCORE-SILENT` 100 + `SCORE-PATIENT` 150
+**Score for that kill** (at today's values, ADR-0013): `SCORE-CONTRACT` 100 + `SCORE-SILENT` 200 + `SCORE-PATIENT` 100
 (never exceeded jog in the 10 s before, at 16.0–26.0 they were stationary or blend-walking) +
-`SCORE-FOCUS` 100 (unbroken LOS from 20.0) + `SCORE-BLENDED` 200 (they were in the crowd
+`SCORE-FOCUS` 150 (unbroken LOS from 20.0) + `SCORE-BLENDED` 200 (they were in the crowd
 pocket within `TUN-BLEND-SCORE-GRACE` 1.0 s of… **no** — they left the pocket at 21.5 and
-initiated at 26.0, 4.5 s later, so **Blended does not apply**) = **450 points**.
+initiated at 26.0, 4.5 s later, so **Blended does not apply**) = **550 points**. *Before ADR-0013
+re-priced Silent, Patient and Focus this example summed to 450, and the great kill below to 650.*
 
-That last correction is deliberate and instructive: the player made a *good* kill worth 450,
-but the *great* kill worth 650 required them to let the target come to them rather than
+That last correction is deliberate and instructive: the player made a *good* kill worth 550,
+but the *great* kill worth 750 required them to let the target come to them rather than
 walking to the target. **That 200-point gap is the entire design thesis, priced.**
 
 ---
@@ -1074,7 +1077,7 @@ This list is as important as the specification above. Each omission is a design 
 | Whether the contract is **moving toward or away** | Only the cadence changes, and it changes for both. |
 | Whether the contract is **in a blend action** | A blended player is invisible to every channel except direct observation. |
 | Whether the contract has **already been engaged** by someone else | No shared-state information ever. |
-| **Who their pursuer is** | Structural — nobody is ever told this except through the prey warning, which is directionless. |
+| **Who their pursuer is** | Structural — nobody is ever told **which figure** their pursuer is. The prey warning gives a bearing and a distance bucket since ADR-0013 (2026-08-26) (§9.1), never an identity. *Until then it was directionless.* |
 
 **The design principle behind the whole list:** the Compass answers *where roughly*, and
 nothing else. Every other question must be answered by looking at people.
@@ -1334,7 +1337,7 @@ in detection, not in stun.
 | 2 | **Compass direction cone** | Visual arc | Hunter, about their contract | ≤ 33 ms | ±12° with 4° deterministic wobble — *bounded and learnable* | No |
 | 3 | **Compass lock arc** | Visual fill | Hunter, about their own progress | Continuous | Exact | Broken by LOS loss, Cinderfall |
 | 4 | **Reveal silhouette** | 1.5 s outline | Hunter, about their contract | Instant on lock completion | Exact while it lasts | 4 s cooldown limits it |
-| 5 | **Prey warning** | Red flash + `TUN-AUDIO-STING-DUCK` sting | Prey, about their pursuer | ≤ 33 ms | Binary and directionless. *Absence is ambiguous* — either nobody is near, or someone very good is. | No |
+| 5 | **Prey warning** | Red flash + `TUN-AUDIO-STING-DUCK` sting + a bearing on the ring | Prey, about their pursuer | ≤ 33 ms | A bearing and a distance bucket, drifting as the hunter's own reading does since ADR-0013 (2026-08-26); never an identity. *Absence is ambiguous* — either nobody is near, or someone very good is. *Was: binary and directionless.* | No |
 | 6 | **Noticed tint** | Faint rim light | Hunter only, about their contract | ≤ 33 ms | Reliable but easy to miss; requires comparison against the crowd | Distance (~35 m), occlusion |
 | 7 | **Exposed outline** | Hard through-wall outline | Hunter about contract; prey about pursuer | ≤ 33 ms | Unmissable | Nothing — the only x-ray in the game |
 | 8 | **NPC Startle wave** | Fleeing NPCs, decaying propagation | **Anyone who can see it**, up to ~30 m | 0.3–1.2 s (propagation delay) | Directional but imprecise; tells you *roughly where*, never *who* | Occlusion only |
@@ -1408,7 +1411,7 @@ the profile of a minimap, and the reason there is no minimap.
 - [ ] Compass wobble is deterministic: the same `(contract_id, time)` yields the same offset on every peer.
 - [ ] A lock cannot complete through a walking group's incidental gaps; verified by a scripted scenario test.
 - [ ] The hunter is never sent their contract's persona, position, tier value, or elevation. Asserted by inspecting the `NET-S2C-COMPASS` payload schema — it contains bearing, distance-bucket and lock-fraction only.
-- [ ] The prey warning fires only when both conditions in §9.1 hold, and carries no directional data in its payload.
+- [ ] The prey warning fires only when both conditions in §9.1 hold, and carries a bearing and a distance bucket and **nothing that names anybody** in its payload. *Was: "carries no directional data", until ADR-0013.*
 - [ ] `TUN-COMPASS-WARN-MIN-TIER == TUN-STUN-MIN-TIER` (invariant §17.8).
 - [ ] `TUN-STUN-RANGE > TUN-KILL-RANGE` (invariant §17.6).
 - [ ] An Anonymous pursuer cannot be stunned at any range.

@@ -172,20 +172,27 @@ their own pursuer finds them in 55 s instead of 96 s (A11), so they die 67 % mor
 
 Every bonus is priced as a multiple of `TUN-SCORE-CONTRACT` = 100, the unit of account.
 
+> **THIS TABLE IS THE M0 DERIVATION, AND FIVE OF ITS VALUES HAVE MOVED.** ADR-0013 (2026-08-26)
+> re-priced Silent 100 → **200**, Patient 150 → **100**, Focus 100 → **150** and Reckless −50 →
+> **0**; ADR-0018 (2026-09-03) took Stun 100 → **200**; and Halfseen **+50** was added on
+> 2026-08-27. The **Value** column below shows today's number beside the old; the derivations
+> still argue the old ones and are kept as the record of why they were chosen. §3.3 is
+> re-derived against the current values, and TUNABLES §11 is the source of truth.
+
 | Bonus | Value | Derivation |
 |---|---|---|
 | `SCORE-CONTRACT` | 100 | **The unit.** Fixed by definition. |
-| `SCORE-SILENT` | +100 | **1.0×.** The difference between playing the game and not — it is earned by simply never sprinting. The floor of competence is worth exactly one unit. |
-| `SCORE-PATIENT` | +150 | **1.5×.** Silent is a *state at one instant*; Patient is *sustained discipline over 10 s*. Sustained conditions are harder to hold and easier to lose accidentally, so they price 50 % higher. |
+| `SCORE-SILENT` | ~~+100~~ **+200** | **1.0×.** The difference between playing the game and not — it is earned by simply never sprinting. The floor of competence is worth exactly one unit. |
+| `SCORE-PATIENT` | ~~+150~~ **+100** | **1.5×.** Silent is a *state at one instant*; Patient is *sustained discipline over 10 s*. Sustained conditions are harder to hold and easier to lose accidentally, so they price 50 % higher. |
 | `SCORE-MASKED` | +150 | **1.5×, equal to Patient by design.** A different route to the same virtue; equal pricing says the game prefers neither. |
-| `SCORE-FOCUS` | +100 | **1.0×.** A single perceptual skill rather than sustained restraint, and partially subsumed by the approach a patient player makes anyway. |
+| `SCORE-FOCUS` | ~~+100~~ **+150** | **1.0×.** A single perceptual skill rather than sustained restraint, and partially subsumed by the approach a patient player makes anyway. |
 | `SCORE-FROMABOVE` | +100 | **Derived from the roof's cost.** A roof approach forfeits Silent (−100) and usually Patient (−150) = −250. +100 reduces the net penalty to −150. Deliberately *not* break-even: the roof should be a ~150-point investment in speed and position. |
 | `SCORE-BLENDED` | +200 | **2.0×, the largest.** The only bonus that cannot be earned reactively — it requires predicting where the target will be and being there first, motionless. |
 | `SCORE-LONGHUNT` | +50 / +150 | **Derived from foregone time.** A patient player earns 815 points per 104 s of cycle = **7.84 pts/s** (re-derived 2026-08-26; was 7.13 before the ADR-0013 re-pricing). A 45 s hunt versus a 20 s hunt costs 25 s ≈ **196 points**. The +100 step between tiers compensates 51 % of that — down from 56 %, because the same step now covers a more valuable second. A long hunt stays roughly time-neutral rather than time-punished, and **the margin has narrowed**: if the step ever compensates under half, rushing becomes correct again and this row is where it will show. |
 | `SCORE-VENDETTA` | +100 | **Not model-derived** — an emotional payoff. Priced at exactly one base kill so it is noticeable but never worth *seeking*; at 200 deliberately dying to set up revenge would become viable. |
 | `SCORE-VARIETY` | +50 × n | See §4 — this value behaves differently from its stated intent. |
-| `SCORE-RECKLESS` | −50 | **−0.5×, deliberately not −1.0×.** At −100 a Reckless kill would be worth zero, making *abandoning a kill mid-approach* correct once spotted — which is worse behaviour than the behaviour being punished. −50 leaves a caught-out player a reason to finish while making the outcome clearly bad. |
-| `SCORE-STUN` | 100 | **Exactly one base kill.** A statement rather than a calculation: defence pays like offence. Locked by `TUNABLES` invariant §17.19. |
+| `SCORE-RECKLESS` | ~~−50~~ **0** | **−0.5×, deliberately not −1.0×.** At −100 a Reckless kill would be worth zero, making *abandoning a kill mid-approach* correct once spotted — which is worse behaviour than the behaviour being punished. −50 leaves a caught-out player a reason to finish while making the outcome clearly bad. |
+| `SCORE-STUN` | ~~100~~ **200** | **Exactly one base kill.** A statement rather than a calculation: defence pays like offence. Locked by `TUNABLES` invariant §17.19. |
 | Death | 0 | **Costs time, never points.** A points penalty makes a trailing player's position unrecoverable and drives them toward passive play — the opposite of what a trailing player should do. |
 
 ### 3.2 Bonus-fire probabilities (A12 — low confidence)

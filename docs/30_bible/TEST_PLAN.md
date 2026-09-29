@@ -63,7 +63,7 @@ milliseconds.
 |---|---|---|
 | `test_contract_cycle_fuzz.gd` | The Hamiltonian cycle | 10 000 randomised event sequences — kills, respawns, joins, disconnects, batched. Asserts invariant I holds, no self-assignment on any relaxation path, no player contractless at a tick boundary. **A cycle bug is unrecoverable mid-match and nearly impossible to reproduce from a report** |
 | `test_suspicion_math.gd` | The integrator | Reproduces the GDD-03 §3.5 worked 45-second timeline to within 0.1 points at every listed timestamp. If the doc and the code disagree, one is wrong and this says which |
-| `test_score_fold.gd` | The score fold | Every bonus in isolation, the maximal stack, the final-phase multiplier, Variety across a death boundary, a Reckless kill netting 50, an empty log folding to zeroes. Reproduces every reference value in GDD-07 §3.2 exactly |
+| `test_score_fold.gd` | The score fold | Every bonus in isolation, the maximal stack, the final-phase multiplier, Variety across a death boundary, a Reckless kill netting **100** (Reckless 0 since ADR-0013; was 50), an empty log folding to zeroes. Reproduces every reference value in GDD-07 §3.2 exactly |
 | `test_compass_curve.gd` | The pulse curve | Asserts the period at every distance in the TUNABLES §4.2 sampled table within 1 ms. The curve is the game's signature feel and a silent drift would be invisible until playtest |
 
 ### 2.2 Coverage requirement

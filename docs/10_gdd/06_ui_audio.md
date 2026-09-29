@@ -93,7 +93,7 @@ Each element states **the question it answers, in the player's words**. Law 1.
 | **Question it answers** | *"Where is my contract, roughly, and am I getting closer?"* |
 | **Shows** | A direction cone of half-width `TUN-COMPASS-CONE-HALFWIDTH` 12°, drawn relative to camera facing. A pulse whose *cadence* encodes distance (`TUN-COMPASS-PULSE-MAX` 0.90 s at 60 m → `TUN-COMPASS-PULSE-MIN` 0.15 s at 0 m, curve in [`03_social_stealth.md`](03_social_stealth.md) §8.2). A lock arc that fills over `TUN-COMPASS-LOCK-FILL-TIME` 1.6 s. |
 | **Position** | Centre-bottom, not a corner. It is the single most-consulted element and must be reachable by peripheral vision without moving the eyes off the crowd. |
-| **Never shows** | Distance in metres. Elevation. The contract's persona (until §2.2 B is earned). Whether they are moving toward or away. |
+| **Never shows** | Distance in metres. Whether they are moving toward or away. *Elevation and the contract's persona were on this list: the persona is told from assignment since ADR-0021, and since [ADR-0024](../00_meta/adr/ADR-0024-the-hud-shows-what-the-reference-shows.md) the Compass says **up or down** and glows while the contract is in sight, as the reference's does (US-0105).* |
 | **Why centre-bottom and not an edge compass strip** | An edge strip encourages reading it as a map. A radial dial at the bottom of the screen reads as an *instrument* — something you consult, that has its own rhythm. This is a deliberate framing choice. |
 
 #### B — Contract portrait  *(top-left, 180 × 220 px)*
@@ -103,7 +103,7 @@ Each element states **the question it answers, in the player's words**. Law 1.
 | **Question it answers** | *"What does my target look like?"* |
 | **Shows** | On assignment: the contract's **persona** silhouette and name, for as long as the contract stands ([ADR-0021](../00_meta/adr/ADR-0021-the-hunter-knows-the-face.md), 2026-09-22). A completed Compass lock adds its own mark — the check and the word `Identified` — because the lock is still the only thing that names the *body* among the persona's clones. **Until players have a persona server-side (US-0078's lobby) the portrait shows `UNKNOWN`**, which is a fact about the build rather than a rule. |
 | **Why it is given rather than earned** | *Until 2026-09-22 it was earned (ASM-0030): `UNKNOWN` on assignment, the persona only when a lock completed, on the argument that knowing the persona collapses 60–90 figures to 8–13 and that the lock needed a payoff.* The reference shows the picture from assignment, and the collapse is the game: the clone system keeps the 8–13 indistinguishable from the player, and a hunter who does not know whose gait to compare against cannot learn the read the game is about. The lock keeps its 1.5 s silhouette reveal and `SCORE-FOCUS`, which is more than the reference's lock pays. |
-| **Never shows** | Player name. Position. Distance. Suspicion. Score. |
+| **Never shows** | Position. Distance. Suspicion. The contract's score as a number. *Player name was on this list until [ADR-0024](../00_meta/adr/ADR-0024-the-hud-shows-what-the-reference-shows.md): the reference shows the contract's player name and current placement beside the portrait (US-0105, blocked on player names existing at all).* |
 | **Reset** | On contract reassignment, to the new contract's persona; the lock's mark clears. |
 
 #### C — Suspicion tier indicator  *(left, above abilities)*
@@ -123,7 +123,7 @@ Each element states **the question it answers, in the player's words**. Law 1.
 | **Question it answers** | *"What did I just get paid for?"* |
 | **Shows** | Up to `TUN-UI-SCOREFEED-MAX-LINES` 4 lines, each persisting `TUN-UI-SCOREFEED-DURATION` 4.0 s. Bonuses from one kill arrive as a *sequence*, staggered by `TUN-UI-SCOREFEED-STAGGER` 0.12 s. |
 | **Why it is the most important element after the Compass** | See §3. |
-| **Never shows** | Other players' score events. Kill notifications for kills you were not part of. **There is no global kill feed** — knowing that someone died somewhere is information the corpse and its Gawk cluster deliver diegetically, at a location, to people who are there. |
+| **Never shows** | Other players' score events. Kill notifications for kills you were not part of. *A global kill feed was ruled out here*; it is **Lifted 2026-09-25 by [ADR-0024](../00_meta/adr/ADR-0024-the-hud-shows-what-the-reference-shows.md)** and is a separate element, not this feed (US-0105). This feed stays yours alone, except that a victim's death card lists the bonuses their killer earned for them. |
 
 #### E — Match timer  *(top-centre, small)*
 
@@ -161,10 +161,10 @@ design laws rather than schedule cuts.
 | **Minimap** | **Permanent design law** | A minimap replaces the Compass with certainty and deletes the search. The entire tension of the hunt is not knowing which of eleven figures in a 6 m arc is your target. `SCOPE_FENCE` OUT #12. |
 | **Kill-cam / death replay** | **Deferred, with a design reason** | A kill-cam reveals the killer's identity *and position*, which permanently changes the paranoia economy — you would always know who killed you and where they were. The teaching load it would carry is instead carried by the score feed (§3) and by theatre spaces ([`05_level_design.md`](05_level_design.md) §5). `SCOPE_FENCE` OUT #11. |
 | **Health bar** | **Not applicable** | There is no health. Kills are binary and instant on contact; stuns are a timed state. A bar would imply a resource that does not exist. |
-| **Global kill feed** | **Permanent design law** | "X killed Y" broadcast to everyone would tell every player how the contract cycle has shifted, for free. The cycle's opacity is load-bearing. Deaths are learned diegetically — a corpse, a Gawk cluster, a Startle wave. |
-| **Player nameplates** | **Permanent design law** | Directly deletes anonymity. |
-| **Damage indicators / hit direction** | **Permanent design law** | The prey warning is deliberately directionless (`TUN-COMPASS-WARN-GIVES-DIRECTION` = false). A directional indicator anywhere in the HUD would leak the same information through a side door. |
-| **Live scoreboard on screen** | Present on `INPUT-SCORE` hold only | Persistent scores would drive constant leader-targeting. Available on demand, because knowing you are behind should be a *choice to check*, not an ambient pressure. |
+| ~~**Global kill feed**~~ | **Lifted 2026-09-25 by [ADR-0024](../00_meta/adr/ADR-0024-the-hud-shows-what-the-reference-shows.md)** | *Was: "X killed Y" broadcast to everyone would tell every player how the contract cycle has shifted, for free.* The reference has one, and what it keeps hidden is the part that matters — **which figure** is the player. A name in a feed marks no body. |
+| **Names or markers over bodies** | **Permanent design law** | Directly deletes anonymity. The reference has none. *Names in the HUD — feed, portrait, death card, scoreboard — were lifted on 2026-09-25 by [ADR-0024](../00_meta/adr/ADR-0024-the-hud-shows-what-the-reference-shows.md).* |
+| ~~**Damage indicators / hit direction**~~ | **Lifted 2026-08-26 by ADR-0013** | *This row said the prey warning is deliberately directionless (`TUN-COMPASS-WARN-GIVES-DIRECTION` = false), and it went a month unamended after the value became **true**.* The warning carries a bearing, as the reference's does. |
+| **Live scoreboard on screen** | Present on `INPUT-SCORE` hold only, **but your own placement and your contract's are always shown** ([ADR-0024](../00_meta/adr/ADR-0024-the-hud-shows-what-the-reference-shows.md)) | The full table stays on demand. The reference shows your place and your contract's permanently, and that is what ADR-0024 takes. |
 | **Objective marker / waypoint** | Not applicable | There are no objectives beyond the contract. |
 | **Ammo / resource counters** | Not applicable | Abilities are on cooldowns only. |
 | **Suspicion as a numeric value or bar** | **Design decision** | See §2.2 C. Tier, not value. |
@@ -191,12 +191,12 @@ happens.
 
 | Property | Value | Why |
 |---|---|---|
-| **Named, not numeric** | `+150 Patient`, not `+150` | The name *is* the lesson. A player who reads "Patient" three times learns the word, then the condition, then the behaviour. |
+| **Named, not numeric** | `+100 Patient`, not `+100` | The name *is* the lesson. A player who reads "Patient" three times learns the word, then the condition, then the behaviour. |
 | **Sequenced, not blocked** | `TUN-UI-SCOREFEED-STAGGER` 0.12 s between lines from one kill | Four bonuses arriving simultaneously is one event. Arriving 0.12 s apart, they are four events, each individually readable — and the sequence is *more satisfying*, which is a real effect and not a small one. |
 | **At the moment earned** | Immediate | A bonus explained at the results screen five minutes later teaches nothing, because the behaviour that earned it is no longer in working memory. |
 | **Persistent enough to read** | `TUN-UI-SCOREFEED-DURATION` 4.0 s, raisable to 8 s in accessibility options | |
 | **Peripheral, not central** | Right side, above centre | It must be readable *without looking at it*. A player who has to look at the HUD to learn is a player who is not watching the crowd. |
-| **Penalties are visually distinct** | `−50 Reckless` in the penalty treatment | The one negative event must not read as a smaller positive one. |
+| **Penalties are visually distinct** | The penalty treatment — **built and dormant**: Reckless pays 0 since ADR-0013, so no shipped bonus is negative (UI_UX_SPEC §5.2). *Was: "`−50 Reckless` in the penalty treatment".* | The one negative event must not read as a smaller positive one. |
 
 ### 3.3 The teaching sequence, by design
 
@@ -204,10 +204,10 @@ A new player's first ten minutes, as the feed intends it:
 
 | Match minute | What they see | What they learn |
 |---|---|---|
-| ~1:30 | `+100 Contract Fulfilled` — bare, after a sprinting kill, followed by `−50 Reckless` | *Killing works. Something about how I did it was wrong.* |
+| ~1:30 | `+100 Contract Fulfilled` — bare, after a sprinting kill, followed by `Reckless` at **0** (ADR-0013; this read `−50 Reckless`) | *Killing works. Something about how I did it was wrong* — the zero line is the lesson, and it is why the event still fires. |
 | ~2:30 | Someone else's `+650` announced on the results screen later | *That number is possible.* |
-| ~3:00 | Their own `+100 Contract` `+100 Silent` | *"Silent" — I did something differently that time.* |
-| ~4:30 | `+100 Contract` `+100 Silent` `+150 Patient` | *Slower is worth more. Substantially more.* |
+| ~3:00 | Their own `+100 Contract` `+200 Silent` (ADR-0013; this read +100) | *"Silent" — I did something differently that time.* |
+| ~4:30 | `+100 Contract` `+200 Silent` `+100 Patient` (ADR-0013; this read +100 and +150) | *Slower is worth more. Substantially more.* |
 | ~6:00 | `+200 Blended` | *Waiting in the crowd is the biggest one.* |
 | Results | Their bonus breakdown next to the winner's | *The winner did the same things, more often.* |
 
@@ -364,10 +364,10 @@ The single most important sound in the game.
 | **Trigger** | Your pursuer within `TUN-COMPASS-WARN-RADIUS` 15 m **and** at least Noticed. |
 | **Character** | The inverted motif (§5.4), short, dry, close-miked — it should feel like it happened *inside your head*, not in the district. Non-diegetic and deliberately so. |
 | **Ducking** | `TUN-AUDIO-STING-DUCK` −12 dB on everything else, including `BUS-INFO`. This is the only sound in the game that ducks other information. |
-| **Positional?** | **No.** `TUN-COMPASS-WARN-GIVES-DIRECTION` is false. Rendering it positionally would hand over the direction the design deliberately withholds — and this is the easiest possible way to break that rule by accident. The sound must be authored and routed as strictly mono/centred, and this is worth a test. |
+| **Positional?** | **Mono/centred for now, and the reason changed.** It used to be a rule: *"`TUN-COMPASS-WARN-GIVES-DIRECTION` is false; rendering it positionally would hand over the direction the design deliberately withholds."* Since ADR-0013 the switch is **true** and the ring shows the bearing, so a positional sting would leak nothing the ring does not already say. Whether it becomes positional is US-0075's call; until then it is authored mono, as a choice rather than a law. |
 | **Duration** | `TUN-COMPASS-WARN-DURATION` 1.2 s including the visual flash. |
 | **Cooldown** | `TUN-COMPASS-WARN-COOLDOWN` 2.5 s, so a pursuer hovering at the tier boundary does not produce a strobe. |
-| **Caption** | `⚠ You are being hunted` — no direction, matching the audio exactly. |
+| **Caption** | `⚠ You are being hunted` — names nobody; the bearing is on the ring. *Was: "no direction, matching the audio exactly".* |
 
 ### 5.6 Crowd ambience layers
 
@@ -614,7 +614,7 @@ nothing else. Both are things you already know.
 - [ ] The numeric suspicion value appears nowhere in the HUD.
 - [ ] The crosshair ring appears if and only if pressing kill would succeed; `test_crosshair_truth.gd` asserts agreement with server-side kill validity across 500 randomised poses.
 - [ ] The score feed shows bonus *names*, staggered by `TUN-UI-SCOREFEED-STAGGER`, capped at `TUN-UI-SCOREFEED-MAX-LINES`.
-- [ ] No global kill feed, nameplate, minimap, health bar, hit-direction indicator or persistent scoreboard exists anywhere in the build.
+- [ ] No minimap, health bar, name over a body, or persistent full scoreboard exists anywhere in the build. *(The kill feed and the hit direction were on this line; ADR-0024 and ADR-0013 lifted them.)*
 - [ ] The results screen's per-bonus breakdown is derived from the same `ScoreEvent` fold as the totals (ADR-0004), so the two cannot disagree; asserted by `test_results_matches_scoreboard.gd`.
 - [ ] The results screen is skippable only by unanimous input.
 - [ ] The lobby displays every ability's cooldown, suspicion cost and **tell** before selection.

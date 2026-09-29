@@ -85,8 +85,9 @@ Copy into the PR description and tick as you go.
 - [ ] If an information channel was added: it has a row in the master table
       ([`../10_gdd/03_social_stealth.md`](../10_gdd/03_social_stealth.md) §11.1), all six columns.
 - [ ] No design law violated ([`/CLAUDE.md`](../../CLAUDE.md)).
-- [ ] Nothing added from the never-do list — **including no minimap, kill-cam, global kill feed,
-      nameplate or hit-direction indicator**.
+- [ ] Nothing added from the never-do list — **including no minimap, kill-cam, or name or
+      marker over a body you have no relationship with** (the kill feed and hit direction were
+      on this line; ADR-0024 and ADR-0013 lifted them).
 
 ### Strings and assets
 
