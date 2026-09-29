@@ -43,19 +43,17 @@ func _ready() -> void:
 	_bridge = HudBridge.new()
 	_bridge.name = "HudBridge"
 	add_child(_bridge)
-	var compass := CompassWidget.new()
-	compass.vm = compass_vm
-	var feed := ScoreFeedWidget.new()
-	feed.vm = score_vm
-	var chase := ChaseRingWidget.new()
-	chase.vm = chase_vm
-	var timer := MatchTimerWidget.new()
-	timer.vm = match_vm
+	var compass := _with_vm(CompassWidget.new(), compass_vm)
+	var feed := _with_vm(ScoreFeedWidget.new(), score_vm)
+	var chase := _with_vm(ChaseRingWidget.new(), chase_vm)
+	var word := _with_vm(CompassWordWidget.new(), compass_vm)
+	var timer := _with_vm(MatchTimerWidget.new(), match_vm)
 	# **THE VIGNETTE IS ADDED FIRST SO IT SITS BEHIND EVERYTHING.** It is the only
 	# full-screen effect in the game (§4.2) and it must never cover a widget the
 	# player is trying to read at the exact moment they most need to read it.
 	_add(VignetteWidget.new(), "Vignette")
 	_add(compass, "Compass")
+	_add(word, "CompassWord")
 	# **AFTER THE COMPASS, SO THE BARS SIT OVER ITS RIM RATHER THAN UNDER IT.** The
 	# two never overlap by construction — the arcs are outside `LOCK_RADIUS` — but
 	# order decides which wins if either radius is ever retuned, and the bar losing
@@ -116,15 +114,25 @@ func _on_phase(phase: int, multiplier: float) -> void:
 	match_vm.apply_phase(phase, multiplier)
 
 
-func _on_compass(bearing: float, bucket: int, lock: float) -> void:
+func _on_compass(bearing: float, bucket: int, lock: float, vertical: int, in_sight: bool) -> void:
 	compass_vm.bearing = bearing
 	compass_vm.bucket = bucket
 	compass_vm.lock = lock
+	compass_vm.vertical = vertical
+	compass_vm.in_sight = in_sight
 
 
 ## **THE PALETTE IS SET BEFORE THE CHILD ENTERS THE TREE.** Every widget falls back
 ## to `Palette.fallback()` in its own `_ready`, so setting it afterwards would let
 ## the first frame draw from the default and the second from the real one.
+## Hands a widget its view model and returns it, so the build above reads as a
+## list. `set`, like `_add`'s palette, because the widgets share the field name and
+## not a base class. Split out when US-0105's word widget took `_ready` past 40.
+static func _with_vm(widget: Control, vm: RefCounted) -> Control:
+	widget.set("vm", vm)
+	return widget
+
+
 func _add(widget: Control, widget_name: String) -> void:
 	widget.name = widget_name
 	widget.set("palette", palette)

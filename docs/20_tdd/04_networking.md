@@ -325,7 +325,8 @@ NET-S2C-SNAPSHOT (per client, per tick)
 │   ├── bearing            u8       # quantised to TUN-NET-QUANT-YAW (1 deg), wobble ALREADY APPLIED server-side
 │   ├── distance_bucket    u8       # 0.5 m buckets to 60 m — never an exact distance
 │   ├── lock_fraction      u8       # 0..255
-│   └── portrait_revealed  bool     # a lock completed for this contract (ADR-0021)
+│   └── flags              u8       # bit 0 portrait_revealed (a lock completed, ADR-0021); bits 1-2 up/down;
+│                                   # bit 3 in sight — US-0105, PROTOCOL_VERSION 6; was portrait_revealed:bool
 ├── match
 │   ├── phase              u8
 │   ├── ticks_remaining    u16
@@ -355,7 +356,7 @@ cannot be broken at all.
 |---|---|---|
 | ~~Contract's **persona**~~ | ~~The crowd's entire value — it would collapse 78 candidates to ~12~~. **Struck: ASM-0030 is void by [ADR-0021](../00_meta/adr/ADR-0021-the-hunter-knows-the-face.md)** — the collapse to the clones of one persona *is* the game, and the clone system protects the player inside it. This row survived #228's sweep unstruck while NETWORK_PROTOCOL's twin was struck; found in review of US-0101, the sixth leftover of that argument | Carried since US-0100 on `NET-S2C-CONTRACT-ASSIGNED`; every seat's persona reaches every client on `NET-S2C-LOBBY-STATE` since US-0101, because the district draws it |
 | Contract's **exact position** | Deletes the search | `compass.bearing` + `distance_bucket` only |
-| Contract's **elevation** | The Compass is 2D by design. **Lifted by ADR-0024 (2026-09-25)**: the Compass says up or down, and the field arrives with US-0105's up/down PR | No z component anywhere in `compass` — today |
+| Contract's **height** | Up or down, never how far. *Was: "2D by design" — lifted by ADR-0024, built by US-0105 (`PROTOCOL_VERSION` 6)* | No z component anywhere in `compass`; the vertical is three values |
 | Contract's **suspicion or tier** | You see the consequence, never the value | Not in the payload |
 | ~~**Direction of the prey warning**~~ | **Lifted since ADR-0013 (2026-08-26)**: `TUN-COMPASS-WARN-GIVES-DIRECTION` is `true`. *Was: "the panicked scan of a crowd is the game's best moment"* | `NET-S2C-PREY-WARNING` carries `bearing:u8` and `bucket:u8` (NETWORK_PROTOCOL §3) and **still no identity**: no slot, no persona. `test_warning_names_nobody.gd` holds that |
 | Other players' **suspicion values** | Anonymity | `render_state` is 2 bits and per-observer |

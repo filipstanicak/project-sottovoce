@@ -1,7 +1,10 @@
 ## The wire format round-trips, and carries nothing it must not. US-0029.
 ##
 ## **THE OMISSIONS ARE THE POINT.** GDD-03 forbids a hunter ever learning their
-## contract's persona, exact position, elevation or tier. A rule that lives in a
+## contract's exact position, height or tier. (The persona travels on
+## `NET-S2C-CONTRACT-ASSIGNED` since ADR-0021, never here; up/down since US-0105 is
+## three values in `compass.flags`, never a height — so `contract_elevation` stays
+## forbidden below.) A rule that lives in a
 ## widget can be broken by a different widget; a rule that lives in the wire
 ## format cannot be broken at all — so the assertions that matter most here are
 ## about fields that do not exist.
@@ -143,8 +146,8 @@ func test_a_retired_state_decodes_as_no_state() -> void:
 
 
 func test_the_snapshot_carries_no_persona_and_no_exact_contract_position() -> void:
-	# GDD-03 §7: the hunter is never sent their contract's persona, position,
-	# elevation or tier. Asserted structurally — the fields do not exist on the
+	# GDD-03 §7: the snapshot never carries the contract's persona, position,
+	# height or tier. Asserted structurally — the fields do not exist on the
 	# object, so no builder can populate them and no widget can read them.
 	var snap := Snapshot.new()
 	for forbidden: String in [

@@ -1073,7 +1073,7 @@ This list is as important as the specification above. Each omission is a design 
 | ~~The contract's **persona**~~ | **Struck 2026-09-22 by [ADR-0021](../00_meta/adr/ADR-0021-the-hunter-knows-the-face.md): the hunter IS told the persona, from assignment, as the reference does.** The row read *"Critical. If you knew your target was a Lucerna, the crowd would collapse from 60–90 candidates to 8–13"* — and that collapse is the game: the clone system (§6, `TUN-CROWD-CLONE-LOCAL-MIN`) exists so that the 8–13 are indistinguishable from the player, and hiding the persona on top of it made the one read the game is about unlearnable until a lock performed it. Kept as a row so nobody re-adds it as a discovery. |
 | The contract's **name or peer identity** | Same reason, and it prevents metagaming across matches. |
 | The contract's **suspicion or tier** | You see the *consequence* (tint/outline) but never the value. |
-| The contract's **elevation** | The Compass is 2D. A contract on the roof and one at street level 10 m away read identically. This is why the campanile exists as a place to *look from*. **Lifted by [ADR-0024](../00_meta/adr/ADR-0024-the-hud-shows-what-the-reference-shows.md) (2026-09-25)**: the reference's compass says *up* or *down*, and ours will with US-0105's up/down PR. A height is still never shown. |
+| The contract's **elevation** | The Compass is 2D. A contract on the roof and one at street level 10 m away read identically. This is why the campanile exists as a place to *look from*. **Lifted by [ADR-0024](../00_meta/adr/ADR-0024-the-hud-shows-what-the-reference-shows.md) (2026-09-25)**: the reference's compass says *up* or *down*, and ours does since US-0105 (`TUN-COMPASS-VERTICAL-THRESHOLD` 2.0 m, below the first stratum). A height is still never shown. |
 | Whether the contract is **moving toward or away** | Only the cadence changes, and it changes for both. |
 | Whether the contract is **in a blend action** | A blended player is invisible to every channel except direct observation. |
 | Whether the contract has **already been engaged** by someone else | No shared-state information ever. |
@@ -1410,7 +1410,7 @@ the profile of a minimap, and the reason there is no minimap.
 - [ ] Compass pulse period matches the §8.2 table at every listed distance within 1 ms (`test_compass_curve.gd`).
 - [ ] Compass wobble is deterministic: the same `(contract_id, time)` yields the same offset on every peer.
 - [ ] A lock cannot complete through a walking group's incidental gaps; verified by a scripted scenario test.
-- [ ] The hunter is never sent their contract's persona, position, tier value, or elevation. Asserted by inspecting the `NET-S2C-COMPASS` payload schema — it contains bearing, distance-bucket and lock-fraction only.
+- [ ] The hunter is never sent their contract's position, tier value, or height. Asserted by inspecting the `NET-S2C-COMPASS` payload schema — it contains bearing, distance-bucket, lock-fraction and one flags byte. *Was: "… persona … or elevation … lock-fraction only": the persona is told since ADR-0021, and up/down (three values, never a height) since US-0105.*
 - [ ] The prey warning fires only when both conditions in §9.1 hold, and carries a bearing and a distance bucket and **nothing that names anybody** in its payload. *Was: "carries no directional data", until ADR-0013.*
 - [ ] `TUN-COMPASS-WARN-MIN-TIER == TUN-STUN-MIN-TIER` (invariant §17.8).
 - [ ] `TUN-STUN-RANGE > TUN-KILL-RANGE` (invariant §17.6).

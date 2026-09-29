@@ -124,7 +124,13 @@ func _publish_suspicion(snapshot: Snapshot) -> void:
 ## protocol, and the first one to drift.
 func _publish_compass(snapshot: Snapshot) -> void:
 	var bearing := Quantise.u8_to_yaw(snapshot.bearing)
-	EventBus.compass_updated.emit(bearing, snapshot.distance_bucket, snapshot.lock_fraction / 255.0)
+	EventBus.compass_updated.emit(
+		bearing,
+		snapshot.distance_bucket,
+		snapshot.lock_fraction / 255.0,
+		snapshot.contract_vertical,
+		snapshot.contract_in_sight
+	)
 	if _portrait == snapshot.portrait_revealed:
 		return
 	_portrait = snapshot.portrait_revealed

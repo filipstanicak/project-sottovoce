@@ -59,6 +59,15 @@ extends Resource
 ## TUN-COMPASS-UPDATE-RATE
 @export var update_rate: float = 30.0
 
+## How far above or below the hunter the contract must be for the Compass to say up or down
+## (US-0105, ADR-0024). Above anything a pawn vaults — the market stalls are 0.9 m — and below
+## the first stratum, the balcony at 3.5 m, so up means another level, not a step. Ours rather
+## than the reference's: its compass says up and down, and no source gives the height at which it
+## starts to. A direction and never a height: the Compass still holds no metres, and the reading
+## is one of three values.
+## TUN-COMPASS-VERTICAL-THRESHOLD
+@export_range(1.5, 3.0, 0.1) var vertical_threshold: float = 2.0
+
 ## Total facing cone (±12.5°) within which the contract must sit for the lock arc to fill.
 ## Narrow: locking is aiming your attention, and you cannot do it while scanning.
 ## TUN-COMPASS-LOCK-CONE

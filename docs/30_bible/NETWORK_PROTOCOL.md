@@ -196,7 +196,8 @@ NET-S2C-SNAPSHOT — per client, per tick
 │   ├── bearing            u8       wobble ALREADY APPLIED server-side
 │   ├── distance_bucket    u8       0.5 m buckets to 60 m — never an exact distance
 │   ├── lock_fraction      u8
-│   └── portrait_revealed  bool
+│   └── flags              u8       bit 0 portrait_revealed; bits 1-2 vertical (0 level, 1 up, 2 down);
+│                                   bit 3 in sight. Was portrait_revealed:bool until PROTOCOL_VERSION 6 (US-0105)
 ├── match
 │   ├── phase              u8       MatchPhase.Phase — THE ORDINALS ARE THE WIRE
 │   ├── ticks_remaining    u16      ACTIVE and FINAL share ONE countdown (see below)
@@ -320,7 +321,7 @@ cannot be broken at all.
 |---|---|---|
 | ~~Contract's **persona**~~ | *Struck 2026-09-22 by ADR-0021: the persona IS sent to the hunter, as the reference shows the target's picture from assignment.* | **Carried since US-0100** (2026-09-24): one byte on `NET-S2C-CONTRACT-ASSIGNED`, `PROTOCOL_VERSION` 3. Every seat's persona reaches every client on `NET-S2C-LOBBY-STATE` as of US-0101 — the district draws them, so it is what a player sees anyway |
 | Contract's **exact position** | Deletes the search | `bearing` + `distance_bucket` only |
-| Contract's **elevation** | The Compass is 2D by design. **Lifted by ADR-0024 (2026-09-25): the Compass says up or down, as the reference's does** — still true of the wire today, and the field arrives with US-0105's up/down PR and a `PROTOCOL_VERSION` bump | No z component anywhere in `compass` |
+| Contract's **height** | The Compass says up or down and never how far. *Was: "The Compass is 2D by design" — lifted by ADR-0024 (2026-09-25), built by US-0105 at `PROTOCOL_VERSION` 6: `compass.flags` carries `CompassBoard.Vertical`, one of three values, decided server-side against `TUN-COMPASS-VERTICAL-THRESHOLD`* | No z component anywhere in `compass`; no metres anywhere |
 | Contract's **suspicion or tier** | You see the consequence, never the value | Not in the payload |
 | **Prey-warning IDENTITY** | A persona here collapses ~78 candidates to one, permanently and for free | `NET-S2C-PREY-WARNING` carries a bearing and a bucket and **has no field that names anybody**. `test_warning_names_nobody.gd` refuses one on the wire and in this row; `test_prey_warning_signal_arity.gd` refuses one on the event bus |
 | Other players' **suspicion values** | Anonymity | `render_state` is 2 bits, per observer |
@@ -395,7 +396,7 @@ reach, putting the cost of a bad connection on the player who has one.
 - [ ] Every C2S message has a non-empty authority check, and the handler calls `_authorise` first.
 - [ ] No C2S message contains an outcome field.
 - [ ] `NET-S2C-PREY-WARNING` has exactly two fields, and neither names a player.
-- [ ] No payload contains the contract's exact position, elevation or tier. *Elevation leaves this line with US-0105's up/down PR (ADR-0024): an up-or-down reading, not a height.* **The persona was on this line until 2026-09-22 and is not (ADR-0021)**: the hunter is told what their target looks like from assignment, and the persona rides `NET-S2C-CONTRACT-ASSIGNED` as of US-0100.
+- [ ] No payload contains the contract's exact position, elevation or tier. *Elevation left this line with US-0105 (`PROTOCOL_VERSION` 6): an up-or-down reading, never a height.* **The persona was on this line until 2026-09-22 and is not (ADR-0021)**: the hunter is told what their target looks like from assignment, and the persona rides `NET-S2C-CONTRACT-ASSIGNED` as of US-0100.
 - [ ] `render_state` is computed per observer.
 - [ ] `KillSystem` / `StunSystem` never read `client_tick`.
 - [ ] This document and TDD-04 §6 agree (`test_protocol_docs_sync.gd`).

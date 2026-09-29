@@ -94,3 +94,21 @@ func drain(ctx: MatchContext) -> void:
 ## somebody standing exactly where they are pointing.
 static func angle_to(here: PawnContext, at: Vector3) -> float:
 	return absf(CompassMath.angle_between(here.yaw, CompassMath.bearing_to(here.position, at)))
+
+
+## **A CHASE OPENS ON THE CONDITION, NOT ON THE MESSAGE**, which is why this sits
+## above `PreyWarning.consider` rather than below it. The warning re-triggers no
+## faster than `TUN-COMPASS-WARN-COOLDOWN` 2.5 s; a chase gated on that would
+## refuse to open for up to two and a half seconds after the carelessness that
+## earned it, and the hunter would keep a contract the rule says they had risked.
+##
+## **IT OPENS ONE AND NEVER REFRESHES ONE.** Collapsing the two would be a real
+## rule change: *near and careless* would hold a chase open, so a hunter standing
+## beside their prey facing the wrong way would never lose them. Only **sight**
+## refreshes, and that is `advance`'s, above.
+##
+## *Moved here from `DetectionSystem._open_a_chase` in US-0105, which needed the
+## room; it was always this class's rule.*
+static func open_on_carelessness(prey: int, pursuer: int, alerted: bool, ctx: MatchContext) -> void:
+	if alerted and ctx.pursuit.prey_of(pursuer) != prey:
+		ctx.pursuit.refresh(pursuer, prey, Tuning.ticks(&"TUN-PURSUIT-DURATION"))

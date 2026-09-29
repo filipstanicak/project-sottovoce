@@ -4,7 +4,8 @@
 ## ordered encoding, decoding and fingerprints together, with no peer or world.
 ##
 ## **THE INFORMATION RULES LIVE HERE, NOT IN THE UI.** GDD-03 forbids a hunter
-## ever learning their contract's persona, exact position, elevation or tier —
+## ever learning their contract's exact position, height or tier (the persona has
+## been told since ADR-0021, and up/down without a height since US-0105) —
 ## and a rule that lives in a widget can be broken by a different widget, while a
 ## rule that lives in the wire format cannot be broken at all. The compass block
 ## carries a *bucket* and a *bearing with the wobble already applied*, because
@@ -117,6 +118,13 @@ var bearing: int = 0
 var distance_bucket: int = 0
 var lock_fraction: int = 0
 var portrait_revealed: bool = false
+## **US-0105, ADR-0024: the contract is above or below you, and in sight.** A
+## `CompassBoard.Vertical` and a flag — no height, no position. They share the
+## `portrait_revealed` byte on the wire (`SnapshotCodec`), which is why they cost
+## nothing and why `PROTOCOL_VERSION` moved to 6: a version-5 client reads the byte
+## as one bool and would take *down* for a revealed portrait.
+var contract_vertical: int = 0
+var contract_in_sight: bool = false
 
 # --- match ---
 var phase: int = 0

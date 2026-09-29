@@ -105,11 +105,27 @@ static func _write_compass_and_match(snap: Snapshot, buffer: StreamPeerBuffer) -
 	buffer.put_u8(snap.bearing)
 	buffer.put_u8(snap.distance_bucket)
 	buffer.put_u8(snap.lock_fraction)
-	buffer.put_u8(1 if snap.portrait_revealed else 0)
+	buffer.put_u8(compass_flags(snap))
 	buffer.put_u8(snap.phase)
 	buffer.put_u16(snap.ticks_remaining)
 	# Tenths, `ScoreWire`'s own conversion: one encoding for one value, on both rows.
 	buffer.put_u8(ScoreWire.multiplier_to_u8(snap.multiplier))
+
+
+## **ONE BYTE, THREE COMPASS FACTS** (US-0105): bit 0 the portrait latch, bits 1-2
+## `CompassBoard.Vertical`, bit 3 *in sight*. Until `PROTOCOL_VERSION` 6 the byte
+## carried the latch alone as 0 or 1, which is why every frozen fixture still reads
+## the same: the new bits are zero in all of them.
+static func compass_flags(snap: Snapshot) -> int:
+	var flags := 1 if snap.portrait_revealed else 0
+	flags |= (clampi(snap.contract_vertical, 0, 3)) << 1
+	return flags | (8 if snap.contract_in_sight else 0)
+
+
+static func read_compass_flags(snap: Snapshot, flags: int) -> void:
+	snap.portrait_revealed = flags & 1 != 0
+	snap.contract_vertical = (flags >> 1) & 3
+	snap.contract_in_sight = flags & 8 != 0
 
 
 static func _write_remotes(snap: Snapshot, buffer: StreamPeerBuffer) -> void:
@@ -213,7 +229,7 @@ static func _read_compass_and_match(snap: Snapshot, buffer: StreamPeerBuffer) ->
 	snap.bearing = buffer.get_u8()
 	snap.distance_bucket = buffer.get_u8()
 	snap.lock_fraction = buffer.get_u8()
-	snap.portrait_revealed = buffer.get_u8() != 0
+	read_compass_flags(snap, buffer.get_u8())
 	snap.phase = buffer.get_u8()
 	snap.ticks_remaining = buffer.get_u16()
 	snap.multiplier = ScoreWire.u8_to_multiplier(buffer.get_u8())
