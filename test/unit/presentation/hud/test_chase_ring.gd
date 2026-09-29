@@ -130,25 +130,46 @@ func test_the_two_bars_reach_the_bridge_the_right_way_round() -> void:
 
 
 ## **THE TWO ELEMENTS SHARE A CENTRE BY DERIVATION, NOT BY TWO PEOPLE TYPING 174.**
-## `ChaseRingWidget` computes its offsets from `CompassWidget`'s own constants, so
-## moving the Compass moves the bars with it. Retuning either diameter and leaving
-## the other reddens this.
+## Both are placed by `CompassWidget.place`, so moving the Compass moves the bars
+## with it. **Measured as laid out in a 1080p frame**, not from the offsets: since
+## the ground ring (US-0105) both centres are anchors with zero-midpoint offsets,
+## and offsets alone would agree about any two anchors at all.
 func test_the_ring_is_concentric_with_the_compass() -> void:
+	var frame := Control.new()
+	frame.size = Vector2(1920.0, 1080.0)
+	add_child_autofree(frame)
 	var compass := CompassWidget.new()
 	var ring := ChaseRingWidget.new()
-	add_child_autofree(compass)
-	add_child_autofree(ring)
+	frame.add_child(compass)
+	frame.add_child(ring)
+	var here := compass.get_rect().get_center()
+	assert_almost_eq(here.x, 960.0, 0.5, "the Compass is not centred")
 	assert_almost_eq(
-		(compass.offset_top + compass.offset_bottom) * 0.5,
-		(ring.offset_top + ring.offset_bottom) * 0.5,
-		0.001,
+		here.y, 1080.0 * CompassWidget.CENTRE_HEIGHT, 0.5, "the Compass is not at the feet"
+	)
+	assert_almost_eq(
+		ring.get_rect().get_center().distance_to(here),
+		0.0,
+		0.5,
 		"the chase ring and the Compass do not share a centre"
 	)
-	assert_almost_eq(
-		(compass.offset_left + compass.offset_right) * 0.5,
-		(ring.offset_left + ring.offset_right) * 0.5,
-		0.001
-	)
+
+
+## **BOTH LIE ON THE GROUND**: as wide as their dial scaled to `WIDTH`, and half as
+## tall. An upright chase ring around a flat Compass would read as another object.
+func test_both_rings_lie_flat() -> void:
+	var frame := Control.new()
+	frame.size = Vector2(1920.0, 1080.0)
+	add_child_autofree(frame)
+	var compass := CompassWidget.new()
+	var ring := ChaseRingWidget.new()
+	frame.add_child(compass)
+	frame.add_child(ring)
+	assert_almost_eq(compass.size.x, CompassWidget.WIDTH, 0.5, "the Compass is not its width")
+	for widget: Control in [compass, ring]:
+		assert_almost_eq(
+			widget.size.y, widget.size.x * CompassWidget.FLATTEN, 0.5, "%s stands upright" % widget
+		)
 
 
 ## Both arcs sit outside the lock arc and its stroke, or a full lock and a full

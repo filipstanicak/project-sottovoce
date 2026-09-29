@@ -362,6 +362,7 @@ requested at priority *P* may interrupt a state whose `is_interruptible()` is fa
 | Type | — | Third-person spring arm | The player must be able to see their own silhouette. Judging "how do I look right now?" is a core skill, and a first-person camera makes it impossible. |
 | Arm length | `TUN-CAM-ARM-LENGTH` | 2.6 m | Far enough to show your own body, close enough to keep faces legible at 20 m. |
 | Pivot height | `TUN-CAM-ARM-HEIGHT` | 1.55 m | Roughly shoulder height on the tallest persona (Lucerna). |
+| Resting tilt | `TUN-CAM-REST-PITCH` | −13° | **Added 2026-09-29 (US-0105).** The view rests looking slightly down, as the reference's does: the feet are in frame (about 97 % of its height) and the street ahead shows above the pawn's head. Level, the feet fell below the frame. The look moves freely from here; the gimbal limit applies to the sum. |
 | Framing | — | **Centred** | The pawn sits on the centre line. See below. |
 | Occlusion pull-in | `TUN-CAM-OCCLUSION-PULL-RATE` | 12 m/s | Fast. A camera stuck in a wall, in a game about looking at people, is a critical failure. |
 | Occlusion restore | `TUN-CAM-OCCLUSION-RESTORE-RATE` | 4 m/s | Slower than pull-in, to prevent oscillation in doorways. |
@@ -384,9 +385,12 @@ Two reasons, and the second is the one that matters:
    silhouette pushed into a corner of the screen is a silhouette you stop checking. An
    over-the-shoulder offset exists to clear a firing line, and this game has no firing line.
 
-The cost is honest and accepted: your own body occupies the middle of the screen and hides what
-is directly ahead at close range. That is what `TUN-CAM-ARM-LENGTH` and the FOV ladder are for,
-and it is a cost every game with this camera pays.
+The cost was stated as honest and accepted: your own body occupied the middle of the screen and
+hid what was directly ahead at close range. **Since 2026-09-29 `TUN-CAM-REST-PITCH` pays most of
+it back**: measured against the reference, whose camera does not pay it, a level view put the feet
+below the frame and the pawn's shoulders on the screen's centre. Tilted 13° down, the pawn stands in
+the lower half with its feet in view and the street ahead above its head, which is also where the
+Compass now sits (UI_UX_SPEC §1.1).
 
 ### 4.2 FOV as an information channel
 

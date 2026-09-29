@@ -68,25 +68,14 @@ var palette: Palette = null
 func _ready() -> void:
 	if palette == null:
 		palette = Palette.fallback()
-	custom_minimum_size = Vector2(DIAMETER, DIAMETER)
-	set_anchors_preset(Control.PRESET_CENTER_BOTTOM, true)
-	offset_left = -DIAMETER * 0.5
-	offset_right = DIAMETER * 0.5
-	var centre_up := compass_centre_from_bottom()
-	offset_top = -(centre_up + DIAMETER * 0.5)
-	offset_bottom = -(centre_up - DIAMETER * 0.5)
-	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# The Compass's own placement and ground transform, so the bars lie on the same
+	# ground around the same centre (US-0105). *Until then this derived the centre
+	# from the Compass's bottom margin, which the move to the feet retired.*
+	CompassWidget.place(self, DIAMETER)
 	# CanvasItem caches draw commands. The transition to quiet must clear them,
 	# even though the frame loop correctly skips an already quiet instrument.
 	if vm != null:
 		vm.changed.connect(queue_redraw)
-
-
-## How far above the screen's bottom edge the Compass's centre sits. **Public
-## because it is the answer worth testing**: a test that re-derived it would agree
-## with a widget that had drifted, which is `CompassWidget.screen_angle`'s lesson.
-static func compass_centre_from_bottom() -> float:
-	return CompassWidget.MARGIN_FROM_EDGE + CompassWidget.DIAMETER * 0.5
 
 
 ## **THE PULSE ADVANCES ON THE RENDER FRAME**, like the Compass's, so a 144 Hz and
@@ -105,7 +94,8 @@ func _process(delta: float) -> void:
 func _draw() -> void:
 	if vm == null:
 		return
-	var centre := size * 0.5
+	draw_set_transform(size * 0.5, 0.0, CompassWidget.ground_scale())
+	var centre := Vector2.ZERO
 	# **THE ONE RUN ANTICLOCKWISE IS THE ONE THAT IS NOT ABOUT YOUR CONTRACT.**
 	# Your own chase drains the way the lock arc fills, because both are about the
 	# Compass's one relationship; the chase on you unwinds the other way, so the two
@@ -116,6 +106,7 @@ func _draw() -> void:
 	if vm.is_hunting():
 		_track(centre, HUNT_RADIUS, palette.chase_hunt, HUNT_WIDTH)
 		_arc(centre, HUNT_RADIUS, vm.hunting, palette.chase_hunt, HUNT_WIDTH)
+	draw_set_transform_matrix(Transform2D.IDENTITY)
 
 
 ## A pulse thickens the bar the prey is reading, never the one they are not. The

@@ -52,6 +52,17 @@ extends Resource
 ## TUN-CAM-ARM-HEIGHT
 @export_range(1.4, 1.8, 0.01) var arm_height: float = 1.55
 
+## The camera's resting downward tilt: where the arm sits with the look untouched, and where a
+## stun snaps it. Added 2026-09-29 (US-0105), measured against the reference: level, the pawn's
+## feet fell below the frame and its body hid the street ahead — GDD-02 §4.1's accepted cost,
+## which the reference does not pay. At −13° the feet sit at about 97 % of the frame's height and
+## the horizon at about 33 %, the reference's framing, with TUN-CAM-ARM-LENGTH and TUN-CAM-ARM-
+## HEIGHT unchanged. Presentation only: look_pitch reaches the server and nothing there reads it.
+## The Compass is drawn where the feet are (UI_UX_SPEC §1.1), so moving this moves what it sits
+## on.
+## TUN-CAM-REST-PITCH
+@export_range(-25.0, 0.0, 0.1) var rest_pitch: float = -13.0
+
 ## How far short of an occluder the arm stops. Below it the near plane clips into geometry and
 ## the player sees through the wall; above it the camera reads as detached from the surface it is
 ## avoiding. Promoted from prose — GDD-02 §4.4 describes the pull-in without saying where it

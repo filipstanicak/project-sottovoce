@@ -19,8 +19,22 @@ extends Control
 
 ## §3.1. Layout constants rather than tunables: changing them changes where a thing
 ## sits, not how the game plays. The spec is the source and is cited per line.
+##
+## `DIAMETER` and every radius below are the dial's **own drawing units**, a circle.
+## What reaches the screen is that circle laid on the ground (`ground_scale`).
 const DIAMETER := 220.0
-const MARGIN_FROM_EDGE := 64.0
+
+## **AT THE PAWN'S FEET, LYING ON THE GROUND** (US-0105, ADR-0024, UI_UX_SPEC §1.1).
+## The reference draws its target compass as a flat ring at a fixed spot on screen —
+## centred, at 80 % of the frame's height, about 14 % of its width and half as tall —
+## which is where the feet stand at `TUN-CAM-REST-PITCH`'s framing, and it stays
+## there when the view tilts. So the spot is fixed on screen here too, never
+## projected under the body. Measured from the reference's recordings (sources in
+## the chat log, never here). *Until 2026-09-29: a 220 px upright dial, centre-bottom,
+## 64 px from the edge.*
+const CENTRE_HEIGHT := 0.8
+const WIDTH := 270.0
+const FLATTEN := 0.5
 
 const CONE_INNER := 34.0
 const CONE_OUTER := 96.0
@@ -45,15 +59,32 @@ var palette: Palette = null
 func _ready() -> void:
 	if palette == null:
 		palette = Palette.fallback()
-	custom_minimum_size = Vector2(DIAMETER, DIAMETER)
-	# Centre-bottom, `MARGIN_FROM_EDGE` above the screen edge. Anchored rather than
-	# positioned, so it stays put at any resolution.
-	set_anchors_preset(Control.PRESET_CENTER_BOTTOM, true)
-	offset_left = -DIAMETER * 0.5
-	offset_right = DIAMETER * 0.5
-	offset_top = -(DIAMETER + MARGIN_FROM_EDGE)
-	offset_bottom = -MARGIN_FROM_EDGE
-	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	place(self, DIAMETER)
+
+
+## How a dial of `diameter` drawing units is squashed onto the ground: `WIDTH` wide
+## for this dial, `FLATTEN` as tall. **Shared with `ChaseRingWidget`**, whose rings
+## lie on the same ground around the same centre, so neither can be re-chosen.
+static func ground_scale() -> Vector2:
+	var spread := WIDTH / DIAMETER
+	return Vector2(spread, spread * FLATTEN)
+
+
+## Anchors `control` so its centre is the ground ring's and its rect is the
+## footprint of a dial `diameter` units across. Anchored rather than positioned, so
+## it stays put at any resolution; §1's centred band keeps it off an ultrawide edge.
+static func place(control: Control, diameter: float) -> void:
+	var half := ground_scale() * diameter * 0.5
+	control.custom_minimum_size = half * 2.0
+	control.anchor_left = 0.5
+	control.anchor_right = 0.5
+	control.anchor_top = CENTRE_HEIGHT
+	control.anchor_bottom = CENTRE_HEIGHT
+	control.offset_left = -half.x
+	control.offset_right = half.x
+	control.offset_top = -half.y
+	control.offset_bottom = half.y
+	control.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 
 ## **THE PHASE ADVANCES ON THE RENDER FRAME, WHICH IS THE POINT.** §3.2: a 144 Hz
@@ -71,11 +102,15 @@ func _process(delta: float) -> void:
 func _draw() -> void:
 	if vm == null or not vm.has_contract():
 		return
-	var centre := size * 0.5
+	# **THE DIAL IS DRAWN AS A CIRCLE AND LAID ON THE GROUND BY ONE TRANSFORM.** Its
+	# top is the far side, so *ahead* is still up and `screen_angle` is unchanged.
+	draw_set_transform(size * 0.5, 0.0, ground_scale())
+	var centre := Vector2.ZERO
 	_draw_cone(centre)
 	_draw_pulse_ring(centre)
 	_draw_lock_arc(centre)
 	draw_circle(centre, DOT_RADIUS, palette.compass_dot)
+	draw_set_transform_matrix(Transform2D.IDENTITY)
 
 
 ## A filled arc whose alpha falls off toward both edges, so the cone fades out

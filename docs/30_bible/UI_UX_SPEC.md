@@ -57,7 +57,7 @@ depends_on: [GDD-06-UI-AUDIO, TDD-11-UI, BIBLE-ART, ADR-0006]
 │  │NOTICED │                                      │Patient │ │
 │  └────────┘        ╭──────────╮                  └────────┘ │
 │                    │    ▲     │  A COMPASS         D feed   │
-│  ┌───┐┌───┐        │  ╱   ╲   │  centre-bottom              │
+│  ┌───┐┌───┐        │  ╱   ╲   │  at the feet, flat          │
 │  │ Q ││ F │  G     │ ╱ cone ╲ │                             │
 │  └───┘└───┘        ╰──────────╯                             │
 └─────────────────────────────────────────────────────────────┘
@@ -65,14 +65,14 @@ depends_on: [GDD-06-UI-AUDIO, TDD-11-UI, BIBLE-ART, ADR-0006]
 
 | Element | Anchor | Size | Rationale |
 |---|---|---|---|
-| **A Compass** | Bottom-centre, 64 px from edge | 220 × 220 | Most-consulted element. Centre-bottom is reachable by peripheral vision without moving the eyes off the crowd |
+| **A Compass** | **At the pawn's feet, lying on the ground** (US-0105, ADR-0024): a flat ring at a fixed spot, centred at **80 % of the frame's height**, where the feet stand at `TUN-CAM-REST-PITCH`'s framing. The reference draws its compass there and keeps it there when the view tilts, so it is fixed on screen, never projected under the body. *Was: bottom-centre, 64 px from the edge, upright* | 270 × 135 (a 220-unit dial, widened and flattened by `CompassWidget.ground_scale`) | Most-consulted element. At the feet it is where the eye already is, reachable by peripheral vision without moving the eyes off the crowd |
 | **B Contract portrait** | Top-left | 180 × 220 | Consulted rarely (on assignment, after a lock). Corner is correct. **Shows the persona from assignment as of ADR-0021 (2026-09-22)**; a completed lock adds the `Identified` mark |
 | **C Tier indicator** | Left, above abilities | 272 × 112 | Includes a 24 px tier word and up to two lines of 15 px source text; stays outside the central reading area |
 | **D Score feed** | Right, above centre | 320 × 220 | Peripheral by design — must be readable *without* looking |
 | **E Match timer** | Top-centre | 120 × 48 | Matters intensely for ~40 s of 480; ignorable otherwise. **Built 2026-09-13** (`MatchTimerWidget`, US-0073); the digits are `HEADING` 32 px, because a 48 px `DISPLAY` glyph and the bar beneath it do not fit in 48 px — §2 moved the timer to the `HEADING` row on 2026-09-15 so the two sections agree |
 | **F Crosshair** | Screen centre | 3 px dot | The one element that must be exact |
 | **G Ability slots** | Bottom-left | 2 × 64 px | Below the tier indicator that governs their cost |
-| **H Chase ring** | Concentric with the Compass | 260 × 260 | Two arcs outside the lock arc (US-0097). It annotates the Compass, so it shares its centre — **derived from `CompassWidget`'s own constants, never re-chosen**. Inner arc, winding anticlockwise: the chase run **against you**. Outer arc, clockwise like the lock: the chase **you** are running. Three channels separate them and only one is hue, so both survive §7.1's monochrome palette. A re-acquisition thickens the inner bar briefly, because sight refreshes it to full every tick it lasts and a pegged bar is otherwise indistinguishable from a dead HUD |
+| **H Chase ring** | Concentric with the Compass, lying on the same ground | 319 × 160 (a 260-unit dial through the same transform) | Two arcs outside the lock arc (US-0097). It annotates the Compass, so it shares its centre — **placed by `CompassWidget.place` and drawn through `ground_scale`, never re-chosen**. Inner arc, winding anticlockwise: the chase run **against you**. Outer arc, clockwise like the lock: the chase **you** are running. Three channels separate them and only one is hue, so both survive §7.1's monochrome palette. A re-acquisition thickens the inner bar briefly, because sight refreshes it to full every tick it lasts and a pegged bar is otherwise indistinguishable from a dead HUD |
 
 **Nothing occupies the centre 60 % of the screen.** That region is where players read faces and
 gait, and it is kept clear deliberately.
@@ -141,8 +141,13 @@ The game's central instrument. Specified to the frame.
         │   │   ●   │  │  ← pulse ring, scales + fades
         │   └───────┘  │
         ╰─────────────╯
-             220 px
+      220 drawing units — drawn laid on the ground, 270 × 135 px (US-0105)
 ```
+
+**Drawn lying on the ground since US-0105.** The dial above is drawn as a circle and squashed by
+one transform, `CompassWidget.ground_scale`, to `WIDTH` 270 px and `FLATTEN` 0.5: the top of the
+ellipse is the far side, so *ahead* is still up and nothing about direction changed. The chase ring
+goes through the same transform around the same centre.
 
 | Part | Spec |
 |---|---|
@@ -445,7 +450,7 @@ can choose without having used it.
 
 | # | Question | Position | Needed by |
 |---|---|---|---|
-| 1 | Is 220 px enough for the Compass to be readable peripherally at 1080p? | Test at M5. If not, grow it before moving it — position is more load-bearing than size | M5 |
+| 1 | Is 220 px enough for the Compass to be readable peripherally at 1080p? | Test at M5. If not, grow it before moving it — position is more load-bearing than size. **Both moved on 2026-09-29 (US-0105), by owner decision for reference fidelity**: to the feet, and 270 px wide, the reference's measured width; whether it reads peripherally is now a question for the playtest | M5 |
 | 2 | Should the contract portrait show the full persona on reveal, or only a silhouette class? Full narrows ~78 candidates to ~12. | **Settled 2026-09-22 by ADR-0021: the full persona, and from assignment rather than on reveal** — the reference shows the picture from the start. (It read *Full for MVP (ASM-0030), degrade to class if `TEL-TIME-TO-KILL` drops after first lock* until then.) | — |
 | 3 | No HUD indication of stun-lockout remaining when you are the stunned player. Being unable to act with no visible reason is the worst kind of opacity. | Add to the tier widget at M5. Small addition, real cost if omitted | M5 |
 | 4 | Should the score feed show *which contract* a bonus was for during a fast multi-kill? | No. It would need identity information the protocol deliberately withholds | — |

@@ -367,6 +367,7 @@ reckless −50), called `variety` `variety_per_type`, and left out `patient_spee
 | `fov_motion_reduced` | float | 55–70 | 62 |
 | `arm_length` | float | 2.2–3.2 | 2.6 |
 | `arm_height` | float | 1.4–1.8 | 1.55 |
+| `rest_pitch` | float | −25–0 | −13 |
 | `occlusion_margin` | float | 0.1–0.5 | 0.2 |
 | `occlusion_pull_rate` | float | 8–20 | 12 |
 | `occlusion_restore_rate` | float | 2–8 | 4 |

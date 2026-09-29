@@ -96,3 +96,48 @@ func test_the_arm_follows_the_pawn() -> void:
 	var here := CameraArm.ideal_position(FEET, 0.0, 0.0)
 	var there := CameraArm.ideal_position(FEET + Vector3(5.0, 0.0, 0.0), 0.0, 0.0)
 	assert_almost_eq((there - here).distance_to(Vector3(5.0, 0.0, 0.0)), 0.0, 0.001)
+
+
+# ------------------------------------------------------------- the resting tilt --
+
+
+## How far below the view's centre the pawn's feet are, in radians, with the arm
+## at `pitch` and full length — the angle a lens has to reach to show them.
+func _feet_below_centre(pitch: float) -> float:
+	var camera := CameraArm.ideal_position(FEET, 0.0, pitch)
+	var view := (CameraArm.pivot(FEET) - camera).normalized()
+	var to_feet := (FEET - camera).normalized()
+	return asin(clampf(-to_feet.y, -1.0, 1.0)) - asin(clampf(-view.y, -1.0, 1.0))
+
+
+func test_a_level_camera_cut_the_feet_off() -> void:
+	# **THE FINDING, KEPT AS THE PREMISE.** Measured from the client on 2026-09-29:
+	# level, the feet fell below the frame at the default lens, so a Compass drawn
+	# at the feet had nothing to sit on. If this stops being true the tilt below is
+	# answering a question nobody is asking any more.
+	var half := deg_to_rad(CameraFov.default_fov()) * 0.5
+	assert_gt(_feet_below_centre(0.0), half, "a level camera already shows the feet")
+
+
+func test_an_untouched_look_frames_the_feet() -> void:
+	# US-0105: `TUN-CAM-REST-PITCH` tilts the resting view down, so the feet are in
+	# frame at the default lens and the view looks down on the street ahead.
+	var limit := deg_to_rad(70.0)
+	var pitch := CameraArm.view_pitch(0.0, limit)
+	var half := deg_to_rad(CameraFov.default_fov()) * 0.5
+	assert_lt(_feet_below_centre(pitch), half, "the feet are still out of frame at rest")
+	var view := (CameraArm.pivot(FEET) - CameraArm.ideal_position(FEET, 0.0, pitch)).normalized()
+	assert_lt(view.y, 0.0, "the resting view does not look down")
+
+
+func test_the_resting_tilt_is_added_to_the_look_and_the_limit_holds() -> void:
+	var limit := deg_to_rad(70.0)
+	var rest := deg_to_rad(Tuning.camera.rest_pitch)
+	assert_almost_eq(CameraArm.view_pitch(0.0, limit), rest, 0.0001)
+	assert_almost_eq(CameraArm.view_pitch(0.3, limit), 0.3 + rest, 0.0001)
+	assert_almost_eq(CameraArm.view_pitch(PI / 2.0, limit), limit, 0.0001, "past the gimbal, up")
+	assert_almost_eq(
+		CameraArm.view_pitch(-PI / 2.0, limit), -limit, 0.0001, "past the gimbal, down"
+	)
+	# And the full upward range survives the tilt: a look of limit − rest reaches it.
+	assert_almost_eq(CameraArm.view_pitch(limit - rest, limit), limit, 0.0001)
