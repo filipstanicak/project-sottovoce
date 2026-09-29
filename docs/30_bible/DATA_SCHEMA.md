@@ -90,171 +90,238 @@ static func deserialise(b: PackedByteArray) -> TuningProfile
 Values, units and rationales are in TUNABLES.md at the section noted. Reproduced here as
 **type + range + default** only, to keep one source of truth for the *numbers*.
 
+**Every table below is the resource.** Field, type, `@export_range` band and default are read off
+`scripts/core/tuning/<resource>.gd`, the generated script, and `test_data_schema_mirrors_tuning.gd`
+holds each table to it, so a tunable added, renamed, re-typed or re-priced turns that test red
+until this page follows. *Until 2026-09-29 these were written by hand at M0 and never re-read; each
+block says what it used to get wrong.*
+
 ### 3.1 `MovementTuning` — TUNABLES §2
+
+*Regenerated 2026-09-29. The previous block left out `run_resolve`, `stick_deadzone`, `stick_blendwalk_max`, `trigger_run`, `vault_duration`, `mantle_duration`, `hop_standing`, `hop_committed`, `drop_min_height`, `drop_stagger`, `probe_count`, `probe_height_chest`, `probe_height_waist`, `probe_height_foot`, `gapjump_launch`, `gap_align_arc`, `gap_probe_ahead`, `gap_probe_depth`, `gap_probe_step`, `input_to_anim_max`, `max_commit`.*
 
 | Field | Type | Range | Default |
 |---|---|---|---|
 | `blend_walk` | float | 1.2–1.6 | 1.4 |
 | `stroll` | float | 1.8–2.6 | 2.2 |
-| `run` | float | 4.0–5.0 | 4.5 |
+| `run` | float | 4–5 | 4.5 |
 | `sprint` | float | 5.6–6.8 | 6.2 |
 | `climb` | float | 2.4–3.2 | 2.8 |
-| `accel` | float | 12–26 | 18.0 |
-| `decel` | float | 16–34 | 24.0 |
-| `turn_rate_ground` | float | 360–720 | 540.0 |
+| `accel` | float | 12–26 | 18 |
+| `decel` | float | 16–34 | 24 |
+| `turn_rate_ground` | float | 360–720 | 540 |
+| `run_resolve` | float | 0.08–0.35 | 0.15 |
+| `stick_deadzone` | float | 0.05–0.25 | 0.15 |
+| `stick_blendwalk_max` | float | 0.2–0.45 | 0.3 |
+| `trigger_run` | float | 0.5–0.95 | 0.75 |
 | `backpedal_mult` | float | 0.4–0.8 | 0.55 |
 | `traverse_vault_max_height` | float | 0.9–1.3 | 1.1 |
-| `traverse_mantle_max_height` | float | 2.0–2.6 | 2.3 |
-| `traverse_climb_max_height` | float | 6–12 | 9.0 |
-| `traverse_drop_safe_height` | float | 3–5 | 4.0 |
-| `traverse_gap_max` | float | 2.5–4.0 | 3.2 |
-| `traverse_magnet_window` | float | 0.15–0.40 | 0.25 |
+| `vault_duration` | float | 0.4–0.7 | 0.55 |
+| `traverse_mantle_max_height` | float | 2–2.6 | 2.3 |
+| `mantle_duration` | float | 0.8–1.2 | 0.95 |
+| `traverse_climb_max_height` | float | 6–12 | 9 |
+| `traverse_drop_safe_height` | float | 3–5 | 4 |
+| `hop_standing` | float | 1.8–3.4 | 2.6 |
+| `hop_committed` | float | 3.2–5.4 | 4.2 |
+| `drop_min_height` | float | 0.6–1.6 | 1.1 |
+| `drop_stagger` | float | 0.5–1.2 | 0.8 |
+| `traverse_gap_max` | float | 2.5–4 | 3.2 |
+| `traverse_magnet_window` | float | 0.15–0.4 | 0.25 |
 | `traverse_magnet_radius` | float | 0.4–0.9 | 0.6 |
-| `traverse_input_buffer` | float | 0.1–0.3 | 0.20 |
+| `probe_count` | int | — | 3 |
+| `probe_height_chest` | float | — | 1.35 |
+| `probe_height_waist` | float | — | 0.85 |
+| `probe_height_foot` | float | — | 0.25 |
 | `probe_length` | float | 0.7–1.2 | 0.9 |
+| `traverse_input_buffer` | float | 0.1–0.3 | 0.2 |
+| `gapjump_launch` | float | 3–5 | 3.9 |
+| `gap_align_arc` | float | 10–30 | 20 |
+| `gap_probe_ahead` | float | 0.4–0.9 | 0.6 |
+| `gap_probe_depth` | float | 9–14 | 10 |
+| `gap_probe_step` | float | 0.2–0.8 | 0.4 |
+| `input_to_anim_max` | float | 50–100 | 80 |
+| `max_commit` | float | — | 1.4 |
 
 ### 3.2 `SuspicionTuning` — TUNABLES §3
 
+*Regenerated 2026-09-29. The previous block named `gain_jog` (no such field); left out `min`, `roof_height`, `break_on_damage`, `break_on_speed`.*
+
 | Field | Type | Range | Default |
 |---|---|---|---|
-| `max_value` | float | — | 100.0 |
-| `decay_base` | float | 6–12 | 8.0 |
-| `decay_speed_ceiling` | float | 1.0–4.0 | 2.2 |
+| `max_value` | float | — | 100 |
+| `min` | float | — | 0 |
+| `decay_base` | float | 6–12 | 8 |
+| `decay_speed_ceiling` | float | — | 2.2 |
 | `decay_delay` | float | 0.3–1.2 | 0.6 |
-| `gain_jog` | float | 2–7 | 4.0 |
-| `gain_run` | float | 10–18 | 14.0 |
-| `gain_sprint` | float | 20–32 | 25.0 |
-| `gain_roof` | float | 14–24 | 18.0 |
-| `gain_climb` | float | 8–16 | 12.0 |
-| `gain_open` | float | 0–9 | 0.0 (was 6.0 until ADR-0020, 2026-09-15) |
-| `open_radius` | float | 4–9 | 6.0 |
-| `gain_npc_bump` | float | 10–22 | 15.0 |
+| `gain_sprint` | float | 20–32 | 25 |
+| `gain_run` | float | 10–18 | 14 |
+| `roof_height` | float | 4–8 | 6 |
+| `gain_roof` | float | 14–24 | 18 |
+| `gain_climb` | float | 8–16 | 12 |
+| `gain_open` | float | 0–9 | 0 |
+| `open_radius` | float | 4–9 | 6 |
+| `gain_npc_bump` | float | 10–22 | 15 |
 | `gain_npc_bump_cooldown` | float | 0.5–1.5 | 0.8 |
-| `gain_loud_ability` | float | 30–50 | 40.0 |
-| `gain_failed_kill` | float | 20–40 | 30.0 |
-| `gain_witnessed_kill` | float | 15–35 | 25.0 |
-| `tier_noticed` | float | 25–40 | 30.0 |
-| `tier_exposed` | float | 60–80 | 70.0 |
-| `hysteresis` | float | 3–10 | 5.0 |
-| `blend_crush_time` | float | 0.8–2.0 | 1.2 |
+| `gain_loud_ability` | float | 30–50 | 40 |
+| `gain_failed_kill` | float | 20–40 | 30 |
+| `gain_witnessed_kill` | float | 15–35 | 25 |
+| `tier_noticed` | float | 25–40 | 30 |
+| `tier_exposed` | float | 60–80 | 70 |
+| `hysteresis` | float | 3–10 | 5 |
+| `blend_crush_time` | float | 0.8–2 | 1.2 |
 | `blend_entry_time` | float | 0.2–0.6 | 0.35 |
-| `blend_exit_time` | float | 0.2–0.5 | 0.30 |
-| `blend_group_join_radius` | float | 2.0–3.5 | 2.5 |
+| `blend_exit_time` | float | 0.2–0.5 | 0.3 |
+| `blend_group_join_radius` | float | 2–3.5 | 2.5 |
 | `blend_group_slot_tolerance` | float | 0.5–1.2 | 0.8 |
 | `blend_pocket_min_npc` | int | 3–6 | 4 |
-| `blend_pocket_radius` | float | 2.5–5.0 | 3.5 |
+| `blend_pocket_radius` | float | 2.5–5 | 3.5 |
+| `break_on_damage` | bool | — | true |
+| `break_on_speed` | float | — | 2.2 |
 | `blend_prop_capacity` | int | 1–2 | 1 |
 | `blend_prop_exit_vuln` | float | 0.3–0.8 | 0.5 |
-| `blend_score_grace` | float | 0.5–1.5 | 1.0 |
-| `stillness_mult` | float | 1.2–1.8 | 1.40 |
-| `stillness_speed_ceiling` | float | 0.0–0.5 | 0.15 |
+| `blend_score_grace` | float | 0.5–1.5 | 1 |
+| `stillness_mult` | float | 1.2–1.8 | 1.4 |
+| `stillness_speed_ceiling` | float | 0–0.5 | 0.15 |
 
 ### 3.3 `CompassTuning` — TUNABLES §4
 
+*Regenerated 2026-09-29. The previous block left out `cone_full_radius`, `update_rate`, `lock_requires_los`; gave `warn_gives_direction` **false** → true.*
+
 | Field | Type | Range | Default |
 |---|---|---|---|
-| `range_max` | float | 45–80 | 60.0 |
-| `pulse_max` | float | 0.7–1.2 | 0.90 |
-| `pulse_min` | float | 0.10–0.25 | 0.15 |
-| `pulse_exp` | float | 1.6–3.0 | 2.2 |
-| `cone_halfwidth` | float | 8–20 | 12.0 |
-| `cone_wobble` | float | 0–8 | 4.0 |
+| `range_max` | float | 45–80 | 60 |
+| `pulse_max` | float | 0.7–1.2 | 0.9 |
+| `pulse_min` | float | 0.1–0.25 | 0.15 |
+| `pulse_exp` | float | 1.6–3 | 2.2 |
+| `cone_halfwidth` | float | 8–20 | 12 |
+| `cone_full_radius` | float | 6–24 | 20 |
+| `cone_wobble` | float | 0–8 | 4 |
 | `cone_wobble_period` | float | 2–6 | 3.1 |
-| `lock_cone` | float | 18–35 | 25.0 |
-| `lock_range` | float | 15–28 | 20.0 |
-| `lock_fill_time` | float | 1.0–2.5 | 1.6 |
-| `lock_decay_rate` | float | 1.0–3.0 | 1.4 |
-| `reveal_duration` | float | 1.0–2.5 | 1.5 |
-| `reveal_cooldown` | float | 2–8 | 4.0 |
-| `warn_radius` | float | 10–22 | 15.0 |
-| `warn_min_tier` | float | — | 30.0 |
-| `warn_duration` | float | 0.8–2.0 | 1.2 |
-| `warn_cooldown` | float | 1.5–5.0 | 2.5 |
-| `warn_gives_direction` | bool | — | **false** |
-| `cold_read_mult` | float | 1.15–1.6 | 1.30 |
+| `update_rate` | float | — | 30 |
+| `lock_cone` | float | 18–35 | 25 |
+| `lock_range` | float | 15–28 | 20 |
+| `lock_fill_time` | float | 1–2.5 | 1.6 |
+| `lock_decay_rate` | float | 1–3 | 1.4 |
+| `lock_requires_los` | bool | — | true |
+| `reveal_duration` | float | 1–2.5 | 1.5 |
+| `reveal_cooldown` | float | 2–8 | 4 |
+| `warn_radius` | float | 10–22 | 15 |
+| `warn_min_tier` | float | — | 30 |
+| `warn_duration` | float | 0.8–2 | 1.2 |
+| `warn_cooldown` | float | 1.5–5 | 2.5 |
+| `warn_gives_direction` | bool | — | true |
+| `cold_read_mult` | float | 1.15–1.6 | 1.3 |
 
 ### 3.4 `CombatTuning` — TUNABLES §5–6
 
+*Regenerated 2026-09-29. The previous block left out `anim_cancel_window`, `invalid_target_penalty`, `forces_exposed`, `score`, `vs_lunge_window`.*
+
 | Field | Type | Range | Default |
 |---|---|---|---|
-| `kill_range` | float | 2.0–3.2 | 2.5 |
-| `kill_facing_cone` | float | 45–90 | 60.0 |
+| `kill_range` | float | 2–3.2 | 2.5 |
+| `kill_facing_cone` | float | 45–90 | 60 |
 | `kill_anim_duration` | float | 1.2–1.8 | 1.4 |
+| `anim_cancel_window` | float | — | 0 |
 | `kill_validation_grace` | float | 0.2–0.6 | 0.35 |
 | `kill_contest_window` | float | 0.25–0.6 | 0.4 |
-| `kill_contest_stagger` | float | 1.0–2.5 | 1.5 |
+| `kill_contest_stagger` | float | 1–2.5 | 1.5 |
+| `invalid_target_penalty` | bool | — | true |
 | `kill_corpse_spawn_delay` | float | — | 0.9 |
-| `stun_range` | float | 2.5–4.0 | **3.0** |
-| `stun_facing_cone` | float | 90–180 | 120.0 |
-| `stun_min_tier` | float | — | 30.0 |
-| `stun_freeze` | float | 3.0–6.0 | 4.0 |
-| `stun_lockout` | float | 8–18 | 12.0 |
-| `stun_anim_duration` | float | 0.5–1.0 | 0.7 |
-| `stun_invalid_stagger` | float | 1.5–3.5 | 2.0 |
-| `stun_invalid_suspicion` | float | 10–30 | 20.0 |
-| `stun_cooldown` | float | 2–6 | 3.0 |
-| `second_wind_reduction` | float | 2–6 | 4.0 |
+| `stun_range` | float | 2.5–4 | 3 |
+| `stun_facing_cone` | float | 90–180 | 120 |
+| `stun_min_tier` | float | — | 30 |
+| `stun_freeze` | float | 3–6 | 4 |
+| `stun_lockout` | float | 8–18 | 12 |
+| `forces_exposed` | bool | — | true |
+| `score` | float | 75–250 | 200 |
+| `stun_anim_duration` | float | 0.5–1 | 0.7 |
+| `stun_invalid_stagger` | float | 1.5–3.5 | 2 |
+| `stun_invalid_suspicion` | float | 10–30 | 20 |
+| `stun_cooldown` | float | 2–6 | 3 |
+| `vs_lunge_window` | bool | — | true |
+| `second_wind_reduction` | float | 2–6 | 4 |
 
 ### 3.5 `ContractTuning` — TUNABLES §7
 
+*Regenerated 2026-09-29. The previous block named `respawn_min_dist_from_any` (no such field); left out `min_dist_from_any_player`, `suspicion`, `pursuit_duration`, `pursuit_sight_range`, `pursuit_sight_cone`, `pursuit_closecall_radius`.*
+
 | Field | Type | Range | Default |
 |---|---|---|---|
-| `reassign_delay` | float | 2–5 | 3.0 |
+| `reassign_delay` | float | 2–5 | 3 |
 | `anti_repeat_depth` | int | 1–3 | 1 |
 | `min_cycle_length` | int | — | 3 |
 | `repair_debounce` | float | 0.1–0.5 | 0.25 |
-| `respawn_delay` | float | 3–8 | 5.0 |
-| `respawn_min_dist_from_killer` | float | 25–60 | 40.0 |
-| `respawn_min_dist_from_any` | float | 8–20 | 12.0 |
-| `respawn_invuln` | float | 0.5–2.0 | 1.0 |
+| `respawn_delay` | float | 3–8 | 5 |
+| `respawn_min_dist_from_killer` | float | 25–60 | 40 |
+| `min_dist_from_any_player` | float | 8–20 | 12 |
+| `respawn_invuln` | float | 0.5–2 | 1 |
+| `suspicion` | float | — | 0 |
 | `spawn_point_count` | int | 6–8 | 6 |
+| `pursuit_duration` | float | 8–16 | 10.72 |
+| `pursuit_sight_range` | float | 16–40 | 25 |
+| `pursuit_sight_cone` | float | 60–120 | 90 |
+| `pursuit_closecall_radius` | float | 3–8 | 5 |
 
 ### 3.6 `CrowdTuning` — TUNABLES §9
 
+*Regenerated 2026-09-29. The previous block left out `count_max`, `count_default_4p`, `count_default_5p`, `clones_per_persona_max`, `clone_local_radius`, `group_count`, `idle_duration_min`, `idle_duration_max`, `idle_group_size_min`, `idle_group_size_max`, `startle_sprint_interval`, `fade_time`, `anchor_arrive_radius`.*
+
 | Field | Type | Range | Default |
 |---|---|---|---|
-| `count_min` / `count_max` | int | — | 60 / 90 |
-| `count_default_6p` / `_4p` | int | 66–90 / 60–78 | 78 / 66 |
-| `clones_per_persona_min` / `_max` | int | — | 8 / 12 |
+| `count_min` | int | — | 60 |
+| `count_max` | int | — | 90 |
+| `count_default_6p` | int | 66–90 | 78 |
+| `count_default_4p` | int | 60–78 | 66 |
+| `count_default_5p` | int | 63–84 | 72 |
+| `clones_per_persona_min` | int | — | 8 |
+| `clones_per_persona_max` | int | — | 12 |
 | `clone_local_min` | int | 1–4 | 2 |
-| `director_interval` | float | 1–5 | 2.0 |
-| `npc_speed_stroll` | float | — | **1.4** |
-| `npc_speed_flee` | float | 4–6 | 5.0 |
-| `group_size` / `group_count` | int | 3–6 / 3–6 | 4 / 4 |
-| `group_spacing` | float | 1.0–2.0 | 1.3 |
-| `startle_duration` | float | 3–6 | 4.0 |
-| `startle_radius_violence` | float | 8–18 | 12.0 |
-| `startle_radius_sprint` | float | 3–8 | 5.0 |
-| `startle_propagation` | float | 0.0–0.7 | 0.4 |
-| `gawk_duration` | float | 4–10 | 6.0 |
-| `gawk_radius` | float | 6–15 | 10.0 |
+| `clone_local_radius` | float | 15–40 | 25 |
+| `director_interval` | float | 1–5 | 2 |
+| `npc_speed_stroll` | float | — | 1.4 |
+| `npc_speed_flee` | float | 4–6 | 5 |
+| `group_size` | int | 3–6 | 4 |
+| `group_count` | int | 3–6 | 4 |
+| `group_spacing` | float | 1–2 | 1.3 |
+| `idle_duration_min` | float | 5–15 | 8 |
+| `idle_duration_max` | float | 15–40 | 25 |
+| `idle_group_size_min` | int | — | 2 |
+| `idle_group_size_max` | int | 4–6 | 4 |
+| `startle_duration` | float | 3–6 | 4 |
+| `startle_radius_violence` | float | 8–18 | 12 |
+| `startle_radius_sprint` | float | 3–8 | 5 |
+| `startle_sprint_interval` | float | 0.5–2 | 1 |
+| `startle_propagation` | float | 0–0.7 | 0.4 |
+| `gawk_duration` | float | 4–10 | 6 |
+| `gawk_radius` | float | 6–15 | 10 |
 | `gawk_max` | int | 4–10 | 6 |
-| `corpse_lifetime` | float | 12–30 | 20.0 |
-| `bump_push` | float | 0.8–2.0 | 1.2 |
+| `corpse_lifetime` | float | 12–30 | 20 |
+| `fade_time` | float | — | 1.5 |
+| `bump_push` | float | 0.8–2 | 1.2 |
+| `anchor_arrive_radius` | float | 0.6–2.5 | 1.2 |
 
 ### 3.7 `MatchTuning` — TUNABLES §10
 
+*Regenerated 2026-09-29. The previous block named `lobby_min_players` (no such field); left out `min_players`, `max_players`.*
+
 | Field | Type | Range | Default |
 |---|---|---|---|
-| `lobby_min_players` / `_max_players` | int | — | 4 / 6 |
-| `lobby_countdown` | float | 3–10 | 5.0 |
-| `duration` | float | 420–600 | 480.0 |
-| `finalphase_duration` | float | 20–60 | 30.0 |
-| `finalphase_mult` | float | 1.5–3.0 | 2.0 |
-| `finalphase_warning` | float | 3–10 | 5.0 |
-| `results_duration` | float | 15–45 | 25.0 |
-| `tick_rate` | int | — | 30 |
+| `min_players` | int | — | 4 |
+| `max_players` | int | — | 6 |
+| `lobby_countdown` | float | 3–10 | 5 |
+| `duration` | float | 420–600 | 480 |
+| `finalphase_duration` | float | 20–60 | 30 |
+| `finalphase_mult` | float | 1.5–3 | 2 |
+| `finalphase_warning` | float | 3–10 | 5 |
+| `results_duration` | float | 15–45 | 25 |
+| `tick_rate` | float | — | 30 |
 
 ### 3.8 `ScoringTuning` — TUNABLES §11
 
-**Regenerated 2026-09-29 from `scripts/core/tuning/scoring_tuning.gd`**, every field, type,
-`@export_range` and default as the resource declares them, so this table is the resource rather
-than a memory of it. *It had been written at M0 and never re-read: every points field was typed
-`int`, five values were the pre-ADR-0013 prices (silent 100, patient 150, focus 100, stun 100,
-reckless −50), `variety` was called `variety_per_type`, and `patient_speed`, `halfseen`,
-`escape`, `closecall`, `stun_invalid` and `death_penalty` were missing. The second review of
-#238 found it, after the first had corrected one row of it.* TUNABLES §11 says what each is
-for.
+*Regenerated 2026-09-29, first of the blocks, during the review of #238. The M0 block typed every
+points field `int`, carried five pre-ADR-0013 prices (silent 100, patient 150, focus 100, stun 100,
+reckless −50), called `variety` `variety_per_type`, and left out `patient_speed`, `halfseen`,
+`escape`, `closecall`, `stun_invalid` and `death_penalty`.*
 
 | Field | Type | Range | Default |
 |---|---|---|---|
@@ -287,45 +354,115 @@ for.
 
 ### 3.9 `CameraTuning` — TUNABLES §12
 
-`fov_blend` 55 · `fov_stroll` 60 · `fov_jog` 65 · `fov_run` 69 · `fov_sprint` 72 ·
-`fov_blend_rate` 90 · `arm_length` 2.6 · `arm_height` 1.55 ·
-`occlusion_pull_rate` 12.0 · `occlusion_restore_rate` 4.0 ·
-`crowdscan_speed` 0.45 · `crowdscan_fov` 48.
+*Regenerated 2026-09-29. The previous block named `fov_jog` (no such field); left out `fov_climb`, `fov_motion_reduced`, `occlusion_margin`.*
+
+| Field | Type | Range | Default |
+|---|---|---|---|
+| `fov_blend` | float | 50–60 | 55 |
+| `fov_stroll` | float | 55–65 | 60 |
+| `fov_run` | float | 64–74 | 69 |
+| `fov_climb` | float | 55–70 | 62 |
+| `fov_sprint` | float | 68–80 | 72 |
+| `fov_blend_rate` | float | 60–140 | 90 |
+| `fov_motion_reduced` | float | 55–70 | 62 |
+| `arm_length` | float | 2.2–3.2 | 2.6 |
+| `arm_height` | float | 1.4–1.8 | 1.55 |
+| `occlusion_margin` | float | 0.1–0.5 | 0.2 |
+| `occlusion_pull_rate` | float | 8–20 | 12 |
+| `occlusion_restore_rate` | float | 2–8 | 4 |
+| `crowdscan_speed` | float | 0.3–0.7 | 0.45 |
+| `crowdscan_fov` | float | 42–54 | 48 |
 
 ### 3.10 `NetTuning` — TUNABLES §13
 
-`server_tick_hz` 30 · `client_input_rate` 60 · `snapshot_rate` 30 · `interp_buffer_ms` 100 ·
-`lagcomp_min_ms` 100 · `lagcomp_max_ms` 200 · `lagcomp_history_ms` 500 ·
-`reconcile_threshold` 0.10 · `reconcile_smooth_time` 0.12 · `input_buffer_size` 32 ·
-`bandwidth_budget_down` 96 · `bandwidth_budget_up` 16 · `timeout` 10.0 · `quant_pos` 0.01 ·
-`quant_yaw` 1.0 · `npc_cull_radius` 70.0.
+*Regenerated 2026-09-29. The previous block named `server_tick_hz`, `interp_buffer_ms`, `lagcomp_min_ms`, `lagcomp_max_ms`, `lagcomp_history_ms` (no such field); left out `server_tick`, `interp_buffer`, `lagcomp_min`, `lagcomp_max`, `lagcomp_history`, `npc_rate_lod_radius`, `npc_rate_lod_hz`.*
+
+| Field | Type | Range | Default |
+|---|---|---|---|
+| `server_tick` | float | — | 30 |
+| `client_input_rate` | float | — | 60 |
+| `snapshot_rate` | float | 15–30 | 30 |
+| `interp_buffer` | float | 80–150 | 100 |
+| `lagcomp_min` | float | — | 100 |
+| `lagcomp_max` | float | 150–250 | 200 |
+| `lagcomp_history` | float | 300–1000 | 500 |
+| `reconcile_threshold` | float | 0.05–0.25 | 0.1 |
+| `reconcile_smooth_time` | float | 0.08–0.25 | 0.12 |
+| `input_buffer_size` | int | 16–64 | 32 |
+| `bandwidth_budget_down` | float | 64–160 | 96 |
+| `bandwidth_budget_up` | float | 8–32 | 16 |
+| `timeout` | float | 5–20 | 10 |
+| `quant_pos` | float | — | 0.01 |
+| `quant_yaw` | float | — | 1 |
+| `npc_cull_radius` | float | 50–90 | 70 |
+| `npc_rate_lod_radius` | float | 25–70 | 45 |
+| `npc_rate_lod_hz` | float | 5–30 | 10 |
 
 ### 3.11 `UiAudioTuning` — TUNABLES §15
 
-`readability_target` 0.5 · `scorefeed_duration` 4.0 · `scorefeed_max_lines` 4 ·
-`scorefeed_stagger` 0.12 · `tier_transition_time` 0.25 · `damage_vignette_time` 0.8 ·
-`compass_duck` −6.0 · `sting_duck` −12.0 · `occlusion_lowpass` 900 ·
-`footstep_radius_blend` 4.0 · `footstep_radius_sprint` 18.0.
+*Regenerated 2026-09-29; the previous block already agreed with the resource.*
 
-### 3.13 `AbilityTuning` — TUNABLES §8.1
-
-The five ability-system settings that belong to no single ability: `slots_active`,
-`slots_passive`, `lock_at_match_start`, `global_cooldown`, `input_buffer`. Added because §8's
-globals had no home in the original §2 field list, and a documented `TUN-` value that lives
-nowhere in the data breaks the "every number is a tunable" rule.
+| Field | Type | Range | Default |
+|---|---|---|---|
+| `readability_target` | float | — | 0.5 |
+| `scorefeed_duration` | float | 3–6 | 4 |
+| `scorefeed_max_lines` | int | 3–6 | 4 |
+| `scorefeed_stagger` | float | 0.08–0.25 | 0.12 |
+| `tier_transition_time` | float | 0.15–0.4 | 0.25 |
+| `damage_vignette_time` | float | — | 0.8 |
+| `compass_duck` | float | — | −6 |
+| `sting_duck` | float | — | −12 |
+| `occlusion_lowpass` | float | 600–1600 | 900 |
+| `footstep_radius_blend` | float | 3–6 | 4 |
+| `footstep_radius_sprint` | float | 12–26 | 18 |
 
 ### 3.12 `FeatureFlags`
 
-```gdscript
-class_name FeatureFlags
-extends Resource
+*Regenerated 2026-09-29; the previous block already agreed with the resource.*
 
-## Enable ABIL-SECONDFACE. Off until US-0051 completes. REMOVE THIS FLAG AT M5 EXIT.
-@export var enable_second_face: bool = false
-```
+| Field | Type | Range | Default |
+|---|---|---|---|
+| `enable_second_face` | bool | — | false |
 
 **Every flag's docstring names the story that removes it.** A flag with no removal story is
 technical debt with a nice name, and the Definition of Done checks for it.
+
+### 3.13 `AbilityTuning` — TUNABLES §8
+
+*Regenerated 2026-09-29; the previous block already agreed with the resource.*
+
+| Field | Type | Range | Default |
+|---|---|---|---|
+| `slots_active` | int | — | 2 |
+| `slots_passive` | int | — | 1 |
+| `lock_at_match_start` | bool | — | true |
+| `global_cooldown` | float | 0.3–1 | 0.5 |
+| `input_buffer` | float | 0.1–0.3 | 0.2 |
+
+The ability-system settings that belong to no single ability. Added because §8's globals had no
+home in the original §2 field list, and a documented `TUN-` value that lives nowhere in the data
+breaks the "every number is a tunable" rule. The per-ability fields are `AbilityData`'s, one
+resource per ability (§4). *This heading pointed at TUNABLES §8.1, which is Cinderfall's; the
+globals are §8's own table. And this block sat before §3.12 until the review of #241.*
+
+### 3.14 `PerfTuning` — TUNABLES §14
+
+*This resource had no section here at all until 2026-09-29, although `TuningProfile` carries it as
+`perf` beside the other thirteen.*
+
+| Field | Type | Range | Default |
+|---|---|---|---|
+| `frame_budget` | float | — | 16.6 |
+| `crowd_budget` | float | — | 2 |
+| `net_budget` | float | — | 1.5 |
+| `gameplay_budget` | float | — | 2 |
+| `ui_budget` | float | — | 1 |
+| `render_budget` | float | — | 9 |
+| `server_tick_budget` | float | — | 8 |
+| `crowd_lod_near` | float | 15–30 | 20 |
+| `crowd_lod_mid` | float | 30–60 | 45 |
+| `crowd_lod_far` | float | — | 70 |
+| `crowd_repath_per_tick` | int | 1–10 | 3 |
 
 ---
 
@@ -341,7 +478,7 @@ technical debt with a nice name, and the Definition of Done checks for it.
 | `suspicion_cost` | float | |
 | `forces_exposed` | bool | Whisperbolt only |
 | `exposed_tail` | float | |
-| `effect_script` | `Script` | `extends AbilityEffect`. **The only per-ability code.** Set for `ABIL-CINDERFALL` (US-0067); null for the other three until US-0069/0070. **Stripped from `TuningProfile.serialise`** — effects are server-only and `scripts/systems/` is excluded from the client export, so a client is never handed the code by whatever it connected to. `tell_vfx` is stripped for the same reason. Neither is in `compute_hash`, so this cannot cause a handshake refusal |
+| `effect_script` | `Script` | `extends AbilityEffect`. **The only per-ability code.** Set for `ABIL-CINDERFALL` (US-0067) and `ABIL-LUNGE` (US-0070); null for Second Face until US-0069, and for Whisperbolt, deferred. *Was: "null for the other three until US-0069/0070" — stale since US-0070.* **Stripped from `TuningProfile.serialise`** — effects are server-only and `scripts/systems/` is excluded from the client export, so a client is never handed the code by whatever it connected to. `tell_vfx` is stripped for the same reason. Neither is in `compute_hash`, so this cannot cause a handshake refusal |
 | `range_min` / `range_max` / `radius` | float | |
 | `tell_sfx` | `StringName` | `SFX-*` |
 | `tell_audio_radius` | float | **Environmental/audio tell channel** |
