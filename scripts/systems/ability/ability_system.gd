@@ -256,8 +256,8 @@ func _duration_ticks(data: AbilityData) -> int:
 
 ## **THE BURST.** The effect starts, the crowd scatters, and the duration begins
 ## counting from here rather than from the press — so a 0.45 s throw followed by a
-## 4.0 s cloud is 4.0 s of cloud, which is what `TUN-CINDERFALL-DURATION`'s row
-## promises and what the counterplay is priced against.
+## 6.0 s cloud is 6.0 s of cloud, which is what `TUN-CINDERFALL-DURATION`'s row
+## promises and, since ADR-0023, how long a caught figure is held.
 func _begin(ctx: MatchContext, peer: int, row: LiveAbility, data: AbilityData) -> void:
 	row.began = true
 	row.ends_at = ctx.tick + maxi(_duration_ticks(data), 1)

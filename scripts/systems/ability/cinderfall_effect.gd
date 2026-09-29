@@ -47,7 +47,7 @@ func begin(ctx: MatchContext, caster: int, aim: AimData) -> void:
 ## never started" when it had in fact finished. **The first effect with a duration
 ## is the first that must override it**, and forgetting to would not break the
 ## cloud (`CinderfallVolumes` expires on its own clock) but would make
-## `is_effect_active` false for the whole 4 s, which is what `SCORE-MASKED` and
+## `is_effect_active` false for the cloud's whole life, which is what `SCORE-MASKED` and
 ## Second Face's identity swap will read.
 ##
 ## The deadline is `AbilitySystem`'s, from `TUN-CINDERFALL-DURATION`. This never

@@ -219,3 +219,61 @@ func test_a_far_away_player_is_offered_nothing() -> void:
 	var group := _director.formations().groups[0]
 	var far := group.slot_position(group.joinable_slot()) + Vector3(30.0, 0.0, 30.0)
 	assert_eq(_director.joinable_group(far), -1, "a group 42 m away was offered")
+
+
+## **A CLOUD HOLDS NPCs THROUGH THE REAL DIRECTOR, AND A PROCESSION WAITS FOR ITS
+## HELD MEMBER** (ADR-0023, US-0104; the review of #239). The unit test proves which
+## positions `CinderfallVolumes.held_among` names; only a running crowd proves that
+## `CrowdDirector` takes that set, drives a held stroller at speed 0, and hands it to
+## `CrowdFormations`, whose worst-straggler pace then stops the whole group.
+func test_a_cloud_holds_a_stroller_and_a_procession_waits_for_its_member() -> void:
+	await _stand_up()
+	await _run(30)
+	var groups := _director.formations().groups
+	var member: int = groups[0].occupants[0]
+	assert_ne(member, WalkingGroup.EMPTY, "the premise: group 0 has nobody in slot 0")
+	if member == WalkingGroup.EMPTY:
+		return
+	var stroller: int = await _a_walking_stroller_away_from(_pool.body_of(member).global_position)
+	assert_ne(stroller, -1, "the premise: no stroller was walking, so nothing can be held")
+	if stroller == -1:
+		return
+	var at_member := _pool.body_of(member).global_position
+	var at_stroller := _pool.body_of(stroller).global_position
+	_ctx.cinderfall.add(at_member, _ctx.tick)
+	_ctx.cinderfall.add(at_stroller, _ctx.tick)
+	var held_from := groups[0].distance
+	var free_from := groups[1].distance
+	await _run(40)
+	var moved_member := _flat(_pool.body_of(member).global_position - at_member)
+	var moved_stroller := _flat(_pool.body_of(stroller).global_position - at_stroller)
+	gut.p("held member %.2f m, held stroller %.2f m" % [moved_member, moved_stroller])
+	assert_lt(moved_stroller, 0.3, "a stroller inside a cloud kept walking")
+	assert_lt(moved_member, 0.3, "a procession member inside a cloud kept walking")
+	var held_group := groups[0].distance - held_from
+	var free_group := groups[1].distance - free_from
+	gut.p("held group advanced %.2f m, free group %.2f m" % [held_group, free_group])
+	assert_lt(held_group, free_group, "the procession did not wait for its held member")
+	assert_lt(
+		held_group, Tuning.crowd.group_spacing + 0.1, "the procession walked on past its member"
+	)
+
+
+## A stroller that walked over the last ten ticks (0.3 m; a stroll covers 0.47), at
+## least 12 m from `away` so the two clouds cannot overlap. -1 if there is none.
+func _a_walking_stroller_away_from(away: Vector3) -> int:
+	var before := {}
+	for index: int in CROWD:
+		before[index] = _pool.body_of(index).global_position
+	await _run(10)
+	for index: int in CROWD:
+		var here := _pool.body_of(index).global_position
+		if _pool.brain_of(index).state != NpcBrain.State.STROLL:
+			continue
+		if _flat(here - away) > 12.0 and _flat(here - (before[index] as Vector3)) > 0.3:
+			return index
+	return -1
+
+
+static func _flat(v: Vector3) -> float:
+	return Vector2(v.x, v.z).length()

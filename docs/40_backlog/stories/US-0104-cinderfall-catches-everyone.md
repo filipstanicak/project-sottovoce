@@ -61,6 +61,13 @@ rule. This story builds it and rewrites GDD-04 §3.1 in the same commit.
 - **The caster's pursuer is stunned through `StunSystem.stun_from_cloud`**, which raises the
   same `stunned` signal a pressed stun does, so the score, the announcement and the contract
   loss follow unchanged. No tier floor on this route, by the owner's answer of 2026-09-25.
+- **`PROTOCOL_VERSION` 4 → 5**, found missing by the review of #239: `state_id` is an index
+  into `PawnStateId.ALL`, so a version-4 client would decode index 16 as no state at all.
+  `test_the_state_list_is_part_of_the_protocol.gd` pairs the state count with the version.
+- **The NPC hold is proven through the running crowd**, also at the review's request:
+  `test_walking_groups.gd` holds a stroller and a procession member under two clouds and
+  asserts both stand, and that their procession falls behind a free one. Each of the three
+  director wirings, removed alone, reddens it.
 
 ## Test notes
 

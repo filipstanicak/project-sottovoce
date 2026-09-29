@@ -90,10 +90,12 @@ var pawn_machines: Dictionary = {}
 ## once per replayed command.
 var impulses := SuspicionImpulses.new()
 
-## **THE CINDER CLOUDS.** Placed by `SYS-ABILITY` (nothing places one yet), read
-## by `SYS-DETECTION` for line of sight and by `SYS-KILL` for TDD-10 §3's first
-## gate. **On the context rather than inside detection**, because it now has two
-## readers in different stages and the second one arrived in US-0060 — a volume
+## **THE CINDER CLOUDS.** Placed by `SYS-ABILITY` (`CinderfallEffect`, US-0067),
+## read by `CinderfallCatch` and `CrowdDirector` for who is held (ADR-0023), and —
+## only while their switches are on, which they are not in the shipped profile — by
+## `SYS-DETECTION` for line of sight and by `SYS-KILL` for TDD-10 §3's first gate. **On
+## the context rather than inside detection**, because it has readers in several
+## stages — the second arrived in US-0060, two more with US-0104 — and a volume
 ## list owned by one system and reached through it by another is the shape
 ## `announced_contracts` was moved here to avoid.
 var cinderfall := CinderfallVolumes.new()

@@ -51,7 +51,15 @@ const CHANNEL_COUNT := 3
 ## client would drop the roster as an unknown RPC and never dress anybody — the
 ## gate in `Wardrobe` would hold forever and the district would stay grey on that
 ## one screen while every other client drew it in colour.
-const PROTOCOL_VERSION := 4
+##
+## **5 (2026-09-29, US-0104): the seventeenth pawn state, `Choking`, index 16.**
+## `state_id` is an index into `PawnStateId.ALL` in both the own and the remote pawn
+## records, and a version-4 client holds indices 0-15: it would decode 16 as no state
+## at all and draw a coughing figure as whatever `&""` falls back to — plausible, and
+## read as a rendering fault. The review of #239 found the bump missing;
+## `test_the_state_list_is_part_of_the_protocol.gd` now refuses a state appended
+## without one.
+const PROTOCOL_VERSION := 5
 
 ## How often a client sends `NET-C2S-PING`. The catalogue's rate column, and
 ## **not a tunable**: it changes nothing a player can perceive. The server does

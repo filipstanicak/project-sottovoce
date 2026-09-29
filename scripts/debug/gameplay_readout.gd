@@ -61,8 +61,9 @@ func lines() -> Array[String]:
 
 
 ## **THE ONE NUMBER NOBODY CAN JUDGE WITHOUT SEEING IT.**
-## `TUN-CINDERFALL-DURATION` is 4.0 s and the cloud is centred on the caster since
-## 2026-09-03, so a cast costs four seconds of not being able to read the street —
+## `TUN-CINDERFALL-DURATION` is 6.0 s and the cloud is centred on the caster since
+## 2026-09-03 — and since ADR-0023 it is also how long everyone caught in it is held,
+## so a cast costs six seconds of not being able to read the street —
 ## and "that felt like eight" and "that was too dense" are different findings that
 ## look identical from inside the smoke.
 func _cinder_line() -> String:

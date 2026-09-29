@@ -1,4 +1,5 @@
-## **THE ONE THING THAT BLOCKS LINE OF SIGHT AND IS NOT GEOMETRY.** GDD-04 §8.1,
+## **THE CINDER CLOUDS: WHO THEY HOLD, AND — WITH A SWITCH ON — WHAT THEY BLOCK.**
+## GDD-04 §3.1 and §8.1,
 ## TUNABLES §8.1, US-0056. SERVER ONLY, and pure — spheres in, a yes or no out,
 ## with no physics server involved.
 ##
@@ -9,15 +10,15 @@
 ## detection, Compass lock and `SCORE-FOCUS` accumulation alike. It has to be checked
 ## *alongside* the world raycast rather than instead of it, because it is not on
 ## the navigation mesh, not in the collision world, and exists for
-## `TUN-CINDERFALL-DURATION` 4.0 s and then does not.
+## `TUN-CINDERFALL-DURATION` (6.0 s) and then does not.
 ##
 ## **A SPHERE RATHER THAN A BODY, DELIBERATELY.** Putting a `StaticBody3D` on the
-## `WORLD` layer for four seconds would also block the traversal probes — so a
+## `WORLD` layer for the cloud's life would also block the traversal probes — so a
 ## player could vault a cloud — and would put a gameplay volume where
 ## `test_probes_mask_world_only.gd` promises only level geometry is.
 ##
-## **NOTHING PLACES ONE YET.** `ABIL-CINDERFALL` is `SYS-ABILITY`'s, later in M4;
-## `add()` is the entry point and has no caller, the same shape as
+## **`CinderfallEffect.begin` places them** (US-0067), with the caster since US-0104.
+## Until US-0067 `add()` had no caller at all, the same shape as
 ## `CrowdAlarm.startle_at` through all of M3.
 ##
 ## **A CLOUD REMEMBERS WHEN IT LIT AS WELL AS WHEN IT GOES OUT** (US-0060), which
@@ -108,10 +109,11 @@ func count_at(tick: int) -> int:
 	return n
 
 
-## **IS `point` INSIDE A CLOUD THAT WAS ALIGHT AT `tick`?** TDD-10 §3's first
-## gate: kill initiation is refused inside any cinder volume, **including the
-## caster's own** — an ability that denied the area to everybody but the person
-## who threw it would be a free kill setup rather than area denial.
+## **IS `point` INSIDE A CLOUD THAT WAS ALIGHT AT `tick`, FOR THE KILL GATE?**
+## TDD-10 §3's first gate — **off in the shipped profile since ADR-0023**, which
+## made *cloud, then kill inside it* the ability. With `TUN-CINDERFALL-BLOCKS-KILL`
+## back on, initiation is refused inside any cloud, the caster's own included. For
+## who a cloud holds, ask `catches`.
 func contains_at(point: Vector3, tick: int) -> bool:
 	# **`TUN-CINDERFALL-BLOCKS-KILL` IS READ RATHER THAN ASSUMED**, the same way
 	# `_radius()` reads `TUN-CINDERFALL-BLOCKS-LOS`. TUNABLES gives both as bools so
@@ -146,9 +148,11 @@ func clear() -> void:
 
 ## Does any live cloud sit across the segment `from` -> `to`?
 ##
+## **Only while `TUN-CINDERFALL-BLOCKS-LOS` is on — false since ADR-0023.**
+##
 ## **THE TEST IS AGAINST THE SEGMENT, NOT THE ENDPOINTS.** A cloud between two
-## players touches neither of them, which is the whole point of area denial: it
-## is placed in the gap. Testing "is either end inside a cloud" would let a hunter
+## players touches neither of them, and blocking sight was about the gap. Testing "is
+## either end inside a cloud" would let a hunter
 ## see straight through one they had thrown down the alley ahead.
 ## **AND IT TAKES THE TICK IT IS ASKED ABOUT** (US-0060), because since the
 ## retention change above the array holds clouds that have already gone out. A

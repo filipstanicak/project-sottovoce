@@ -1,5 +1,6 @@
-## **A CAST CLOUD BLOCKS SIGHT, THE LOCK AND `SCORE-FOCUS` AT ONCE.** GDD-04 §3.1,
-## TUNABLES §8.1, US-0067.
+## **WITH THE SWITCH ON, A CAST CLOUD BLOCKS SIGHT, THE LOCK AND `SCORE-FOCUS` AT
+## ONCE; THE SHIPPED CLOUD BLOCKS NOTHING (ADR-0023).** GDD-04 §3.1, TUNABLES §8.1,
+## US-0067.
 ##
 ## `TUN-CINDERFALL-BLOCKS-LOS` is one switch over one query, and that is the whole
 ## reason the three cannot disagree: `DetectionSystem.has_los` is **the only
@@ -122,9 +123,9 @@ func test_the_cloud_appears_when_the_wind_up_ends() -> void:
 
 
 func test_the_duration_runs_from_the_burst_and_not_from_the_press() -> void:
-	# **A 0.45 s THROW FOLLOWED BY A 4.0 s CLOUD IS 4.0 s OF CLOUD.** Counted from
-	# the press it would be 3.55, and the counterplay GDD-04 §3.1 prices — *wait at
-	# its edge, it lasts 4 s* — would be priced against a number the game does not
+	# **A 0.45 s THROW FOLLOWED BY A 6.0 s CLOUD IS 6.0 s OF CLOUD.** Counted from
+	# the press it would be 5.55 — and since ADR-0023 that is also how long a caught
+	# figure is held, so the hold would be priced against a number the game does not
 	# have.
 	_throw_ahead()
 	_advance(Tuning.ticks(&"TUN-CINDERFALL-DURATION") - 2)

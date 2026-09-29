@@ -1,10 +1,11 @@
 ## **THE CLOUD IS DRAWN WHERE IT IS, FOR AS LONG AS IT IS.** US-0067, drawn
 ## 2026-09-03.
 ##
-## `ABIL-CINDERFALL` blocks line of sight and forbids kill initiation, and until
-## this view existed **no client drew any of it** — so the ability presented as the
-## Compass going quiet and the reticle refusing, with nothing on screen to explain
-## either. Every assertion here is about the drawing agreeing with the volume,
+## `ABIL-CINDERFALL` holds everyone in it but the caster since ADR-0023 (until then
+## it blocked sight and forbade kills), and until this view existed **no client drew
+## any of it** — so the ability presented as the Compass going quiet and the reticle
+## refusing, with nothing on screen to explain either; now it would be a figure that
+## cannot move. Every assertion here is about the drawing agreeing with the volume,
 ## because GDD-04 §3.1 makes the counter to this ability *wait at the cloud's edge*
 ## and an edge drawn anywhere but its real place is a counterplay that lies.
 extends GutTest
