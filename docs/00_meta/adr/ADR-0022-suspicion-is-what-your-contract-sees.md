@@ -4,8 +4,8 @@ title: Suspicion is what your contract sees
 version: 1.0.0
 status: proposed
 owner: Lead Game Designer
-last_updated: 2026-09-25
-depends_on: [ADR-0013, ADR-0014, GDD-03-SOCIAL-STEALTH, GDD-06-UI-AUDIO]
+last_updated: 2026-09-29
+depends_on: [ADR-0013, ADR-0014, ADR-0019, ADR-0020, ADR-0021, GDD-03-SOCIAL-STEALTH, GDD-06-UI-AUDIO]
 ---
 
 # ADR-0022 — Suspicion is what your contract sees
