@@ -4,8 +4,9 @@ title: Cinderfall catches everyone in it, and the caster may kill there
 version: 1.0.0
 status: accepted
 owner: Lead Game Designer
-last_updated: 2026-09-25
-depends_on: [ADR-0013, ADR-0017, GDD-04-ABILITIES]
+last_updated: 2026-09-29
+depends_on: [ADR-0013, ADR-0017, ADR-0018, ADR-0019, GDD-04-ABILITIES]
+supersedes: none
 ---
 
 # ADR-0023 — Cinderfall catches everyone in it, and the caster may kill there

@@ -38,6 +38,7 @@ That is a stop-and-ask condition in
 | `test_protocol_docs_sync` | A message added to one protocol document and not its deliberate duplicate | Each table reads correctly on its own; the bible's header claimed this guard for two milestones before it existed |
 | `test_claude_md_counts_are_current` | The first file a fresh session reads going stale | A number in a table is not executed by anything; this one was wrong for twelve PRs |
 | `test_depends_on_resolves` | A `depends_on` naming a document that does not exist | Each dangling id is a plausible short form of a real one; the first count of them used a substring grep and was wrong by eightfold |
+| `test_adrs_follow_the_template` | An ADR whose frontmatter departs from DECISION_LOG §2.2's template | The template said *exactly* while eleven ADRs left out `supersedes:`; each copied the previous ADR rather than the template, so the drift looked like a convention |
 | `test_data_schema_mirrors_tuning` | DATA_SCHEMA §3 drifting from the tuning resources it documents | Every row is a plausible number; written at M0 and never re-read, thirteen of fourteen tables were wrong when it was first compared. It also refuses an `@export` its parser cannot read, which would otherwise be skipped by both sides |
 
 The last one is the pattern: these failures are all *individually defensible*
