@@ -57,7 +57,7 @@ depends_on: [GDD-06-UI-AUDIO, TDD-11-UI, BIBLE-ART, ADR-0006]
 │  │NOTICED │                                      │Patient │ │
 │  └────────┘        ╭──────────╮                  └────────┘ │
 │                    │    ▲     │  A COMPASS         D feed   │
-│  ┌───┐┌───┐        │  ╱   ╲   │  at the feet, flat          │
+│  ┌───┐┌───┐        │  ╱   ╲   │  round the legs, flat       │
 │  │ Q ││ F │  G     │ ╱ cone ╲ │                             │
 │  └───┘└───┘        ╰──────────╯                             │
 └─────────────────────────────────────────────────────────────┘
@@ -65,7 +65,7 @@ depends_on: [GDD-06-UI-AUDIO, TDD-11-UI, BIBLE-ART, ADR-0006]
 
 | Element | Anchor | Size | Rationale |
 |---|---|---|---|
-| **A Compass** | **At the pawn's feet, lying on the ground** (US-0105, ADR-0024): a flat ring at a fixed spot, centred at **80 % of the frame's height**, where the feet stand at `TUN-CAM-REST-PITCH`'s framing. The reference draws its compass there and keeps it there when the view tilts, so it is fixed on screen, never projected under the body. *Was: bottom-centre, 64 px from the edge, upright* | 270 × 135 (a 220-unit dial, widened and flattened by `CompassWidget.ground_scale`) | Most-consulted element. At the feet it is where the eye already is, reachable by peripheral vision without moving the eyes off the crowd |
+| **A Compass** | **Around the pawn's legs, lying on the ground** (US-0105, ADR-0024): a flat ring at a fixed spot, centred at **80 % of the frame's height**, where the reference draws its compass and keeps it when the view tilts, so it is fixed on screen, never projected under the body. **Not at the feet, and neither is the reference's**: measured, its ring circles the legs at knee-to-thigh height, about 40 % of the figure above the feet; ours at `TUN-CAM-REST-PITCH`'s framing is about 30 % (0.27 by the rig's own arithmetic, 0.31 read off the client's screenshot). The owner took the reference's spot on 2026-09-29 when the review of #243 found the words said *feet*; `test_the_compass_rings_the_legs.gd` holds the relation. *Was: bottom-centre, 64 px from the edge, upright* | 270 × 135 (a 220-unit dial, widened and flattened by `CompassWidget.ground_scale`) | Most-consulted element. Round the legs it is where the eye already is, reachable by peripheral vision without moving the eyes off the crowd |
 | **B Contract portrait** | Top-left | 180 × 220 | Consulted rarely (on assignment, after a lock). Corner is correct. **Shows the persona from assignment as of ADR-0021 (2026-09-22)**; a completed lock adds the `Identified` mark |
 | **C Tier indicator** | Left, above abilities | 272 × 112 | Includes a 24 px tier word and up to two lines of 15 px source text; stays outside the central reading area |
 | **D Score feed** | Right, above centre | 320 × 220 | Peripheral by design — must be readable *without* looking |
@@ -450,7 +450,7 @@ can choose without having used it.
 
 | # | Question | Position | Needed by |
 |---|---|---|---|
-| 1 | Is 220 px enough for the Compass to be readable peripherally at 1080p? | Test at M5. If not, grow it before moving it — position is more load-bearing than size. **Both moved on 2026-09-29 (US-0105), by owner decision for reference fidelity**: to the feet, and 270 px wide, the reference's measured width; whether it reads peripherally is now a question for the playtest | M5 |
+| 1 | Is 220 px enough for the Compass to be readable peripherally at 1080p? | Test at M5. If not, grow it before moving it — position is more load-bearing than size. **Both moved on 2026-09-29 (US-0105), by owner decision for reference fidelity**: to the reference's spot round the legs, and 270 px wide, the reference's measured width; whether it reads peripherally is now a question for the playtest | M5 |
 | 2 | Should the contract portrait show the full persona on reveal, or only a silhouette class? Full narrows ~78 candidates to ~12. | **Settled 2026-09-22 by ADR-0021: the full persona, and from assignment rather than on reveal** — the reference shows the picture from the start. (It read *Full for MVP (ASM-0030), degrade to class if `TEL-TIME-TO-KILL` drops after first lock* until then.) | — |
 | 3 | No HUD indication of stun-lockout remaining when you are the stunned player. Being unable to act with no visible reason is the worst kind of opacity. | Add to the tier widget at M5. Small addition, real cost if omitted | M5 |
 | 4 | Should the score feed show *which contract* a bonus was for during a fast multi-kill? | No. It would need identity information the protocol deliberately withholds | — |

@@ -24,11 +24,12 @@ extends Control
 ## What reaches the screen is that circle laid on the ground (`ground_scale`).
 const DIAMETER := 220.0
 
-## **AT THE PAWN'S FEET, LYING ON THE GROUND** (US-0105, ADR-0024, UI_UX_SPEC §1.1).
+## **ROUND THE PAWN'S LEGS, LYING ON THE GROUND** (US-0105, ADR-0024, UI_UX_SPEC §1.1).
 ## The reference draws its target compass as a flat ring at a fixed spot on screen —
 ## centred, at 80 % of the frame's height, about 14 % of its width and half as tall —
-## which is where the feet stand at `TUN-CAM-REST-PITCH`'s framing, and it stays
-## there when the view tilts. So the spot is fixed on screen here too, never
+## which circles the legs at `TUN-CAM-REST-PITCH`'s framing, as the reference's circles
+## its figure's (`test_the_compass_rings_the_legs.gd`), and it stays there when the
+## view tilts. So the spot is fixed on screen here too, never
 ## projected under the body. Measured from the reference's recordings (sources in
 ## the chat log, never here). *Until 2026-09-29: a 220 px upright dial, centre-bottom,
 ## 64 px from the edge.*

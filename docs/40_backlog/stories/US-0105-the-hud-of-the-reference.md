@@ -26,9 +26,11 @@ lists what the reference's HUD shows that ours does not. This story builds it.
 
 ## Acceptance criteria
 
-- [x] **The Compass lies at the character's feet** (owner, 2026-09-25): a flat ring at a fixed
-      spot, centred at 80 % of the frame's height, as the reference draws it, with the chase ring
-      on the same ground. **The camera framing was checked first**, as ADR-0024 asked, and moved:
+- [x] **The Compass lies at the character's feet** (owner, 2026-09-25), **as the reference means it**:
+      a flat ring at a fixed spot round the legs, centred at 80 % of the frame's height, with the
+      chase ring on the same ground. The reference's ring circles the legs at knee-to-thigh height
+      (about 40 % of the figure above the feet; ours about 30 %), and the owner kept that spot on
+      2026-09-29 when the review of #243 found the words said *feet*. **The camera framing was checked first**, as ADR-0024 asked, and moved:
       `TUN-CAM-REST-PITCH` −13° (owner, 2026-09-29), so the feet are in frame to sit on.
 - [ ] **The Compass says up or down** when the contract is above or below the hunter, and
       **glows while the contract is in sight**. Buildable now.

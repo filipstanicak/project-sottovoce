@@ -58,8 +58,8 @@ extends Resource
 ## which the reference does not pay. At −13° the feet sit at about 97 % of the frame's height and
 ## the horizon at about 33 %, the reference's framing, with TUN-CAM-ARM-LENGTH and TUN-CAM-ARM-
 ## HEIGHT unchanged. Presentation only: look_pitch reaches the server and nothing there reads it.
-## The Compass is drawn where the feet are (UI_UX_SPEC §1.1), so moving this moves what it sits
-## on.
+## The Compass is a fixed ring round the legs at this framing (UI_UX_SPEC §1.1), so moving this
+## moves what it circles; test_the_compass_rings_the_legs.gd says so.
 ## TUN-CAM-REST-PITCH
 @export_range(-25.0, 0.0, 0.1) var rest_pitch: float = -13.0
 

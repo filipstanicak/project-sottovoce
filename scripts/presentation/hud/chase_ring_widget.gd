@@ -70,7 +70,7 @@ func _ready() -> void:
 		palette = Palette.fallback()
 	# The Compass's own placement and ground transform, so the bars lie on the same
 	# ground around the same centre (US-0105). *Until then this derived the centre
-	# from the Compass's bottom margin, which the move to the feet retired.*
+	# from the Compass's bottom margin, which the move to the legs retired.*
 	CompassWidget.place(self, DIAMETER)
 	# CanvasItem caches draw commands. The transition to quiet must clear them,
 	# even though the frame loop correctly skips an already quiet instrument.

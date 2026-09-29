@@ -113,7 +113,7 @@ func _feet_below_centre(pitch: float) -> float:
 func test_a_level_camera_cut_the_feet_off() -> void:
 	# **THE FINDING, KEPT AS THE PREMISE.** Measured from the client on 2026-09-29:
 	# level, the feet fell below the frame at the default lens, so a Compass drawn
-	# at the feet had nothing to sit on. If this stops being true the tilt below is
+	# round the legs had no legs to circle. If this stops being true the tilt below is
 	# answering a question nobody is asking any more.
 	var half := deg_to_rad(CameraFov.default_fov()) * 0.5
 	assert_gt(_feet_below_centre(0.0), half, "a level camera already shows the feet")

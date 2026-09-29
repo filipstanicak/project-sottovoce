@@ -145,7 +145,7 @@ func test_the_ring_is_concentric_with_the_compass() -> void:
 	var here := compass.get_rect().get_center()
 	assert_almost_eq(here.x, 960.0, 0.5, "the Compass is not centred")
 	assert_almost_eq(
-		here.y, 1080.0 * CompassWidget.CENTRE_HEIGHT, 0.5, "the Compass is not at the feet"
+		here.y, 1080.0 * CompassWidget.CENTRE_HEIGHT, 0.5, "the Compass is not at its spot"
 	)
 	assert_almost_eq(
 		ring.get_rect().get_center().distance_to(here),

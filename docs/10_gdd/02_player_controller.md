@@ -389,8 +389,8 @@ The cost was stated as honest and accepted: your own body occupied the middle of
 hid what was directly ahead at close range. **Since 2026-09-29 `TUN-CAM-REST-PITCH` pays most of
 it back**: measured against the reference, whose camera does not pay it, a level view put the feet
 below the frame and the pawn's shoulders on the screen's centre. Tilted 13° down, the pawn stands in
-the lower half with its feet in view and the street ahead above its head, which is also where the
-Compass now sits (UI_UX_SPEC §1.1).
+the lower half with its feet in view and the street ahead above its head, and the Compass lies round
+its legs (UI_UX_SPEC §1.1).
 
 ### 4.2 FOV as an information channel
 
