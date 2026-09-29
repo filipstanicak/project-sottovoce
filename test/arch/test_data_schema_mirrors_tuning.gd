@@ -15,6 +15,12 @@
 ## **COMPARED AS VALUES, NOT AS TEXT.** `100` and `100.0` are one default, and a
 ## range written with a Unicode minus is the same band as one written with a hyphen.
 ## A string match would fail on formatting and pass nothing it should not.
+##
+## **AND EVERY `@export` IS ACCOUNTED FOR, NOT ONLY THE ONES THE PARSER READS.** The
+## review of #241 found the first version blind to a declaration in any other legal
+## shape — a typed array, an expression default — which `exports()` would skip, the
+## table would never list, and every test would pass over. `unsupported()` names each
+## `@export` line no parse began at, and a planted one is the falsification.
 extends GutTest
 
 const DOC := "res://docs/30_bible/DATA_SCHEMA.md"
@@ -68,6 +74,19 @@ static func tables(doc: String) -> Dictionary:
 				row.get_string(2), _band(row.get_string(3)), _value(row.get_string(4))
 			]
 		out[heads[i].get_string(1)] = fields
+	return out
+
+
+## Every `@export` line in `src` that no `EXPORT` match starts at: a declaration
+## `exports()` cannot read and would silently leave out. **PURE.**
+static func unsupported(src: String) -> PackedStringArray:
+	var starts := {}
+	for m: RegExMatch in RegEx.create_from_string(EXPORT).search_all(src):
+		starts[m.get_start()] = true
+	var out := PackedStringArray()
+	for m: RegExMatch in RegEx.create_from_string("(?m)^@export.*$").search_all(src):
+		if not starts.has(m.get_start()):
+			out.append(m.get_string())
 	return out
 
 
@@ -149,6 +168,43 @@ func test_every_profile_section_has_a_table() -> void:
 		assert_true(
 			found.has(m.get_string(1)), "%s has no table in DATA_SCHEMA §3" % m.get_string(1)
 		)
+
+
+func test_every_export_in_every_resource_was_read() -> void:
+	var src := SourceScanner.read(PROFILE)
+	var sections := RegEx.create_from_string(SECTION).search_all(src)
+	assert_gte(sections.size(), 14, "the profile scan found fewer sections than exist")
+	for m: RegExMatch in sections:
+		var text := SourceScanner.read(script_of(m.get_string(1)))
+		var skipped := unsupported(text)
+		assert_eq(
+			skipped.size(),
+			0,
+			(
+				"%s declares exports this guard cannot read:\n  %s"
+				% [m.get_string(1), "\n  ".join(skipped)]
+			)
+		)
+		assert_gt(exports(text).size(), 0, "%s: no export was read at all" % m.get_string(1))
+
+
+func test_an_export_the_parser_cannot_read_is_reported() -> void:
+	var planted := PLANTED_SRC + '@export var names: Array[StringName] = [&"a"]\n'
+	var skipped := unsupported(planted)
+	assert_eq(skipped.size(), 1, "the unreadable export was not reported: %s" % [skipped])
+	assert_eq(unsupported(PLANTED_SRC).size(), 0, "a readable export was reported as unreadable")
+
+
+func test_the_tables_are_in_numeric_order() -> void:
+	# The dictionary `tables()` builds cannot see order; §3.13 sat before §3.12 for a
+	# while and nothing said so.
+	var last := 0
+	for m: RegExMatch in RegEx.create_from_string("(?m)^### 3\\.(\\d+) ").search_all(
+		SourceScanner.read(DOC)
+	):
+		var n := int(m.get_string(1))
+		assert_gt(n, last, "§3.%d follows §3.%d" % [n, last])
+		last = n
 
 
 func test_every_table_is_its_resource() -> void:

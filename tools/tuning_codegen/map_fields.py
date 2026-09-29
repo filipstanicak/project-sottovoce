@@ -1,9 +1,14 @@
 """Resolve every TUN- ID to a (class, field) pair.
 
-DATA_SCHEMA's 132 explicit field rows are anchors: each is matched to an ID
+DATA_SCHEMA §3's field rows are anchors: each is matched to an ID
 across ALL sections, because §8's passive tunables are distributed into the
 domain classes they affect rather than living in an abilities class. The
 remaining IDs are assigned by section and named mechanically.
+
+Since 2026-09-29 §3 lists every exported field of every resource, read off the
+generated scripts and held to them by test/arch/test_data_schema_mirrors_tuning.gd,
+so an anchor is the name the field already has. (This said "132 explicit field
+rows" until then; the regeneration made it 257, and a count here would drift again.)
 """
 import io, json, os, re, collections
 

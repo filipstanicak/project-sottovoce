@@ -416,7 +416,18 @@ reckless −50), called `variety` `variety_per_type`, and left out `patient_spee
 | `footstep_radius_blend` | float | 3–6 | 4 |
 | `footstep_radius_sprint` | float | 12–26 | 18 |
 
-### 3.13 `AbilityTuning` — TUNABLES §8.1
+### 3.12 `FeatureFlags`
+
+*Regenerated 2026-09-29; the previous block already agreed with the resource.*
+
+| Field | Type | Range | Default |
+|---|---|---|---|
+| `enable_second_face` | bool | — | false |
+
+**Every flag's docstring names the story that removes it.** A flag with no removal story is
+technical debt with a nice name, and the Definition of Done checks for it.
+
+### 3.13 `AbilityTuning` — TUNABLES §8
 
 *Regenerated 2026-09-29; the previous block already agreed with the resource.*
 
@@ -431,18 +442,8 @@ reckless −50), called `variety` `variety_per_type`, and left out `patient_spee
 The ability-system settings that belong to no single ability. Added because §8's globals had no
 home in the original §2 field list, and a documented `TUN-` value that lives nowhere in the data
 breaks the "every number is a tunable" rule. The per-ability fields are `AbilityData`'s, one
-resource per ability (§4).
-
-### 3.12 `FeatureFlags`
-
-*Regenerated 2026-09-29; the previous block already agreed with the resource.*
-
-| Field | Type | Range | Default |
-|---|---|---|---|
-| `enable_second_face` | bool | — | false |
-
-**Every flag's docstring names the story that removes it.** A flag with no removal story is
-technical debt with a nice name, and the Definition of Done checks for it.
+resource per ability (§4). *This heading pointed at TUNABLES §8.1, which is Cinderfall's; the
+globals are §8's own table. And this block sat before §3.12 until the review of #241.*
 
 ### 3.14 `PerfTuning` — TUNABLES §14
 
