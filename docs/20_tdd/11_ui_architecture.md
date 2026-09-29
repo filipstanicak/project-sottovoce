@@ -354,7 +354,7 @@ func replace(screen: PackedScene) -> void
 | `test_compass_vm.gd` | Pulse period matches the TUNABLES §4.2 sampled table at **every listed distance**, within 1 ms |
 | `test_compass_no_wobble_clientside.gd` | `CompassVm` applies no wobble of its own |
 | `test_compass_no_position.gd` | `CompassVm` has no field holding a world position |
-| `test_prey_warning_signal_arity.gd` | `prey_warning_triggered` takes **zero** parameters |
+| `test_prey_warning_signal_arity.gd` | **Exists.** `prey_warning_triggered` takes exactly `(bearing, bucket)` and nothing that names anybody (ADR-0013). *Was: "takes **zero** parameters".* |
 | `test_scorefeed_stagger.gd` | **Exists.** Four bonuses from one kill appear 0.12 s apart; two kills stagger independently; a penalty is marked and a zero-point marker is not |
 | `test_scorefeed_cap.gd` | **Exists.** Never more than `TUN-UI-SCOREFEED-MAX-LINES`; the **oldest** is dropped; a line's lifetime starts when it is *shown*, not when it was told |
 | `test_crosshair_truth.gd` | Ring state agrees with server kill validity across 500 randomised poses |

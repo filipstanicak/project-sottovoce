@@ -247,26 +247,43 @@ Values, units and rationales are in TUNABLES.md at the section noted. Reproduced
 
 ### 3.8 `ScoringTuning` — TUNABLES §11
 
+**Regenerated 2026-09-29 from `scripts/core/tuning/scoring_tuning.gd`**, every field, type,
+`@export_range` and default as the resource declares them, so this table is the resource rather
+than a memory of it. *It had been written at M0 and never re-read: every points field was typed
+`int`, five values were the pre-ADR-0013 prices (silent 100, patient 150, focus 100, stun 100,
+reckless −50), `variety` was called `variety_per_type`, and `patient_speed`, `halfseen`,
+`escape`, `closecall`, `stun_invalid` and `death_penalty` were missing. The second review of
+#238 found it, after the first had corrected one row of it.* TUNABLES §11 says what each is
+for.
+
 | Field | Type | Range | Default |
 |---|---|---|---|
-| `contract` | int | — | **100** |
-| `silent` | int | 75–150 | 100 |
-| `patient` | int | 100–200 | 150 |
-| `patient_window` | float | 8–15 | 10.0 |
-| `masked` | int | 100–200 | 150 |
-| `focus` | int | 75–150 | 100 |
-| `focus_window` | float | 4–10 | 6.0 |
+| `contract` | float | — | 100 |
+| `silent` | float | 150–250 | 200 |
+| `patient` | float | 75–150 | 100 |
+| `patient_window` | float | 8–15 | 10 |
+| `patient_speed` | float | 2.6–4.4 | 3.4 |
+| `halfseen` | float | 25–100 | 50 |
+| `masked` | float | 100–200 | 150 |
+| `focus` | float | 100–200 | 150 |
+| `focus_window` | float | 4–10 | 6 |
 | `focus_break_grace` | float | 0.2–0.8 | 0.4 |
-| `fromabove` | int | 75–150 | 100 |
-| `fromabove_height` | float | 2.5–4.5 | 3.0 |
-| `blended` | int | 150–250 | **200** |
-| `poisoned` | int | 50–125 | 75 |
-| `longhunt_1` / `_2` | int | 25–100 / 100–200 | 50 / 150 |
-| `longhunt_t1` / `_t2` | float | 15–30 / 35–70 | 20.0 / 45.0 |
-| `vendetta` | int | 75–150 | 100 |
-| `variety_per_type` | int | 25–75 | 50 |
-| `reckless` | float | −100–0 | **0** — ADR-0013, neutralised. *Was int, −100–−25, default −50.* |
-| `stun` | int | 75–150 | 100 |
+| `fromabove` | float | 75–150 | 100 |
+| `fromabove_height` | float | 2.5–4.5 | 3 |
+| `blended` | float | 150–250 | 200 |
+| `poisoned` | float | 50–125 | 75 |
+| `longhunt_1` | float | 25–100 | 50 |
+| `longhunt_2` | float | 100–200 | 150 |
+| `longhunt_t1` | float | 15–30 | 20 |
+| `longhunt_t2` | float | 35–70 | 45 |
+| `vendetta` | float | 75–150 | 100 |
+| `variety` | float | 25–75 | 50 |
+| `reckless` | float | −100–0 | 0 |
+| `stun` | float | 75–250 | 200 |
+| `escape` | float | 75–150 | 100 |
+| `closecall` | float | 25–100 | 50 |
+| `stun_invalid` | float | — | 0 |
+| `death_penalty` | float | — | 0 |
 
 ### 3.9 `CameraTuning` — TUNABLES §12
 
