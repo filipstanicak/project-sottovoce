@@ -1,20 +1,24 @@
-## **THE ONE THING THAT BLOCKS LINE OF SIGHT AND IS NOT GEOMETRY.** GDD-04 §8.1,
+## **THE CINDER CLOUDS: WHO THEY HOLD, AND — WITH A SWITCH ON — WHAT THEY BLOCK.**
+## GDD-04 §3.1 and §8.1,
 ## TUNABLES §8.1, US-0056. SERVER ONLY, and pure — spheres in, a yes or no out,
 ## with no physics server involved.
 ##
-## `TUN-CINDERFALL-BLOCKS-LOS` is `true`: an active cinder cloud blocks detection,
-## Compass lock and `SCORE-FOCUS` accumulation alike. It has to be checked
+## **Both switches are false since ADR-0023**, neutralised rather than removed: the
+## cloud blocks no sight and forbids no kill, and what it does instead is hold
+## everyone in it but its caster (`catches`, read by `CinderfallCatch` and by the
+## crowd). With `TUN-CINDERFALL-BLOCKS-LOS` back on, an active cloud blocks
+## detection, Compass lock and `SCORE-FOCUS` accumulation alike. It has to be checked
 ## *alongside* the world raycast rather than instead of it, because it is not on
 ## the navigation mesh, not in the collision world, and exists for
-## `TUN-CINDERFALL-DURATION` 4.0 s and then does not.
+## `TUN-CINDERFALL-DURATION` (6.0 s) and then does not.
 ##
 ## **A SPHERE RATHER THAN A BODY, DELIBERATELY.** Putting a `StaticBody3D` on the
-## `WORLD` layer for four seconds would also block the traversal probes — so a
+## `WORLD` layer for the cloud's life would also block the traversal probes — so a
 ## player could vault a cloud — and would put a gameplay volume where
 ## `test_probes_mask_world_only.gd` promises only level geometry is.
 ##
-## **NOTHING PLACES ONE YET.** `ABIL-CINDERFALL` is `SYS-ABILITY`'s, later in M4;
-## `add()` is the entry point and has no caller, the same shape as
+## **`CinderfallEffect.begin` places them** (US-0067), with the caster since US-0104.
+## Until US-0067 `add()` had no caller at all, the same shape as
 ## `CrowdAlarm.startle_at` through all of M3.
 ##
 ## **A CLOUD REMEMBERS WHEN IT LIT AS WELL AS WHEN IT GOES OUT** (US-0060), which
@@ -24,14 +28,52 @@
 class_name CinderfallVolumes
 extends RefCounted
 
-## `[centre, lit_tick, expiry_tick]` per cloud. Small by construction — one
-## ability, a 45 s cooldown, six players.
+## `[centre, lit_tick, expiry_tick, caster]` per cloud. Small by construction —
+## one ability, a 45 s cooldown, six players.
 var _clouds: Array = []
 
 
 ## Place a cloud at `at`, live until `TUN-CINDERFALL-DURATION` has passed.
-func add(at: Vector3, tick: int) -> void:
-	_clouds.append([at, tick, tick + maxi(Tuning.ticks(&"TUN-CINDERFALL-DURATION"), 1)])
+## **The caster is remembered because the cloud catches everybody but them**
+## (ADR-0023); 0 is nobody, which catches everybody.
+func add(at: Vector3, tick: int, caster: int = 0) -> void:
+	var expiry := tick + maxi(Tuning.ticks(&"TUN-CINDERFALL-DURATION"), 1)
+	_clouds.append([at, tick, expiry, caster])
+
+
+## **IS `point` HELD BY A CLOUD ALIGHT AT `tick` THAT `peer` DID NOT THROW?**
+## ADR-0023: the cloud catches everyone inside it but its caster, for as long as it
+## stands, including anybody who walks in after the burst. Not gated on either
+## switch below: the catch is the ability now, not a side rule.
+func catches(point: Vector3, peer: int, tick: int) -> bool:
+	var radius := _radius()
+	for cloud: Array in _clouds:
+		if int(cloud[3]) == peer or not _alive_at(cloud, tick):
+			continue
+		if point.distance_squared_to(cloud[0] as Vector3) <= radius * radius:
+			return true
+	return false
+
+
+## Which of the first `count` crowd positions a cloud alight at `tick` holds, as
+## `{index: true}`. NPCs throw nothing, so every cloud catches them.
+func held_among(points: PackedVector3Array, count: int, tick: int) -> Dictionary:
+	var out := {}
+	if alight(tick).is_empty():
+		return out
+	for index: int in mini(count, points.size()):
+		if catches(points[index], -1, tick):
+			out[index] = true
+	return out
+
+
+## `[centre, caster]` for every cloud alight at `tick`.
+func alight(tick: int) -> Array:
+	var out: Array = []
+	for cloud: Array in _clouds:
+		if _alive_at(cloud, tick):
+			out.append([cloud[0], int(cloud[3])])
+	return out
 
 
 ## Drop everything a rewind can no longer reach.
@@ -67,10 +109,11 @@ func count_at(tick: int) -> int:
 	return n
 
 
-## **IS `point` INSIDE A CLOUD THAT WAS ALIGHT AT `tick`?** TDD-10 §3's first
-## gate: kill initiation is refused inside any cinder volume, **including the
-## caster's own** — an ability that denied the area to everybody but the person
-## who threw it would be a free kill setup rather than area denial.
+## **IS `point` INSIDE A CLOUD THAT WAS ALIGHT AT `tick`, FOR THE KILL GATE?**
+## TDD-10 §3's first gate — **off in the shipped profile since ADR-0023**, which
+## made *cloud, then kill inside it* the ability. With `TUN-CINDERFALL-BLOCKS-KILL`
+## back on, initiation is refused inside any cloud, the caster's own included. For
+## who a cloud holds, ask `catches`.
 func contains_at(point: Vector3, tick: int) -> bool:
 	# **`TUN-CINDERFALL-BLOCKS-KILL` IS READ RATHER THAN ASSUMED**, the same way
 	# `_radius()` reads `TUN-CINDERFALL-BLOCKS-LOS`. TUNABLES gives both as bools so
@@ -94,15 +137,22 @@ func count() -> int:
 	return _clouds.size()
 
 
+## `TUN-CINDERFALL-RADIUS`, for the catch's own reach test.
+func radius() -> float:
+	return _radius()
+
+
 func clear() -> void:
 	_clouds.clear()
 
 
 ## Does any live cloud sit across the segment `from` -> `to`?
 ##
+## **Only while `TUN-CINDERFALL-BLOCKS-LOS` is on — false since ADR-0023.**
+##
 ## **THE TEST IS AGAINST THE SEGMENT, NOT THE ENDPOINTS.** A cloud between two
-## players touches neither of them, which is the whole point of area denial: it
-## is placed in the gap. Testing "is either end inside a cloud" would let a hunter
+## players touches neither of them, and blocking sight was about the gap. Testing "is
+## either end inside a cloud" would let a hunter
 ## see straight through one they had thrown down the alley ahead.
 ## **AND IT TAKES THE TICK IT IS ASKED ABOUT** (US-0060), because since the
 ## retention change above the array holds clouds that have already gone out. A

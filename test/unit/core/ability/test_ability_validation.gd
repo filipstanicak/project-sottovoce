@@ -73,15 +73,18 @@ func test_the_forbidden_states_are_the_ones_the_document_names() -> void:
 	# TDD-09 §1.1: *not `Stunned`, `Dead`, `KillAnim`, `Respawning`*. `StunAnim` is
 	# the fifth and is this file's own addition — a player mid-stun-swing is as
 	# committed as one mid-kill, and GDD-02 §3.1 gives both the same interrupt row.
+	# `Choking` is the sixth (ADR-0023): a figure coughing in somebody else's cloud
+	# can neither run nor fight back, and throwing a pot is fighting back.
 	for state: StringName in [
 		PawnStateId.STUNNED,
 		PawnStateId.DEAD,
 		PawnStateId.KILL_ANIM,
 		PawnStateId.RESPAWNING,
 		PawnStateId.STUN_ANIM,
+		PawnStateId.CHOKING,
 	]:
 		assert_has(AbilityRules.FORBIDDEN, state, "%s is castable" % state)
-	assert_eq(AbilityRules.FORBIDDEN.size(), 5, "the denylist grew without a decision")
+	assert_eq(AbilityRules.FORBIDDEN.size(), 6, "the denylist grew without a decision")
 
 
 func test_the_order_is_cheapest_and_most_useful_first() -> void:

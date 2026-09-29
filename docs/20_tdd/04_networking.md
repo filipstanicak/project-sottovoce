@@ -889,7 +889,7 @@ range depends on ping is not the rule `TUN-KILL-RANGE` documents.**
 > `LagCompRecorder._gather()` is still where they would join. Reported rather than built:
 > re-deciding ADR-0010's scope is the owner's, and §10's test table below still implies a
 > line-of-sight gate on kills that §3's flowchart does not have.
-| Cinderfall cloud volumes | **Yes** | A cloud that had not yet appeared must not retroactively block; one that has expired must still have blocked |
+| Cinderfall cloud volumes | **Yes** | A cloud that had not yet appeared must not retroactively block; one that has expired must still have blocked. *Read only while `TUN-CINDERFALL-BLOCKS-KILL` is on — off since ADR-0023; who a cloud holds is decided at the current tick* |
 | Blend membership | **Derived** from rewound NPC positions | Not stored historically |
 | Suspicion tier | **No** — current | Rewinding would let a player kill based on a tier the victim had already left |
 | Contract assignment | **No** — current | A rewound contract could let you kill someone no longer yours |

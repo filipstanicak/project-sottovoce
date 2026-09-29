@@ -27,7 +27,8 @@ extends Resource
 ## Tell channel 3. Arrives with the VFX pass.
 @export var tell_vfx: PackedScene = null
 
-## Roughly once per 90-second hunt cycle. It is an escape, not a tool.
+## Roughly once per 90-second hunt cycle. Since ADR-0023 the cloud is escape and ambush in one
+## pot, and this is what keeps the ambush rare. Was: "It is an escape, not a tool."
 ## Used by: Cinderfall, Lunge, Secondface, Whisperbolt.
 ## TUN-CINDERFALL-COOLDOWN
 @export_range(35.0, 60.0, 0.1) var cooldown: float = 0.0
@@ -56,9 +57,12 @@ extends Resource
 ## TUN-CINDERFALL-RADIUS
 @export_range(4.0, 7.0, 0.1) var radius: float = 0.0
 
-## Long enough to break a lock (TUN-COMPASS-LOCK-FILL-TIME is 1.6 s) and leave; short enough that
-## it cannot be used to camp a corner. 4.0 → 6.0 on 2026-09-03, judged at the controls once the
-## cloud became self-centred (TUN-CINDERFALL-THROW-RANGE 0.0) — four seconds of cover you are
+## Since ADR-0023 (US-0104) this is also how long a caught figure is held: the cloud catches
+## everyone in it but the caster, including late entrants, until it ends, which at 6.0 s is
+## longer than a pressed stun (TUN-STUN-FREEZE 4.0). Put back to the owner as ADR-0023 C. Was:
+## "long enough to break a lock and leave" — a cloud blocks no lock since ADR-0023. Short enough
+## that it cannot be used to camp a corner. 4.0 → 6.0 on 2026-09-03, judged at the controls once
+## the cloud became self-centred (TUN-CINDERFALL-THROW-RANGE 0.0) — four seconds of cover you are
 ## standing in is not four seconds of cover you threw. A deliberate divergence, ruled by the
 ## owner: the reference's smoke is 3 s base and 4 s upgraded, so this is 1.5× its best. It is the
 ## top of the band, so the next increase needs an ADR rather than a value.
@@ -66,30 +70,32 @@ extends Resource
 ## TUN-CINDERFALL-DURATION
 @export_range(3.0, 6.0, 0.1) var duration: float = 0.0
 
-## Blocks line of sight for detection, Compass lock, and SCORE-FOCUS accumulation. Goes to false
-## by ADR-0023 (accepted 2026-09-25) when US-0104 lands: the reference's cloud guarantees a Focus
-## kill, which a line-of-sight block could never allow.
+## false since ADR-0023 (US-0104), neutralised rather than removed. Was true: blocked line of
+## sight for detection, Compass lock, and SCORE-FOCUS accumulation. The reference's cloud
+## guarantees a Focus kill, which a line-of-sight block could never allow.
 ## Used by: Cinderfall.
 ## TUN-CINDERFALL-BLOCKS-LOS
 @export var blocks_los: bool = false
 
-## No kill may be initiated inside the radius, by anyone, including the caster. A kill already in
-## progress completes. Otherwise it becomes an offensive tool for forcing blind kills. Goes to
-## false by ADR-0023 (accepted 2026-09-25) when US-0104 lands: in the reference, cloud, then kill
-## inside it is the ability's main use, and the victim, coughing inside it, is the one who sees
-## it coming. Neutralised, not removed.
+## false since ADR-0023 (US-0104), neutralised rather than removed. Was true: no kill could be
+## initiated inside the radius, by anyone, including the caster, "otherwise it becomes an
+## offensive tool for forcing blind kills." In the reference cloud, then kill inside it is the
+## ability's main use, and the victim, coughing inside it, is the one who sees it coming.
 ## Used by: Cinderfall.
 ## TUN-CINDERFALL-BLOCKS-KILL
 @export var blocks_kill: bool = false
 
-## Equals TUN-SUSPICION-GAIN-LOUD-ABILITY. Goes to 0 by ADR-0023 when US-0104 lands: a recorded
-## reference kill inside the caster's own cloud at arm's length still paid the top stealth rung.
+## 0 since ADR-0023 (US-0104); was 40, equal to TUN-SUSPICION-GAIN-LOUD-ABILITY. A recorded
+## reference kill inside the caster's own cloud at arm's length still paid the top stealth rung,
+## and the owner confirmed on 2026-09-25 that using an ability is not high-profile. The Startle
+## wave and the crack remain its honest cost.
 ## Used by: Cinderfall, Lunge, Secondface.
 ## TUN-CINDERFALL-SUSPICION
 @export var suspicion_cost: float = 0.0
 
-## NPCs within this radius Startle. The cloud hides you and simultaneously paints a fleeing-crowd
-## arrow at your position for everyone in the district. This is the ability's honest cost.
+## NPCs within this radius Startle. The cloud holds everybody around you and simultaneously
+## paints a fleeing-crowd arrow at your position for everyone in the district. This is the
+## ability's honest cost. Was: "the cloud hides you and …" — it blocks no sight since ADR-0023.
 ## Used by: Cinderfall, Lunge.
 ## TUN-CINDERFALL-STARTLE-RADIUS
 @export_range(6.0, 14.0, 0.1) var startle_radius: float = 0.0

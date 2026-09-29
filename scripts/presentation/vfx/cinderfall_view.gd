@@ -1,10 +1,10 @@
 ## **THE CINDER CLOUD, DRAWN.** GDD-04 §3.1, US-0067. CLIENT ONLY.
 ##
 ## `ABIL-CINDERFALL` has been the only ability in this game that changes the world
-## since US-0067, and **nothing has ever drawn it**. A cloud blocks every line of
-## sight through it and forbids kill initiation inside it — including the caster's
-## own — and on a client it was an *absence* of information: the Compass stops
-## pointing and the reticle stops offering, with nothing on screen to say why.
+## since US-0067, and **nothing had ever drawn it**. It used to block sight and
+## forbid kills inside it; since ADR-0023 it **holds everyone in it but the caster**,
+## coughing, and a hold nobody can see is the same *absence* of information: a
+## player who cannot move, with nothing on screen to say why.
 ##
 ## **THE DRAWN CLOUD IS THE GAMEPLAY VOLUME, EXACTLY.** Same centre, same
 ## `TUN-CINDERFALL-RADIUS`, same `TUN-CINDERFALL-DURATION` — no fade, no bloom, no

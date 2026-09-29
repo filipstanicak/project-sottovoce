@@ -186,7 +186,7 @@ func _tick_focus(hunter: PawnServer, has_los: bool) -> void:
 
 ```mermaid
 flowchart TD
-    A["Kill button in InputCommand"] --> B{"Cinderfall volume<br/>at killer position?"}
+    A["Kill button in InputCommand"] --> B{"Cinderfall volume<br/>at killer position?<br/>only with TUN-CINDERFALL-BLOCKS-KILL on,<br/>off since ADR-0023"}
     B -->|Yes| Z1["REJECT — applies to caster too"]
     B -->|No| C["Rewind world by rewind_ticks(peer)<br/>clamped 100-200 ms (ADR-0010)"]
     C --> D{"Target is the<br/>killer's CONTRACT?"}
@@ -726,7 +726,7 @@ func is_staggered(peer: int, now: int) -> bool
 | `test_kill_contract_only.gd` | A kill on a non-contract player is rejected with +30 suspicion and a whiff — **never silence** |
 | `test_kill_facing_cone.gd` | The victim's facing is irrelevant; killing a target facing away succeeds |
 | `test_kill_contest.gd` | Earlier server tick wins; loser staggers with no points and no lockout |
-| `test_kill_blocked_by_cinderfall.gd` | Including the caster's own cloud |
+| ~~`test_kill_blocked_by_cinderfall.gd`~~ | **Never written as its own file**: `test_cinderfall_self_block.gd` holds it, including the caster's own cloud, **with `TUN-CINDERFALL-BLOCKS-KILL` back on** — the switch is off since ADR-0023, and the same file asserts the shipped cloud forbids nothing |
 | `test_stun_range_exceeds_kill.gd` | **Not the two tunables** — `TuningInvariants` already compares those, and would pass over a `StunRules` reading the wrong field. It sweeps the two *rules* in centimetres and asserts no killable distance is outside stun reach. **Built**, US-0061, and it found that the band a player experiences is 2.85–3.35 m rather than §10.1's 2.5–3.0 once the shared grace is added — same width, and only because the grace *is* shared |
 | ~~`test_stun_tier_gate.gd`~~ | An Anonymous pursuer is unstunnable at any range | **Written as `test_stun_system.gd`**, swept over five ranges: one sample cannot tell a tier gate from a range gate that is tighter than the sample |
 | `test_stun_invalid.gd` | 0 points, stagger, +20 suspicion, target unaffected — **and that a careful pursuer and a stranger are indistinguishable**, which is the assertion that stops the stun button being an identity probe. **Built**, US-0061 |

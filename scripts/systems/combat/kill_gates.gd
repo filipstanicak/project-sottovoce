@@ -24,8 +24,9 @@ static func check(
 	at_tick: int,
 	lockouts: CombatLockouts
 ) -> KillVerdict.V:
-	# **THE CASTER'S OWN CLOUD COUNTS.** An area denial that exempted whoever threw
-	# it would be a kill setup rather than a denial (GDD-04 §3.1).
+	# **OFF IN THE SHIPPED PROFILE SINCE ADR-0023**, which made killing inside a
+	# cloud the ability; `contains_at` answers false while the switch is. With it
+	# on, the caster's own cloud counts too.
 	if here != Vector3.INF and ctx.cinderfall.contains_at(here, at_tick):
 		return KillVerdict.V.IN_CINDERFALL
 	if lockouts != null and lockouts.is_exiled(peer, contract, ctx.tick):

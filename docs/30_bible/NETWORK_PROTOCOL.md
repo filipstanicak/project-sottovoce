@@ -178,7 +178,7 @@ NET-S2C-SNAPSHOT — per client, per tick
 ├── own_pawn                        FULL — the prediction authority
 │   ├── position           3×f32
 │   ├── velocity           3×f32
-│   ├── state_id           u8
+│   ├── state_id           u8       index into PawnStateId.ALL — APPEND-ONLY, and a new state is a PROTOCOL_VERSION bump (5: Choking, US-0104)
 │   ├── state_timer_ticks  u16
 │   └── grounded           bool
 ├── own_gameplay                    NEVER predicted

@@ -47,8 +47,8 @@ signal escaped(hunter: int, prey: int, close_call: bool)
 ## and leave a Compass lock with nothing to earn.
 signal prey_warned(prey: int, bearing: float, bucket: int)
 
-## Cinder clouds, which are the one thing that blocks sight and is not geometry.
-## Nothing places one until `SYS-ABILITY`.
+## Cinder clouds. With `TUN-CINDERFALL-BLOCKS-LOS` on they are the one thing that
+## blocks sight and is not geometry; the switch is off since ADR-0023.
 ##
 ## **`MatchContext`'s OWN LIST, ADOPTED BY REFERENCE IN `setup()`** — US-0060 gave
 ## it a second reader in `SYS-KILL`, two stages later. Mirroring it would be the

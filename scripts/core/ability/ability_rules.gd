@@ -22,6 +22,7 @@ const FORBIDDEN: Array[StringName] = [
 	PawnStateId.DEAD,
 	PawnStateId.RESPAWNING,
 	PawnStateId.KILL_ANIM,
+	PawnStateId.CHOKING,
 ]
 
 

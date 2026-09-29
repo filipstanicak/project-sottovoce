@@ -6,7 +6,7 @@
 ## §17's cross-field invariants, neither of which can see a value that is simply
 ## the wrong one.
 ##
-## **IT WAS FOUND BY A ZERO.** `TUN-CINDERFALL-DURATION` is published at 4.0 s and
+## **IT WAS FOUND BY A ZERO.** `TUN-CINDERFALL-DURATION` was published at 4.0 s and
 ## the `duration` row is **absent from `cinderfall.tres`**, so `AbilityData`'s own
 ## default of 0.0 shipped from M0 — a cinder cloud that lasts one tick. Nothing
 ## errored, because Godot writes only the properties that differ from a script's

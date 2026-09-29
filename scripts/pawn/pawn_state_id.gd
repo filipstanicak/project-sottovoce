@@ -46,11 +46,21 @@ const STAGGERED := &"Staggered"
 ## rubber-band; see `LungingState`.
 const LUNGING := &"Lunging"
 
+## **ADR-0023, US-0104.** Caught in somebody else's Cinderfall cloud: coughing,
+## held in place, unable to kill, stun or cast, and killable. **Done to you by
+## another player's ability, for as long as the cloud stands** — which is why it
+## is neither `Staggered` (your own failure, a fixed duration) nor `Stunned`
+## (another player's stun, a fixed 4 s, and the camera taken).
+const CHOKING := &"Choking"
+
 ## **THIS ORDER IS THE WIRE, AND IT IS APPEND-ONLY.** `Snapshot.state_index`
 ## encodes `state_id` as an index into this array, so inserting a name in the
 ## middle silently remaps every remote pawn's animation to a different state —
 ## a defect that would look like a rendering fault and read as plausible at every
-## position. Appending is safe and is the only safe edit.
+## position. Appending is the only safe edit — **and it is still a protocol
+## change**: it keeps every existing index, but a client built before it cannot
+## decode the new one, so an append ships with a `Messages.PROTOCOL_VERSION` bump
+## (`test_the_state_list_is_part_of_the_protocol.gd`; `Choking` is version 5).
 ##
 ## It also happens to be GDD-02 §3.1's table order, which is a **coincidence
 ## worth not relying on**: the table is free to be reordered for readability and
@@ -72,6 +82,7 @@ const ALL: Array[StringName] = [
 	DEAD,
 	STAGGERED,
 	LUNGING,
+	CHOKING,
 ]
 
 ## The locomotion sub-machine. GDD-02 §3 draws these inside `state "Locomotion"`,

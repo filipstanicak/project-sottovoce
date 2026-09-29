@@ -115,7 +115,9 @@ func _nearest_unslotted(point: Vector3, pool: NpcPool) -> int:
 ## and the routes are 150–237 m long, which is 2.6–3.2 m/s. A walking group is the
 ## one blend that lets a player *travel* while gaining anonymity; at twice
 ## blend-walk it would be a speed cheat wearing a crowd.
-func advance(pool: NpcPool, steering: Steering, dt: float) -> void:
+## `held` is the NPCs a Cinderfall cloud holds (ADR-0023): they stand, and the
+## procession waits for them the way it waits for any straggler.
+func advance(pool: NpcPool, steering: Steering, dt: float, held: Dictionary = {}) -> void:
 	var speed: float = Tuning.crowd.npc_speed_stroll
 	for group: WalkingGroup in groups:
 		group.advance(speed * dt * _pace(group, pool))
@@ -126,7 +128,8 @@ func advance(pool: NpcPool, steering: Steering, dt: float) -> void:
 			var body := pool.body_of(npc)
 			var agent := pool.agent_of(npc)
 			if body != null and agent != null:
-				steering.drive_to(body, agent, group.slot_position(slot), speed)
+				var own := 0.0 if held.has(npc) else speed
+				steering.drive_to(body, agent, group.slot_position(slot), own)
 
 
 ## **THE PROCESSION WAITS FOR ITS STRAGGLERS**, between 1.0 (nobody is behind) and

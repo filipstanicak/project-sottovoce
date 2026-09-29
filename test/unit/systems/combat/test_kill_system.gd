@@ -228,26 +228,6 @@ func test_pressing_kill_while_already_killing_costs_nothing() -> void:
 	assert_almost_eq(_ctx.impulses.pending(A), 0.0, 0.001, "a press mid-animation was charged")
 
 
-func test_a_cinder_cloud_refuses_the_initiation_including_the_casters_own() -> void:
-	# TDD-10 §3's first gate. An area denial that exempted whoever threw it would be
-	# a kill setup rather than a denial.
-	_two_players()
-	_ctx.cinderfall.add(Vector3.ZERO, _ctx.tick - 6)
-	_press(A)
-	_advance()
-	assert_eq(_state(A), PawnStateId.KILL_ANIM if false else PawnStateId.IDLE)
-	assert_almost_eq(
-		_ctx.impulses.pending(A), 0.0, 0.001, "the cloud gate charged suspicion — it is Z1, not Z2"
-	)
-
-	# The counterfactual: with the cloud gone, the identical press lands.
-	_ctx.cinderfall.clear()
-	_release(A)
-	_press(A)
-	_advance()
-	assert_eq(_state(A), PawnStateId.KILL_ANIM, "the fixture cannot tell a cloud from a bad kill")
-
-
 func test_a_kill_already_in_progress_completes_inside_a_cloud() -> void:
 	# **GDD-04 §3.1: the cloud forbids INITIATION, and a kill already in progress
 	# completes.** US-0067's fourth criterion, and the distinction matters both ways

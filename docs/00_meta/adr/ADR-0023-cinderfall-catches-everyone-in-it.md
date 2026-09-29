@@ -10,8 +10,7 @@ depends_on: [ADR-0013, ADR-0017, GDD-04-ABILITIES]
 
 # ADR-0023 — Cinderfall catches everyone in it, and the caster may kill there
 
-- **Status:** accepted. **The rule is decided and the build is US-0104.** Until that story
-  lands, the shipped `.tres` still blocks the kill.
+- **Status:** accepted, **built by US-0104** (2026-09-25).
 - **Date:** 2026-09-25
 - **Deciders:** owner. Asked *"keep ours or take the reference's?"*, the owner answered *"Bitte
   wie es im Original ist umändern."*
@@ -57,8 +56,9 @@ it arrive.
    afterwards** (open question A, answered by the owner). A caught figure coughs **until the
    cloud ends** (open question B, answered): no movement, no kill, no stun, no cast, but able
    to be killed. So `TUN-CINDERFALL-DURATION` is a gameplay number again, and no separate catch
-   duration is needed. The candidate state is ADR-0017's `Staggered`, which already means *a
-   timed incapacitation that is not a stun*.
+   duration is needed. **Built as a seventeenth pawn state, `Choking`**, not the `Staggered`
+   first named here: that state is your own failure for a fixed time, and this one is somebody
+   else's ability for however long the cloud has left.
 2. **NPCs in the radius are caught too, with the same animation.** This is clone parity rather
    than a guess about the reference (GDD-03 §6.5): if only players coughed, the cloud would name
    every player inside it.
