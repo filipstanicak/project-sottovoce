@@ -788,8 +788,13 @@ is chosen because the statistic it replaces cannot tell a regression from a reor
 fails without a cause is how a guard gets widened until it means nothing.
 
 The pass is not unguarded. `test_the_two_second_pass_is_what_the_max_is` partitions the samples
-**while they are taken**, attributes the gap, and asserts that an ordinary tick never exceeds the
-budget on its own. What no test asserts is a percentile of the pass itself — two samples cannot
+**while they are taken**, attributes the gap, and asserts that an ordinary tick does not exceed the
+budget on its own **in two consecutive samples**. *Added 2026-09-29, after one ordinary tick over
+budget on the shared CI runner failed a docs-only PR (run 36156490800) while the ordinary max reads
+~1.6 ms locally:* a spike the crowd makes on ordinary ticks comes back in the second sample and stays
+red, and a scheduling hiccup does not. The budget and the statistic are unchanged; only a verdict on
+one sample is refused. Planted, a recurring 3 ms stall reads *"3.515, then 3.520 ms"* and fails, and
+a single one passes with the hiccup printed. What no test asserts is a percentile of the pass itself — two samples cannot
 support one, and it says so.
 
 ### 11.2.2 The spike was the 2 s pass, and it was this chapter's own new code

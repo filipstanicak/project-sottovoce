@@ -192,23 +192,9 @@ func test_the_server_crowd_tick_against_the_budget() -> void:
 			% [load.x, load.y, _ctx.pawns.size()]
 		)
 	)
-	(
-		gut
-		. p(
-			(
-				"CrowdDirector.tick() x%d, %d NPCs: mean %.3f p50 %.3f p95 %.3f max %.3f ms (budget %.2f)"
-				% [
-					TICKS,
-					_count,
-					stats["mean"],
-					stats["p50"],
-					stats["p95"],
-					stats["max"],
-					SERVER_BUDGET_MS
-				]
-			)
-		)
-	)
+	var line := "CrowdDirector.tick() x%d, %d NPCs: mean %.3f p50 %.3f p95 %.3f max %.3f ms"
+	var shown := [TICKS, _count, stats["mean"], stats["p50"], stats["p95"], stats["max"]]
+	gut.p((line + " (budget %.2f)") % (shown + [SERVER_BUDGET_MS]))
 	assert_gt(float(stats["mean"]), 0.0, "the clock measured nothing — the sampler is broken")
 	_assert_the_sustained_cost_fits(stats)
 
@@ -245,20 +231,10 @@ func test_the_two_second_pass_is_what_the_max_is() -> void:
 	assert_gt(_off_pass.size(), 0, "every tick was a pass tick — the partition is broken")
 	var busy := _stats(_on_pass)
 	var quiet := _stats(_off_pass)
-	gut.p(
-		(
-			"2 s pass ticks (%d): mean %.3f max %.3f ms | ordinary ticks (%d): mean %.3f max %.3f"
-			% [
-				_on_pass.size(),
-				busy["mean"],
-				busy["max"],
-				_off_pass.size(),
-				quiet["mean"],
-				quiet["max"]
-			]
-		)
-	)
-	var attributable: float = float(busy["max"]) >= float(quiet["max"])
+	var line := "2 s pass ticks (%d): mean %.3f max %.3f ms | ordinary (%d): mean %.3f max %.3f"
+	var shown := [_on_pass.size(), busy["mean"], busy["max"], _off_pass.size()]
+	gut.p(line % (shown + [quiet["mean"], quiet["max"]]))
+	var spike: String = await _unattributed_spike(busy, quiet)
 	var whole := float(busy["mean"]) - float(quiet["mean"])
 	# **AND WHICH HALF OF THE PASS.** Emptying `personas_in_use` makes layer 4 a
 	# no-op without touching the formations or the corpse sweep, so the difference
@@ -282,10 +258,27 @@ func test_the_two_second_pass_is_what_the_max_is() -> void:
 	)
 	# **REPORTED, NOT ASSERTED: TWO SAMPLES CANNOT SUPPORT A PERCENTILE.** What this
 	# refuses to allow is the attribution going unrecorded.
-	assert_true(
-		attributable or float(quiet["max"]) < SERVER_BUDGET_MS,
-		"an ordinary tick, with no 2 s pass in it, exceeded the server budget"
-	)
+	assert_eq(spike, "", "an ordinary tick, with no 2 s pass in it, exceeded the budget: " + spike)
+
+
+## **ONE RE-MEASUREMENT BEFORE A VERDICT, NEVER A LOOSER ONE.** One ordinary tick over
+## budget on the shared CI runner failed a docs-only PR (run 36156490800) while the
+## ordinary max reads ~1.6 ms here: a scheduling hiccup, not the crowd. A spike the
+## crowd makes on ordinary ticks comes back in a second sample and stays red; a hiccup
+## does not. Empty when the max is the pass's or ordinary ticks fit.
+func _unattributed_spike(busy: Dictionary, quiet: Dictionary) -> String:
+	if _attributed(busy, quiet):
+		return ""
+	var first := float(quiet["max"])
+	await _sample_ticks(TICKS)
+	if _attributed(_stats(_on_pass), _stats(_off_pass)):
+		gut.p("ordinary max %.3f ms did not come back in a second sample: one hiccup" % first)
+		return ""
+	return "ordinary max %.3f, then %.3f ms" % [first, float(_stats(_off_pass)["max"])]
+
+
+static func _attributed(busy: Dictionary, quiet: Dictionary) -> bool:
+	return float(busy["max"]) >= float(quiet["max"]) or float(quiet["max"]) < SERVER_BUDGET_MS
 
 
 func test_the_hash_rebuild_holds_its_own_line() -> void:
