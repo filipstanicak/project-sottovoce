@@ -6,6 +6,7 @@ status: accepted
 owner: Lead Game Designer
 last_updated: 2026-08-05
 depends_on: [ADR-0008, GDD-02-PLAYER, TDD-06-PAWN]
+supersedes: none
 ---
 
 # ADR-0012 — Slowing down is always available, from every locomotion state

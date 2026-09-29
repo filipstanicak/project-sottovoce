@@ -6,6 +6,7 @@ status: accepted
 owner: Lead Game Designer
 last_updated: 2026-09-29
 depends_on: [ADR-0013, ADR-0021, GDD-06-UI-AUDIO, US-0073]
+supersedes: none
 ---
 
 # ADR-0024 — The HUD shows what the reference shows

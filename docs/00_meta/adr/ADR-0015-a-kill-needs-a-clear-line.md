@@ -6,6 +6,7 @@ status: accepted
 owner: Lead Game Designer
 last_updated: 2026-08-27
 depends_on: [ADR-0010, GDD-03-SOCIAL-STEALTH, TDD-10-SCORING, TDD-07-SUSPICION, US-0060]
+supersedes: none
 ---
 
 # ADR-0015 — A kill needs a clear line to its contract

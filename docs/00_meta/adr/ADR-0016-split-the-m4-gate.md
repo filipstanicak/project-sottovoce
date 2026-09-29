@@ -6,6 +6,7 @@ status: accepted
 owner: Lead Game Designer
 last_updated: 2026-08-27
 depends_on: [BACKLOG-ROADMAP, BIBLE-TEST-PLAN, US-0063]
+supersedes: none
 ---
 
 # ADR-0016 — Split the M4 gate

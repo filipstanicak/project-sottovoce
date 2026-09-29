@@ -6,6 +6,7 @@ status: accepted
 owner: Lead Game Designer
 last_updated: 2026-09-22
 depends_on: [ADR-0013, GDD-03-SOCIAL-STEALTH, GDD-06-UI-AUDIO, BIBLE-UI-UX, BIBLE-NET-PROTOCOL, US-0058, US-0073, US-0078]
+supersedes: none
 ---
 
 # ADR-0021 — The hunter knows the face from the start

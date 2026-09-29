@@ -4,7 +4,7 @@ title: Decision Log and ADR Index
 version: 0.1.0
 status: draft
 owner: Documentation Architect
-last_updated: 2026-08-03
+last_updated: 2026-09-29
 depends_on: [DOC-GLOSSARY]
 ---
 
@@ -173,7 +173,11 @@ list them, which is [trap 14](../../CLAUDE.md)'s shape in a table rather than in
 
 ### 2.2 ADR template
 
-New ADRs use this shape exactly. Copy it.
+New ADRs use this shape exactly. Copy it. `test/arch/test_adrs_follow_the_template.gd` reads the
+frontmatter keys off the block below and holds every ADR to them, in order; the one extra key it
+allows is `superseded_by`, on an ADR whose status is `superseded`. *ADR-0012 and ADR-0015 to
+ADR-0024 left out `supersedes:` until 2026-09-29, when the review of #240 found it; none of them
+supersedes an ADR, so each says `none`.*
 
 ```markdown
 ---

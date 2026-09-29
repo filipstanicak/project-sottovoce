@@ -6,6 +6,7 @@ status: proposed
 owner: Lead Game Designer
 last_updated: 2026-09-29
 depends_on: [ADR-0013, ADR-0014, ADR-0019, ADR-0020, ADR-0021, GDD-03-SOCIAL-STEALTH, GDD-06-UI-AUDIO]
+supersedes: none
 ---
 
 # ADR-0022 — Suspicion is what your contract sees
