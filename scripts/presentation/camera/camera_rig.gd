@@ -99,7 +99,10 @@ func _on_command_sampled(command: InputCommand) -> void:
 		return
 	_scanning = command.scan
 	_yaw = command.look_yaw
-	_pitch = clampf(command.look_pitch, -_pitch_limit(), _pitch_limit())
+	# Unclamped here: the gimbal limit applies to the arm's pitch, look plus
+	# `TUN-CAM-REST-PITCH` (`_arm_pitch`), or the resting tilt would take 13° off the
+	# look upward. `InputSampler` already bounds the look itself at ±90°.
+	_pitch = command.look_pitch
 
 
 func arm_distance() -> float:
@@ -145,7 +148,7 @@ func _process(delta: float) -> void:
 	fov = CameraFov.step(fov, _wanted_fov(), delta)
 
 	var at := _drawn_pawn_position(ctx)
-	global_position = CameraArm.position_at(at, _yaw, _pitch, _distance)
+	global_position = CameraArm.position_at(at, _yaw, _arm_pitch(), _distance)
 	look_at(CameraArm.pivot(at), Vector3.UP)
 
 
@@ -183,10 +186,17 @@ func _pitch_limit() -> float:
 	return deg_to_rad(pitch_limit_degrees)
 
 
+## The pitch the arm is actually at: the look plus `TUN-CAM-REST-PITCH`. **Both the
+## placement and the occlusion ray read this**, or the ray would test an arm the
+## camera is not on and a wall could hide behind the difference.
+func _arm_pitch() -> float:
+	return CameraArm.view_pitch(_pitch, _pitch_limit())
+
+
 ## How long the arm may be this frame: the full length, or short of whatever the
 ## world put in the way.
 func _wanted_distance(ctx: PawnContext) -> float:
-	var offset := CameraArm.offset_direction(_yaw, _pitch)
+	var offset := CameraArm.offset_direction(_yaw, _arm_pitch())
 	var ideal := offset.length()
 	if ideal <= 0.0:
 		return 0.0

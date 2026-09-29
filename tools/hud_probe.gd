@@ -33,6 +33,9 @@ const CLIENT := "res://scenes/client_root.tscn"
 ## it part-way up and read as a rendering fault rather than as a design.
 const SETTLE := 1.5
 
+## 55 m. Was 10 m, inside the full-ring radius since 2026-08-27: a ring, pointing nowhere.
+const FAR_BUCKET := 110
+
 var _root: Node = null
 var _hud: Node = null
 var _shots: PackedStringArray = []
@@ -214,7 +217,7 @@ func _capture_cone_diagnostics() -> void:
 			EventBus.suspicion_tier_changed.emit(
 				SuspicionMath.Tier.ANONYMOUS, SuspicionSources.NONE
 			)
-			EventBus.compass_updated.emit(0.0, 20, 0.0)
+			EventBus.compass_updated.emit(0.0, FAR_BUCKET, 0.0)
 			EventBus.kill_ready_changed.emit(false, false)
 	)
 	# **A CONTRACT ON THE PLAYER'S RIGHT IS BEARING MINUS 90, NOT PLUS.** This game's
@@ -225,7 +228,7 @@ func _capture_cone_diagnostics() -> void:
 	await _state(
 		"08_cone_quarter_right",
 		"A contract on the player's RIGHT: the cone MUST point RIGHT. Left means a mirror.",
-		func() -> void: EventBus.compass_updated.emit(-PI * 0.5, 20, 0.0)
+		func() -> void: EventBus.compass_updated.emit(-PI * 0.5, FAR_BUCKET, 0.0)
 	)
 	await _capture_the_arc_widening()
 

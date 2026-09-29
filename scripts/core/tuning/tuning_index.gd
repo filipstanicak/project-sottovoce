@@ -218,6 +218,7 @@ const FIELD := {
 	&"TUN-CAM-FOV-MOTION-REDUCED": ["camera", "fov_motion_reduced", "deg"],
 	&"TUN-CAM-ARM-LENGTH": ["camera", "arm_length", "m"],
 	&"TUN-CAM-ARM-HEIGHT": ["camera", "arm_height", "m"],
+	&"TUN-CAM-REST-PITCH": ["camera", "rest_pitch", "deg"],
 	&"TUN-CAM-OCCLUSION-MARGIN": ["camera", "occlusion_margin", "m"],
 	&"TUN-CAM-OCCLUSION-PULL-RATE": ["camera", "occlusion_pull_rate", "m/s"],
 	&"TUN-CAM-OCCLUSION-RESTORE-RATE": ["camera", "occlusion_restore_rate", "m/s"],

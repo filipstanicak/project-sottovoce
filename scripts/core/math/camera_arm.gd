@@ -32,6 +32,17 @@ static func pivot(feet: Vector3) -> Vector3:
 	return feet + Vector3.UP * Tuning.camera.arm_height
 
 
+## **THE PITCH THE ARM IS PLACED AT: THE PLAYER'S LOOK PLUS THE RESTING TILT.**
+## `TUN-CAM-REST-PITCH` is negative — looking down, which in this file's
+## convention raises the arm — so an untouched look frames the pawn's feet and the
+## street ahead of it, as the reference's camera does (US-0105). Added here rather
+## than to `look_pitch` because that value is the player's and is sent to the
+## server; the rest is a framing, and only the camera needs it. Clamped to the
+## rig's gimbal limit so the tilt cannot carry a look past it.
+static func view_pitch(look: float, limit: float) -> float:
+	return clampf(look + deg_to_rad(Tuning.camera.rest_pitch), -limit, limit)
+
+
 ## The pawn's facing, on the ground plane. Yaw 0 faces +Z, matching
 ## `ProbeLayout.forward` — the camera and the traversal probes must agree about
 ## which way "forward" is or the player aims one thing and probes another.

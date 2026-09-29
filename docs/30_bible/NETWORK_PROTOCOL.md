@@ -320,7 +320,7 @@ cannot be broken at all.
 |---|---|---|
 | ~~Contract's **persona**~~ | *Struck 2026-09-22 by ADR-0021: the persona IS sent to the hunter, as the reference shows the target's picture from assignment.* | **Carried since US-0100** (2026-09-24): one byte on `NET-S2C-CONTRACT-ASSIGNED`, `PROTOCOL_VERSION` 3. Every seat's persona reaches every client on `NET-S2C-LOBBY-STATE` as of US-0101 — the district draws them, so it is what a player sees anyway |
 | Contract's **exact position** | Deletes the search | `bearing` + `distance_bucket` only |
-| Contract's **elevation** | The Compass is 2D by design | No z component anywhere in `compass` |
+| Contract's **elevation** | The Compass is 2D by design. **Lifted by ADR-0024 (2026-09-25): the Compass says up or down, as the reference's does** — still true of the wire today, and the field arrives with US-0105's up/down PR and a `PROTOCOL_VERSION` bump | No z component anywhere in `compass` |
 | Contract's **suspicion or tier** | You see the consequence, never the value | Not in the payload |
 | **Prey-warning IDENTITY** | A persona here collapses ~78 candidates to one, permanently and for free | `NET-S2C-PREY-WARNING` carries a bearing and a bucket and **has no field that names anybody**. `test_warning_names_nobody.gd` refuses one on the wire and in this row; `test_prey_warning_signal_arity.gd` refuses one on the event bus |
 | Other players' **suspicion values** | Anonymity | `render_state` is 2 bits, per observer |
@@ -395,7 +395,7 @@ reach, putting the cost of a bad connection on the player who has one.
 - [ ] Every C2S message has a non-empty authority check, and the handler calls `_authorise` first.
 - [ ] No C2S message contains an outcome field.
 - [ ] `NET-S2C-PREY-WARNING` has exactly two fields, and neither names a player.
-- [ ] No payload contains the contract's exact position, elevation or tier. **The persona was on this line until 2026-09-22 and is not (ADR-0021)**: the hunter is told what their target looks like from assignment, and the persona rides `NET-S2C-CONTRACT-ASSIGNED` as of US-0100.
+- [ ] No payload contains the contract's exact position, elevation or tier. *Elevation leaves this line with US-0105's up/down PR (ADR-0024): an up-or-down reading, not a height.* **The persona was on this line until 2026-09-22 and is not (ADR-0021)**: the hunter is told what their target looks like from assignment, and the persona rides `NET-S2C-CONTRACT-ASSIGNED` as of US-0100.
 - [ ] `render_state` is computed per observer.
 - [ ] `KillSystem` / `StunSystem` never read `client_tick`.
 - [ ] This document and TDD-04 §6 agree (`test_protocol_docs_sync.gd`).

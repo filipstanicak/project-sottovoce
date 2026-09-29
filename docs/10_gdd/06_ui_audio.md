@@ -75,7 +75,7 @@ Four rules, derived from the design laws in [`01_vision.md`](01_vision.md) §2.
 │  └──────────┘                                               │  Blended │ │
 │                          ╭───────────╮                      └──────────┘ │
 │   ┌───┐  ┌───┐          │     ▲      │   ◄── A ─ THE COMPASS   ▲         │
-│   │ Q │  │ F │          │  ╱     ╲   │        centre-bottom    │         │
+│   │ Q │  │ F │          │  ╱     ╲   │        round the legs   │         │
 │   │45s│  │ ● │          │ ╱  cone ╲  │                         D ─ score │
 │   └───┘  └───┘          ╰───────────╯                              feed  │
 │     ◄── G ─ abilities                                                    │
@@ -86,15 +86,15 @@ Four rules, derived from the design laws in [`01_vision.md`](01_vision.md) §2.
 
 Each element states **the question it answers, in the player's words**. Law 1.
 
-#### A — The Compass  *(centre-bottom, 220 px diameter)*
+#### A — The Compass  *(round the pawn's legs, a flat ring 270 × 135 px — was centre-bottom, 220 px)*
 
 | | |
 |---|---|
 | **Question it answers** | *"Where is my contract, roughly, and am I getting closer?"* |
 | **Shows** | A direction cone of half-width `TUN-COMPASS-CONE-HALFWIDTH` 12°, drawn relative to camera facing. A pulse whose *cadence* encodes distance (`TUN-COMPASS-PULSE-MAX` 0.90 s at 60 m → `TUN-COMPASS-PULSE-MIN` 0.15 s at 0 m, curve in [`03_social_stealth.md`](03_social_stealth.md) §8.2). A lock arc that fills over `TUN-COMPASS-LOCK-FILL-TIME` 1.6 s. |
-| **Position** | Centre-bottom, not a corner. It is the single most-consulted element and must be reachable by peripheral vision without moving the eyes off the crowd. |
+| **Position** | **Around the pawn's legs, lying on the ground** (US-0105, ADR-0024): a flat ring at a fixed spot, centred at **80 % of the frame's height**, where the reference draws its compass and keeps it when the view tilts, so it is fixed on screen, never projected under the body. **Not at the feet, and neither is the reference's**: measured, its ring circles the legs at knee-to-thigh height, about 40 % of the figure above the feet; ours at `TUN-CAM-REST-PITCH`'s framing is about 30 % (0.27 by the rig's own arithmetic, 0.31 read off the client's screenshot). The owner took the reference's spot on 2026-09-29 when the review of #243 found the words said *feet*; `test_the_compass_rings_the_legs.gd` holds the relation. It is the single most-consulted element and must be reachable by peripheral vision without moving the eyes off the crowd. *Was: centre-bottom, not a corner — moved on 2026-09-29 by owner decision.* |
 | **Never shows** | Distance in metres. Whether they are moving toward or away. *Elevation and the contract's persona were on this list: the persona is told from assignment since ADR-0021, and since [ADR-0024](../00_meta/adr/ADR-0024-the-hud-shows-what-the-reference-shows.md) the Compass says **up or down** and glows while the contract is in sight, as the reference's does (US-0105).* |
-| **Why centre-bottom and not an edge compass strip** | An edge strip encourages reading it as a map. A radial dial at the bottom of the screen reads as an *instrument* — something you consult, that has its own rhythm. This is a deliberate framing choice. |
+| **Why round the legs and not an edge compass strip** | An edge strip encourages reading it as a map. A ring round the player's own figure reads as an *instrument* about *them* — something you consult, that has its own rhythm. This is a deliberate framing choice. |
 
 #### B — Contract portrait  *(top-left, 180 × 220 px)*
 
