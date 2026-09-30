@@ -99,6 +99,29 @@ func _on_notice(kind: int) -> void:
 	_heard.append(kind)
 
 
+func test_a_zero_point_row_does_not_hand_over_a_departed_leaders_lead() -> void:
+	# **THE REVIEW'S COUNTEREXAMPLE**, which the first version failed: the log holds
+	# zero-point rows on purpose, and one of them after the leader left told B they
+	# had taken the lead with nothing paid.
+	_pay(A, 100.0)
+	_pay(B, 50.0)
+	_announcer.flush_score()
+	_ctx.pawn_contexts.erase(A)
+	_ctx.score.mark_death(_ctx.tick, B, C, Tuning.match_rules, 1)
+	_pay(B, 0.0)
+	_announcer.flush_score()
+	assert_eq(
+		_announcer.notices_sent,
+		[[A, NoticeWire.Kind.TOOK_LEAD]],
+		"a zero-point row handed the lead to somebody who was paid nothing"
+	)
+	_pay(B, 10.0)
+	_announcer.flush_score()
+	assert_eq(
+		_announcer.notices_sent.back(), [B, NoticeWire.Kind.TOOK_LEAD], "real points were not"
+	)
+
+
 func test_the_client_puts_a_known_notice_on_the_bus_and_drops_an_unknown_one() -> void:
 	var bridge := HudBridge.new()
 	add_child_autofree(bridge)

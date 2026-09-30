@@ -71,7 +71,8 @@ lists what the reference's HUD shows that ours does not. This story builds it.
   every newly announced contract, **except the countdown's first deal**, where everybody gets one at once.
   *You have taken the lead* rides the score flush: `ScoreLead` announces the new **sole** top scorer above
   zero among the players still here, only when points were paid — so a leader who leaves hands nobody the
-  lead. `NoticeVm` shows one at a time for `TUN-UI-NOTICE-DURATION` 3.0 s (**ours**; the reference gives no
+  lead. *Points, not rows*: the review of #245 found a zero-point event (the death marker) passing the
+  first gate, and that sequence is a test now. `NoticeVm` shows one at a time for `TUN-UI-NOTICE-DURATION` 3.0 s (**ours**; the reference gives no
   figure) and queues a second rather than replacing it. Drawn where the reference draws it, measured: y 475
   of 720 in both.
 

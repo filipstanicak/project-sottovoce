@@ -243,10 +243,13 @@ func ability_denied(peer: int, slot: int, why: int) -> void:
 ##
 ## The context is the one this was constructed with, so both are ignored.
 func flush_score(_ctx_in: MatchContext = null, _dt: float = 0.0) -> void:
-	var appended := false
+	var paid := false
 	for event: ScoreEvent in _ctx.score.tail(_sent):
 		_sent += 1
-		appended = true
+		# **POINTS, NOT ROWS** (the review of #245): the log holds zero-point events
+		# on purpose — the death marker, a neutralised Reckless — and a row that pays
+		# nothing must not ask who leads.
+		paid = paid or event.points() != 0
 		var peer := score_recipient(event)
 		if peer == 0:
 			continue
@@ -254,7 +257,7 @@ func flush_score(_ctx_in: MatchContext = null, _dt: float = 0.0) -> void:
 			peer, event, _ctx.slots.slot_of(peer), _ctx.slots.slot_of(event.subject_id)
 		)
 	# Only on points: a leader who leaves hands nobody the lead by taking it.
-	var leader := lead_taken() if appended else ScoreLead.NOBODY
+	var leader := lead_taken() if paid else ScoreLead.NOBODY
 	if leader != ScoreLead.NOBODY:
 		_notice(leader, NoticeWire.Kind.TOOK_LEAD)
 
