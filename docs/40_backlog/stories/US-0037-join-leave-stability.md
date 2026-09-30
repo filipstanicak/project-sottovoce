@@ -4,7 +4,7 @@ title: Join and leave stability
 version: 1.1.0
 status: in-progress
 owner: Technical Director
-last_updated: 2026-08-15
+last_updated: 2026-09-30
 depends_on: [TDD-04-NET]
 ---
 
@@ -55,8 +55,12 @@ in every message that names anybody.
 - [x] Remaining clients see no stutter when a peer joins: the incumbents still agree with the
       server within `TUN-NET-RECONCILE-THRESHOLD` across a join, and a survivor still agrees
       after twenty cycles of somebody else's churn.
-- [ ] **Below the minimum player count the match ends gracefully with results shown.** `SYS-MATCH`
-      owns match end and it is M4's; there is no results screen to show. Left unticked.
+- [x] **Below the minimum player count the match ends gracefully with results shown.** **Ticked
+      2026-09-30**, found stale while the manual was made lean: `SYS-MATCH` (US-0079) moves a match
+      it started to `RESULTS` below `TUN-LOBBY-MIN-PLAYERS`, and
+      `test_match_system.gd::test_falling_below_the_floor_ends_the_match_with_results` holds it.
+      The old note read: *`SYS-MATCH` owns match end and it is M4's; there is no results screen to
+      show.*
 
 ## Five minutes is repetition, and repetition is what is counted
 

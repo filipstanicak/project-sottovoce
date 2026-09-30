@@ -4,7 +4,7 @@ title: Roadmap — M0 to M6
 version: 0.2.0
 status: draft
 owner: Technical Director
-last_updated: 2026-08-27
+last_updated: 2026-09-30
 depends_on: [DOC-SCOPE-FENCE, BIBLE-DOD, BIBLE-RISK-REGISTER]
 ---
 
@@ -696,11 +696,11 @@ does not work — and finding that out at M4 costs one milestone rather than thr
 |---|---|
 | `ScoreEvent`, `ScoreLog`, the pure fold | |
 | All twelve kill bonuses, evaluated at initiation — **plus `SCORE-ESCAPE` and `SCORE-CLOSECALL`, which are not** | The two escape bonuses fold when a chase timer empties, not at a kill. US-0097 |
-| `AbilitySystem` + Cinderfall, Whisperbolt, Second Face, Lunge | **`SYS-ABILITY` and Cinderfall are DONE** (US-0066, US-0067). Whisperbolt is deferred post-MVP; Second Face (US-0069) swaps an identity no client draws, and Lunge (US-0070) needs a pawn state that does not exist — owner decision 3 |
-| Three passives | |
-| The full HUD: Compass, portrait, tier, feed, abilities, timer, crosshair | **Compass, portrait, tier, crosshair, vignette, score feed and the pursuit bars are DONE** (US-0072/0073/0074, US-0097). **Still missing: the ability slots and the match timer** — the slots need `SYS-ABILITY`'s loadout, and as of US-0079 the timer's **server half is done and on the wire** (`Snapshot.ticks_remaining`, first written 2026-09-08 after five milestones as a field nobody wrote). What is left is a widget, US-0073's |
-| Audio dispatcher, the event table, reactive music stems | |
-| Results screen with the per-bonus breakdown | |
+| `AbilitySystem` + Cinderfall, Whisperbolt, Second Face, Lunge | **`SYS-ABILITY`, Cinderfall and the Lunge are DONE** (US-0066, US-0067, US-0070; Cinderfall reworked to the reference's by US-0104). Whisperbolt is deferred post-MVP. **Second Face (US-0069) is not built.** *Corrected 2026-09-30: this row said the Lunge needed a pawn state that did not exist — `Lunging` has existed since 2026-09-02.* |
+| Three passives | **Not built** — nothing assigns a passive, and there is no loadout (US-0071) |
+| The full HUD: Compass, portrait, tier, feed, abilities, timer, crosshair | **Compass, portrait, tier, crosshair, vignette, score feed and the pursuit bars are DONE** (US-0072/0073/0074, US-0097). **The match timer is DONE** (2026-09-13), and so are the Compass's ring, up/down and in-sight glow and the one-line notices (US-0105). **Still missing: the ability slots**, which need a loadout (US-0071), and the rest of US-0105 — kill feed, names, death card, own placement. *Corrected 2026-09-30: this row still listed the timer as missing.* |
+| Audio dispatcher, the event table, reactive music stems | **Not built.** `Audio.play()` is an empty stub and the repository holds no sound file (US-0075, US-0076) |
+| Results screen with the per-bonus breakdown | **Built** (US-0077), with two lines open: each player's persona and kit, and killers by name |
 | **The escape verb** — pursuit timer, contract loss, `SCORE-ESCAPE`, `SCORE-CLOSECALL`, the bar on both HUDs | **DONE 2026-09-01, twelve of twelve.** US-0097, [ADR-0014](../00_meta/adr/ADR-0014-the-escape-verb.md). The cut that paid for it **was chosen on 2026-08-27** — `ABIL-WHISPERBOLT` deferred post-MVP, SCOPE_FENCE §1.1 records the payment as collected. The wire carries **two** bytes rather than the one the story asked for: a Hamiltonian cycle makes every player a hunter and a prey at once |
 
 ### 7.1 The M5 gate
@@ -755,6 +755,41 @@ The re-fold procedure lets archived matches be re-scored under candidate values 
 function — screening candidates cheaply before anyone plays a session to test them.
 
 ---
+
+### 8.3 The road to M6, measured 2026-09-30
+
+*Asked by the owner as "how far are we from a working beta?" The owner's beta is this
+milestone's gate: a build people outside the project can play, logged. This is the list of what
+stands between the build and that gate, in the order it should be taken. **The estimates are in
+pull requests and are estimates**: the pace of #239–#246 was about ten a week, with review
+rounds, on the owner's current plan.*
+
+**Where the build is.** Playable end to end by the owner and bots: countdown, dealt personas and
+contracts, the eight-minute match with the Final Contract, kill, stun, escape, Cinderfall, the
+Lunge, every bonus rule — eleven of the thirteen earnable, Masked and Poisoned dormant until an ability can trigger them — the HUD and the results. **Never played by several humans at once.**
+
+| # | Work | Stories | Why it is on the road | PRs | Needs from the owner |
+|---|---|---|---|---|---|
+| 1 | **The first playtest with human hunters**, on the direct-IP launch | US-0098 | the largest risk, `RISK-NOT-FUN-SOLO`, is not on any other row; what it finds re-orders every row below | 1 (a facilitator sheet) | 3–5 players; whether US-0098 may run without a lobby (decision 1's leftover) |
+| 2 | Any pursuer can be stunned | ADR-0022, decision 11 | decided 2026-09-25 and not built; missed at the controls | 1–2 | — |
+| 3 | Lobby, player names, persona and loadout selection | US-0078, US-0071 | the kill feed, names, death card, results' personas and the ability slots all wait on it | 4–6 | — |
+| 4 | Second Face and the three passives | US-0069, US-0071 | M5's exit names three abilities; two exist | 3–4 | — |
+| 5 | The rest of the reference's HUD | US-0105 | kill feed, names, death card, own placement and pursuer icons | 3–4 | decision 14 for the civilian line, decision 15 for more than one icon |
+| 6 | The crowd sits, leans, gathers and walks apart | US-0103 | a release blocker: the only figure ever on a bench is a player | 3–5 | — |
+| 7 | Animation for both rigs | US-0046, US-0045, US-0019, US-0024 | figures glide; a clone and a player look alike partly because neither moves | 5–8 | **licensed clips**, each with a row in `ASSET_LICENSES.md` |
+| 8 | Sound: dispatcher, event map, footsteps, stings, music | US-0075, US-0076 | half the tells in a stealth game, and law 3's second channel | 3–5 | **licensed sounds** |
+| 9 | Bandwidth for play across the internet | US-0031, ADR-0007 | upstream measures 145 % and downstream 112 % of budget; a LAN does not notice | 2–4 | — |
+| 10 | Telemetry, the debug console, the one-click playtest | US-0080, US-0081, US-0082 | the gate's logging and the balance pass read them | 3–5 | — |
+| 11 | Onboarding minimum and accessibility | US-0083, US-0084, US-0085 | the gate's readability tests | 3–5 | — |
+| 12 | Balance pass 1, three external playtests, the gate | US-0086, US-0087, US-0088 | the gate itself | 2–3, plus the sessions | **three external groups** |
+
+**About 33–52 pull requests**: four to six weeks of building at the current pace, and **eight to
+twelve weeks** once playtests, review rounds and waiting for assets are counted. Rows 7 and 8 are
+the ones most likely to move the date, because both wait on assets only the owner can choose.
+
+**Deliberately not on this road:** Whisperbolt (post-MVP), the per-relationship suspicion meter
+(ADR-0022's proposed half), decisions 14 and 15 beyond an ADR draft, and everything
+`SCOPE_FENCE.md` puts out — matchmaking and persistence among them.
 
 ## 9. Cross-milestone rules
 
