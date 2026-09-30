@@ -195,7 +195,7 @@ func _consider_warning(prey: int, pursuer: int, them: PawnContext, ctx: MatchCon
 	# open for up to two and a half seconds after the carelessness that earned it,
 	# and the hunter would keep a contract the rule says they had put at risk.
 	#
-	_open_a_chase(prey, pursuer, within and careless, ctx)
+	PursuitTracker.open_on_carelessness(prey, pursuer, within and careless, ctx)
 	if not warning.consider(prey, pursuer, within, careless, ctx.tick):
 		return
 	warnings_sent += 1
@@ -232,7 +232,8 @@ func _read_the_compass(hunter: int, ctx: MatchContext) -> void:
 	var t := Tuning.compass
 	var bearing := CompassMath.shown_bearing(here.position, there.position, contract, ctx.tick, t)
 	var metres := CompassMath.distance_to(here.position, there.position)
-	ctx.compass.set_reading(hunter, bearing, Quantise.distance_to_bucket(metres))
+	var rise := there.position.y - here.position.y
+	ctx.compass.set_reading(hunter, bearing, Quantise.distance_to_bucket(metres), rise)
 	_advance_the_lock(hunter, contract, here, there, metres, ctx)
 
 
@@ -277,6 +278,8 @@ func _advance_the_lock(
 	if can_lock and t.lock_requires_los:
 		can_lock = clear
 	chase.advance(hunter, contract, there, metres, watching and clear, ctx)
+	# The Compass glows on the same *in sight* the chase refreshes on (US-0105).
+	ctx.compass.set_sight(hunter, watching and clear)
 	# `SCORE-FOCUS` rides `can_lock` — see this function's docstring.
 	ctx.score_windows.sample_focus(hunter, can_lock, Tuning.ticks(&"TUN-SCORE-FOCUS-BREAK-GRACE"))
 	if lock.advance(hunter, contract, can_lock, MatchContext.net_dt(), false):
@@ -382,18 +385,3 @@ func teardown() -> void:
 	if _ctx != null:
 		_ctx.render_states.clear()
 		_ctx.compass.clear()
-
-
-## **A CHASE OPENS ON THE CONDITION, NOT ON THE MESSAGE**, which is why this sits
-## above `PreyWarning.consider` rather than below it. The warning re-triggers no
-## faster than `TUN-COMPASS-WARN-COOLDOWN` 2.5 s; a chase gated on that would
-## refuse to open for up to two and a half seconds after the carelessness that
-## earned it, and the hunter would keep a contract the rule says they had risked.
-##
-## **IT OPENS ONE AND NEVER REFRESHES ONE.** Collapsing the two would be a real
-## rule change: *near and careless* would hold a chase open, so a hunter standing
-## beside their prey facing the wrong way would never lose them. Only **sight**
-## refreshes, and that is `PursuitTracker`'s.
-func _open_a_chase(prey: int, pursuer: int, alerted: bool, ctx: MatchContext) -> void:
-	if alerted and ctx.pursuit.prey_of(pursuer) != prey:
-		ctx.pursuit.refresh(pursuer, prey, Tuning.ticks(&"TUN-PURSUIT-DURATION"))

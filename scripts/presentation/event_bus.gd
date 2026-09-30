@@ -54,9 +54,11 @@ signal contract_assigned(reason: int, persona: StringName)
 signal contract_portrait_revealed
 
 ## Compass state for this snapshot. distance_bucket is an index, never metres —
-## the imprecision is authored (design law 6).
+## the imprecision is authored (design law 6). `bucket` is a distance bucket (it was
+## `distance_bucket` until US-0105, and one line holds a signal). `vertical` is a
+## `CompassBoard.Vertical` and never a height; `in_sight` is the chase's own sight.
 ## EVT-COMPASS-UPDATED
-signal compass_updated(bearing: float, distance_bucket: int, lock: float)
+signal compass_updated(bearing: float, bucket: int, lock: float, vertical: int, in_sight: bool)
 
 ## Both sides of a pursuit, `[0, 1]` each: the chase YOU are running and the chase
 ## run AGAINST you. Two values because a Hamiltonian cycle makes every player both

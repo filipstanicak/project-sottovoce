@@ -33,9 +33,6 @@ const CLIENT := "res://scenes/client_root.tscn"
 ## it part-way up and read as a rendering fault rather than as a design.
 const SETTLE := 1.5
 
-## 55 m. Was 10 m, inside the full-ring radius since 2026-08-27: a ring, pointing nowhere.
-const FAR_BUCKET := 110
-
 var _root: Node = null
 var _hud: Node = null
 var _shots: PackedStringArray = []
@@ -71,12 +68,19 @@ func _run() -> void:
 		return
 	print("HUD widgets in the scene: ", _names(_hud))
 
+	await _capture()
+	_report()
+	get_tree().quit()
+
+
+## What this probe captures. **`tools/compass_probe.gd` overrides it** and inherits
+## the boot, the refusal and `_state` — the Compass's own diagnostics moved there in
+## US-0105, when this file reached the length limit.
+func _capture() -> void:
 	await _capture_every_state()
 	await _capture_the_chase()
 	await _capture_the_score_feed()
 	await _capture_readability_edges()
-	_report()
-	get_tree().quit()
 
 
 ## What was written, and what to look for in it. **Split out for the length guard**
@@ -89,8 +93,8 @@ func _report() -> void:
 	print("")
 	print("LOOK FOR: is the cone soft-edged rather than a needle? Does the pulse read as a")
 	print("BEAT rather than a throb? Can you tell the tier without reading the word? Is the")
-	print("centre of the screen empty apart from the dot? And do 09, 10 and 11 read as ONE")
-	print("arc opening rather than three unrelated shapes?")
+	print("centre of the screen empty apart from the dot? (The cone's direction and width")
+	print("frames, 07-11, and up/down and in-sight are tools/compass_probe.tscn's.)")
 	print("AND IN 15-17: are the two chase arcs TELLABLE APART without reading the colour —")
 	print("different radius, opposite directions — and do they stay clear of the lock arc?")
 	print("Is each bar's FRACTION judgeable against its track, or only its gap visible?")
@@ -120,7 +124,7 @@ func _state(id: String, expect: String, setup: Callable, settle: float = SETTLE)
 ## fields would fail here.
 func _bus(tier: int, sources: int, bucket: int, lock: float, kill: bool, stun: bool) -> void:
 	EventBus.suspicion_tier_changed.emit(tier, sources)
-	EventBus.compass_updated.emit(0.6, bucket, lock)
+	EventBus.compass_updated.emit(0.6, bucket, lock, CompassBoard.Vertical.LEVEL, false)
 	EventBus.kill_ready_changed.emit(kill, stun)
 
 
@@ -186,7 +190,10 @@ func _capture_the_loud_states() -> void:
 		"Stun brackets instead of the ring — a DIFFERENT SHAPE, not a different colour.",
 		func() -> void: _bus(SuspicionMath.Tier.EXPOSED, SuspicionSources.RUN, 6, 1.0, false, true)
 	)
-	await _capture_cone_diagnostics()
+	# The cone's own diagnostics are `compass_probe`'s now; the camera is still unhooked
+	# here so every later frame draws the cone at a bearing that means the same thing.
+	_hud.camera = null
+	_hud.compass_vm.camera_yaw = 0.0
 	await _state(
 		"06_portrait_revealed",
 		"Contract top-left: the completed-lock mark. Nobody has a persona to draw yet.",
@@ -194,68 +201,6 @@ func _capture_the_loud_states() -> void:
 	)
 
 
-## **THE TWO THAT ISOLATE THE CONE.** Everything above shows the HUD as a player
-## meets it; these answer one question with a yes or a no, which the busy frames
-## cannot — the first version of this probe read a cone pointing *down* off a
-## crowded capture and called the widget inverted. It was the camera's yaw.
-func _capture_cone_diagnostics() -> void:
-	# **A CONE ALONE, POINTING STRAIGHT AHEAD.** No lock arc to be mistaken for it,
-	# and a bearing of exactly zero, so "is it drawn where it is aimed" has a
-	# yes-or-no answer instead of an argument about which blob is which.
-	#
-	# **THE CAMERA IS UNHOOKED FIRST, AND THE FIRST VERSION OF THIS PROBE WAS WRONG
-	# WITHOUT IT.** The cone is *camera-relative*, so a world bearing of zero points
-	# straight up only when the camera's yaw is also zero — and the client scene's
-	# rig is not. It drew the cone pointing **down** and read exactly like a widget
-	# inverted by pi. The widget was right; the expectation was not.
-	_hud.camera = null
-	_hud.compass_vm.camera_yaw = 0.0
-	await _state(
-		"07_cone_straight_ahead",
-		"Bearing 0: the cone MUST point straight UP from the centre dot. No lock arc.",
-		func() -> void:
-			EventBus.suspicion_tier_changed.emit(
-				SuspicionMath.Tier.ANONYMOUS, SuspicionSources.NONE
-			)
-			EventBus.compass_updated.emit(0.0, FAR_BUCKET, 0.0)
-			EventBus.kill_ready_changed.emit(false, false)
-	)
-	# **A CONTRACT ON THE PLAYER'S RIGHT IS BEARING MINUS 90, NOT PLUS.** This game's
-	# yaw increases toward a turn to the LEFT, so +Z rotated by +90 degrees is +X,
-	# which is the player's left shoulder. Getting this label the wrong way round
-	# would turn the one diagnostic that catches a mirrored cone into one that
-	# demands the mirror.
-	await _state(
-		"08_cone_quarter_right",
-		"A contract on the player's RIGHT: the cone MUST point RIGHT. Left means a mirror.",
-		func() -> void: EventBus.compass_updated.emit(-PI * 0.5, FAR_BUCKET, 0.0)
-	)
-	await _capture_the_arc_widening()
-
-
-## **THE SECOND PROXIMITY CHANNEL, WHICH A SINGLE FRAME CANNOT SHOW AT ALL.** The
-## arc covers a constant patch of ground, so it widens as the contract closes and
-## becomes a whole ring at `CompassMath.full_ring_distance`. Three frames at one
-## bearing is the only way to see that it is a *sequence* rather than three
-## unrelated shapes.
-func _capture_the_arc_widening() -> void:
-	var frames: Array = [
-		["09_wide_far", 110, "55 m: 15 deg. The NARROWEST the arc ever gets, and clearly aimed."],
-		["10_wide_near", 60, "30 m: 66 deg. Four times as wide, and still pointing."],
-		["11_wide_ring", 40, "20 m: a COMPLETE RING, evenly lit. It has stopped saying which way."],
-	]
-	for frame: Array in frames:
-		await _state(
-			str(frame[0]),
-			str(frame[2]),
-			func() -> void: EventBus.compass_updated.emit(0.0, int(frame[1]), 0.0)
-		)
-
-
-## **THE FEED, WHICH IS THE ONE ELEMENT A STILL FRAME UNDERSTATES.** Its whole
-## design is a sequence — four bonuses `TUN-UI-SCOREFEED-STAGGER` apart — so two
-## frames of one kill are the minimum that shows the stack building rather than
-## arriving. The penalty frame is separate because §5.2's requirement is that the
 ## **THE PURSUIT BARS** (US-0097). The third frame is the one worth looking at:
 ## a Hamiltonian cycle makes every player a hunter and a prey simultaneously, so
 ## both arcs live at once is the ordinary case rather than the corner case — and it
@@ -300,8 +245,10 @@ func _capture_the_chase() -> void:
 	EventBus.pursuit_changed.emit(0.0, 0.0)
 
 
-## one negative event does **not** read as a smaller positive one, which is a
-## comparison and needs both on screen at once.
+## **THE FEED, WHICH A STILL FRAME UNDERSTATES**: four bonuses `TUN-UI-SCOREFEED-STAGGER`
+## apart, so two frames of one kill show the stack building. The penalty frame is its
+## own because §5.2 asks that a negative never read as a smaller positive — a comparison.
+## *Had been split in two across `_capture_the_chase` (trap 11); rejoined in US-0105.*
 func _capture_the_score_feed() -> void:
 	await _state(
 		"12_feed_building",

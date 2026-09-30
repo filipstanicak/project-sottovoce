@@ -171,7 +171,7 @@ func _ago(msec: float) -> String:
 	return "%.1fs ago" % ((float(Time.get_ticks_msec()) - msec) / 1000.0)
 
 
-func _on_compass(_bearing: float, bucket: int, _lock: float) -> void:
+func _on_compass(_bearing: float, bucket: int, _lock: float, _vertical: int, _sight: bool) -> void:
 	_bucket = bucket
 
 

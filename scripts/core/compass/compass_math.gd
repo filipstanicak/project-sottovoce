@@ -96,10 +96,11 @@ static func _cone_falloff(t: CompassTuning) -> float:
 ## convention: **yaw 0 faces +Z and increases toward +X**, which is
 ## `ProbeLayout.forward`'s `Vector3(sin(yaw), 0, cos(yaw))` inverted.
 ##
-## **HORIZONTAL, LIKE EVERY OTHER COMPASS QUANTITY.** GDD-03 §8.5 keeps elevation
-## off this channel entirely — there is no z component anywhere in the snapshot's
-## compass block, so a contract on a roof and one in the street below read the
-## same. That is the rule living in the arithmetic as well as in the format.
+## **HORIZONTAL, LIKE THE DISTANCE.** GDD-03 §8.5 keeps the height off this channel:
+## there is no z component anywhere in the snapshot's compass block, so a contract on
+## a roof and one in the street below get the same bearing and bucket. Since US-0105
+## the only vertical fact is `CompassBoard.Vertical` beside them — up, down or level,
+## never a height — and it is decided on its own, not smuggled in here.
 static func bearing_to(from: Vector3, to: Vector3) -> float:
 	return atan2(to.x - from.x, to.z - from.z)
 

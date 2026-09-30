@@ -32,8 +32,8 @@ lists what the reference's HUD shows that ours does not. This story builds it.
       (about 40 % of the figure above the feet; ours about 30 %), and the owner kept that spot on
       2026-09-29 when the review of #243 found the words said *feet*. **The camera framing was checked first**, as ADR-0024 asked, and moved:
       `TUN-CAM-REST-PITCH` −13° (owner, 2026-09-29), so the feet are in frame to sit on.
-- [ ] **The Compass says up or down** when the contract is above or below the hunter, and
-      **glows while the contract is in sight**. Buildable now.
+- [x] **The Compass says up or down** when the contract is above or below the hunter, and
+      **glows while the contract is in sight**. PR 2, `PROTOCOL_VERSION` 6.
 - [ ] **One-line notices**: a new pursuer on you, and you take the lead. Strings in the table.
 - [ ] **Your own placement** is always on screen, with **one icon per pursuer** beneath it
       (always one until owner decision 15).
@@ -56,8 +56,15 @@ lists what the reference's HUD shows that ours does not. This story builds it.
   by the owner's choice. `CompassWidget.place` and `ground_scale` are the one source of the ring's
   spot and shape. `tools/hud_probe.gd`'s two direction diagnostics had drawn a whole ring since
   2026-08-27 (10 m, inside the full-ring radius) and use 55 m now.
-- **Up/down and the glow are not in PR 1**: the snapshot carries no elevation for the contract
-  (NETWORK_PROTOCOL §5), so they need a field and a `PROTOCOL_VERSION` bump.
+- **PR 2 (2026-09-29): up, down and in sight.** Three bits in the byte `portrait_revealed` had to
+  itself, so the snapshot is no bigger and every frozen fixture still reads the same; the meaning
+  changed, so `PROTOCOL_VERSION` 6. *Up* is `TUN-COMPASS-VERTICAL-THRESHOLD` 2.0 m — above a stall
+  (0.9 m), below the balcony (3.5 m); **ours, not sourced**. *In sight* is the chase's own sight
+  (`PursuitTracker.geometry` and the clear line already cast), so it costs no raycast and cannot
+  disagree with the chase bar. The widget draws a chevron and fills the disc, and the word is
+  `CompassWordWidget`'s — `test_compass_invents_nothing.gd` keeps `CompassWidget` free of text, and
+  the word widget can only draw one of two string-table words; `tools/compass_probe.tscn` captures all four states, and the Compass's direction frames
+  moved there from `hud_probe`, which had reached the length limit.
 
 ## Open (ADR-0024)
 

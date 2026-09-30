@@ -92,6 +92,7 @@ const FIELD := {
 	&"TUN-COMPASS-CONE-WOBBLE": ["compass", "cone_wobble", "deg"],
 	&"TUN-COMPASS-CONE-WOBBLE-PERIOD": ["compass", "cone_wobble_period", "s"],
 	&"TUN-COMPASS-UPDATE-RATE": ["compass", "update_rate", "Hz"],
+	&"TUN-COMPASS-VERTICAL-THRESHOLD": ["compass", "vertical_threshold", "m"],
 	&"TUN-COMPASS-LOCK-CONE": ["compass", "lock_cone", "deg"],
 	&"TUN-COMPASS-LOCK-RANGE": ["compass", "lock_range", "m"],
 	&"TUN-COMPASS-LOCK-FILL-TIME": ["compass", "lock_fill_time", "s"],

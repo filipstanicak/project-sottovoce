@@ -198,6 +198,7 @@ block says what it used to get wrong.*
 | `cone_wobble` | float | 0–8 | 4 |
 | `cone_wobble_period` | float | 2–6 | 3.1 |
 | `update_rate` | float | — | 30 |
+| `vertical_threshold` | float | 1.5–3 | 2 |
 | `lock_cone` | float | 18–35 | 25 |
 | `lock_range` | float | 15–28 | 20 |
 | `lock_fill_time` | float | 1–2.5 | 1.6 |

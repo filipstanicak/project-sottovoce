@@ -43,7 +43,7 @@ func _on_tier(tier: int, sources: int) -> void:
 	_tiers.append([tier, sources])
 
 
-func _on_compass(bearing: float, bucket: int, lock: float) -> void:
+func _on_compass(bearing: float, bucket: int, lock: float, _vertical: int, _sight: bool) -> void:
 	_compass.append([bearing, bucket, lock])
 
 

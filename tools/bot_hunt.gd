@@ -54,7 +54,9 @@ func _init(seed_from: int) -> void:
 ## `EVT-COMPASS-UPDATED`. **`bucket` is the contract's distance and 255 means there
 ## is nobody to point at** — during `TUN-CONTRACT-REASSIGN-DELAY` a hunter has no
 ## announced contract at all, so this is how the bot learns to stop steering.
-func on_compass(new_bearing: float, bucket: int, _lock: float) -> void:
+func on_compass(
+	new_bearing: float, bucket: int, _lock: float, _vertical: int, _sight: bool
+) -> void:
 	bearing = new_bearing
 	has_contract = bucket != CompassBoard.NO_CONTRACT
 

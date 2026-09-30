@@ -252,6 +252,7 @@ design requirement, expressed as a curve.
 | `TUN-COMPASS-CONE-WOBBLE` | 4.0 | deg | 0–8 | Deterministic slow drift of the cone's centre, seeded per contract so it is a stable property of this hunt rather than a per-frame lie. |
 | `TUN-COMPASS-CONE-WOBBLE-PERIOD` | 3.1 | s | 2–6 | Wobble period. Non-integer and prime-ish so it does not visibly sync with the pulse. |
 | `TUN-COMPASS-UPDATE-RATE` | 30 | Hz | — | Matches the server tick. The Compass never contains information newer than the simulation. |
+| `TUN-COMPASS-VERTICAL-THRESHOLD` | 2.0 | m | 1.5–3.0 | How far above or below the hunter the contract must be for the Compass to say **up** or **down** (US-0105, ADR-0024). Above anything a pawn vaults — the market stalls are 0.9 m — and below the first stratum, the balcony at 3.5 m, so *up* means *another level*, not *a step*. **Ours rather than the reference's**: its compass says up and down, and no source gives the height at which it starts to. A direction and never a height: the Compass still holds no metres, and the reading is one of three values. |
 
 **The curve between the two anchors is derived and is deliberately not a tunable.** It is
 `180 ° × (TUN-COMPASS-CONE-FULL-RADIUS / d) ^ p`, where `p` is whatever makes it pass through

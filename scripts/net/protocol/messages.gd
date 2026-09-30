@@ -59,7 +59,12 @@ const CHANNEL_COUNT := 3
 ## read as a rendering fault. The review of #239 found the bump missing;
 ## `test_the_state_list_is_part_of_the_protocol.gd` now refuses a state appended
 ## without one.
-const PROTOCOL_VERSION := 5
+##
+## **6 (2026-09-29, US-0105): the Compass says up, down and in sight.** Two bits of
+## `CompassBoard.Vertical` and one of *in sight* ride the byte that carried only the
+## portrait latch. The snapshot is no bigger, but the byte means more: a version-5 client reads
+## the byte as `!= 0` and would take a contract below it for a revealed portrait.
+const PROTOCOL_VERSION := 6
 
 ## How often a client sends `NET-C2S-PING`. The catalogue's rate column, and
 ## **not a tunable**: it changes nothing a player can perceive. The server does

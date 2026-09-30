@@ -284,17 +284,24 @@ func _fill_own(snapshot: Snapshot, peer: int) -> void:
 	snapshot.stun_ready = own.stun_ready
 	_fill_cooldowns(snapshot, peer)
 	_fill_pursuit(snapshot, peer)
+	_fill_compass(snapshot, peer)
 
-	# **THE COMPASS BLOCK, BUCKETED AND WOBBLED BEFORE IT GOT HERE** (US-0057).
-	# `SYS-DETECTION` decided both at the `detection` stage; this reads them. The
-	# bearing is a **world** angle the client rotates into view space itself, and
-	# the distance is a bucket, so nothing downstream can recover a precision the
-	# server refused to send. `lock_fraction` is a byte of the arc and
-	# `portrait_revealed` is the per-contract lock latch (ADR-0021), both US-0058's.
+
+## **THE COMPASS BLOCK, BUCKETED AND WOBBLED BEFORE IT GOT HERE** (US-0057).
+## `SYS-DETECTION` decided both at the `detection` stage; this reads them. The
+## bearing is a **world** angle the client rotates into view space itself, and
+## the distance is a bucket, so nothing downstream can recover a precision the
+## server refused to send. `lock_fraction` is a byte of the arc and
+## `portrait_revealed` is the per-contract lock latch (ADR-0021), both US-0058's;
+## up/down and in sight are US-0105's. Split from `_fill_own` when those two
+## took it past the length limit.
+func _fill_compass(snapshot: Snapshot, peer: int) -> void:
 	snapshot.bearing = Quantise.yaw_to_u8(_ctx.compass.bearing_of(peer))
 	snapshot.distance_bucket = _ctx.compass.bucket_of(peer)
 	snapshot.lock_fraction = int(round(_ctx.compass.lock_of(peer) * 255.0))
 	snapshot.portrait_revealed = _ctx.compass.portrait_of(peer)
+	snapshot.contract_vertical = _ctx.compass.vertical_of(peer)
+	snapshot.contract_in_sight = _ctx.compass.sight_of(peer)
 
 
 ## Everybody else, by **slot**. The observer is skipped rather than filtered out

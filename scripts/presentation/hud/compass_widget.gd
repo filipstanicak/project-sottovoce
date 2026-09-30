@@ -47,6 +47,10 @@ const RING_WIDTH := 2.5
 const LOCK_RADIUS := 104.0
 const LOCK_WIDTH := 3.0
 const DOT_RADIUS := 3.0
+## US-0105: the in-sight fill, and the up/down chevron at the centre.
+const GLOW_ALPHA := 0.22
+const CHEVRON_HALF := 7.0
+const CHEVRON_RISE := 8.0
 
 var vm: CompassVm = null
 
@@ -107,11 +111,43 @@ func _draw() -> void:
 	# top is the far side, so *ahead* is still up and `screen_angle` is unchanged.
 	draw_set_transform(size * 0.5, 0.0, ground_scale())
 	var centre := Vector2.ZERO
+	_draw_glow(centre)
 	_draw_cone(centre)
 	_draw_pulse_ring(centre)
 	_draw_lock_arc(centre)
-	draw_circle(centre, DOT_RADIUS, palette.compass_dot)
+	# The word takes the centre when there is one, or the dot shows through it.
+	if vm.vertical == CompassBoard.Vertical.LEVEL:
+		draw_circle(centre, DOT_RADIUS, palette.compass_dot)
 	draw_set_transform_matrix(Transform2D.IDENTITY)
+	_draw_vertical(size * 0.5)
+
+
+## **IN SIGHT, THE WHOLE DISC GLOWS** (US-0105, ADR-0024), as the reference's does
+## while its target can be seen. Fill and a bright rim, never a hue (§7.3), under
+## the cone so the direction still reads through it.
+func _draw_glow(centre: Vector2) -> void:
+	if not vm.in_sight:
+		return
+	draw_circle(centre, CONE_OUTER, Palette.with_alpha(palette.compass_ring, GLOW_ALPHA))
+	draw_arc(centre, CONE_OUTER, 0.0, TAU, 64, palette.compass_ring, RING_WIDTH, true)
+
+
+## **UP OR DOWN: THE CHEVRON, UPRIGHT AT THE CENTRE**, as the reference draws it.
+## Drawn after the ground transform is undone, or it would be squashed onto the
+## ground with the dial. **The word beside it is `CompassWordWidget`'s**, so this
+## widget still draws no text (`test_compass_invents_nothing.gd`).
+func _draw_vertical(at: Vector2) -> void:
+	if vm.vertical == CompassBoard.Vertical.LEVEL:
+		return
+	var up := vm.vertical == CompassBoard.Vertical.UP
+	# The chevron sits on the side it points to: above the word for up, below for down.
+	var side := -1.0 if up else 1.0
+	var tip := at + Vector2(0.0, side * (CHEVRON_RISE + CHEVRON_HALF))
+	var back := tip - Vector2(0.0, side * CHEVRON_HALF)
+	var chevron := PackedVector2Array(
+		[back - Vector2(CHEVRON_HALF, 0.0), tip, back + Vector2(CHEVRON_HALF, 0.0)]
+	)
+	draw_polyline(chevron, palette.compass_ring, RING_WIDTH, true)
 
 
 ## A filled arc whose alpha falls off toward both edges, so the cone fades out

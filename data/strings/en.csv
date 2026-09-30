@@ -7,6 +7,8 @@ ui.score.label,Score
 ui.tier.anonymous,Anonymous
 ui.tier.noticed,Noticed
 ui.tier.exposed,Exposed
+ui.compass.up,Up
+ui.compass.down,Down
 ui.source.sprinting,sprinting
 ui.source.running,running
 ui.source.climbing,climbing

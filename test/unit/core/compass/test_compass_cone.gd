@@ -120,9 +120,9 @@ func test_the_shown_bearing_is_the_true_one_plus_the_drift() -> void:
 
 
 func test_the_bearing_is_horizontal() -> void:
-	# **GDD-03 §8.5 KEEPS ELEVATION OFF THIS CHANNEL ENTIRELY** — there is no z
-	# component anywhere in the snapshot's compass block. A contract on a roof and
-	# one in the street below must read identically.
+	# **GDD-03 §8.5 KEEPS THE HEIGHT OFF THIS CHANNEL** — there is no z component in
+	# the bearing or the bucket, so a roof and the street below read identically here.
+	# Up or down is `CompassBoard.Vertical`'s since US-0105, three values on their own.
 	var here := Vector3.ZERO
 	var street := Vector3(7.0, 0.0, 7.0)
 	var roof := Vector3(7.0, VetraioLayout.ROOF_Y, 7.0)

@@ -47,6 +47,12 @@ var bucket: int = CompassBoard.NO_CONTRACT
 ## The lock arc, 0.0 to 1.0.
 var lock: float = 0.0
 
+## **US-0105, ADR-0024**: the contract is above or below (`CompassBoard.Vertical`)
+## and in sight, as the bridge decoded them. Facts from the server, drawn as they
+## arrive: nothing here eases or predicts them.
+var vertical: int = CompassBoard.Vertical.LEVEL
+var in_sight: bool = false
+
 ## The camera's yaw, pushed in by the HUD root each frame. **The view model does
 ## not fetch it**: a `get_node` to the rig from here is the coupling never-do #7
 ## forbids one level down, and the same argument applies one level up.
