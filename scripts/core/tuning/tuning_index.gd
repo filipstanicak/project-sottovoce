@@ -258,6 +258,7 @@ const FIELD := {
 	&"TUN-UI-SCOREFEED-DURATION": ["ui_audio", "scorefeed_duration", "s"],
 	&"TUN-UI-SCOREFEED-MAX-LINES": ["ui_audio", "scorefeed_max_lines", "count"],
 	&"TUN-UI-SCOREFEED-STAGGER": ["ui_audio", "scorefeed_stagger", "s"],
+	&"TUN-UI-NOTICE-DURATION": ["ui_audio", "notice_duration", "s"],
 	&"TUN-UI-TIER-TRANSITION-TIME": ["ui_audio", "tier_transition_time", "s"],
 	&"TUN-UI-DAMAGE-VIGNETTE-TIME": ["ui_audio", "damage_vignette_time", "s"],
 	&"TUN-AUDIO-COMPASS-DUCK": ["ui_audio", "compass_duck", "dB"],

@@ -34,7 +34,8 @@ lists what the reference's HUD shows that ours does not. This story builds it.
       `TUN-CAM-REST-PITCH` −13° (owner, 2026-09-29), so the feet are in frame to sit on.
 - [x] **The Compass says up or down** when the contract is above or below the hunter, and
       **glows while the contract is in sight**. PR 2, `PROTOCOL_VERSION` 6.
-- [ ] **One-line notices**: a new pursuer on you, and you take the lead. Strings in the table.
+- [x] **One-line notices**: a new pursuer on you, and you take the lead. Strings in the table.
+      PR 3, `NET-S2C-NOTICE`, `PROTOCOL_VERSION` 7.
 - [ ] **Your own placement** is always on screen, with **one icon per pursuer** beneath it
       (always one until owner decision 15).
 - [ ] **The contract's placement** beside the portrait. Needs every player's score on the wire,
@@ -65,6 +66,14 @@ lists what the reference's HUD shows that ours does not. This story builds it.
   `CompassWordWidget`'s — `test_compass_invents_nothing.gd` keeps `CompassWidget` free of text, and
   the word widget can only draw one of two string-table words; `tools/compass_probe.tscn` captures all four states, and the Compass's direction frames
   moved there from `hud_probe`, which had reached the length limit.
+- **PR 3 (2026-09-30): the one-line notices.** `NET-S2C-NOTICE` carries a `NoticeWire.Kind` and nothing
+  else, to the one player it is about. *A new pursuer* rides `MatchAnnouncer.contract_issued` — the prey of
+  every newly announced contract, **except the countdown's first deal**, where everybody gets one at once.
+  *You have taken the lead* rides the score flush: `ScoreLead` announces the new **sole** top scorer above
+  zero among the players still here, only when points were paid — so a leader who leaves hands nobody the
+  lead. `NoticeVm` shows one at a time for `TUN-UI-NOTICE-DURATION` 3.0 s (**ours**; the reference gives no
+  figure) and queues a second rather than replacing it. Drawn where the reference draws it, measured: y 475
+  of 720 in both.
 
 ## Open (ADR-0024)
 

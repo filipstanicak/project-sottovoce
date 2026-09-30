@@ -33,12 +33,19 @@ var results_sent: int = 0
 ## How many `NET-S2C-LOBBY-STATE` rosters left, for the same no-socket test seam.
 var lobby_states_sent: int = 0
 
+## `[peer, NoticeWire.Kind]` for every notice sent (US-0105). Diagnostics, and what
+## the tests read: the sends are the hop a decision-only test cannot see.
+var notices_sent: Array = []
+
 var _ctx: MatchContext
 
 ## How far into `ScoreLog` this has already sent. **An index, not an event id**,
 ## because ids start at 1 and a cursor of 0 must mean "nothing sent yet" rather
 ## than "sent the first one".
 var _sent: int = 0
+
+## Who last took the lead, so holding it is not announced every tick (US-0105).
+var _lead := ScoreLead.new()
 
 
 func _init(ctx: MatchContext) -> void:
@@ -62,6 +69,24 @@ func contract_issued(peer: int, contract: int, reason: int) -> void:
 	var pawn: PawnContext = _ctx.pawn_contexts.get(contract)
 	var persona := PersonaWire.to_u8(pawn.persona) if pawn != null else PersonaWire.NONE
 	Net.events.send_contract(peer, _ctx.slots.slot_of(contract), reason, persona)
+	var prey := pursuer_notice_for(contract, reason)
+	if prey != ContractCycle.NOBODY:
+		_notice(prey, NoticeWire.Kind.NEW_PURSUER)
+
+
+func _notice(peer: int, kind: int) -> void:
+	notices_sent.append([peer, kind])
+	Net.events.send_notice(peer, kind)
+
+
+## **A NEW PURSUER IS ON YOU**, told to the prey whenever a hunter is announced onto
+## them (US-0105) — and to nobody else, naming nobody. **Not at the countdown's
+## first deal** (`Reason.START`): everybody gets a pursuer at once there, and a
+## notice everybody receives at the same instant tells nobody anything.
+static func pursuer_notice_for(contract: int, reason: int) -> int:
+	if contract == ContractCycle.NOBODY or reason == ContractSystem.Reason.START:
+		return ContractCycle.NOBODY
+	return contract
 
 
 ## A landed kill reaches the two players in it and nobody else. There is no global
@@ -218,14 +243,32 @@ func ability_denied(peer: int, slot: int, why: int) -> void:
 ##
 ## The context is the one this was constructed with, so both are ignored.
 func flush_score(_ctx_in: MatchContext = null, _dt: float = 0.0) -> void:
+	var appended := false
 	for event: ScoreEvent in _ctx.score.tail(_sent):
 		_sent += 1
+		appended = true
 		var peer := score_recipient(event)
 		if peer == 0:
 			continue
 		Net.events.send_score(
 			peer, event, _ctx.slots.slot_of(peer), _ctx.slots.slot_of(event.subject_id)
 		)
+	# Only on points: a leader who leaves hands nobody the lead by taking it.
+	var leader := lead_taken() if appended else ScoreLead.NOBODY
+	if leader != ScoreLead.NOBODY:
+		_notice(leader, NoticeWire.Kind.TOOK_LEAD)
+
+
+## **WHO HAS JUST TAKEN THE LEAD**, among the players still here (US-0105). A player
+## who left keeps their events in the log and would otherwise lead from outside the
+## match. `flush_score` asks only when something was appended, so a quiet tick
+## costs nothing and a departure alone never announces anybody.
+func lead_taken() -> int:
+	var totals := ScoreFold.fold(_ctx.score.events())
+	for peer: int in totals.keys():
+		if not _ctx.pawn_contexts.has(peer):
+			totals.erase(peer)
+	return _lead.taken_by(totals)
 
 
 ## **THE MATCH IS OVER AND EVERY PLAYER IS TOLD EVERYTHING.** `NET-S2C-MATCH-END`,

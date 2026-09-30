@@ -28,6 +28,7 @@ var compass_vm := CompassVm.new()
 var score_vm := ScoreFeedVm.new()
 var chase_vm := ChaseVm.new()
 var match_vm := MatchVm.new()
+var notice_vm := NoticeVm.new()
 
 var _bridge: HudBridge = null
 var _widgets: Array[Control] = []
@@ -43,6 +44,19 @@ func _ready() -> void:
 	_bridge = HudBridge.new()
 	_bridge.name = "HudBridge"
 	add_child(_bridge)
+	_build_widgets()
+	EventBus.compass_updated.connect(_on_compass)
+	EventBus.score_event_appended.connect(_on_score)
+	EventBus.pursuit_changed.connect(_on_pursuit)
+	EventBus.match_phase_changed.connect(_on_phase)
+	EventBus.notice_received.connect(notice_vm.push)
+	_bridge.match_time_changed.connect(match_vm.apply_ticks)
+
+
+## Every widget, in the order they stack. Split from `_ready` when US-0105's notice
+## line took it past 40; the order is the one thing here with a reason, and the two
+## comments below carry it.
+func _build_widgets() -> void:
 	var compass := _with_vm(CompassWidget.new(), compass_vm)
 	var feed := _with_vm(ScoreFeedWidget.new(), score_vm)
 	var chase := _with_vm(ChaseRingWidget.new(), chase_vm)
@@ -64,14 +78,12 @@ func _ready() -> void:
 	_add(CrosshairWidget.new(), "Crosshair")
 	_add(feed, "ScoreFeed")
 	_add(timer, "MatchTimer")
-	EventBus.compass_updated.connect(_on_compass)
-	EventBus.score_event_appended.connect(_on_score)
-	EventBus.pursuit_changed.connect(_on_pursuit)
-	EventBus.match_phase_changed.connect(_on_phase)
-	_bridge.match_time_changed.connect(match_vm.apply_ticks)
+	_add(_with_vm(NoticeWidget.new(), notice_vm), "Notice")
 
 
 func _exit_tree() -> void:
+	if EventBus.notice_received.is_connected(notice_vm.push):
+		EventBus.notice_received.disconnect(notice_vm.push)
 	if EventBus.compass_updated.is_connected(_on_compass):
 		EventBus.compass_updated.disconnect(_on_compass)
 	if EventBus.score_event_appended.is_connected(_on_score):

@@ -410,6 +410,7 @@ reckless −50), called `variety` `variety_per_type`, and left out `patient_spee
 | `scorefeed_duration` | float | 3–6 | 4 |
 | `scorefeed_max_lines` | int | 3–6 | 4 |
 | `scorefeed_stagger` | float | 0.08–0.25 | 0.12 |
+| `notice_duration` | float | 2–5 | 3 |
 | `tier_transition_time` | float | 0.15–0.4 | 0.25 |
 | `damage_vignette_time` | float | — | 0.8 |
 | `compass_duck` | float | — | −6 |
