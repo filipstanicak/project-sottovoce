@@ -906,6 +906,12 @@ full**; absence drains it; empty means the contract is lost.
 few seconds hold a chase open forever without ever closing distance, which is the opposite of
 what a chase is for.
 
+**A chase also ends, unscored, the moment the hunter's announced contract stops being its prey**
+— a kill, the hunter's own death, a stun, a disconnect or a reassignment
+(`ContractSystem.end_stale_chase`). Only an emptied bar is an escape. *Until 2026-09-30 nothing
+ended a chase any other way, and a killed prey "escaped" ten seconds after dying: reported from
+the controls as a new contract that changed again a few seconds after a kill.*
+
 **`TUN-PURSUIT-DURATION` is derived, not chosen**: it is `TUN-COMPASS-WARN-RADIUS` divided by
 `TUN-SPEED-BLENDWALK`, so **the chase ends at the moment the prey could have walked out of
 warning range at civilian speed**. Escaping therefore never requires running — design law 1 and

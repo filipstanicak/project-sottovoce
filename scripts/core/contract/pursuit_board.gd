@@ -61,8 +61,11 @@ func drain(hunters: PackedInt32Array) -> PackedInt32Array:
 
 ## **A CHASE DOES NOT END BECAUSE THE HUNTER CALMS DOWN.** Once you have been seen
 ## you must close or lose them; a hunter who could cancel by standing still would
-## have alerted their prey for free. So this is called for a kill, a death or a
-## disconnect, and by nothing else.
+## have alerted their prey for free. So it is called when the hunter's announced
+## contract stops being the prey — a kill, a death, a stun, a disconnect or a
+## reassignment — by `ContractSystem.end_stale_chase`, and by nothing else. *This
+## said "is called for a kill, a death or a disconnect" from US-0097 and nothing
+## called it until 2026-09-30.*
 func close(hunter: int) -> void:
 	_chases.erase(hunter)
 

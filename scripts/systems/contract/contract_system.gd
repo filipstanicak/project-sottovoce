@@ -146,8 +146,10 @@ func report_death(victim: int, killer: int, ctx: MatchContext) -> void:
 	if not cycle.remove(victim):
 		return
 	_published.erase(victim)
+	# The dead player's own chase ends with them.
+	end_stale_chase(ctx, victim, ContractCycle.NOBODY)
 	var why: int = Reason.KILL if killer != ContractCycle.NOBODY else Reason.REPAIR
-	_forget_anyone_hunting(victim, why)
+	_forget_anyone_hunting(victim, why, ctx)
 	if killer != ContractCycle.NOBODY and cycle.has(killer):
 		_held_until[killer] = ctx.tick + Tuning.ticks(&"TUN-CONTRACT-REASSIGN-DELAY")
 		_reason[killer] = Reason.KILL
@@ -157,12 +159,27 @@ func report_death(victim: int, killer: int, ctx: MatchContext) -> void:
 ## **NOBODY IS EVER POINTED AT SOMEBODY WHO IS NOT LIVING.** Slot 0 is "nobody" on
 ## the wire, so a clear is an ordinary `NET-S2C-CONTRACT-ASSIGNED` rather than a
 ## second message kind — and the client's Compass has one rule instead of two.
-func _forget_anyone_hunting(gone: int, why: int) -> void:
+func _forget_anyone_hunting(gone: int, why: int, ctx: MatchContext) -> void:
 	for other: int in _published.keys():
 		if int(_published[other]) != gone:
 			continue
 		_published[other] = ContractCycle.NOBODY
+		end_stale_chase(ctx, other, ContractCycle.NOBODY)
 		contract_issued.emit(other, ContractCycle.NOBODY, why)
+
+
+## **A CHASE LIVES ONLY WHILE ITS PREY IS THE HUNTER'S ANNOUNCED CONTRACT.** ADR-0014,
+## US-0097. `PursuitBoard.close` said from the day it was written that a kill, a
+## death or a disconnect called it, and **nothing did**: found from the controls on
+## 2026-09-30 — *"after a kill a new contract is shown, and it changes again a few
+## seconds later"*. The killer's chase on the prey they had just killed was never
+## refreshed again, drained, and was scored as the dead prey **escaping**: the killer
+## lost the contract they had just been told, and the corpse was paid
+## `SCORE-ESCAPE`. A stunned hunter's chase did the same, paying the prey twice.
+## Every change to an announced contract passes through this.
+static func end_stale_chase(ctx: MatchContext, hunter: int, now: int) -> void:
+	if ctx.pursuit.is_chasing(hunter) and ctx.pursuit.prey_of(hunter) != now:
+		ctx.pursuit.close(hunter)
 
 
 ## A disconnect is a death that does not respawn — GDD-03 §7.3. **The pursuer is
@@ -226,6 +243,7 @@ func _lose_the_prey(hunter: int, ctx: MatchContext, why: Reason) -> void:
 	cycle.remember(hunter, cycle.contract_of(hunter))
 	if not cycle.remove(hunter):
 		return
+	end_stale_chase(ctx, hunter, ContractCycle.NOBODY)
 	if int(_published.get(hunter, ContractCycle.NOBODY)) != ContractCycle.NOBODY:
 		_published[hunter] = ContractCycle.NOBODY
 		contract_issued.emit(hunter, ContractCycle.NOBODY, why)
@@ -303,6 +321,7 @@ func _announce_what_changed(ctx: MatchContext) -> void:
 		if now == ContractCycle.NOBODY or now == int(_published.get(peer, ContractCycle.NOBODY)):
 			continue
 		_published[peer] = now
+		end_stale_chase(ctx, peer, now)
 		_held_until.erase(peer)
 		# **THE HUNT CLOCK STARTS WHEN THE CONTRACT IS ANNOUNCED, NOT WHEN THE GRAPH
 		# CHANGED** (US-0065). `TUN-CONTRACT-REASSIGN-DELAY` holds the announcement
