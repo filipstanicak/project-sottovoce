@@ -121,6 +121,11 @@ signal score_event_appended(event: RefCounted)
 ## EVT-PREY-WARNING-TRIGGERED
 signal prey_warning_triggered(bearing: float, bucket: int)
 
+## A one-line notice for this player (US-0105): a `NoticeWire.Kind` — a new pursuer
+## on you, or you have taken the lead — and never a slot, a name or a score.
+## EVT-NOTICE-RECEIVED
+signal notice_received(kind: int)
+
 ## Any ability started within its tell radius. This is the tell channel that
 ## reaches a victim who was not looking at the caster (design law 3).
 ## EVT-ABILITY-STARTED

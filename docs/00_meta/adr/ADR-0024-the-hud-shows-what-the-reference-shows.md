@@ -65,7 +65,7 @@ killed you. Recorded as open question A.
 | Element | Depends on |
 |---|---|
 | **The Compass moves to the character's feet** (owner, 2026-09-25), with up/down and the glow while the contract is in sight. The camera framing is checked against the reference first, so that the feet are where the eye already is | **Built by US-0105's first PR (2026-09-29)**: the framing check found the feet below a level frame, and the owner took `TUN-CAM-REST-PITCH` −13° with it. **"At the feet" is the reference's ring round the legs**, measured, and the owner kept that spot. **Up/down and the glow: US-0105's second PR** (`PROTOCOL_VERSION` 6) |
-| One-line notices (new pursuer, contract poisoned, you take the lead) | nothing for the first and third; poison is dormant |
+| One-line notices (new pursuer, contract poisoned, you take the lead) | nothing for the first and third; poison is dormant. **New pursuer and the lead built by US-0105 (2026-09-30)**, `NET-S2C-NOTICE`, `PROTOCOL_VERSION` 7 |
 | *"Your pursuer killed a civilian"* | owner decision 14 (a kill on a chosen figure) |
 | Kill feed, contract name and rank, death card, results names | **player names**, which do not exist anywhere yet (US-0078's lobby) |
 | Own placement, contract placement | every player's score on the wire, a new message |

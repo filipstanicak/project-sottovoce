@@ -24,6 +24,13 @@ extends Resource
 ## TUN-UI-SCOREFEED-STAGGER
 @export_range(0.08, 0.25, 0.01) var scorefeed_stagger: float = 0.12
 
+## How long a one-line notice — a new pursuer is on you, you have taken the lead — stays up
+## (US-0105). Long enough to read six words without looking straight at them; the reference's own
+## notice is gone within a few seconds, and no source gives the figure, so it is ours. A second
+## notice waits for the first rather than replacing it.
+## TUN-UI-NOTICE-DURATION
+@export_range(2.0, 5.0, 0.1) var notice_duration: float = 3.0
+
 ## Visual transition when your own suspicion tier changes.
 ## TUN-UI-TIER-TRANSITION-TIME
 @export_range(0.15, 0.4, 0.01) var tier_transition_time: float = 0.25

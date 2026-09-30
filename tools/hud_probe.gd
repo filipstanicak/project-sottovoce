@@ -81,6 +81,30 @@ func _capture() -> void:
 	await _capture_the_chase()
 	await _capture_the_score_feed()
 	await _capture_readability_edges()
+	await _capture_the_notices()
+
+
+## **THE ONE-LINE NOTICES** (US-0105). Each is a moment, so the capture waits a
+## fraction of `TUN-UI-NOTICE-DURATION` rather than the default settle.
+func _capture_the_notices() -> void:
+	await _state(
+		"28_notice_pursuer",
+		"'New pursuer on you.' on a plate, centred just above the Compass ring.",
+		func() -> void: EventBus.notice_received.emit(NoticeWire.Kind.NEW_PURSUER),
+		0.5
+	)
+	await _state(
+		"29_notice_lead",
+		"Still the pursuer line: the lead notice WAITS for it rather than replacing it.",
+		func() -> void: EventBus.notice_received.emit(NoticeWire.Kind.TOOK_LEAD),
+		0.5
+	)
+	await _state(
+		"30_notice_lead_after",
+		"'You have taken the lead.' in the same place, once the first has gone.",
+		func() -> void: pass,
+		float(Tuning.ui_audio.notice_duration)
+	)
 
 
 ## What was written, and what to look for in it. **Split out for the length guard**

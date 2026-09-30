@@ -68,6 +68,7 @@ func _relays() -> Array:
 		[Net.events.kill_resolved, _on_kill],
 		[Net.events.stun_resolved, _on_stun],
 		[Net.events.prey_warned, _on_prey_warned],
+		[Net.events.notice_received, _on_notice],
 		[Net.events.ability_started, _on_ability_started],
 		[Net.events.ability_denied, _on_ability_denied],
 		[Net.events.score_reported, _on_score],
@@ -209,6 +210,11 @@ func _on_stun(stunner_slot: int, target_slot: int, valid: bool, _lockout: int) -
 ## **A moment, not a state**, so it is re-emitted verbatim.
 func _on_prey_warned(bearing_radians: float, bucket: int) -> void:
 	EventBus.prey_warning_triggered.emit(bearing_radians, bucket)
+
+
+## US-0105's one-line notices, a moment like the warning above, relayed verbatim.
+func _on_notice(kind: int) -> void:
+	EventBus.notice_received.emit(kind)
 
 
 ## **THE AIM IS DROPPED.** `EVT-ABILITY-STARTED` is a *tell*: something happened

@@ -64,7 +64,11 @@ const CHANNEL_COUNT := 3
 ## `CompassBoard.Vertical` and one of *in sight* ride the byte that carried only the
 ## portrait latch. The snapshot is no bigger, but the byte means more: a version-5 client reads
 ## the byte as `!= 0` and would take a contract below it for a revealed portrait.
-const PROTOCOL_VERSION := 6
+##
+## **7 (2026-09-30, US-0105): `NET-S2C-NOTICE` has a handler.** The one-line
+## notices — a new pursuer on you, you have taken the lead. A version-6 client
+## would drop the RPC as unknown and never be told, which is version 4's case.
+const PROTOCOL_VERSION := 7
 
 ## How often a client sends `NET-C2S-PING`. The catalogue's rate column, and
 ## **not a tunable**: it changes nothing a player can perceive. The server does
@@ -122,6 +126,7 @@ const CHANNEL_FOR: Dictionary = {
 	# `channel_for` reported as -1 the day a guard first asked.
 	Ids.NET_S2C_BLEND_DENIED: Channel.EVENT,
 	Ids.NET_S2C_PREY_WARNING: Channel.EVENT,
+	Ids.NET_S2C_NOTICE: Channel.EVENT,
 	Ids.NET_S2C_SCORE_EVENT: Channel.EVENT,
 	Ids.NET_S2C_PHASE_CHANGED: Channel.EVENT,
 	Ids.NET_S2C_MATCH_END: Channel.EVENT,

@@ -53,6 +53,9 @@ signal blend_denied(why: int)
 ## would lag the mouse by the round trip on a marker whose whole job is to point.
 signal prey_warned(bearing_radians: float, bucket: int)
 
+## `NET-S2C-NOTICE` arrived: a `NoticeWire.Kind`, and nothing that names anybody.
+signal notice_received(kind: int)
+
 ## `NET-S2C-ABILITY-STARTED`. The tell, on the wire.
 signal ability_started(caster_slot: int, ability: StringName, origin: Vector3, direction: Vector3)
 
@@ -185,6 +188,23 @@ func send_prey_warning(peer: int, bearing_radians: float, bucket: int) -> void:
 @rpc("authority", "call_remote", "reliable", Messages.Channel.EVENT)
 func s2c_prey_warning(bearing_byte: int, bucket: int) -> void:
 	prey_warned.emit(Quantise.u8_to_yaw(bearing_byte), bucket)
+
+
+## `NET-S2C-NOTICE`. SERVER SIDE, **to the one player it is about** (US-0105).
+## One byte, a `NoticeWire.Kind`: the recipient is the whole rule, as it is for
+## the prey warning above, and the payload names nobody.
+func send_notice(peer: int, kind: int) -> void:
+	if not Net.is_server:
+		return
+	s2c_notice.rpc_id(peer, kind)
+
+
+## `NET-S2C-NOTICE`. CLIENT SIDE. A kind this build does not know is dropped
+## rather than drawn as the wrong sentence.
+@rpc("authority", "call_remote", "reliable", Messages.Channel.EVENT)
+func s2c_notice(kind: int) -> void:
+	if NoticeWire.is_known(kind):
+		notice_received.emit(kind)
 
 
 ## `NET-S2C-ABILITY-STARTED`. SERVER SIDE, **to everybody who could perceive it**.

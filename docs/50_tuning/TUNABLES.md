@@ -628,6 +628,7 @@ distinguish clones from players. LOD may reduce fidelity; it may not change what
 | `TUN-UI-SCOREFEED-DURATION` | 4.0 | s | 3–6 | How long a score-feed line persists. Long enough to read three stacked bonuses. |
 | `TUN-UI-SCOREFEED-MAX-LINES` | 4 | count | 3–6 | Simultaneous lines before the oldest is dropped. |
 | `TUN-UI-SCOREFEED-STAGGER` | 0.12 | s | 0.08–0.25 | Delay between stacked bonuses appearing on one kill. They arrive as a *sequence*, which is far more readable — and more satisfying — than a block. |
+| `TUN-UI-NOTICE-DURATION` | 3.0 | s | 2–5 | How long a one-line notice — *a new pursuer is on you*, *you have taken the lead* — stays up (US-0105). Long enough to read six words without looking straight at them; the reference's own notice is gone within a few seconds, and no source gives the figure, so it is **ours**. A second notice waits for the first rather than replacing it. |
 | `TUN-UI-TIER-TRANSITION-TIME` | 0.25 | s | 0.15–0.4 | Visual transition when your own suspicion tier changes. |
 | `TUN-UI-DAMAGE-VIGNETTE-TIME` | 0.8 | s | — | Duration of the exposed-tier screen-edge vignette fade. |
 | `TUN-AUDIO-COMPASS-DUCK` | −6.0 | dB | −3–−12 | Ducking applied to ambience when the Compass pulse plays. The pulse must never be masked by crowd noise: it is the primary information channel. |

@@ -9,6 +9,8 @@ ui.tier.noticed,Noticed
 ui.tier.exposed,Exposed
 ui.compass.up,Up
 ui.compass.down,Down
+ui.notice.new_pursuer,New pursuer on you.
+ui.notice.took_lead,You have taken the lead.
 ui.source.sprinting,sprinting
 ui.source.running,running
 ui.source.climbing,climbing

@@ -151,6 +151,14 @@ Each element states **the question it answers, in the player's words**. Law 1.
 | **Shows** | Two icons with their bound key, a radial cooldown sweep, and remaining seconds as text when on cooldown. |
 | **Never shows** | The passive. The passive has no input, no cooldown and no decision attached to it — an always-on icon would be pure noise. It is shown in the lobby and on the results screen, where it is a *choice*, and nowhere else. |
 
+#### I — Notices  *(centred, just above the Compass ring)*
+
+| | |
+|---|---|
+| **Question it answers** | *"Did something just change about who is after me, or where I stand?"* |
+| **Shows** | One line at a time, for `TUN-UI-NOTICE-DURATION` 3.0 s: **New pursuer on you.** when a hunter is announced onto you (not at the countdown's first deal, where everybody gets one), and **You have taken the lead.** when you become the sole top scorer. The reference's own notices, in its own place (US-0105, ADR-0024). |
+| **Never shows** | *Who* the pursuer is, or *who* you overtook. The notice is a fact about you; the crowd still hides everybody else. |
+
 ### 2.3 What is deliberately absent
 
 Stated as a list because the pressure to add each of these will recur, and because several are
