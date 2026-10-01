@@ -4,7 +4,7 @@ title: ContractSystem and repair events
 version: 0.1.0
 status: in-progress
 owner: Technical Director
-last_updated: 2026-08-21
+last_updated: 2026-09-30
 depends_on: [GDD-03-SOCIAL-STEALTH, TDD-10-SCORING]
 ---
 
@@ -25,7 +25,7 @@ debouncing and replication.
 
 ## Acceptance criteria
 
-- [ ] Cycle built at countdown as a uniformly random permutation. **`open()` exists, is Fisher–Yates against the seeded generator and is tested — and nothing calls it, because there is no COUNTDOWN phase until `SYS-MATCH`.** The live path is `report_join`, which builds the cycle as peers arrive.
+- [x] Cycle built at countdown as a uniformly random permutation. **Ticked 2026-09-30**, found stale while the manual was made lean: `MatchConsequences.countdown_opened` has called `contracts.open` at the countdown since US-0079 (2026-09-08), which was the only thing missing. The old note read: *`open()` exists, is Fisher–Yates against the seeded generator and is tested — and nothing calls it, because there is no COUNTDOWN phase until `SYS-MATCH`.*
 - [x] Repair happens in the SAME TICK the death resolves.
 - [x] Multiple events within 0.25 s are batched into one repair pass.
 - [x] New contract issued after the 3 s reassignment delay.

@@ -63,23 +63,32 @@ Update:
 - The traps: anything that has already cost an hour, or would
 - Local environment facts that are not derivable from the repo
 
-### 3.1 The retention rule — archive the oldest, never delete a finding
+### 3.1 The retention rule — short by default, archive the oldest, never delete a finding
 
-`CLAUDE.md` has a **4 000-line budget** and `test_claude_md_stays_findable.gd`
-holds it. Every checkpoint prepends a section and none had ever removed one, so it
-reached **6 594 lines** before anybody counted — with the state tables, the traps
-and the local environment filed at the bottom, underneath 3 301 lines of M0-M4
-history.
+`CLAUDE.md` is loaded into **every agent request**, so every line in it is paid for on every
+turn. `test_claude_md_stays_findable.gd` holds it to **60 000 bytes and 1 000 lines**.
 
-When the budget is passed, move the **oldest** sections of "Where the work is right
-now" into `docs/00_meta/history/`, add a row to the archive table, and link the
-file. The guard refuses an archived document the manual does not link, because an
-archive nothing routes into is one nobody reads.
+**It reached 6 594 lines by 2026-09-08** because every checkpoint prepended a section and none
+removed one, with the tables and traps filed underneath 3 301 lines of history. **It reached
+204 KB — about 51 000 tokens a turn — by 2026-09-30** under a 4 000-line cap that a table row
+could not trip: one row is one line however long it grows, and the Tests row alone held 17 KB.
+The owner asked for it to be made lean, and the long form went to the archive verbatim.
 
-**Archive the reasoning, never a live fact.** If a section carries a finding that
-is still open, its status belongs in the state tables or the unticked table before
-the prose moves. The archive answers *how this was found*; the manual answers *what
-is true now*.
+So, at every checkpoint:
+
+- **An entry under "Where the work is right now" is a bullet of at most six lines**: what
+  changed, what it means for the next session, and what is still open. How it was found goes in
+  the PR body and, when it is archived, in `docs/00_meta/history/`.
+- **A state-table row says what is true now**, in a sentence or three. When a row starts telling
+  its own history — *"before that, remeasured …"* — cut the history; the PR and the archive hold
+  it.
+- **Entries older than about two weeks move** to the newest file in `docs/00_meta/history/`,
+  which the archive table links. The guard refuses an archived document the manual does not
+  link, because an archive nothing routes into is one nobody reads.
+
+**Archive the reasoning, never a live fact.** If a section carries a finding that is still open,
+its status belongs in the state tables or the unticked table before the prose moves. The archive
+answers *how this was found*; the manual answers *what is true now*.
 
 ## 4. `docs/40_backlog/ROADMAP.md`
 

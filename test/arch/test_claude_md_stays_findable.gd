@@ -22,15 +22,28 @@
 ## unconnected for four milestones. So the history moves to
 ## `docs/00_meta/history/` and **every file there must be linked from the manual**,
 ## which is what stops an archive becoming write-only.
+##
+## **AND LINES WERE THE WRONG UNIT (2026-09-30).** Under the 4 000-line cap the file
+## was 2 247 lines and **204 KB — about 51 000 tokens loaded into every agent
+## request** — because a table row is one line however long it grows, and the Tests
+## row alone held 17 KB. The owner asked for the manual to be made lean: it was
+## rewritten to what is true now, its long form archived verbatim, and the budget is
+## now **bytes**, which is what a session pays for. The premise's line floor came
+## down with it, because a real version is about 600 lines; its character floor did
+## not move.
 extends GutTest
 
 const CLAUDE_MD := "res://CLAUDE.md"
 const ARCHIVE_DIR := "res://docs/00_meta/history"
 
-## Room for several checkpoints before archiving is forced again. It was 6 594 and
-## is 3 334 after the M0-M4 move; passing this means the oldest narrative sections
-## go to the archive, not that a finding gets deleted.
-const MAX_LINES := 4000
+## Room for several checkpoints before archiving is forced again. It was 6 594 lines,
+## 3 334 after the M0-M4 move, and 599 after the 2026-09-30 rewrite; passing either
+## budget means the oldest sections go to the archive, not that a finding is deleted.
+const MAX_LINES := 1000
+
+## What every agent request pays for, at roughly four bytes a token. The rewrite is
+## 43 KB, which leaves room for about two weeks of checkpoints.
+const MAX_BYTES := 60000
 
 ## The traps section, without the "## ". Its leading word is a count, and a
 ## count in prose is what this corpus has watched go stale six times — so the
@@ -59,7 +72,7 @@ func _text() -> String:
 func test_the_manual_was_actually_read() -> void:
 	var text := _text()
 	assert_gt(text.length(), 20000, "CLAUDE.md is missing or unexpectedly small")
-	assert_gt(text.split("\n").size(), 1000, "CLAUDE.md is far shorter than any real version")
+	assert_gt(text.split("\n").size(), 300, "CLAUDE.md is far shorter than any real version")
 
 
 func test_the_manual_stays_under_its_budget() -> void:
@@ -76,6 +89,25 @@ func test_the_manual_stays_under_its_budget() -> void:
 				+ "unticked list are where a fact stays after its story is archived."
 			)
 			% [lines, MAX_LINES]
+		)
+	)
+
+
+## Lines undercount a table: one row is one line however long it grows. Bytes are
+## what a session is charged for.
+func test_the_manual_stays_under_its_byte_budget() -> void:
+	var size := _text().to_utf8_buffer().size()
+	assert_lt(
+		size,
+		MAX_BYTES,
+		(
+			(
+				"CLAUDE.md is %d bytes against a budget of %d, and it is loaded into\n"
+				+ "every agent request. Move the oldest entries of 'Where the work is right\n"
+				+ "now' into docs/00_meta/history/, and shorten any table row that tells\n"
+				+ "its history rather than what is true now."
+			)
+			% [size, MAX_BYTES]
 		)
 	)
 
