@@ -115,7 +115,10 @@ is what makes the repair story sound, and it is not for trading.
 
 ### 6. What ends a chase other than the timer
 
-A kill, either party's death, or a disconnect. **A chase does not end because the hunter calms
+A kill, either party's death, or a disconnect. *Superseded 2026-09-30 (#246): nothing called
+`PursuitBoard.close` until then, and the list now also holds a stun and a reassignment —
+whenever the hunter's announced contract stops being the prey, the chase closes unscored. GDD-03
+§7.7.5 is the rule.* **A chase does not end because the hunter calms
 down.** Once you have been seen, you must close or lose them — a hunter who could cancel a chase
 by standing still would have alerted their prey for free.
 

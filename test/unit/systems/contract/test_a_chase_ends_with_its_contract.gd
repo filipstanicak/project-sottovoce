@@ -120,3 +120,24 @@ func test_a_reassignment_ends_the_chase_on_the_old_prey_and_only_that_one() -> v
 				_ctx.pursuit.is_chasing(hunter), "%d lost a chase on a current contract" % hunter
 			)
 	assert_eq(moved, 1, "the premise: a join moved %d contracts, not one" % moved)
+
+
+## **CLOSING A CHASE ENDS EVERY FACT IT OWNED.** The review of #246, as written: the
+## last sighting's distance lived in `PursuitTracker` keyed on the hunter, so a chase
+## ended by `end_stale_chase` left it behind, and the hunter's next chase — on a prey
+## they never saw — drained into a close call it had not earned.
+func test_a_closed_chase_leaves_no_close_call_behind() -> void:
+	var tracker := PursuitTracker.new()
+	var paid: Array = []
+	tracker.escaped.connect(
+		func(hunter: int, prey: int, close: bool) -> void: paid.append([hunter, prey, close])
+	)
+	_ctx.pursuit.refresh(11, 12, Tuning.ticks(&"TUN-PURSUIT-DURATION"))
+	tracker.begin_pass()
+	tracker.advance(11, 12, PawnContext.new(), 2.0, true, _ctx)
+	ContractSystem.end_stale_chase(_ctx, 11, 13)
+	_ctx.pursuit.refresh(11, 13, Tuning.ticks(&"TUN-PURSUIT-DURATION"))
+	for _i: int in Tuning.ticks(&"TUN-PURSUIT-DURATION") + 1:
+		tracker.begin_pass()
+		tracker.drain(_ctx)
+	assert_eq(paid, [[11, 13, false]], "the new prey was paid the old prey's close call")

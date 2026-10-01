@@ -22,12 +22,13 @@ extends RefCounted
 const _PREY := 0
 const _TICKS := 1
 const _WATCHED_BLEND := 2
+const _LAST_SEEN_AT := 3
 
 ## How many chases have emptied. Published rather than counted by a caller, so
 ## `TEL-ESCAPE-RATE` has one source.
 var escapes: int = 0
 
-## Hunter peer -> `[prey, ticks_left, seen_the_blend]`.
+## Hunter peer -> `[prey, ticks_left, seen_the_blend, metres_at_last_sighting]`.
 var _chases: Dictionary = {}
 
 
@@ -37,7 +38,7 @@ var _chases: Dictionary = {}
 ## see their prey is one who is still hunting.
 func refresh(hunter: int, prey: int, ticks: int) -> void:
 	if not _chases.has(hunter) or int(_row(hunter)[_PREY]) != prey:
-		_chases[hunter] = [prey, ticks, false]
+		_chases[hunter] = [prey, ticks, false, INF]
 		return
 	_row(hunter)[_TICKS] = ticks
 
@@ -137,6 +138,22 @@ func note_sight_broken(hunter: int) -> void:
 
 func watched_the_blend(hunter: int) -> bool:
 	return _chases.has(hunter) and bool(_row(hunter)[_WATCHED_BLEND])
+
+
+## **HOW NEAR THE PREY WAS AT THE LAST SIGHTING, KEPT IN THE CHASE'S OWN ROW.**
+## `SCORE-CLOSECALL` reads it when a bar empties. It lived in `PursuitTracker`,
+## keyed on the hunter alone, until the review of #246: a chase ended by `close`
+## left its distance behind, and the hunter's next chase on a prey they never saw
+## inherited it — an undeserved close call. In the row, `close` ends every fact
+## the chase owned, and a new prey starts at `INF`.
+func note_sighting(hunter: int, metres: float) -> void:
+	if _chases.has(hunter):
+		_row(hunter)[_LAST_SEEN_AT] = metres
+
+
+## `INF` for a chase never seen, or no chase at all.
+func last_sighting(hunter: int) -> float:
+	return INF if not _chases.has(hunter) else float(_row(hunter)[_LAST_SEEN_AT])
 
 
 func count() -> int:

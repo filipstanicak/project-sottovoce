@@ -948,8 +948,19 @@ than a rule anybody wrote, and it is the correct feel.
 
 #### 7.7.5 What ends a chase, and what does not
 
-A kill, either party's death, a disconnect, or the timer. **A chase does not end because the
-hunter calms down.** Once seen, a hunter must close or lose them; one who could cancel a chase
+Two ways, and **only one of them is an escape**:
+
+- **The timer.** The bar empties: the prey has escaped, the hunter loses the contract, and the
+  prey is paid (§7.7.6).
+- **The hunter's announced contract stops being the prey** — a kill, either party's death, a
+  stun, a disconnect or a reassignment. The chase closes **unscored**, and everything it
+  recorded closes with it, the last sighting's distance included (§7.7.2).
+
+*This read "a kill, either party's death, a disconnect, or the timer" until 2026-09-30, a list
+that left out the stun and the reassignment and did not say which ending pays. Corrected in the
+review of #246.*
+
+**A chase does not end because the hunter calms down.** Once seen, a hunter must close or lose them; one who could cancel a chase
 by standing still would have alerted their prey for free, and carelessness would have no shelf
 life.
 

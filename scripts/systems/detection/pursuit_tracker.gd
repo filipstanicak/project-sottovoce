@@ -2,8 +2,8 @@
 ## US-0097. SERVER ONLY.
 ##
 ## `PursuitBoard` is the pure rule — refresh, drain, empty. This is the thin half
-## that reads the world: it decides what counts as *sight*, remembers how near the
-## prey was at the last one, and raises `escaped` when a bar empties.
+## that reads the world: it decides what counts as *sight*, tells the board how near
+## the prey was at each one, and raises `escaped` when a bar empties.
 ##
 ## **IT IS NOT A `GameSystem`, FOR THE FIFTH TIME AND A FIFTH REASON.**
 ## `MatchDirector` permits one system per stage, and every question a chase asks —
@@ -20,10 +20,6 @@ signal escaped(hunter: int, prey: int, close_call: bool)
 ## Hunters whose chase was refreshed this tick. Cleared at the top of every pass,
 ## so a hunter absent from it is one who did not see their prey.
 var _refreshed: Dictionary = {}
-
-## Hunter -> how far their prey was at the last sighting. `SCORE-CLOSECALL` reads
-## it, because the distance when a bar empties is one nobody observed.
-var _chase_range: Dictionary = {}
 
 
 func begin_pass() -> void:
@@ -64,7 +60,7 @@ func advance(
 		return
 	ctx.pursuit.refresh(hunter, contract, Tuning.ticks(&"TUN-PURSUIT-DURATION"))
 	_refreshed[hunter] = true
-	_chase_range[hunter] = metres
+	ctx.pursuit.note_sighting(hunter, metres)
 
 
 ## **EVERY CHASE NOBODY REFRESHED, AND THE ESCAPES THAT FALL OUT OF IT.** Run after
@@ -82,9 +78,8 @@ func drain(ctx: MatchContext) -> void:
 		# "how near were they when it emptied" is a distance nobody observed. What
 		# the bonus prices is escaping **under pressure**, and the last moment the
 		# two were known to be together is the only honest reading of that.
-		var last := float(_chase_range.get(hunter, INF))
+		var last := ctx.pursuit.last_sighting(hunter)
 		ctx.pursuit.escaped(hunter)
-		_chase_range.erase(hunter)
 		escaped.emit(hunter, prey, last <= Tuning.contract.pursuit_closecall_radius)
 
 
