@@ -56,8 +56,8 @@ var _ability: int = -1
 
 ## `--hunt`. **THE FIRST THING IN THIS PROJECT THAT PURSUES ANYBODY.** A bot walked
 ## randomly and could therefore never be a *pursuer* in any sense a player feels —
-## and worse, a strolling bot sits at Anonymous all match, so `TUN-STUN-MIN-TIER`
-## made it unstunnable and ADR-0018's Lunge stun untestable against one.
+## and a strolling bot sits at Anonymous all match, so until ADR-0022 A lifted
+## `TUN-STUN-MIN-TIER` it was unstunnable and ADR-0018's Lunge stun untestable.
 ##
 ## **IT STEERS ON THE COMPASS AND NOTHING ELSE**, which is the only thing a client
 ## is told about where its contract is (GDD-03 §8.5). It cannot cheat, because
@@ -65,9 +65,9 @@ var _ability: int = -1
 ## `TUN-COMPASS-CONE-WOBBLE`'s lie exactly as a human's does.
 var _hunting := false
 
-## `--reckless`. **A HUNTER IS ONLY STUNNABLE WHEN CARELESS**, which is
-## `TUN-STUN-MIN-TIER` and the whole of why patience is safe — so a bot that
-## strolls can never be practised against. Casting an ability costs
+## `--reckless`. **A HUNTER THAT CHOSE TO BE SEEN.** Written when only a careless
+## hunter was stunnable (`TUN-STUN-MIN-TIER`, lifted by ADR-0022 A); any hunting bot
+## is stunnable now, and this is for practising against one that warns. Casting an ability costs
 ## `TUN-CINDERFALL-SUSPICION` +40, which is above `TUN-SUSPICION-TIER-NOTICED` 30,
 ## so a bot that re-casts whenever it can is a hunter who has chosen to be seen.
 ##
@@ -247,7 +247,7 @@ static func _find_named(node: Node, wanted: String) -> Node:
 	return null
 
 
-## Cast slot 0 on a loop, so the bot stays above `TUN-STUN-MIN-TIER`. The interval
+## Cast slot 0 on a loop, so the bot keeps drawing attention. The interval
 ## is `TUN-CINDERFALL-COOLDOWN`, read rather than written, so a retune moves it.
 func _be_reckless() -> void:
 	var every := Tuning.ability_data(Ids.ABIL_CINDERFALL).cooldown

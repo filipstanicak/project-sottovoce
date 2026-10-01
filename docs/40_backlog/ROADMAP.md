@@ -771,7 +771,7 @@ Lunge, every bonus rule — eleven of the thirteen earnable, Masked and Poisoned
 | # | Work | Stories | Why it is on the road | PRs | Needs from the owner |
 |---|---|---|---|---|---|
 | 1 | **The first playtest with human hunters**, on the direct-IP launch | US-0098 | the largest risk, `RISK-NOT-FUN-SOLO`, is not on any other row; what it finds re-orders every row below | 1 (a facilitator sheet) | 3–5 players; whether US-0098 may run without a lobby (decision 1's leftover) |
-| 2 | Any pursuer can be stunned | ADR-0022, decision 11 | decided 2026-09-25 and not built; missed at the controls | 1–2 | — |
+| 2 | Any pursuer can be stunned | ADR-0022, decision 11 | **built 2026-10-01**: `TUN-STUN-MIN-TIER` 0, and the stun hint lit for any figure in reach | 1 | — |
 | 3 | Lobby, player names, persona and loadout selection | US-0078, US-0071 | the kill feed, names, death card, results' personas and the ability slots all wait on it | 4–6 | — |
 | 4 | Second Face and the three passives | US-0069, US-0071 | M5's exit names three abilities; two exist | 3–4 | — |
 | 5 | The rest of the reference's HUD | US-0105 | kill feed, names, death card, own placement and pursuer icons | 3–4 | decision 14 for the civilian line, decision 15 for more than one icon |

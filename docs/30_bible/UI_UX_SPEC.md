@@ -283,7 +283,10 @@ The one widget with a hard correctness requirement.
 | Kill available | Dot + ring, 18 px |
 | Stun available | Dot + bracket pair (distinct shape, not just colour) |
 
-> **The ring appears if and only if pressing kill would succeed.**
+> **The ring appears if and only if pressing kill would succeed.** The stun's bracket pair is
+> different since ADR-0022 A, 2026-10-01, by owner decision: it appears when a swing would reach **any**
+> figure, player or civilian, because any pursuer can be stunned and a bracket lit for the
+> pursuer alone would point them out of the crowd.
 
 Fed by server-computed `kill_ready` / `stun_ready` flags in the snapshot — **never** by a
 client-side range check, which would disagree with lag-compensated validation.

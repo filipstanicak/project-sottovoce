@@ -306,7 +306,7 @@ the owner's.
 
 ```gdscript
 func validate(ctx: MatchContext, stunner: int, target: int) -> bool:
-    # THE gate: an Anonymous pursuer is unstunnable. Patience is genuinely safe.
+    # The tier gate. Since ADR-0022 A it is 0 and refuses nobody: any pursuer is stunnable.
     if ctx.suspicion.tier_of(target) < Tier.NOTICED:
         return false
     # Valid only against your OWN pursuer.
@@ -365,7 +365,9 @@ must never be optimal, and a press at empty air would otherwise be free.
 **AND THE `stun_ready` HINT NEEDED THE TIER GATE TOO, WHICH IS AN ANONYMITY LEAK RATHER THAN A
 COSMETIC BUG.** The first version gated the hint on relationship, range and cone alone — so it
 would have lit up for an **Anonymous** pursuer standing in a crowd, saying *that one is hunting
-you* for free, with no lock and no warning. Found by a test, not by review.
+you* for free, with no lock and no warning. Found by a test, not by review. **Since ADR-0022 A, 2026-10-01
+the hint lights for any figure in reach and cone, player or civilian** (owner decision): with
+the gate gone, that is the only way it can stay honest and still name nobody.
 
 **THE TWO LOCKOUTS LIVE ON `MatchContext` IN ONE CLASS.** A stagger is per player and blocks
 every initiation; an exile is per **(hunter, target)** pair and blocks one kill. `SYS-STUN`

@@ -131,7 +131,7 @@ Three consequences that must be internalised:
 | Aspect | Specification |
 |---|---|
 | **To your hunter** | A faint tint applied to your silhouette. Specification: a 12 % desaturation shift plus a low-intensity rim light at the persona's assigned identity hue, visible at up to ~35 m against typical district lighting. **Readable, but not obvious** — a hunter who is not looking at you will not notice. |
-| **To your prey** | Nothing yet — but you become **stunnable** (`TUN-STUN-MIN-TIER` = 30), and their Compass warning arms if you come within `TUN-COMPASS-WARN-RADIUS` 15 m. |
+| **To your prey** | Nothing yet — but their Compass warning arms if you come within `TUN-COMPASS-WARN-RADIUS` 15 m. *You are stunnable at every tier since ADR-0022 A, 2026-10-01; this row said Noticed was where you became stunnable (`TUN-STUN-MIN-TIER` 30).* |
 | **To everyone else** | Nothing. |
 | **Compass effect on your hunter** | Lock arc fills normally. No free reveal. |
 | **How long to clear** | From 30 → below 25 (hysteresis) at `TUN-SUSPICION-DECAY-BASE` 8/s = 0.6 s of walking. Noticed is a *transient* state for a competent player. |
@@ -1151,10 +1151,11 @@ half:**
 2. **The warning's *absence* is also information** — but unreliable information, which is
    perfect. "I haven't been warned" means either nobody is near you, or someone very good is.
    With direction added, absence is now the *more* frightening state of the two.
-3. **It is the same threshold as the stun gate** (`TUN-STUN-MIN-TIER`, invariant §17.8). "I was
-   warned about them" and "I can stun them" are *the same condition*. Two different thresholds
-   here would be unlearnable; one threshold means the warning is functionally an instruction:
-   *turn around and stun.*
+3. **Everyone it warns you about, you can stun** (invariant §17.7). Until 2026-10-01 it was
+   the same threshold as the stun gate, so *"I was warned about them"* and *"I can stun them"*
+   were one condition. **Since ADR-0022 A any pursuer can be stunned**, Anonymous included, so
+   the warning is a subset of the stunnable: it is still an instruction — *turn around and
+   stun* — and its absence no longer means you cannot.
 4. **It is also the threshold at which a hunter can LOSE their contract**, added 2026-08-26 by
    [`ADR-0014`](../00_meta/adr/ADR-0014-the-escape-verb.md). The warning is what opens a chase
    (§7.7), so the instruction in consequence 3 now has a second half: *turn around and stun, or
@@ -1203,7 +1204,7 @@ hunter. Both are deliberately poor.
 |---|---|---|
 | Range | `TUN-STUN-RANGE` | **3.0 m** |
 | Facing cone | `TUN-STUN-FACING-CONE` | 120° (±60°) |
-| Required target tier | `TUN-STUN-MIN-TIER` | Noticed (30) |
+| Required target tier | `TUN-STUN-MIN-TIER` | **None — 0 since ADR-0022 A, 2026-10-01**; was Noticed (30) |
 | Valid target | — | **Your pursuer only** |
 | Score to stunner | `TUN-STUN-SCORE` | **200** (100 → 200 on 2026-09-03, ADR-0018) |
 | Freeze duration | `TUN-STUN-FREEZE` | 4.0 s |
@@ -1245,16 +1246,21 @@ experiences is shifted outward — and its **width is identical at 0.50 m**, whi
 because the two rules share one grace rather than each carrying their own. §10.2's first number
 is unaffected: a hunter who has closed to kill range has still already entered stun range.
 
-**AN INVALID STUN AND A STUN AT A CAREFUL PURSUER ARE INDISTINGUISHABLE, DELIBERATELY.** §10.3
-prices flailing at a non-pursuer; the same price is charged for a press at empty air and for a
-press at your **real** pursuer while they are Anonymous. Otherwise the button becomes a free
+**AN INVALID STUN AND A STUN AT A CAREFUL PURSUER WERE INDISTINGUISHABLE, DELIBERATELY.** §10.3
+prices flailing at a non-pursuer; the same price was charged for a press at empty air and for a
+press at your **real** pursuer while they were Anonymous. *Since " + A + " that last case
+lands — any pursuer can be stunned — and the rest of the paragraph still holds for every press
+that misses.* Otherwise the button becomes a free
 identity probe — press it at each stranger who comes near and read the answers apart. That
 would defeat §6's crowd in about fifteen seconds, and it is why `NET-S2C-STUN-RESULT` carries
 `valid` and a target slot of zero on every refusal.
 
-**THE `stun_ready` HINT CARRIES THE TIER GATE FOR THE SAME REASON.** A reticle that lit up for
-an Anonymous pursuer would say *that one is hunting you* without a lock, without a warning, and
-without them having made any mistake at all.
+**THE `stun_ready` HINT LIGHTS FOR ANY FIGURE IN REACH AND CONE, PLAYER OR CIVILIAN** — owner
+decision, 2026-10-01, with ADR-0022 A. A reticle that lit for the pursuer alone would say *that
+one is hunting you* without a lock, without a warning, and without them having made any mistake
+at all; until ADR-0022 A the tier gate kept it dark for an Anonymous one. Lit for everyone it
+says *a swing would reach someone* and names nobody, so picking the pursuer out of the crowd
+stays the prey's read. A concealed occupant does not light it.
 
 **A SAME-TICK PRESS RESOLVES FOR THE HUNTER**, because the kill is judged before the stun within
 one server tick. §10.1.1's table is therefore true at its narrowest moment as well as its
@@ -1269,12 +1275,19 @@ game. **A hunter who closes to kill range has already entered stun range.** Reck
 punished by geometry before it is punished by scoring. There is no distance at which a
 Noticed hunter can kill you that you could not have stunned them from.
 
-**2. `TUN-STUN-MIN-TIER` (Noticed) means an Anonymous hunter is unstunnable.**
+**2. Any pursuer can be stunned — `TUN-STUN-MIN-TIER` is 0 since ADR-0022 A, 2026-10-01.**
 
-Patience is *genuinely* safe, not merely safer. A hunter who approaches at blend-walk, from a
-crowd pocket, at zero suspicion, cannot be stunned at all — and their prey receives no warning
-(§9.1, same threshold). The reward for perfect play is perfect safety. Stun is not a coin-flip
-defence; it is a punishment for a specific mistake.
+As in the reference. What protects a patient hunter is no longer a gate but the read: an
+Anonymous hunter approaching at blend-walk from a crowd pocket still triggers **no warning**
+(§9.1), so the prey must pick them out of a crowd of identical figures, and a press at the
+wrong one is penalised (§10.3). Patience is safe because it is unreadable, not because it is
+immune. Reported from the controls on 2026-09-30: *my pursuer can only be stunned with the
+smoke grenade.*
+
+*This point read until 2026-10-01: "`TUN-STUN-MIN-TIER` (Noticed) means an Anonymous hunter is
+unstunnable. Patience is genuinely safe, not merely safer … The reward for perfect play is
+perfect safety. Stun is not a coin-flip defence; it is a punishment for a specific mistake."
+The tunable is neutralised rather than removed, so restoring 30 restores the gate.*
 
 **3. The stun costs the hunter the contract — amended 2026-09-04, ADR-0019.**
 
@@ -1335,8 +1348,10 @@ density, more forgiving lock, clearer tier feedback — so that hunters have a r
 to the approach that gets them stunned.
 
 **The one legitimate reason to weaken it:** if telemetry shows stuns landing against
-*Anonymous-approaching* hunters, that would mean the tier gate is broken, and the fix would be
-in detection, not in stun.
+*Anonymous-approaching* hunters far more often than the read should allow, the fix is in
+detection and the crowd, not in stun. *Until ADR-0022 A this said any such stun meant the tier
+gate was broken; since then an Anonymous hunter is stunnable by design, and the question is
+whether the prey could read them too easily.*
 
 ---
 
@@ -1429,9 +1444,10 @@ the profile of a minimap, and the reason there is no minimap.
 - [ ] A lock cannot complete through a walking group's incidental gaps; verified by a scripted scenario test.
 - [ ] The hunter is never sent their contract's position, tier value, or height. Asserted by inspecting the `NET-S2C-COMPASS` payload schema — it contains bearing, distance-bucket, lock-fraction and one flags byte. *Was: "… persona … or elevation … lock-fraction only": the persona is told since ADR-0021, and up/down (three values, never a height) since US-0105.*
 - [ ] The prey warning fires only when both conditions in §9.1 hold, and carries a bearing and a distance bucket and **nothing that names anybody** in its payload. *Was: "carries no directional data", until ADR-0013.*
-- [ ] `TUN-COMPASS-WARN-MIN-TIER == TUN-STUN-MIN-TIER` (invariant §17.8).
+- [ ] `TUN-STUN-MIN-TIER <= TUN-COMPASS-WARN-MIN-TIER` (invariant §17.7). *Was `==` (§17.8) until ADR-0022 A, 2026-10-01.*
 - [ ] `TUN-STUN-RANGE > TUN-KILL-RANGE` (invariant §17.6).
-- [ ] An Anonymous pursuer cannot be stunned at any range.
+- [ ] Any pursuer, Anonymous included, can be stunned in reach and cone (ADR-0022 A, 2026-10-01). *Was: "An Anonymous pursuer cannot be stunned at any range."*
+- [ ] The `stun_ready` hint lights for any figure in reach and cone and never tells a pursuer from a stranger.
 - [ ] Stunning a non-pursuer awards 0, staggers 2.0 s, adds 20 suspicion, and does not affect the target.
 - [ ] NPCs never block line of sight in any LOS query (`test_los_ignores_npcs.gd`).
 - [ ] Every channel in §11.1 exists in implementation with the stated receiver set and blockability.

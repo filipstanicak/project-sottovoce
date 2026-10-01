@@ -18,10 +18,9 @@ enum V {
 	## Nobody is hunting this player — the `TUN-CONTRACT-REASSIGN-DELAY` breath on
 	## their pursuer's side, or a lobby of one.
 	NO_PURSUER,
-	## **THE GATE.** The pursuer is below `TUN-STUN-MIN-TIER`. GDD-03 §10.2: an
-	## Anonymous hunter is unstunnable, so the reward for perfect play is perfect
-	## safety and stun is a punishment for a specific mistake rather than a
-	## coin-flip defence.
+	## **THE GATE.** The pursuer is below `TUN-STUN-MIN-TIER`. **Unreachable since
+	## ADR-0022 A**, which neutralised the floor at 0 so any pursuer can be stunned;
+	## kept, because restoring the number restores the gate.
 	TOO_CALM,
 	## Somebody was in reach and it was not the pursuer. GDD-03 §10.3's anti-spam
 	## case, and the target is **not affected at all**.
@@ -52,8 +51,7 @@ enum V {
 	## game refusing a correct press for a reason of its own.
 	##
 	## It is very nearly unreachable — a respawn reinserts that player into the
-	## cycle, so they are almost certainly no longer this prey's pursuer, and their
-	## suspicion is zero so `TOO_CALM` would refuse them anyway. It exists so the
+	## cycle, so they are almost certainly no longer this prey's pursuer. It exists so the
 	## invulnerability means the same thing to both verbs.
 	TARGET_PROTECTED,
 }

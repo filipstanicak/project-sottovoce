@@ -103,6 +103,12 @@ func count() -> int:
 	return _count
 
 
+## Where entry `index` stood at the last rebuild. For a caller holding indices from
+## `query`, such as the stun hint asking whether a civilian is in reach.
+func position_of(index: int) -> Vector3:
+	return _positions[index]
+
+
 ## Every index within `radius` of `centre`. Startle propagation and gawk token
 ## issuance want the list; the three counting queries below do not.
 func query(centre: Vector3, radius: float) -> PackedInt32Array:

@@ -317,11 +317,27 @@ func test_a_dash_that_stuns_pays_no_whiff_stagger() -> void:
 	assert_eq(_system.arrivals.whiffed, 0, "a dash that connected was charged as a miss")
 
 
-## **THE TIER GATE IS NOT WAIVED FOR THIS ROUTE.** `TUN-STUN-MIN-TIER` is what
-## makes *"an Anonymous hunter cannot be stunned — patience is genuinely safe"*
-## true, and an ability that stunned through it would delete that sentence rather
-## than add a tooth to design law 5.
-func test_a_dash_through_an_anonymous_pursuer_stuns_nobody() -> void:
+## **THE TIER GATE IS ASKED ON THIS ROUTE AS ON A PRESS, AND REFUSES NOBODY.**
+## ADR-0022 A: any pursuer can be stunned, and the reference's dash resolves against
+## whoever it connects with. Restoring the old floor must refuse here too, or the
+## dash would be a way round a gate the press still had.
+func test_a_dash_through_an_anonymous_pursuer_stuns_them() -> void:
+	_an_anonymous_pursuer_behind_the_dash()
+	_advance()
+	assert_eq(_state(C), PawnStateId.STUNNED, "a dash into an Anonymous pursuer did nothing")
+
+
+func test_the_restored_floor_refuses_the_dash_too() -> void:
+	var shipped := Tuning.combat.stun_min_tier
+	Tuning.combat.stun_min_tier = 30.0
+	_an_anonymous_pursuer_behind_the_dash()
+	_advance()
+	Tuning.combat.stun_min_tier = shipped
+	assert_ne(_state(C), PawnStateId.STUNNED, "the restored floor did not hold on the dash")
+	assert_eq(_system.arrivals.whiffed, 1, "the dash neither stunned nor whiffed")
+
+
+func _an_anonymous_pursuer_behind_the_dash() -> void:
 	_place(A, Vector3.ZERO)
 	_place(B, Vector3(0.0, 0.0, 40.0))
 	_ctx.announced_contracts[A] = B
@@ -329,9 +345,6 @@ func test_a_dash_through_an_anonymous_pursuer_stuns_nobody() -> void:
 	(_ctx.pawn_contexts[C] as PawnContext).tier = SuspicionMath.Tier.ANONYMOUS
 	_fill_the_ring(8)
 	_ctx.auto_kill_arrivals.append([A, Vector3(0.0, 0.0, -3.0)])
-	_advance()
-	assert_ne(_state(C), PawnStateId.STUNNED, "a careful pursuer was stunned by a dash")
-	assert_eq(_system.arrivals.whiffed, 1, "the dash neither stunned nor whiffed")
 
 
 ## **A STRANGER IS NOT A PURSUER.** The target is found by reverse lookup on the

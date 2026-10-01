@@ -4,7 +4,7 @@ title: A stun costs the pursuer the contract
 version: 1.0.0
 status: accepted
 owner: Lead Game Designer
-last_updated: 2026-09-04
+last_updated: 2026-10-01
 depends_on: [ADR-0013, ADR-0014, ADR-0018, GDD-03-SOCIAL-STEALTH, US-0061, US-0097]
 supersedes: none
 ---
@@ -80,7 +80,7 @@ and it would make a stun worth 300 against a well-made kill's ceiling, which is 
 ordering ADR-0018 spent its whole argument establishing.
 
 **The tier floor is untouched.** `TUN-STUN-MIN-TIER` is what makes *"an Anonymous
-hunter cannot be stunned — patience is genuinely safe"* true. This decision makes
+hunter cannot be stunned — patience is genuinely safe"* true. *Superseded 2026-10-01 by ADR-0022 A: any pursuer can be stunned (`TUN-STUN-MIN-TIER` 0).* This decision makes
 the punishment for being careless larger; it does not widen who can be punished.
 
 **`Reason.STUNNED` is appended, never inserted.** `NET-S2C-CONTRACT-ASSIGNED`

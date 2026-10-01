@@ -71,8 +71,8 @@ func on_compass(
 ## holding Shift through a match start would meet whatever it is.
 ##
 ## **SO A HUNTING BOT IS ANONYMOUS UNLESS `--reckless`**, which is correct game
-## behaviour rather than a gap: `TUN-STUN-MIN-TIER` makes a careful hunter
-## unstunnable on purpose.
+## behaviour rather than a gap: a careful hunter warns nobody. It is stunnable all
+## the same since ADR-0022 A.
 func decide(pawn: PawnContext) -> Array:
 	var actions: Array = ["input_move_forward", "input_slow"]
 	if _shoving(pawn, actions):

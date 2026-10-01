@@ -4,7 +4,7 @@ title: The prey has more than one tooth
 version: 1.0.0
 status: accepted
 owner: Lead Game Designer
-last_updated: 2026-09-03
+last_updated: 2026-10-01
 depends_on: [ADR-0013, ADR-0014, GDD-01-VISION, GDD-03-SOCIAL-STEALTH, US-0061, US-0070]
 supersedes: none
 ---
@@ -53,8 +53,8 @@ always prioritised over a stun* — and a dash that stuns pays **no whiff stagge
 because GDD-04 §3.4 prices that stagger for arriving at *nothing*.
 
 Every other gate stays. The target is the lunger's own **announced** pursuer by
-reverse lookup, exactly as a pressed stun's is; `TUN-STUN-MIN-TIER` still applies,
-so an Anonymous hunter is unstunnable by this route as by every other; and it uses
+reverse lookup, exactly as a pressed stun's is; `TUN-STUN-MIN-TIER` still applies
+(*Superseded 2026-10-01 by ADR-0022 A: any pursuer can be stunned (`TUN-STUN-MIN-TIER` 0).* It is still asked on this route, and refuses nobody); and it uses
 the **stun's** reach (3.35 m) rather than the kill's (2.85), so the range advantage
 is not quietly narrowed for one ability.
 

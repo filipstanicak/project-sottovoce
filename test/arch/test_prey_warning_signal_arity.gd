@@ -98,11 +98,14 @@ func test_the_tier_gate_is_still_what_makes_a_good_hunter_invisible() -> void:
 	# what carelessness costs. An Anonymous pursuer produces no warning at all, so
 	# the panicked scan of a crowd is still exactly what a competent hunter leaves
 	# you with — which is also the reference's rule, not a divergence from it.
-	assert_almost_eq(
-		Tuning.compass.warn_min_tier,
+	# **SINCE ADR-0022 A THE STUN GATE IS 0 AND THE WARN GATE IS NOT**: any pursuer can
+	# be stunned, and an Anonymous one still warns nobody. The pair was asserted
+	# equal until 2026-10-01; what binds them now is invariant 7, the stun floor at
+	# or below the warning.
+	assert_lte(
 		Tuning.combat.stun_min_tier,
-		0.001,
-		"the warn gate and the stun gate have drifted apart — invariant 8"
+		Tuning.compass.warn_min_tier,
+		"a pursuer the prey was warned about could not be stunned — invariant 7"
 	)
 	assert_gt(Tuning.compass.warn_min_tier, 0.0, "an Anonymous pursuer now triggers a warning")
 

@@ -124,7 +124,15 @@ static func lockout_ticks(has_second_wind: bool) -> int:
 	return maxi(ticks, 1)
 
 
-## Would a press right now land? For the snapshot's `stun_ready` bit.
+## Would a swing right now reach anybody? For the snapshot's `stun_ready` bit.
+##
+## **ANY FIGURE IN REACH AND CONE, PLAYER OR CIVILIAN — OWNER DECISION 2026-10-01.**
+## Since ADR-0022 A any pursuer can be stunned, so a hint lit for the pursuer alone
+## would point them out of the crowd for free — the leak this function used to
+## close with the tier gate. Lit for every figure it names nobody: it says *a swing
+## would reach someone*, never *this one hunts you*, and picking the pursuer out
+## stays the prey's read. A concealed occupant does not light it, or the hint
+## would open every hiding spot.
 ##
 ## **PRESENT TENSE, NOT REWOUND**, like `KillSystem.ready_for` — it is a hint drawn
 ## on the prey's own screen about their own position, and rewinding it would make
@@ -133,26 +141,27 @@ func ready_for(peer: int, ctx: MatchContext) -> bool:
 	var here: PawnContext = ctx.pawn_contexts.get(peer)
 	if here == null or _is_busy(ctx, peer):
 		return false
-	var pursuer := pursuer_of(peer, ctx)
-	if pursuer == ContractCycle.NOBODY:
-		return false
-	var them: PawnContext = ctx.pawn_contexts.get(pursuer)
-	if them == null or not _is_a_target(them, pursuer, ctx):
-		return false
 	var t := Tuning.combat
+	for other: int in _stunnable_others(ctx, peer):
+		var them := ctx.pawn_contexts[other] as PawnContext
+		if not CombatTargets.is_concealed(them) and _swing_reaches(here, them.position, t):
+			return true
+	for index: int in ctx.crowd_hash.query(here.position, StunRules.reach(t)):
+		if _swing_reaches(here, ctx.crowd_hash.position_of(index), t):
+			return true
+	return false
+
+
+static func _swing_reaches(here: PawnContext, at: Vector3, t: CombatTuning) -> bool:
 	return (
-		StunRules.in_reach(here.position, them.position, t)
-		and StunRules.within_cone(here.position, here.yaw, them.position, t)
+		StunRules.in_reach(here.position, at, t)
+		and StunRules.within_cone(here.position, here.yaw, at, t)
 	)
 
 
-## Everything about the *pursuer* that decides whether the hint may light.
-##
-## **THE TIER GATE BELONGS HERE, AND LEAVING IT OUT WAS AN ANONYMITY LEAK RATHER
-## THAN A COSMETIC BUG.** `stun_ready` is drawn on the prey's own screen; lit for
-## an Anonymous pursuer standing in a crowd it would say *that one is hunting
-## you*, for free, with no lock and no warning — the exact identity the whole game
-## withholds. Found by `test_stun_system.gd`, not by review.
+## Everything about the *pursuer* that decides whether a dash can stun them.
+## The tier floor is asked here as it is for a press: `TUN-STUN-MIN-TIER` is 0 since
+## ADR-0022 A, so it refuses nobody, and restoring the number restores the gate.
 func _is_a_target(them: PawnContext, pursuer: int, ctx: MatchContext) -> bool:
 	if not _is_stunnable(them) or them.state_id == PawnStateId.KILL_ANIM:
 		return false
@@ -180,8 +189,8 @@ func _judge_one(ctx: MatchContext, peer: int) -> void:
 
 
 ## TDD-10 §4's gates. **The tier gate is asked before the geometry**, because it
-## is one comparison and the rewind is not — and because it is the gate the design
-## leans on: an Anonymous hunter is unstunnable at any range.
+## is one comparison and the rewind is not. It refuses nobody since ADR-0022 A
+## (`TUN-STUN-MIN-TIER` 0): any pursuer can be stunned, as in the reference.
 func _verdict_for(ctx: MatchContext, peer: int) -> Array:
 	if _is_busy(ctx, peer):
 		return [StunVerdict.V.BUSY, ContractCycle.NOBODY]
@@ -202,9 +211,9 @@ func _verdict_for(ctx: MatchContext, peer: int) -> Array:
 
 
 ## The tier a pursuer must reach, resolved from `TUN-STUN-MIN-TIER` rather than
-## written as `!= ANONYMOUS`. Invariant §17.8 pins it equal to the warn floor, so
-## the two cannot separate today — the derivation is what keeps that true if one
-## of them ever moves.
+## written as a tier name, so the neutralised 0 resolves to Anonymous and refuses
+## nobody, and restoring 30 restores the gate in one edit. Invariant 7 keeps it at
+## or below the warn floor: a pursuer you were warned about is always stunnable.
 static func _floor_tier() -> int:
 	return SuspicionMath.evaluate_tier(
 		Tuning.combat.stun_min_tier, SuspicionMath.Tier.ANONYMOUS, Tuning.suspicion
@@ -310,9 +319,9 @@ func _reject(ctx: MatchContext, peer: int, verdict: StunVerdict.V, target: int) 
 ## comes here only when that did not land, which is the reference's own ordering:
 ## *a kill is always prioritised over a stun.*
 ##
-## **EVERY OTHER GATE STAYS, THE TIER FLOOR ESPECIALLY.** `TUN-STUN-MIN-TIER` is
-## what makes *"an Anonymous hunter cannot be stunned"* true, and stunning through
-## it would delete that sentence rather than add to design law 5. It uses the
+## **EVERY GATE A PRESS ASKS, THIS ROUTE ASKS TOO**, the tier floor included — which
+## refuses nobody since ADR-0022 A, so a dash into any pursuer stuns them, as the
+## reference's does. It uses the
 ## **stun's** reach, 3.35 m against the kill's 2.85, so this route does not quietly
 ## narrow the range advantage — and it is present-tense, like the arrival it rides
 ## on, because no moment here was ever observed.

@@ -67,11 +67,10 @@ an approach without being chased through it; `sandbox.bat 0 12 3` removes the ch
 entirely. In a `3 0` run the two hunters not assigned to you are hunting **each
 other**, which is worth knowing before reading anything into what they do.
 
-**AND A QUARRY BOT CANNOT BE STUNNED, BY DESIGN RATHER THAN BY OMISSION.**
-`TUN-STUN-MIN-TIER` makes an Anonymous player unstunnable, a strolling bot never
-leaves Anonymous, and that is the rule making *"an Anonymous hunter cannot be
-stunned — patience is genuinely safe"* true. A quarry bot is there to be killed;
-practise stunning against `--reckless` hunters.
+**ANY HUNTING BOT CAN BE STUNNED SINCE ADR-0022 A, 2026-10-01**, Anonymous or not, so
+stunning can be practised against any of them. *Until then `TUN-STUN-MIN-TIER` made a
+strolling bot unstunnable and this section sent you to `--reckless` hunters.* A quarry
+bot is there to be killed, and is not your pursuer.
 
 **`--map` must be given to every process, including each bot.** A bot instantiates
 the client root itself rather than going through `boot.gd`, so without it the bot

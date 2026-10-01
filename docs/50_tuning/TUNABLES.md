@@ -312,7 +312,7 @@ The shape is the pulse curve's own (§4.2) — **flat over the long approach, st
 |---|---|---|---|---|
 | `TUN-STUN-RANGE` | 3.0 | m | 2.5–4.0 | Slightly longer than `TUN-KILL-RANGE`. Deliberate: the prey's reach must exceed the hunter's, so a hunter who closes to kill range has already entered stun range. Recklessness is punished by geometry before it is punished by scoring. |
 | `TUN-STUN-FACING-CONE` | 120.0 | deg | 90–180 | Wide (±60°). You are turning in panic; the game must not require precision from a player who has just been startled. |
-| `TUN-STUN-MIN-TIER` | 30.0 | pts | — | The pursuer must be at least **Noticed**. Equals `TUN-SUSPICION-TIER-NOTICED`. An Anonymous hunter cannot be stunned — patience is genuinely safe, which is the whole point. |
+| `TUN-STUN-MIN-TIER` | 0.0 | pts | — | **0.0 since 2026-10-01 (ADR-0022 A, owner decision of 2026-09-25): any pursuer can be stunned, as in the reference.** It was 30.0 — the pursuer had to be at least **Noticed**, so an Anonymous hunter could not be stunned, *"patience is genuinely safe"*. Reported from the controls as *"my pursuer can only be stunned with the smoke grenade"*. What protects a patient hunter now is that the prey must pick them out of the crowd and a wrong press is penalised. Neutralised rather than removed: restoring 30.0 restores the gate in one edit. |
 | `TUN-STUN-FREEZE` | 4.0 | s | 3.0–6.0 | The hunter is frozen and helpless. Four seconds is long enough to walk away, blend, and be gone. It must feel catastrophic. |
 | `TUN-STUN-LOCKOUT` | 12.0 | s | 8–18 | The stunned hunter cannot re-initiate on that specific target for this long. Without it, stun merely delays the kill by four seconds and is not counterplay at all. |
 | `TUN-STUN-FORCES-EXPOSED` | true | bool | — | The stunned hunter is set to `TUN-SUSPICION-MAX` and held at **Exposed** for `TUN-STUN-FREEZE`. Everyone nearby now knows what they are. |
@@ -667,8 +667,8 @@ Beyond each row's own Range, these cross-field invariants are asserted at load:
 | 4 | `TUN-SUSPICION-TIER-NOTICED < TUN-SUSPICION-TIER-EXPOSED` | — |
 | 5 | `TUN-SUSPICION-HYSTERESIS < TUN-SUSPICION-TIER-NOTICED` | Hysteresis cannot exceed the first tier or a player can never leave it. |
 | 6 | `TUN-STUN-RANGE > TUN-KILL-RANGE` | The prey's reach must exceed the hunter's. Non-negotiable. |
-| 7 | `TUN-STUN-MIN-TIER == TUN-SUSPICION-TIER-NOTICED` | An Anonymous hunter is unstunnable; patience is genuinely safe. |
-| 8 | `TUN-COMPASS-WARN-MIN-TIER == TUN-SUSPICION-TIER-NOTICED` | The prey warning and the stun gate use the same threshold, so "I can stun them" and "I was warned about them" are the same condition. Two thresholds here would be unlearnable. |
+| 7 | `TUN-STUN-MIN-TIER <= TUN-COMPASS-WARN-MIN-TIER` | A pursuer the prey was warned about is always stunnable; the floor may sit below the warning and never above it. **Was `== TUN-SUSPICION-TIER-NOTICED` until 2026-10-01**, when ADR-0022 A lowered the floor to 0. |
+| 8 | `TUN-COMPASS-WARN-MIN-TIER == TUN-SUSPICION-TIER-NOTICED` | The prey warning fires at Noticed. Until 2026-10-01 it was also the stun gate's threshold, so *"I was warned about them"* and *"I can stun them"* were one condition; since ADR-0022 A every pursuer can be stunned, and invariant 7 keeps the warning a subset of what is stunnable. |
 | 9 | `TUN-COMPASS-PULSE-MIN < TUN-COMPASS-PULSE-MAX` | — |
 | 10 | `TUN-COMPASS-LOCK-RANGE < TUN-COMPASS-RANGE-MAX` | — |
 | 11 | `TUN-WHISPERBOLT-RANGE-MIN > TUN-KILL-RANGE` | Whisperbolt may never substitute for melee. |

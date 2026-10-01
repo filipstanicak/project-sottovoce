@@ -432,6 +432,10 @@ rate.
 > pursuer to be at least Noticed (`TUN-STUN-MIN-TIER`). Against a lobby of purely patient
 > players — who are Anonymous throughout their approach — a Defender can never stun anyone and
 > scores only their 1 113 kill points.
+>
+> *Since ADR-0022 A, 2026-10-01 this no longer holds as written: an Anonymous pursuer is stunnable,
+> so a Defender's stuns depend on reading the pursuer out of the crowd rather than on the
+> pursuer's mistakes. **The model's figures have not been re-run for it.**
 
 So the Defender is a **counter-strategy, not a standalone strategy**: strong in a lobby with
 aggression, weak in a disciplined one. That is healthy, and it is the closest the design gets

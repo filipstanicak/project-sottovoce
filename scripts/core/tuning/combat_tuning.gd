@@ -63,10 +63,14 @@ extends Resource
 ## TUN-STUN-FACING-CONE
 @export_range(90.0, 180.0, 0.1) var stun_facing_cone: float = 120.0
 
-## The pursuer must be at least Noticed. Equals TUN-SUSPICION-TIER-NOTICED. An Anonymous hunter
-## cannot be stunned — patience is genuinely safe, which is the whole point.
+## 0.0 since 2026-10-01 (ADR-0022 A, owner decision of 2026-09-25): any pursuer can be stunned,
+## as in the reference. It was 30.0 — the pursuer had to be at least Noticed, so an Anonymous
+## hunter could not be stunned, "patience is genuinely safe". Reported from the controls as "my
+## pursuer can only be stunned with the smoke grenade". What protects a patient hunter now is
+## that the prey must pick them out of the crowd and a wrong press is penalised. Neutralised
+## rather than removed: restoring 30.0 restores the gate in one edit.
 ## TUN-STUN-MIN-TIER
-@export var stun_min_tier: float = 30.0
+@export var stun_min_tier: float = 0.0
 
 ## The hunter is frozen and helpless. Four seconds is long enough to walk away, blend, and be
 ## gone. It must feel catastrophic.

@@ -4,7 +4,7 @@ title: Mechanical fidelity to the reference title
 version: 1.0.0
 status: accepted
 owner: Lead Game Designer
-last_updated: 2026-08-26
+last_updated: 2026-10-01
 depends_on: [DOC-IP-GUARDRAILS, DOC-SCOPE-FENCE]
 supersedes: none
 ---
@@ -74,7 +74,7 @@ Three consequences that are not obvious:
 | Rule | Was | Now |
 |---|---|---|
 | never-do #12 | No hit-direction indicator | The prey warning is **directional**. The nameplate ban survives, narrowed: no *names*, but a **relationship marker** on your own contract or your revealed pursuer is permitted |
-| never-do #13 / design law 5 | Never weaken stun | Stun keeps its range advantage, tier gate, freeze and lockout. It **no longer interrupts a committed kill** |
+| never-do #13 / design law 5 | Never weaken stun | Stun keeps its range advantage, tier gate, freeze and lockout. It **no longer interrupts a committed kill**. *The tier gate went on 2026-10-01 (ADR-0022 A), by owner decision: any pursuer can be stunned, which strengthens the prey* |
 | GDD-02 §3.2 rule 1 | A kill can be stopped before the contact frame | A kill in progress completes. Only a FATAL-priority event — a third party killing the killer — ends it |
 
 ### Negative — stated honestly
