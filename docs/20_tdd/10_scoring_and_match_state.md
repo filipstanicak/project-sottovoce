@@ -306,8 +306,9 @@ the owner's.
 
 ```gdscript
 func validate(ctx: MatchContext, stunner: int, target: int) -> bool:
-    # The tier gate. Since ADR-0022 A it is 0 and refuses nobody: any pursuer is stunnable.
-    if ctx.suspicion.tier_of(target) < Tier.NOTICED:
+    # The tier gate, derived from TUN-STUN-MIN-TIER. Since ADR-0022 A the floor is 0,
+    # which resolves to ANONYMOUS and refuses nobody: any pursuer is stunnable.
+    if ctx.suspicion.tier_of(target) < floor_tier(Tuning.combat.stun_min_tier):
         return false
     # Valid only against your OWN pursuer.
     if ctx.cycle.contract_of(target) != stunner:
@@ -730,7 +731,7 @@ func is_staggered(peer: int, now: int) -> bool
 | `test_kill_contest.gd` | Earlier server tick wins; loser staggers with no points and no lockout |
 | ~~`test_kill_blocked_by_cinderfall.gd`~~ | **Never written as its own file**: `test_cinderfall_self_block.gd` holds it, including the caster's own cloud, **with `TUN-CINDERFALL-BLOCKS-KILL` back on** — the switch is off since ADR-0023, and the same file asserts the shipped cloud forbids nothing |
 | `test_stun_range_exceeds_kill.gd` | **Not the two tunables** — `TuningInvariants` already compares those, and would pass over a `StunRules` reading the wrong field. It sweeps the two *rules* in centimetres and asserts no killable distance is outside stun reach. **Built**, US-0061, and it found that the band a player experiences is 2.85–3.35 m rather than §10.1's 2.5–3.0 once the shared grace is added — same width, and only because the grace *is* shared |
-| ~~`test_stun_tier_gate.gd`~~ | An Anonymous pursuer is unstunnable at any range | **Written as `test_stun_system.gd`**, swept over five ranges: one sample cannot tell a tier gate from a range gate that is tighter than the sample |
+| ~~`test_stun_tier_gate.gd`~~ | An Anonymous pursuer is unstunnable at any range. *Inverted 2026-10-01 by ADR-0022 A: an Anonymous pursuer is stunned at every range, and the restored floor still refuses one* | **Written as `test_stun_system.gd`**, swept over five ranges: one sample cannot tell a tier gate from a range gate that is tighter than the sample |
 | `test_stun_invalid.gd` | 0 points, stagger, +20 suspicion, target unaffected — **and that a careful pursuer and a stranger are indistinguishable**, which is the assertion that stops the stun button being an identity probe. **Built**, US-0061 |
 | `test_combat_lockouts.gd` | The exile binds one pair and no other hunt; both timers extend rather than shorten; a departing peer leaves nothing behind **in either direction**. **Built**, US-0061 |
 | `test_secondwind_freeze_unchanged.gd` | `PASV-SECONDWIND` shortens the exile to exactly §10.4's 8 s floor and cannot reach the freeze. **Built**, US-0061 |

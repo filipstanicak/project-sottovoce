@@ -57,6 +57,16 @@ var _requests: PackedInt32Array = PackedInt32Array()
 ## peer -> the tick they may attempt again. `TUN-STUN-COOLDOWN`.
 var _cooldown_until: Dictionary = {}
 
+## The player `ready_for` is asking about, and the test it hands `SpatialHash`. Held
+## here so the civilian scan is one `Callable` built once rather than one a call:
+## readiness is published every tick for every player.
+var _swinger: PawnContext = null
+var _civilian_test: Callable
+
+
+func _init() -> void:
+	_civilian_test = _civilian_in_swing
+
 
 func setup(ctx: MatchContext) -> void:
 	lockouts = ctx.lockouts
@@ -128,11 +138,8 @@ static func lockout_ticks(has_second_wind: bool) -> int:
 ##
 ## **ANY FIGURE IN REACH AND CONE, PLAYER OR CIVILIAN — OWNER DECISION 2026-10-01.**
 ## Since ADR-0022 A any pursuer can be stunned, so a hint lit for the pursuer alone
-## would point them out of the crowd for free — the leak this function used to
-## close with the tier gate. Lit for every figure it names nobody: it says *a swing
-## would reach someone*, never *this one hunts you*, and picking the pursuer out
-## stays the prey's read. A concealed occupant does not light it, or the hint
-## would open every hiding spot.
+## would point them out of the crowd. Lit for every figure it names nobody, and a
+## concealed occupant does not light it, or the hint would open every hiding spot.
 ##
 ## **PRESENT TENSE, NOT REWOUND**, like `KillSystem.ready_for` — it is a hint drawn
 ## on the prey's own screen about their own position, and rewinding it would make
@@ -142,14 +149,18 @@ func ready_for(peer: int, ctx: MatchContext) -> bool:
 	if here == null or _is_busy(ctx, peer):
 		return false
 	var t := Tuning.combat
-	for other: int in _stunnable_others(ctx, peer):
+	for other: int in ctx.pawn_contexts:
 		var them := ctx.pawn_contexts[other] as PawnContext
-		if not CombatTargets.is_concealed(them) and _swing_reaches(here, them.position, t):
+		if other == peer or not _is_stunnable(them) or CombatTargets.is_concealed(them):
+			continue
+		if _swing_reaches(here, them.position, t):
 			return true
-	for index: int in ctx.crowd_hash.query(here.position, StunRules.reach(t)):
-		if _swing_reaches(here, ctx.crowd_hash.position_of(index), t):
-			return true
-	return false
+	_swinger = here
+	return ctx.crowd_hash.any_within(here.position, StunRules.reach(t), _civilian_test)
+
+
+func _civilian_in_swing(at: Vector3) -> bool:
+	return _swing_reaches(_swinger, at, Tuning.combat)
 
 
 static func _swing_reaches(here: PawnContext, at: Vector3, t: CombatTuning) -> bool:

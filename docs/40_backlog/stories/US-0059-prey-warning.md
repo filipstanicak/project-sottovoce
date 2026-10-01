@@ -59,6 +59,8 @@ leaves a competent hunter invisible.
       which is trap 3 and is worse than leaving the box empty.
 - [x] The warn tier threshold equals the stun tier threshold, asserted as an invariant
       (§17.8). "I was warned about them" and "I can stun them" stay the same condition.
+      *Superseded ADR-0022 A, 2026-10-01: the stun floor is 0, so any pursuer can be stunned, and
+      invariant 7 now holds the stun floor at or below the warning.*
 
 ## As built, 2026-08-26 — seven of nine
 

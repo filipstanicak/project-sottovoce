@@ -32,10 +32,10 @@ REM  A 40 x 40 m walled courtyard: one block in the middle to break sightlines,
 REM  a corner nook with a single 2 m mouth, and two vaultable stalls. Spawn
 REM  points are 15 m apart, so you and the bot meet in about ten seconds.
 REM
-REM  A HUNTER IS RECKLESS ON PURPOSE, which is the arrangement worth practising
-REM  against: TUN-STUN-MIN-TIER makes a careful hunter unstunnable by design,
-REM  so a bot that never casts can never be stunned by you. A QUARRY bot is
-REM  therefore NOT stunnable - it is there to be killed, not defended against.
+REM  A HUNTER IS RECKLESS ON PURPOSE, so it sets off your Compass warning.
+REM  Since ADR-0022 A (2026-10-01) any pursuer can be stunned, careful or not.
+REM  A QUARRY bot is not your pursuer - it is there to be killed, not defended
+REM  against.
 REM
 REM  WHAT THIS IS NOT: there are no processions, no zones and no theatre spaces
 REM  here, and SpawnRules cannot give 40 m between a victim and their killer on

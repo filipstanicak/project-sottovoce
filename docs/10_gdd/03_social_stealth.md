@@ -299,7 +299,7 @@ across the plaza. Track suspicion, tier, and what the world does about it.
 | 4.0 | Compass pulse accelerates to 0.55 s — contract is ~15 m ahead | — | 0.0 | Anonymous | Nothing. |
 | 4.0–7.0 | Jog to close the gap | +4/s | 12.0 | Anonymous | Nothing. Footsteps audible to 10 m. |
 | 7.0 | Clips a Vetraio NPC at a stall | +15 | 27.0 | Anonymous | The NPC staggers visibly (`TUN-CROWD-BUMP-PUSH` 1.2 m/s) — a *diegetic* tell readable by anyone watching, even though the tier has not changed. |
-| 7.0–8.0 | Keeps jogging | +4/s | 31.0 | **Noticed** | Their hunter — if looking — now sees a faint tint. Their prey can now stun them if within 3 m. |
+| 7.0–8.0 | Keeps jogging | +4/s | 31.0 | **Noticed** | Their hunter — if looking — now sees a faint tint. Their prey's Compass warning can now fire. *Was: "Their prey can now stun them if within 3 m" — any pursuer is stunnable at every tier since ADR-0022 A, 2026-10-01.* |
 | 8.0 | Stops. Enters the crowd at the glass stall. | decay armed at 8.6 s | 31.0 | Noticed | Tint persists. |
 | 8.6–9.35 | Decay (0.6 s delay elapsed) | −8/s | 25.0 → below 25 | **Anonymous** at 9.35 s | Tint gone. Total exposure: 2.35 s. |
 | 9.35–20.0 | Stationary, watching. Suspicion floors at 0 by 12.5 s. | — | 0.0 | Anonymous | Nothing. Their own Compass is pulsing at 0.31 s — the Lucerna is 2 m away and has not seen them. |
@@ -1229,9 +1229,10 @@ for the last instant.
 | Hunter has passed the contact frame | Kill completes | **The kill completes** |
 | A third party kills the hunter mid-animation | Kill is cancelled | **Unchanged** — FATAL priority still gets through |
 
-**Everything else about stun is untouched**: the range advantage over kill range, the tier
-gate, the 4 s freeze, the 12 s lockout, the score equal to a base kill, and the anti-spam
-below. Never-do #13 still forbids trading any of those away.
+**Everything else about stun is untouched**: the range advantage over kill range, the 4 s
+freeze, the 12 s lockout, the score equal to a base kill, and the anti-spam below. Never-do #13
+still forbids trading any of those away. *This list also named the tier gate until
+ADR-0022 A, 2026-10-01, which lifted it by owner decision: any pursuer can be stunned.*
 
 **The scoring half is owed.** In the reference a contested initiation costs *both* players half
 their action score. Sottovoce currently staggers the loser of a kill-vs-kill race
@@ -1248,7 +1249,7 @@ is unaffected: a hunter who has closed to kill range has still already entered s
 
 **AN INVALID STUN AND A STUN AT A CAREFUL PURSUER WERE INDISTINGUISHABLE, DELIBERATELY.** §10.3
 prices flailing at a non-pursuer; the same price was charged for a press at empty air and for a
-press at your **real** pursuer while they were Anonymous. *Since " + A + " that last case
+press at your **real** pursuer while they were Anonymous. *Since ADR-0022 A, 2026-10-01, that last case
 lands — any pursuer can be stunned — and the rest of the paragraph still holds for every press
 that misses.* Otherwise the button becomes a free
 identity probe — press it at each stranger who comes near and read the answers apart. That
@@ -1473,7 +1474,7 @@ the profile of a minimap, and the reason there is no minimap.
 | 13 | **The prey warning is weather.** | Players stop reacting to it. | Firing too often — check the tier gate is actually gating, and that `TUN-COMPASS-WARN-COOLDOWN` is applied. |
 | 14 | **The prey warning never fires.** | Players report never feeling hunted. | Either hunters are all playing perfectly (good, but check) or the radius/tier conditions are mis-evaluated. Distinguish via `TEL-WARNING-FIRED` rate per match. |
 | 15 | **Stun-flailing is viable.** | Players spam stun at strangers. | `TUN-STUN-INVALID-STAGGER` too short or invalid-suspicion too low. |
-| 16 | **Stun feels unfair to hunters.** | Hunters report being stunned during good approaches. | **Check whether they were Anonymous.** If Anonymous players are being stunned, detection is broken. If they were Noticed, the system is working and the fix is elsewhere (§10.4). |
+| 16 | **Stun feels unfair to hunters.** | Hunters report being stunned during good approaches. | **Check how they were read.** Since ADR-0022 A, 2026-10-01 an Anonymous hunter is stunnable by design, so a stun on one is not a fault in itself; if careful hunters are stunned far more often than wrong presses are made, the crowd is not hiding them and the fix is in detection and the crowd (§10.4). *Was: "If Anonymous players are being stunned, detection is broken."* |
 | 17 | **The contract cycle produces duels.** | Two players repeatedly kill each other and ignore the match. | Anti-repeat relaxing too eagerly, or player count dropped to 2 too often. Check `TEL-DEGENERATE-CYCLE` frequency. |
 | 18 | **Contract reassignment is jarring.** | Players report their Compass "jumping" for no reason. | `TUN-CONTRACT-REASSIGN-DELAY` too short, or no feedback on reassignment. A new contract must be *announced*, not merely applied. |
 

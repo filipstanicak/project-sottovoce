@@ -1,9 +1,10 @@
 ## **THE SUSPICION INTEGRATOR.** GDD-03 §3.3 and §3.4, TDD-07 §2, US-0051. PURE.
 ##
 ## One tick of the scalar that the entire social layer reads: detection renders from
-## the tier, the Compass warns on it, stun is gated by it and four score bonuses are
-## judged against it. TDD-07 calls it the highest-value test target in the project
-## after the contract cycle, and it is one function.
+## the tier, the Compass warns on it, the stun's gate reads it (inert at 0 since
+## ADR-0022 A) and four score bonuses are judged against it. TDD-07 calls it the
+## highest-value test target in the project after the contract cycle, and it is one
+## function.
 ##
 ## **GAIN AND DECAY ARE MUTUALLY EXCLUSIVE, AND THAT IS NOT AN OPTIMISATION**
 ## (ASM-0008). Above stroll speed there is no concurrent decay, so the ladder's

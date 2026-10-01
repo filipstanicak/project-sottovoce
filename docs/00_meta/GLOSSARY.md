@@ -433,8 +433,9 @@ that a player moved badly somewhere nearby.
 **PASV-STILLNESS.** A passive: suspicion decays 40 % faster while stationary.
 
 ### Stun
-**SYS-STUN.** The prey's counterplay. If your **pursuer** is **Noticed** or **Exposed** and
-within `TUN-STUN-RANGE`, you may stun them: `TUN-STUN-SCORE` points to you, `TUN-STUN-FREEZE`
+**SYS-STUN.** The prey's counterplay. If your **pursuer** is within `TUN-STUN-RANGE` and your
+facing cone, at any tier, you may stun them (*ADR-0022 A, 2026-10-01; it required **Noticed** or
+**Exposed** until then*): `TUN-STUN-SCORE` points to you, `TUN-STUN-FREEZE`
 of frozen helplessness for them, a `TUN-STUN-LOCKOUT` **contract lockout**, and they are
 forced to **Exposed**. Stun is the mechanic that makes recklessness fatal and must never be
 tuned below "hard-counters a sprinting attacker".
