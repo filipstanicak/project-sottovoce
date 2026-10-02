@@ -1,11 +1,12 @@
 ## **THE ONE WIDGET WITH A HARD CORRECTNESS REQUIREMENT.** UI_UX_SPEC §6, US-0073.
 ##
-## > **The ring appears if and only if pressing kill would succeed.**
+## > **The ring appears if and only if pressing kill would succeed.** The brackets
+## > appear when a stun swing would reach any figure (ADR-0022 A, owner decision).
 ##
-## **IT IS FED BY A SERVER FLAG AND NOTHING ELSE.** `kill_ready` and `stun_ready`
-## are computed by `SYS-KILL` against the same range, cone, contract, lockout,
-## concealment and — since ADR-0015 — line-of-sight rules the press itself is
-## judged by. A client-side range check would be a *second* implementation of that,
+## **IT IS FED BY A SERVER FLAG AND NOTHING ELSE.** `kill_ready` is computed by
+## `SYS-KILL` against the range, cone, contract, lockout, concealment and
+## line-of-sight rules the press is judged by; `stun_ready` by `SYS-STUN` against
+## reach and cone. A client-side range check would be a *second* implementation of that,
 ## and it would disagree the moment lag compensation mattered, which is precisely
 ## when a player is looking at the crosshair.
 ##

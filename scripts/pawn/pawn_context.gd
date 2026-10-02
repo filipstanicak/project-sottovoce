@@ -106,9 +106,9 @@ var blend_state: int = 0
 ## than no reticle.
 var kill_ready: bool = false
 
-## Would a stun press right now land? `SYS-STUN`'s, published once a tick, and it
-## rides the snapshot's own-gameplay flags byte beside `kill_ready`. The bit has
-## existed in `Snapshot` since US-0029 and had no writer until US-0061.
+## Would a stun swing right now reach anybody, player or civilian? `SYS-STUN`'s,
+## once a tick, beside `kill_ready`. Not *would it land*: since ADR-0022 A that
+## would point the pursuer out of the crowd, so it names nobody (owner decision).
 var stun_ready: bool = false
 
 ## **`INPUT-BLEND` WAS PRESSED, AND NOBODY HAS SPENT IT YET.** A latch rather than

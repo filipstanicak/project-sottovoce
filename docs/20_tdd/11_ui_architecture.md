@@ -229,7 +229,7 @@ The one widget with a hard correctness requirement, because
 ## check — a client-side check would disagree with lag-compensated server
 ## validation, and a lying crosshair is worse than no crosshair.
 var kill_ready: bool      ## from snapshot.own_gameplay
-var stun_ready: bool
+var stun_ready: bool          ## a swing would reach some figure, player or civilian (ADR-0022 A)
 ```
 
 `test_crosshair_truth.gd` asserts agreement with server-side validity across 500 randomised
