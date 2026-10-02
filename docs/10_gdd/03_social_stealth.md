@@ -1056,6 +1056,10 @@ an unlearnable channel is a deleted channel (Law 6, and the rejected feature rec
 
 ### 8.4 The lock
 
+> **DECIDED TO CHANGE, NOT YET BUILT — ADR-0025 (2026-10-02), US-0106.** The lock will become
+> the reference's targeting act and confirm nothing: the reveal of the true body goes. Until
+> US-0106 lands, this section describes the build.
+
 | Condition | Tunable | Value |
 |---|---|---|
 | Contract inside your facing cone | `TUN-COMPASS-LOCK-CONE` | 25° total (±12.5°) |
@@ -1199,6 +1203,11 @@ hunter. Both are deliberately poor.
 ## 10. The stun system — `SYS-STUN`
 
 ### 10.1 Specification
+
+> **DECIDED TO CHANGE, NOT YET BUILT — ADR-0025 (2026-10-02), US-0106.** The kill will go to
+> the figure the hunter selects, civilians included, and a civilian killed instead will cost
+> the contract; the lock will confirm nothing. Until US-0106 lands, this section describes the
+> build: the kill takes the nearest player in reach and cone.
 
 | Property | Tunable | Value |
 |---|---|---|

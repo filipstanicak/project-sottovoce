@@ -47,6 +47,7 @@ lists what the reference's HUD shows that ours does not. This story builds it.
 - [ ] **A death card**: the killer's name, the points your death paid them, and the bonuses they
       earned for it. `test_no_global_score_feed.gd` is amended for that one kill, citing ADR-0024.
 - [ ] *"Your pursuer killed a civilian"*, once owner decision 14 makes a wrong kill possible.
+      *Decision 14 settled 2026-10-02 (ADR-0025): the line is built by US-0106.*
 
 ## As built
 

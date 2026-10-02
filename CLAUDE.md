@@ -371,7 +371,7 @@ settled row stays, one line, so nobody re-opens it. The full reasoning is in the
 | 11 | Suspicion per relationship, gated on sight | **ADR-0022 proposed 2026-09-25.** Answered: any pursuer can be stunned (**built 2026-10-01**), no ability use is high-profile (not built) | the per-(hunter, contract) meter after the first human playtest |
 | 12 | The Final Contract's `×2` has no counterpart in the reference | **Open.** The reference's only ×2 is a loss streak (US-0099) | keep it: the one lever against a leader parking out the clock |
 | 13 | Deal the persona at M5 | **Settled 2026-09-24**, US-0100 | — |
-| 14 | Identifying the target as the player's act | **Open.** A kill on the chosen figure, a wrong kill that costs, a lock that confirms nothing | an ADR draft first, costed, building nothing |
+| 14 | Identifying the target as the player's act | **Settled 2026-10-02: exactly as the reference** (ADR-0025). The hunter picks the figure, a civilian killed instead costs the contract, the lock confirms nothing. Built by US-0106 after US-0103 | — |
 | 15 | How many pursuers a player may have (0–4, catch-up) | **Open.** A recorded match shows 0–3 on one HUD | after the first playtest with human hunters |
 | 16 | Cinderfall as a pure escape or the reference's | **Settled 2026-09-25: the reference's**, ADR-0023 | — |
 | 17 | Kill feed, names in the HUD, own placement | **Settled 2026-09-25: as the reference**, ADR-0024 | — |
@@ -434,7 +434,7 @@ and US-0057's arc (the widget draws one now, but the half-width is no longer a f
 
 | Story | # | Blocked by |
 |---|---|---|
-| US-0105 | 6 | own placement and pursuer icons; the contract's placement (a field and a protocol bump); kill feed, names and the death card (player names, US-0078); the civilian-kill line (decision 14) |
+| US-0105 | 6 | own placement and pursuer icons; the contract's placement (a field and a protocol bump); kill feed, names and the death card (player names, US-0078); the civilian-kill line (US-0106, ADR-0025) |
 | US-0048 | 6 | the M3 gate: client frame time, crowd bandwidth 112 %, animation and footstep parity, two human reads, the tag |
 | US-0046 | 5 | no animation clips, no rig, no audio |
 | US-0045 | 3 | no crowd mesh or `AnimationTree` to band |
