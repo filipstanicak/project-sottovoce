@@ -36,6 +36,8 @@ const SPREAD := preload("res://tools/crowd_spread.gd")
 
 var _root: Node
 var _pool: NpcPool
+## The stall counters' lean spots, to see whether anybody leans at them (US-0103).
+var _counters: Array = []
 
 
 func _ready() -> void:
@@ -55,6 +57,7 @@ func _run() -> void:
 	_root.match_state.min_players = 1
 	_root.call(&"_on_peer_joined", PEER)
 	var ctx: MatchContext = (_root.get("director") as MatchDirector).ctx
+	_counters = ctx.map.static_props if ctx.map != null else []
 	while not MatchPhase.is_simulating(ctx.phase):
 		await get_tree().create_timer(0.5).timeout
 	await get_tree().create_timer(10.0).timeout
@@ -104,5 +107,25 @@ func _report(samples: Array) -> void:
 		(
 			"strollers: %3.0f %% of walking on shared lanes (cells crossed by %d+ strollers)"
 			% [100.0 * SPREAD.shared_lane_share(t), SPREAD.SHARED_LANE]
+		)
+	)
+	_report_places(samples)
+
+
+## Whether idle figures stand together and stall counters are leaned at (US-0103),
+## read off positions rather than off the crowd's own bookkeeping.
+func _report_places(samples: Array) -> void:
+	var idle := Vector2i.ZERO
+	var held := 0
+	for frame: Dictionary in samples:
+		idle += SPREAD.idle_company(frame, NpcBrain.State.IDLE)
+		held += SPREAD.counters_held(frame, _counters, NpcBrain.State.IDLE)
+	print(
+		(
+			"idlers: %3.0f %% stand with another idler; counters: %3.0f %% have a figure at them"
+			% [
+				100.0 * idle.y / maxi(idle.x, 1),
+				100.0 * held / maxi(_counters.size() * samples.size(), 1),
+			]
 		)
 	)

@@ -47,6 +47,9 @@ signal blend_changed(peer: int, kind: int)
 ## moment of confusion with a hunter behind them.
 signal blend_refused(peer: int, why: int)
 
+## `_take_a_counter`'s answer when no counter is within reach.
+const NOT_HERE := -1
+
 ## **WHO IS INSIDE WHICH CONCEALMENT PROP.** US-0054. Server-owned, never
 ## mirrored, and public so the wiring and the tests can read it.
 var props := PropOccupancy.new()
@@ -104,9 +107,9 @@ func _take_something(peer: int, pawn: PawnContext, ctx: MatchContext) -> int:
 		if props.claim(peer, conceal, ctx.tick):
 			record.enter(BlendKind.Kind.PROP_CONCEAL, conceal)
 			return BlendKind.Kind.PROP_CONCEAL
-	if _nearest_prop(pawn.position, ctx.map.static_props if ctx.map != null else []) >= 0:
-		record.enter(BlendKind.Kind.PROP_STATIC, -1)
-		return BlendKind.Kind.PROP_STATIC
+	var counter := _take_a_counter(peer, pawn, record, ctx)
+	if counter != NOT_HERE:
+		return counter
 	var group := _joinable_group(pawn.position, ctx)
 	if group >= 0 and ctx.formations.claim(peer, group):
 		record.enter(BlendKind.Kind.GROUP, group)
@@ -140,6 +143,20 @@ static func _nearest_prop(at: Vector3, points: Array) -> int:
 	return best
 
 
+## A stall counter within reach: `PROP_STATIC` if it was free, `NONE` with a refusal if
+## somebody — player or NPC — already leans there (US-0103, `LeanSpots`), `NOT_HERE`
+## if there is no counter within reach.
+func _take_a_counter(peer: int, pawn: PawnContext, record: BlendRecord, ctx: MatchContext) -> int:
+	var lean := _nearest_prop(pawn.position, ctx.map.static_props if ctx.map != null else [])
+	if lean < 0:
+		return NOT_HERE
+	if not ctx.lean_spots.take_for_player(peer, lean):
+		_refuse(peer, BlendRefusal.Why.PROP_OCCUPIED)
+		return BlendKind.Kind.NONE
+	record.enter(BlendKind.Kind.PROP_STATIC, lean)
+	return BlendKind.Kind.PROP_STATIC
+
+
 func _refuse(peer: int, why: BlendRefusal.Why) -> void:
 	blend_refused.emit(peer, why)
 
@@ -163,6 +180,7 @@ func forget(peer: int, ctx: MatchContext) -> void:
 	# disconnected is one nobody can ever enter again — a hiding spot that silently
 	# vanishes from the map for the rest of the match.
 	props.forget(peer)
+	ctx.lean_spots.release_player(peer)
 	_records.erase(peer)
 
 
@@ -344,6 +362,8 @@ func _release(peer: int, record: BlendRecord, ctx: MatchContext) -> void:
 	# the exploit open through the door it is easier to reach.
 	if record.kind == BlendKind.Kind.PROP_CONCEAL:
 		props.release(peer, ctx.tick)
+	if record.kind == BlendKind.Kind.PROP_STATIC:
+		ctx.lean_spots.release_player(peer)
 	record.clear()
 
 

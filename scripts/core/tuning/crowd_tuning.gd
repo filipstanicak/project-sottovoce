@@ -102,13 +102,39 @@ extends Resource
 ## TUN-CROWD-IDLE-DURATION-MAX
 @export_range(15.0, 40.0, 0.1) var idle_duration_max: float = 25.0
 
-## Conversation clusters.
+## Conversation clusters. Read since 2026-10-04 (US-0103): a circle is sized from this pair when
+## its first member arrives; declared since M0 and read by nothing until then.
 ## TUN-CROWD-IDLE-GROUP-SIZE-MIN
 @export var idle_group_size_min: int = 2
 
 ## "
 ## TUN-CROWD-IDLE-GROUP-SIZE-MAX
 @export_range(4, 6, 1) var idle_group_size_max: int = 4
+
+## Added 2026-10-04 (US-0103). The share of strolls that end in a conversation circle — joining
+## one that is still short of its size, or starting one at a random anchor — rather than alone at
+## an anchor. Before it, idle figures stood alone: 0 % of idle NPCs had an idle neighbour. Ours.
+## TUN-CROWD-CIRCLE-CHANCE
+@export_range(0.0, 1.0, 0.1) var circle_chance: float = 0.4
+
+## Added 2026-10-04 (US-0103). How near a circle with a free seat must be for a stroller to join
+## it; with none that near, the stroller starts one at its nearest anchor. Measured first without
+## it: members sent across the district arrived after the first had left, and idle figures stood
+## together no more often than before (27 % against 26 %). Ours.
+## TUN-CROWD-CIRCLE-JOIN-RADIUS
+@export_range(10.0, 40.0, 0.1) var circle_join_radius: float = 20.0
+
+## Added 2026-10-04 (US-0103). How far from the anchor a circle's members stand, evenly round it.
+## Close enough that a full circle is a blend pocket (invariant 38). Ours.
+## TUN-CROWD-CIRCLE-RADIUS
+@export_range(0.6, 1.5, 0.1) var circle_radius: float = 0.9
+
+## Added 2026-10-04 (US-0103). The share of strolls that end at a free stall counter, leaning,
+## rather than at an anchor. GDD-03 §6.3 rule 7: clones must occupy every blend action a player
+## can, and before it no NPC ever leaned, so a player leaning was the only figure ever seen at a
+## counter. Ours.
+## TUN-CROWD-LEAN-CHANCE
+@export_range(0.0, 1.0, 0.01) var lean_chance: float = 0.25
 
 ## How long a startled NPC flees. Long enough that the wave is visible from across a plaza — a
 ## startle is a public announcement.

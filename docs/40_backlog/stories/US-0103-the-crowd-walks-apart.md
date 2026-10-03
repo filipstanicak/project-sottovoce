@@ -2,9 +2,9 @@
 id: US-0103
 title: The crowd walks apart, gathers and sits
 version: 0.1.0
-status: draft
+status: in-progress
 owner: Lead Game Designer
-last_updated: 2026-09-25
+last_updated: 2026-10-04
 depends_on: [GDD-03-SOCIAL-STEALTH, TDD-08-CROWD]
 ---
 
@@ -58,13 +58,30 @@ becomes a tell. Benches and circles are smart objects both can use — the refer
       `crowd_spread_census`: strollers' same-state company falls well below 39 %, and
       shared-lane walking well below 58–64 %. The civilian test bots (US-0102) follow the
       same rule, or they become the one figure on the centre line.
-- [ ] **Gather.** Some idle NPCs form conversation circles of `TUN-CROWD-IDLE-GROUP-SIZE-MIN`..
+      **Measured 2026-10-04 and parked** on `us/US-0103-the-crowd-walks-apart` (not merged).
+      A route moved onto a seeded lane and snapped to the navmesh cut shared lanes from
+      56–60 % to 51 % at 1 m and 35 % at 2 m, left company at 25–28 %, and cost walking time
+      (strollers moving 72 % and 50 % of the time against 77–83 %). Company comes from equal
+      speeds and shared routes, not shared cells. Circles (below) cut it to 22–23 % on their own.
+- [x] **Gather.** Some idle NPCs form conversation circles of `TUN-CROWD-IDLE-GROUP-SIZE-MIN`..
       `-MAX` at anchors, and a player can stand into one and blend there (the crowd-pocket blend;
       check `TUN-BLEND-POCKET-MIN-NPC` against a circle of that size).
+      **Ticked 2026-10-04.** `CrowdPlaces`: a stroll ends in a circle with
+      `TUN-CROWD-CIRCLE-CHANCE`, joined within `TUN-CROWD-CIRCLE-JOIN-RADIUS` or started at
+      the nearest anchor. Invariant 38 holds a full circle to a blend pocket — four NPCs, the
+      reference's own rule for a crowd — so a circle of two or three is company and not cover.
+      Measured: idle NPCs with an idle neighbour 27 % → 48–54 %.
 - [ ] **Sit and lean.** NPCs occupy benches and lean spots through the same occupancy the
       player's prop blend uses (GDD-03 §6.3 rule 7), with a rule for a seat an NPC holds when a
       player wants it. Seated reads as standing at the seat until clips exist — on both sides.
-- [ ] Processions stay at `TUN-CROWD-GROUP-COUNT` 4 × `TUN-CROWD-GROUP-SIZE` 4.
+      **Leaning built 2026-10-04**: `LeanSpots`, one figure per counter, a player refused with
+      `PROP_OCCUPIED` where an NPC leans and an NPC never taking a held one. Counters with an
+      idle figure at them 7 % → 21–31 %. **Unticked for the sitting: `MAP-VETRAIO` has no
+      bench**, so benches must be added to the layout first.
+- [x] Processions stay at `TUN-CROWD-GROUP-COUNT` 4 × `TUN-CROWD-GROUP-SIZE` 4.
+
+      **Ticked 2026-10-04**: no tunable of theirs changed, and the census reads them at 16–19 %
+      of the crowd in every run.
 
 ## Test notes
 

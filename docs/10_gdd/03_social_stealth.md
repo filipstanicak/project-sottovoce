@@ -383,6 +383,13 @@ spots, then twelve exact spots, then a formation within 2.5 m, then *anywhere wi
 press at a concealment prop that silently took the pocket would spend a walk the player made
 deliberately, and they would not find out until a hunter looked at them.
 
+**ONE FIGURE PER COUNTER, PLAYER OR NPC — 2026-10-04, US-0103.** NPCs lean at the counters too
+(§6.3 rule 7), so a lean spot is now held by whoever stands there (`LeanSpots`). A player who finds
+it taken is refused with the reason, as at a hiding spot, and the holder stands there in plain
+view, so the refusal says nothing the street did not. An NPC never takes a held spot and never
+steps aside for a player, which would mark them. *Until then any number of players could lean at
+one spot.*
+
 **THE PROP REACH IS `TUN-BLEND-GROUP-JOIN-RADIUS`, ADOPTED RATHER THAN INVENTED.** §4.1.3 and
 §4.1.4 say only *"at the prop"* and no tunable carries a prop radius. **If a playtest wants them
 different, `TUN-BLEND-PROP-RADIUS` is a `TUN-` addition and therefore the owner's.**
@@ -580,7 +587,7 @@ These are the rules that make anonymity real. Each is a release blocker if viola
 | 4 | Clone personas are assigned from `match_seed` (ASM-0025), identically on every peer. | "I saw a Lucerna by the furnace" becomes a lie; the social layer breaks. |
 | 5 | **Every persona in use by a player must have clones.** If nobody plays Cantatrice, Cantatrice clones may still spawn (harmless). If someone plays Cantatrice, clones are mandatory. | A player with zero clones is a marked man. |
 | 6 | Per-instance variation (colour, accessory) is **forbidden** on clones. | Any variation the player cannot also have is a discriminator. Any variation the player *can* have is a cosmetic system, which is out of scope (`SCOPE_FENCE` OUT #3) for exactly this reason. |
-| 7 | Clones must be able to occupy every blend action a player can. **NOT BUILT — found 2026-09-25**: no crowd code uses a blend prop, lean spot or hiding spot, and the conversation-cluster tunables have no reader. Owned by US-0103. | A player sitting on a bench that no NPC ever sits on is a player sitting alone on a bench. |
+| 7 | Clones must be able to occupy every blend action a player can. **Half built 2026-10-04 (US-0103):** NPCs lean at the twelve stall counters through the same occupancy as players (`LeanSpots`, one figure per counter), and idle NPCs stand in conversation circles, a full one being a blend pocket. **There is no bench in `MAP-VETRAIO`**, so sitting waits on benches being added to the layout; hiding spots stay the players' alone. *Was: "NOT BUILT — found 2026-09-25: no crowd code uses a blend prop, lean spot or hiding spot, and the conversation-cluster tunables have no reader."* | A player sitting on a bench that no NPC ever sits on is a player sitting alone on a bench. |
 
 #### Rule 3 does not bind at the instant a player is placed
 

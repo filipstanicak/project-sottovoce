@@ -19,6 +19,8 @@ var _rng: RandomNumberGenerator = null
 var _formations: CrowdFormations = null
 var _corpses: CorpseRegister = null
 var _clones: CloneBalance = null
+## Where a stroll ends besides an anchor: a circle or a counter (US-0103).
+var _places := CrowdPlaces.new()
 var _stroll: float = 1.4
 var _flee: float = 5.0
 
@@ -37,7 +39,13 @@ func setup(
 	_formations = formations
 	_corpses = corpses
 	_clones = clones
+	_places.setup(map, rng, null)
 	refresh()
+
+
+## The counters NPCs lean at, shared with `SYS-BLEND` through `MatchContext`.
+func use_lean_spots(spots: LeanSpots) -> void:
+	_places.setup(_map, _rng, spots)
 
 
 ## Cached speeds, refreshed with `Steering`'s for the same reason: ninety agents
@@ -123,6 +131,9 @@ func _an_anchor(index: int) -> Vector3:
 		var directed := _clones.take(index)
 		if directed != CrowdDirector.NO_GOAL:
 			return directed
+	var place := _places.goal_for(index, _pool.body_of(index).global_position)
+	if place != CrowdDirector.NO_GOAL:
+		return place
 	if _map == null or _map.idle_anchors.is_empty():
 		return CrowdDirector.NO_GOAL
 	var pick: int = (
@@ -131,6 +142,18 @@ func _an_anchor(index: int) -> Vector3:
 		else _map.idle_anchors.size() / 2
 	)
 	return _map.idle_anchors[pick]
+
+
+## NPC `index` changed state to `state`. Anything but standing where it went frees its
+## circle seat and its counter; arriving and standing keeps them.
+func left_for(index: int, state: int) -> void:
+	if state != NpcBrain.State.IDLE:
+		_places.release(index)
+
+
+## The places, for the census and the tests.
+func places() -> CrowdPlaces:
+	return _places
 
 
 ## Directly away from whatever caused the scare, as far as the flee lasts.

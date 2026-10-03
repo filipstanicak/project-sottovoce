@@ -101,6 +101,23 @@ func test_the_anchor_pocket_invariant_is_live() -> void:
 	assert_true(caught, "an anchor too wide to form a pocket produced no error — 28 is inert")
 
 
+func test_the_circle_pocket_invariant_is_live() -> void:
+	# 38, falsified both ways. A circle too wide, or too small to hold a pocket's worth,
+	# stops being somewhere a player can blend — and nothing else would say so.
+	for breaks: Callable in [
+		func(p: TuningProfile) -> void: p.crowd.circle_radius = p.suspicion.blend_pocket_radius,
+		func(p: TuningProfile) -> void:
+			p.crowd.idle_group_size_max = p.suspicion.blend_pocket_min_npc - 1,
+	]:
+		var p := _profile()
+		breaks.call(p)
+		var caught := false
+		for e: String in p.validate():
+			if e.begins_with("38."):
+				caught = true
+		assert_true(caught, "a circle that is no blend pocket produced no error — 38 is inert")
+
+
 func test_the_fov_invariants_are_live() -> void:
 	# 21 and 22, falsified rather than trusted. An inverted FOV ladder is the one
 	# tuning error in this file that a playtester would feel and never be able to

@@ -288,6 +288,10 @@ block says what it used to get wrong.*
 | `idle_duration_max` | float | 15–40 | 25 |
 | `idle_group_size_min` | int | — | 2 |
 | `idle_group_size_max` | int | 4–6 | 4 |
+| `circle_chance` | float | 0–1 | 0.4 |
+| `circle_join_radius` | float | 10–40 | 20 |
+| `circle_radius` | float | 0.6–1.5 | 0.9 |
+| `lean_chance` | float | 0–1 | 0.25 |
 | `startle_duration` | float | 3–6 | 4 |
 | `startle_radius_violence` | float | 8–18 | 12 |
 | `startle_radius_sprint` | float | 3–8 | 5 |

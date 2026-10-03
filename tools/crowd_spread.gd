@@ -23,6 +23,11 @@ const COMPANY_HEADING := 0.6
 const WALKING := 0.5
 ## A cell this many different strollers crossed is a shared lane.
 const SHARED_LANE := 5
+## An idle figure this close to another idle figure is standing with somebody — a
+## circle's diameter plus the slack an NPC stops with (US-0103).
+const IDLE_COMPANY := 2.5
+## An idle figure this close to a stall counter's lean spot is standing at it.
+const AT_COUNTER := 1.5
 
 
 ## `{index: [position, heading, state]}` for everybody walking between two samples.
@@ -94,6 +99,35 @@ static func shared_lane_share(t: Dictionary) -> float:
 		func(c: Vector2i) -> bool: return (lanes[c] as Dictionary).size() >= SHARED_LANE
 	)
 	return float(shared.size()) / cells.size()
+
+
+## In one sample: `[idle figures, of them standing within IDLE_COMPANY of another]`.
+static func idle_company(frame: Dictionary, idle: int) -> Vector2i:
+	var idlers: Array[Vector3] = []
+	for index: int in frame:
+		if frame[index][1] == idle:
+			idlers.append(frame[index][0])
+	var with := 0
+	for i: int in idlers.size():
+		for j: int in idlers.size():
+			if i != j and CompassMath.distance_to(idlers[i], idlers[j]) <= IDLE_COMPANY:
+				with += 1
+				break
+	return Vector2i(idlers.size(), with)
+
+
+## In one sample: how many of `spots` have an idle figure within AT_COUNTER. Idle
+## only, or every stroller walking past a stall would count as leaning at it.
+static func counters_held(frame: Dictionary, spots: Array, idle: int) -> int:
+	var held := 0
+	for spot: Vector3 in spots:
+		for index: int in frame:
+			if frame[index][1] != idle:
+				continue
+			if CompassMath.distance_to(frame[index][0], spot) <= AT_COUNTER:
+				held += 1
+				break
+	return held
 
 
 static func _bump(counts: Dictionary, key: int) -> void:
