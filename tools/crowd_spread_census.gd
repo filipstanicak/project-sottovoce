@@ -102,7 +102,18 @@ func _report(samples: Array) -> void:
 		)
 	print(
 		(
-			"strollers: %3.0f %% of walking on shared lanes (cells crossed by %d+ strollers)"
-			% [100.0 * SPREAD.shared_lane_share(t), SPREAD.SHARED_LANE]
+			(
+				"strollers: %3.0f %% of walking on shared lanes (cells crossed by %d+"
+				+ " strollers), moving %3.0f %% of the time they stroll"
+			)
+			% [
+				100.0 * SPREAD.shared_lane_share(t),
+				SPREAD.SHARED_LANE,
+				(
+					100.0
+					* int(t["walking"].get(NpcBrain.State.STROLL, 0))
+					/ maxi(int(t["share"].get(NpcBrain.State.STROLL, 0)), 1)
+				),
+			]
 		)
 	)

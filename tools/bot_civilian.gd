@@ -16,7 +16,9 @@ extends RefCounted
 ## - it strolls at `TUN-CROWD-NPC-SPEED-STROLL`, which invariant 1 makes blend-walk;
 ##   here `input_slow`;
 ## - it stands `TUN-CROWD-IDLE-DURATION-MIN`..`-MAX`, uniformly — `NpcBrain._enter`;
-##   here `_idle_left`.
+##   here `_idle_left`;
+## - it walks its own lane, the route moved by `CrowdLane.offset_path` and snapped to
+##   the navmesh — `StrollRoute`; here `path_finder`'s `lateral` (US-0103).
 ##
 ## **WHAT IT DOES NOT COPY, SAID RATHER THAN HIDDEN.** Processions (`WALKING_GROUP`),
 ## startles and gawking are the director's decisions about *other* NPCs, not a walk a
@@ -169,7 +171,7 @@ func _stuck(here: Vector3) -> bool:
 ## Built at `_ready` and queried after `bot_client.gd`'s settle, by which time the
 ## server has synchronised it; a query against an unsynchronised map answers empty
 ## and the brain then stands, which is honest rather than wrong.
-static func path_finder(map_name: String) -> Callable:
+static func path_finder(map_name: String, lateral: float = 0.0) -> Callable:
 	var mesh := load(MapCatalogue.data_path(map_name).replace(".tres", "_navmesh.tres"))
 	if not mesh is NavigationMesh:
 		push_warning("bot: no navmesh for %s, so the civilian bot will stand" % map_name)
@@ -181,6 +183,10 @@ static func path_finder(map_name: String) -> Callable:
 	var region := NavigationServer3D.region_create()
 	NavigationServer3D.region_set_map(region, map)
 	NavigationServer3D.region_set_navigation_mesh(region, mesh as NavigationMesh)
+	var snap := func(point: Vector3) -> Vector3:
+		return NavigationServer3D.map_get_closest_point(map, point)
 	return func(from: Vector3, to: Vector3) -> PackedVector3Array:
 		var start := NavigationServer3D.map_get_closest_point(map, from)
-		return NavigationServer3D.map_get_path(map, start, to, true)
+		return CrowdLane.offset_path(
+			NavigationServer3D.map_get_path(map, start, to, true), lateral, snap
+		)

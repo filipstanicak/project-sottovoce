@@ -159,6 +159,7 @@ const FIELD := {
 	&"TUN-CROWD-GROUP-SIZE": ["crowd", "group_size", "count"],
 	&"TUN-CROWD-GROUP-COUNT": ["crowd", "group_count", "count"],
 	&"TUN-CROWD-GROUP-SPACING": ["crowd", "group_spacing", "m"],
+	&"TUN-CROWD-LANE-SPREAD": ["crowd", "lane_spread", "m"],
 	&"TUN-CROWD-IDLE-DURATION-MIN": ["crowd", "idle_duration_min", "s"],
 	&"TUN-CROWD-IDLE-DURATION-MAX": ["crowd", "idle_duration_max", "s"],
 	&"TUN-CROWD-IDLE-GROUP-SIZE-MIN": ["crowd", "idle_group_size_min", "count"],

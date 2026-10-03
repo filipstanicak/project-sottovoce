@@ -47,6 +47,7 @@ var _pool: NpcPool = null
 var _map: MapData = null
 var _rng: RandomNumberGenerator = null
 var _steering := Steering.new()
+var _route := StrollRoute.new()  # a stroller's walk on its own lane, US-0103
 var _repath := RepathQueue.new()
 var _formations := CrowdFormations.new()
 var _intent := CrowdIntent.new()
@@ -130,6 +131,7 @@ func setup(ctx: MatchContext) -> void:
 		_pool.context_of(index).rng = _rng
 	# Last: it seeds every agent's path tolerance, and `Steering` only knows the
 	# engine's default once it has configured one.
+	_route.setup(_pool, _steering, ctx.match_seed)
 	_bands.setup(_pool, _steering)
 
 
@@ -248,7 +250,7 @@ func _advance(index: int, dt: float) -> void:
 	# with no target reports `is_navigation_finished()` as true, so testing it
 	# unconditionally would fire REACHED_ANCHOR on the first tick of every match
 	# and walk the whole crowd into Idle before anybody had gone anywhere.
-	if _goals[index] != NO_GOAL and _steering.arrived(agent):
+	if _goals[index] != NO_GOAL and _route.arrived(index):
 		cctx.reached_anchor = true
 		_goals[index] = NO_GOAL
 
@@ -268,7 +270,7 @@ func _advance(index: int, dt: float) -> void:
 	if brain.state == NpcBrain.State.WALKING_GROUP:
 		return
 	var speed := 0.0 if _held.has(index) else _intent.speed_for(brain.state)
-	_steering.drive(_pool.body_of(index), agent, speed)
+	_route.drive(index, speed)
 
 
 ## **EVENTS ARE CLEARED ONLY WHEN SOMEBODY READ THEM.** Clearing every tick
@@ -313,7 +315,7 @@ func _serve_repaths() -> void:
 		var goal := _intent.goal_for(index, brain.state)
 		_goals[index] = goal
 		if goal != NO_GOAL:
-			_steering.aim(_pool.agent_of(index), goal)
+			_route.aim(index, goal, brain.state == NpcBrain.State.STROLL)
 
 
 ## Does this state move? Idle stands still by definition; the other two that do

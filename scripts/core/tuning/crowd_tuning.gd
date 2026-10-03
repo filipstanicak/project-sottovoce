@@ -89,6 +89,15 @@ extends Resource
 ## TUN-CROWD-GROUP-SPACING
 @export_range(1.0, 2.0, 0.1) var group_spacing: float = 1.3
 
+## Added 2026-10-04 (US-0103). How far to either side of its path a stroller walks. Each NPC
+## keeps one offset, seeded from the match and its index, in ±this for the whole match, so
+## strollers bound for the same corner take parallel lanes instead of one row. Measured before
+## it: 39 % of strollers walked beside another stroller and 58–64 % of stroller walking lay on
+## shared lanes. Faded out over the last metres to an anchor, so arrival is unchanged. Ours: the
+## reference gives no figure.
+## TUN-CROWD-LANE-SPREAD
+@export_range(0.0, 2.0, 0.1) var lane_spread: float = 1.0
+
 ## Shortest time an NPC stands at an idle anchor before strolling on. The range is GDD-03 §6.1's
 ## own "8–25 s", which the diagram specified and no tunable carried until US-0040 — the state
 ## machine cannot leave Idle without it. Wide because a crowd whose pauses are all the same

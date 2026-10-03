@@ -284,6 +284,7 @@ block says what it used to get wrong.*
 | `group_size` | int | 3–6 | 4 |
 | `group_count` | int | 3–6 | 4 |
 | `group_spacing` | float | 1–2 | 1.3 |
+| `lane_spread` | float | 0–2 | 1 |
 | `idle_duration_min` | float | 5–15 | 8 |
 | `idle_duration_max` | float | 15–40 | 25 |
 | `idle_group_size_min` | int | — | 2 |

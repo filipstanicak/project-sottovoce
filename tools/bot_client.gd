@@ -111,7 +111,10 @@ func _ready() -> void:
 	LaunchConfig.active = LaunchConfig.parse(
 		args, Tuning.match_rules.max_players, Tuning.match_rules.min_players
 	)
-	_find_path = CIVILIAN.path_finder(LaunchConfig.active.map_name)
+	# The bot's lane, by the crowd's own rule (US-0103), so it is not the one figure
+	# left on the centre line once the strollers spread out.
+	var lane := CrowdLane.lateral_for(_index, 0, Tuning.crowd.lane_spread)
+	_find_path = CIVILIAN.path_finder(LaunchConfig.active.map_name, lane)
 	_root = (load(CLIENT_ROOT) as PackedScene).instantiate()
 	get_tree().get_root().add_child.call_deferred(_root)
 	print("bot %d joining %s:%d" % [_index, host, port])
