@@ -16,7 +16,7 @@ depends_on: [ADR-0024, GDD-06-UI-AUDIO, US-0073]
 | **Epic** | `EPIC-HUD` |
 | **Systems** | `SYS-COMPASS`, `SYS-SCORE`, `SYS-NET-*` |
 | **Estimate** | L — several PRs, in the dependency order below |
-| **Depends on** | ADR-0024 (accepted); US-0078 for names; owner decisions 14 and 15 for two lines |
+| **Depends on** | ADR-0024 (accepted); US-0078 for names; US-0106 (owner decision 14, settled by ADR-0025) and owner decision 15 for two lines |
 
 ## Description
 
@@ -47,6 +47,7 @@ lists what the reference's HUD shows that ours does not. This story builds it.
 - [ ] **A death card**: the killer's name, the points your death paid them, and the bonuses they
       earned for it. `test_no_global_score_feed.gd` is amended for that one kill, citing ADR-0024.
 - [ ] *"Your pursuer killed a civilian"*, once owner decision 14 makes a wrong kill possible.
+      *Decision 14 settled 2026-10-02 (ADR-0025): the line is built by US-0106.*
 
 ## As built
 
