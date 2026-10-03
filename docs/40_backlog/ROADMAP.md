@@ -774,7 +774,7 @@ Lunge, every bonus rule — eleven of the thirteen earnable, Masked and Poisoned
 | 2 | Any pursuer can be stunned | ADR-0022, decision 11 | **built 2026-10-01**: `TUN-STUN-MIN-TIER` 0, and the stun hint lit for any figure in reach | 1 | — |
 | 3 | Lobby, player names, persona and loadout selection | US-0078, US-0071 | the kill feed, names, death card, results' personas and the ability slots all wait on it | 4–6 | — |
 | 4 | Second Face and the three passives | US-0069, US-0071 | M5's exit names three abilities; two exist | 3–4 | — |
-| 5 | The rest of the reference's HUD | US-0105 | kill feed, names, death card, own placement and pursuer icons | 3–4 | decision 14 for the civilian line, decision 15 for more than one icon |
+| 5 | The rest of the reference's HUD | US-0105 | kill feed, names, death card, own placement and pursuer icons | 3–4 | decision 15 for more than one icon (the civilian line comes with row 6a) |
 | 6 | The crowd sits, leans, gathers and walks apart | US-0103 | a release blocker: the only figure ever on a bench is a player | 3–5 | — |
 | 6a | **The hunter picks the figure** — a civilian killed instead costs the contract, the lock confirms nothing | US-0106, ADR-0025 | owner decision 14, 2026-10-02: *exactly as the reference*; after row 6 by owner decision | 5–8 | — |
 | 7 | Animation for both rigs | US-0046, US-0045, US-0019, US-0024 | figures glide; a clone and a player look alike partly because neither moves | 5–8 | **licensed clips**, each with a row in `ASSET_LICENSES.md` |
@@ -789,7 +789,7 @@ twelve weeks** once playtests, review rounds and waiting for assets are counted.
 the ones most likely to move the date, because both wait on assets only the owner can choose.
 
 **Deliberately not on this road:** Whisperbolt (post-MVP), the per-relationship suspicion meter
-(ADR-0022's proposed half), decisions 14 and 15 beyond an ADR draft, and everything
+(ADR-0022's proposed half), decision 15 beyond an ADR draft (decision 14 is settled: row 6a), and everything
 `SCOPE_FENCE.md` puts out — matchmaking and persistence among them.
 
 ## 9. Cross-milestone rules

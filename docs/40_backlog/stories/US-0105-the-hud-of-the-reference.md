@@ -16,7 +16,7 @@ depends_on: [ADR-0024, GDD-06-UI-AUDIO, US-0073]
 | **Epic** | `EPIC-HUD` |
 | **Systems** | `SYS-COMPASS`, `SYS-SCORE`, `SYS-NET-*` |
 | **Estimate** | L — several PRs, in the dependency order below |
-| **Depends on** | ADR-0024 (accepted); US-0078 for names; owner decisions 14 and 15 for two lines |
+| **Depends on** | ADR-0024 (accepted); US-0078 for names; US-0106 (owner decision 14, settled by ADR-0025) and owner decision 15 for two lines |
 
 ## Description
 

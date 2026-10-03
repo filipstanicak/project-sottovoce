@@ -32,17 +32,19 @@ that depends on it is built.
 
 ## Acceptance criteria
 
-- [ ] ADR-0025's five open source questions (A–E) are answered from the reference, each recorded
+- [ ] ADR-0025's eight source questions (A–H) are answered from the reference, each recorded
       here with what it decides.
 - [ ] The kill goes to the selected figure — the locked one, otherwise the reference's own
       targeting — player or civilian. `KillRules` no longer chooses the nearest player.
-- [ ] A civilian can be killed. Killing one costs the hunter the contract and pays nothing; it
-      leaves a corpse the crowd reacts to, as a player's does.
+- [ ] A civilian can be killed. Killing one costs the hunter the contract and reveals their
+      position to the other players as the reference shows it (A). What it scores (G) and how the
+      crowd reacts (H) are as sourced — nothing of ours fills either.
 - [ ] The prey whose persona the killed civilian wore, within the sourced radius, is paid the
       reference's bonus and told *your pursuer killed a civilian* (US-0105's line).
-- [ ] The lock is a targeting act with the reference's input (quick press, hold and release) and
-      confirms nothing: the reveal of the true body is gone. `SCORE-FOCUS` still pays a charged
-      lock on the contract.
+- [ ] The lock is a targeting act with the reference's input (quick press, hold and release),
+      the kill goes to the locked figure, and the lock confirms nothing: the reveal of the true
+      body is gone. Any other action it governs is as sourced (F). `SCORE-FOCUS` still pays a
+      charged lock on the contract.
 - [ ] The kill ring lights for any selected figure in reach and never tells the contract from a
       clone. Asserted the way `test_the_stun_hint_names_nobody.gd` asserts the stun hint.
 - [ ] The dash meets civilians as the reference's does.

@@ -46,10 +46,13 @@ Design law 4 (patience must win) and law 6 (authored uncertainty) both lose ther
 (never-do #5):
 
 - **the kill strikes the figure the hunter chose**, civilian or not, and **a civilian killed
-  instead costs the contract**; in its free-for-all training mode a civilian kill also scores
-  nothing and exposes the killer to those nearby;
-- **the lock is a targeting act**: one locks onto a figure one is already sure of, and every
-  action goes to the locked figure until the lock is released. It confirms nothing;
+  instead costs the contract and gives the killer away**: the contract mode's own sources say it
+  breaks the contract and reveals the killer's position to the others (the review of #249 found
+  this in the reference's multiplayer guide; a second source says the killer becomes easier to
+  spot). Its free-for-all training mode adds that a civilian kill scores nothing;
+- **the lock is a targeting act**: one locks onto a figure one is already sure of, and the kill
+  goes to the locked figure until the lock is released. It confirms nothing. (Its co-op mode also
+  focuses stun attempts on a locked pursuer; whether the contract mode does is item F below);
 - **the help is the compass**, which glows while the contract is in sight — described there as
   the way to find the individual *instead of attacking a random persona*. Ours already glows
   (US-0105);
@@ -63,12 +66,14 @@ it before building that part, and **nothing is filled in with a rule of ours**.
 
 1. **The kill goes to the figure the hunter has selected**, as the reference selects it — by the
    lock where there is one, otherwise by its own targeting. Player or civilian alike.
-2. **Civilians are killable.** A civilian killed instead **costs the hunter the contract**, as the
-   reference's contract mode does. The prey whose persona the civilian wore, if near, is paid the
-   reference's bonus (+100) and told *your pursuer killed a civilian*.
+2. **Civilians are killable.** A civilian killed instead **costs the hunter the contract and
+   reveals the killer's position to the other players**, as the reference's contract mode does;
+   how the reveal is shown is item A. The prey whose persona the civilian wore, if near, is paid
+   the reference's bonus (+100) and told *your pursuer killed a civilian*.
 3. **The lock is the reference's lock**: a targeting act with its own input — a quick press snaps
-   to a running figure, holding and releasing picks one precisely — and every action goes to the
-   locked figure until it is released. **It confirms nothing**: the 1.5 s outline of the true
+   to a running figure, holding and releasing picks one precisely — and **the kill goes to the
+   locked figure** until it is released. Which other actions it governs is item F; until that is
+   sourced, the stun keeps its own target. **It confirms nothing**: the 1.5 s outline of the true
    body goes. `SCORE-FOCUS` keeps the reference's meaning, a charged lock on the contract.
 4. **The kill ring names nobody.** It lights when a selected figure is in reach, whoever it is —
    the shape ADR-0022 A gave the stun hint, for the same reason.
@@ -86,13 +91,20 @@ the contested kill; the stealth ladder; the Compass's bearing, distance and glow
 
 ## To source before building (not open for our own choice)
 
-- **A. Anything a civilian kill costs besides the contract** in the reference's contract mode —
-  its free-for-all mode adds *exposed to those nearby*; whether the contract mode does too.
+- **A. How the killer's position is revealed** after a civilian kill in the contract mode — the
+  consequence is sourced (the review of #249); its representation and duration are not.
 - **B. The radius** within which the prey is paid for a clone of theirs being killed.
 - **C. How the reference targets without a lock**, exactly: which figure the kill prompt goes to.
 - **D. What the dash does to a civilian it meets**: knocked down, or killed, and with what cost.
 - **E. Whether a lock is visible to the locked figure** in the contract mode (the free-for-all
   mode lights a locked player up; the contract mode's sources do not say).
+- **F. Which actions the lock governs** besides the kill — in particular whether a stun goes to a
+  locked pursuer, as the co-op mode's sources say.
+- **G. What a civilian kill scores** in the contract mode. *Nothing* is sourced only for the
+  free-for-all mode.
+- **H. How the crowd reacts to a civilian killed** — whether the reference's civilians gather,
+  flee or ignore it. Our corpse, gawk and startle exist for players' kills; they apply to a
+  civilian only as far as this answer says, because they change what the crowd tells a player.
 
 Each answer is written into US-0106 with its source before the part that depends on it is built.
 
@@ -101,7 +113,7 @@ Each answer is written into US-0106 with its source before the part that depends
 | Area | Change |
 |---|---|
 | Kill targeting | A selected figure on the wire, `PROTOCOL_VERSION` 8; `KillRules` takes it instead of choosing |
-| Civilians | A killable NPC: corpse, gawk and startle (already built for players' kills), contract loss, the prey's bonus and notice |
+| Civilians | A killable NPC, contract loss, the killer's position revealed, the prey's bonus and notice; the crowd's reaction per item H (our corpse, gawk and startle are built and used only as far as H says) |
 | Lag compensation | NPCs recorded in the ring, which ADR-0010 wanted and US-0035/US-0060 left out for want of a reader; roughly 28 KB → 130 KB |
 | Lock | Becomes the reference's selection, with its quick-press and hold-and-release input; the reveal and its cooldown go; the portrait latch narrows again |
 | Crosshair | `kill_ready` lit for any selected figure in reach — never *is it the contract* |
