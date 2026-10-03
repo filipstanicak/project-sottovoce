@@ -70,8 +70,9 @@ it before building that part, and **nothing is filled in with a rule of ours**.
    reveals the killer's position to the other players**, as the reference's contract mode does;
    how the reveal is shown is item A. The prey whose persona the civilian wore, if near, is paid
    the reference's bonus (+100) and told *your pursuer killed a civilian*.
-3. **The lock is the reference's lock**: a targeting act with its own input — a quick press snaps
-   to a running figure, holding and releasing picks one precisely — and **the kill goes to the
+3. **The lock is the reference's lock**: a targeting act with two input paths — **a press locks a
+   figure in immediate sight; holding lets the hunter aim at a figure at distance and lock it** —
+   exactly as the reference selects (item C) — and **the kill goes to the
    locked figure** until it is released. Which other actions it governs is item F; until that is
    sourced, the stun keeps its own target. **It confirms nothing**: the 1.5 s outline of the true
    body goes. `SCORE-FOCUS` keeps the reference's meaning, a charged lock on the contract.
@@ -91,10 +92,18 @@ the contested kill; the stealth ladder; the Compass's bearing, distance and glow
 
 ## To source before building (not open for our own choice)
 
+*Items A–H follow; I was added in the review of #249. Every item decides what US-0106 builds.*
+
+
 - **A. How the killer's position is revealed** after a civilian kill in the contract mode — the
   consequence is sourced (the review of #249); its representation and duration are not.
 - **B. The radius** within which the prey is paid for a clone of theirs being killed.
-- **C. How the reference targets without a lock**, exactly: which figure the kill prompt goes to.
+- **C. How the reference targets**, exactly: which figure the kill prompt goes to without a lock,
+  and which figure a press selects when several are in immediate sight. *A wiki describes the
+  quick press as snapping to a running figure; the reference's multiplayer guide (found in the
+  review of #249) describes a press for a figure in immediate sight and a hold to aim at one at
+  distance, with running a separate rule. The guide's two paths are the decision; the exact
+  selection is what C proves.*
 - **D. What the dash does to a civilian it meets**: knocked down, or killed, and with what cost.
 - **E. Whether a lock is visible to the locked figure** in the contract mode (the free-for-all
   mode lights a locked player up; the contract mode's sources do not say).
@@ -105,6 +114,9 @@ the contested kill; the stealth ladder; the Compass's bearing, distance and glow
 - **H. How the crowd reacts to a civilian killed** — whether the reference's civilians gather,
   flee or ignore it. Our corpse, gawk and startle exist for players' kills; they apply to a
   civilian only as far as this answer says, because they change what the crowd tells a player.
+- **I. The lock symbol over a running player.** The guide says a high-profile player shows the
+  lock button's symbol on their own. That is a marker over a body, which never-do #12 governs, so
+  it is sourced and then put to the owner rather than built on its face.
 
 Each answer is written into US-0106 with its source before the part that depends on it is built.
 
