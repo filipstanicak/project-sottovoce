@@ -2,8 +2,8 @@
 ## GDD-03 §10.
 ##
 ## The pure rules are exercised in `test/unit/core/combat/`. What is here is the
-## sequencing: that only a pursuer is a target, that an Anonymous one is
-## unstunnable at any range, that the freeze and the exile both land, and that a
+## sequencing: that only a pursuer is a target, that since ADR-0022 A an Anonymous
+## one is stunnable at any range, that the freeze and the exile both land, and that a
 ## committed kill is not saved by a stun that arrives after it.
 extends GutTest
 
@@ -11,18 +11,24 @@ const PREY := 81
 const HUNTER := 82
 const STRANGER := 83
 
+## `TUN-STUN-MIN-TIER` before ADR-0022 A neutralised it, for the test that the
+## switch still works.
+const FLOOR_BEFORE_ADR_0022 := 30.0
+
 var _kills: KillSystem
 var _stun: StunSystem
 var _ctx: MatchContext
 var _machines: Array[PawnStateMachine] = []
 var _landed: Array = []
 var _refused: Array = []
+var _shipped_floor: float
 
 
 func before_each() -> void:
 	_machines.clear()
 	_landed = []
 	_refused = []
+	_shipped_floor = Tuning.combat.stun_min_tier
 	_ctx = MatchContext.new()
 	_ctx.tick = 200
 	_kills = KillSystem.new()
@@ -34,6 +40,7 @@ func before_each() -> void:
 
 
 func after_each() -> void:
+	Tuning.combat.stun_min_tier = _shipped_floor
 	for machine: PawnStateMachine in _machines:
 		machine.free()
 	_machines.clear()
@@ -130,10 +137,11 @@ func test_a_revealed_pursuer_in_reach_is_stunned() -> void:
 	assert_eq(_state(PREY), PawnStateId.STUN_ANIM, "the stunner did not commit to the swing")
 
 
-func test_an_anonymous_pursuer_is_unstunnable_at_every_range() -> void:
-	# **THE GATE, AND THE REASON PATIENCE IS GENUINELY SAFE.** GDD-03 §10.2: the
-	# reward for perfect play is perfect safety. Swept, because one sample cannot
-	# tell a tier gate from a range gate that is tighter than the sample.
+func test_an_anonymous_pursuer_is_stunned_at_every_range() -> void:
+	# **ADR-0022 A, AND THE REPORT FROM THE CONTROLS**: *"my pursuer can only be
+	# stunned with the smoke grenade."* Any pursuer can be stunned, as in the
+	# reference; a patient hunter is protected by the prey's read, not by a gate.
+	# Swept, because one sample cannot tell a tier gate from a tight range gate.
 	for metres: float in [0.5, 1.0, 1.5, 2.0, 2.9]:
 		_a_hunt()
 		(_ctx.pawn_contexts[HUNTER] as PawnContext).position = Vector3(0.0, 0.0, metres)
@@ -141,21 +149,32 @@ func test_an_anonymous_pursuer_is_unstunnable_at_every_range() -> void:
 		_settle()
 		_press(PREY)
 		_advance()
-		assert_eq(_landed.size(), 0, "an Anonymous pursuer was stunned at %.1f m" % metres)
+		assert_eq(_landed.size(), 1, "an Anonymous pursuer was not stunned at %.1f m" % metres)
 		before_each()
 
 
+## **NEUTRALISED, NOT REMOVED, SO THE SWITCH MUST STILL WORK.** TUNABLES promises that
+## restoring the old number restores the gate in one edit; written to the live
+## profile for this test's own duration and put back in `after_each`.
+func test_the_restored_floor_still_refuses_an_anonymous_pursuer() -> void:
+	Tuning.combat.stun_min_tier = FLOOR_BEFORE_ADR_0022
+	_a_hunt()
+	_tier(HUNTER, SuspicionMath.Tier.ANONYMOUS)
+	_settle()
+	_press(PREY)
+	_advance()
+	assert_eq(_landed.size(), 0, "the restored floor let an Anonymous pursuer be stunned")
+
+
 func test_the_tier_gate_reads_the_tunable() -> void:
-	# Written as `!= ANONYMOUS` the gate agrees with `TUN-STUN-MIN-TIER` today and
-	# stops agreeing the moment it moves. Invariant §17.8 also pins it to the warn
-	# floor, so this assertion is the tripwire for both.
-	assert_almost_eq(
+	# The shipped floor refuses nobody, and invariant 7 holds it at or below the
+	# warning, so a pursuer the prey was warned about is always stunnable.
+	assert_almost_eq(Tuning.combat.stun_min_tier, 0.0, 0.001, "the stun floor is back")
+	assert_lte(
 		Tuning.combat.stun_min_tier,
 		Tuning.compass.warn_min_tier,
-		0.001,
-		'"I was warned about them" and "I can stun them" have stopped being one condition'
+		"a pursuer the prey was warned about could not be stunned"
 	)
-	assert_almost_eq(Tuning.combat.stun_min_tier, Tuning.suspicion.tier_noticed, 0.001)
 
 
 func test_the_freeze_lasts_its_tuned_duration_and_not_a_tick_less() -> void:
@@ -351,20 +370,4 @@ func test_the_target_loses_the_camera_and_the_stunner_does_not() -> void:
 	assert_true(
 		us.camera_controlled(_ctx.pawn_contexts[PREY] as PawnContext),
 		"the stunner lost the camera for swinging"
-	)
-
-
-func test_the_ready_bit_follows_the_same_rules_as_the_press() -> void:
-	# `stun_ready` has existed in `Snapshot` since US-0029 with no writer. A hint
-	# that disagreed with the rule would be worse than none.
-	_a_hunt()
-	_advance()
-	assert_true(
-		(_ctx.pawn_contexts[PREY] as PawnContext).stun_ready, "the prey's stun hint is dark"
-	)
-	_tier(HUNTER, SuspicionMath.Tier.ANONYMOUS)
-	_advance()
-	assert_false(
-		(_ctx.pawn_contexts[PREY] as PawnContext).stun_ready,
-		"the hint stays lit for an unstunnable pursuer"
 	)

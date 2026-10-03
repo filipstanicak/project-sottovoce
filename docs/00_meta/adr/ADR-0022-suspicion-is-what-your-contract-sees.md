@@ -4,7 +4,7 @@ title: Suspicion is what your contract sees
 version: 1.0.0
 status: proposed
 owner: Lead Game Designer
-last_updated: 2026-09-29
+last_updated: 2026-10-01
 depends_on: [ADR-0013, ADR-0014, ADR-0019, ADR-0020, ADR-0021, GDD-03-SOCIAL-STEALTH, GDD-06-UI-AUDIO]
 supersedes: none
 ---
@@ -125,7 +125,10 @@ before then.
 2. The ladder switches.
 3. The chase trigger and the prey marker.
 4. The HUD and the wire.
-5. The stun floor goes (open question A, answered).
+5. The stun floor goes (open question A, answered). **Built 2026-10-01**, ahead of slices 1–4
+   because it needs none of them: `TUN-STUN-MIN-TIER` neutralised at 0, invariant 7 rewritten
+   to *stun floor ≤ warn floor*, and the `stun_ready` hint lit for any figure in reach (owner
+   decision of the same day), so it does not point the pursuer out.
 6. The global tunables are neutralised on ADR-0020's pattern, IDs kept.
 
 ## Open questions (sourcing, not preference)

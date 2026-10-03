@@ -190,12 +190,13 @@ static func _combat(p: TuningProfile) -> Array[String]:
 				% [p.combat.stun_range, p.combat.kill_range]
 			)
 		)
-	# 7. An Anonymous hunter is unstunnable, so patience is genuinely safe.
-	if not is_equal_approx(p.combat.stun_min_tier, p.suspicion.tier_noticed):
+	# 7. A pursuer the prey was warned about is always stunnable. Was `== tier_noticed`
+	# until ADR-0022 A lowered the floor to 0: any pursuer can be stunned.
+	if p.combat.stun_min_tier > p.compass.warn_min_tier:
 		e.append(
 			(
-				"7. combat.stun_min_tier (%.1f) must EQUAL suspicion.tier_noticed (%.1f)"
-				% [p.combat.stun_min_tier, p.suspicion.tier_noticed]
+				"7. combat.stun_min_tier (%.1f) must be <= compass.warn_min_tier (%.1f)"
+				% [p.combat.stun_min_tier, p.compass.warn_min_tier]
 			)
 		)
 	# 15. No unskippable animation exceeds the commit ceiling.
@@ -209,10 +210,10 @@ static func _combat(p: TuningProfile) -> Array[String]:
 	return e
 
 
-## 8, 9, 10. The Compass's own ordering, and its shared threshold with the stun.
+## 8, 9, 10. The Compass's own ordering and its warning threshold.
 static func _compass(p: TuningProfile) -> Array[String]:
 	var e: Array[String] = []
-	# 8. "I can stun them" and "I was warned about them" must be one condition.
+	# 8. The prey warning fires at Noticed. Invariant 7 keeps it inside the stunnable.
 	if not is_equal_approx(p.compass.warn_min_tier, p.suspicion.tier_noticed):
 		e.append(
 			(

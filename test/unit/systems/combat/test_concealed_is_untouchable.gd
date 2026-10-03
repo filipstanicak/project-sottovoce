@@ -50,7 +50,8 @@ func _place(peer: int, at: Vector3, yaw: float = 0.0) -> PawnContext:
 
 
 ## The hunter at the origin facing +Z with their contract 1.5 m ahead — inside
-## both kill range and stun range, and Exposed so the stun's tier gate is open.
+## both kill range and stun range, and Exposed - which the stun's tier gate needed
+## until ADR-0022 A lowered it to 0; kept, so this test does not lean on that.
 func _a_hunt() -> void:
 	_place(HUNTER, Vector3.ZERO)
 	_place(PREY, Vector3(0.0, 0.0, 1.5), PI)

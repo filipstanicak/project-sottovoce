@@ -157,7 +157,11 @@ func test_flailing_at_empty_air_costs_the_same() -> void:
 func test_a_careful_pursuer_and_a_stranger_are_indistinguishable() -> void:
 	# **THE IDENTITY PROBE, REFUSED.** Both refusals must cost the same and report
 	# the same thing, or the stun button becomes a way to ask *"are you hunting
-	# me?"* about every person in a crowd.
+	# me?"* about every person in a crowd. **Since ADR-0022 A a careful pursuer is
+	# not refused at all — the press lands** (`test_stun_system.gd`), so this holds
+	# the property for the gate with its old floor restored, for this test only.
+	var shipped := Tuning.combat.stun_min_tier
+	Tuning.combat.stun_min_tier = 30.0
 	_a_stranger()
 	_press(PREY)
 	_advance()
@@ -176,6 +180,7 @@ func test_a_careful_pursuer_and_a_stranger_are_indistinguishable() -> void:
 	assert_almost_eq(_ctx.impulses.pending(PREY), stranger_suspicion, 0.001)
 	assert_eq(_refused.size(), stranger_whiffs, "the two refusals produce different whiff counts")
 	assert_gt(stranger_whiffs, 0, "neither case produced a whiff; this comparison is vacuous")
+	Tuning.combat.stun_min_tier = shipped
 
 
 func test_the_flail_stagger_is_longer_than_a_valid_swing() -> void:

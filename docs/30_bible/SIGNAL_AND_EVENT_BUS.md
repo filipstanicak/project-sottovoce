@@ -68,7 +68,7 @@ Both are **past tense**. The bus reports what *has happened*, never what *should
 | `EVT-MATCH-PHASE-CHANGED` | `match_phase_changed(phase: int, multiplier: float)` | phase enum; 1.0 or 2.0 | Phase transition | `MatchVM`, `Audio`, music controller |
 | `EVT-ABILITY-COOLDOWN-CHANGED` | `ability_cooldown_changed(slot: int, remaining_ticks: int)` | slot 0–1 | Cooldown starts, expires, or is corrected. **The one signal here derived from the snapshot rather than relayed** — both cooldowns are in the own-gameplay block — and **per slot, not per pair**, so a widget is never told about the ability that did not change | `AbilitySlotVM` |
 | `EVT-BLEND-STATE-CHANGED` | `blend_state_changed(blend_type: int)` | `NONE` `POCKET` `GROUP` `PROP_STATIC` `PROP_CONCEAL` | Own blend begins or ends | `TierVM`, `Audio` |
-| `EVT-KILL-READY-CHANGED` | `kill_ready_changed(kill: bool, stun: bool)` | | Server-computed validity changes | `Crosshair` |
+| `EVT-KILL-READY-CHANGED` | `kill_ready_changed(kill: bool, stun: bool)` | `kill`: a press would land. `stun`: a swing would reach some figure — any player or civilian, names nobody (ADR-0022 A, 2026-10-01) | Server-computed readiness changes | `Crosshair` |
 | `EVT-TUNING-RELOADED` | `tuning_reloaded()` | — | Hot reload or server sync | Everything holding a derived value |
 
 ### 3.2 Moments

@@ -190,7 +190,7 @@ NET-S2C-SNAPSHOT — per client, per tick
 │   ├── cooldown_b_tick    u16
 │   ├── blend_state        u4
 │   ├── kill_ready         bool     drives the crosshair — must not lie (built US-0060)
-│   ├── stun_ready         bool
+│   ├── stun_ready         bool     a swing would reach SOME figure; names nobody (ADR-0022 A)
 │   ├── hunt_fraction      u8       the chase YOU are running; 0 = about to lose the contract
 │   └── hunted_fraction    u8       the chase run AGAINST you; 0 = you have escaped
 ├── compass

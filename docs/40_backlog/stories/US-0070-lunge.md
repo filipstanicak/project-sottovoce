@@ -4,7 +4,7 @@ title: Ability — Lunge
 version: 1.0.0
 status: done
 owner: Lead Game Designer
-last_updated: 2026-09-02
+last_updated: 2026-10-01
 depends_on: [GDD-04-ABILITIES, TDD-09-ABILITY, ADR-0017]
 ---
 
@@ -206,7 +206,7 @@ index 14 and `test_pawn_state_count.gd` refuses an insertion before it.
 
 A prepared defender ALWAYS beats a Lunge: 0.92 s of telegraphed, unsteerable approach against a
 0.7 s stun with a 120 degree cone, and the +40 at wind-up guarantees the lunger is at least
-Noticed, which satisfies the stun tier gate.
+Noticed, which satisfies the stun tier gate. *Since ADR-0022 A, 2026-10-01 the gate refuses nobody.*
 
 Sprint is deliberately awkward to enter because it is for PLANNED speed. Lunge is the answer to
 UNPLANNED speed — one press, no timing, when your target has turned and you have one second to

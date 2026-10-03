@@ -230,7 +230,7 @@ block says what it used to get wrong.*
 | `kill_corpse_spawn_delay` | float | — | 0.9 |
 | `stun_range` | float | 2.5–4 | 3 |
 | `stun_facing_cone` | float | 90–180 | 120 |
-| `stun_min_tier` | float | — | 30 |
+| `stun_min_tier` | float | — | 0 |
 | `stun_freeze` | float | 3–6 | 4 |
 | `stun_lockout` | float | 8–18 | 12 |
 | `forces_exposed` | bool | — | true |
@@ -581,7 +581,7 @@ Twenty invariants beyond per-field ranges, asserted at load by `validate()` and 
 | 1 | `movement.blend_walk == crowd.npc_speed_stroll` | A player at blend-walk must be indistinguishable from an NPC by motion. **The most important invariant in the file** |
 | 3 | `suspicion.decay_speed_ceiling == movement.stroll` | The decay cliff sits exactly at the top civilian speed |
 | 6 | `combat.stun_range > combat.kill_range` | The prey's reach must exceed the hunter's |
-| 8 | `compass.warn_min_tier == combat.stun_min_tier` | "I was warned" and "I can stun" are the same condition — two thresholds would be unlearnable |
+| 8 | `combat.stun_min_tier <= compass.warn_min_tier` | Anyone the prey was warned about is stunnable. Was `==` until 2026-10-01; ADR-0022 A lowered the stun floor to 0, so any pursuer can be stunned |
 | 18 | `scoring.blended > scoring.patient > scoring.silent` | The bonus hierarchy encodes the design thesis. If a tuning change inverts it, the change is wrong |
 
 ---

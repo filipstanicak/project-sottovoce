@@ -236,7 +236,9 @@ Target branch lifetime ≤ 2 days, hard ceiling 5. Squash merge. **Never push di
 13. **Never weaken stun** to make hunting feel better. If hunters are frustrated, make the
     *Anonymous approach* more reliable instead. **One exception, decided 2026-08-26 for
     reference fidelity (ADR-0013): a committed kill is not interruptible.** Range advantage,
-    tier gate, freeze and lockout are all untouched, and none of them may be traded away.
+    freeze and lockout are all untouched, and none of them may be traded away. **The tier gate
+    went the other way on 2026-10-01 (ADR-0022 A, owner decision): any pursuer can be stunned,
+    which strengthens the prey.**
 14. **Never reduce crowd density to fix performance** before exhausting the LOD ladder in
     `docs/20_tdd/08_crowd_system.md` §11.3. Density is the game's substrate.
 15. **Never add an autoload.** There are eight. Adding a ninth requires an ADR.

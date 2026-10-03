@@ -499,10 +499,9 @@ there would be walked once per replayed command — the same reason the impulse 
 1. A competent hunter never triggers it. An Anonymous hunter can stand at conversational
    distance behind you indefinitely. The most dangerous approaches are silent.
 2. The warning's *absence* is also information — but unreliable information, which is perfect.
-3. It is the **same threshold as the stun gate** (`TUN-STUN-MIN-TIER`, TUNABLES invariant
-   §17.8). "I was warned about them" and "I can stun them" are the same condition. Two
-   thresholds would be unlearnable; one makes the warning functionally an instruction: *turn
-   around and stun*.
+3. **Everyone it warns about is stunnable** (TUNABLES invariant §17.7). Until ADR-0022 A, 2026-10-01
+   it was the same threshold as the stun gate; since then any pursuer can be stunned, so the
+   warning is a subset of the stunnable and still an instruction: *turn around and stun*.
 
 ### 4.4.0 As built (US-0059), and one thing a falsification pass found
 
@@ -753,7 +752,7 @@ trap 14's whole cost is that the claim stops anybody checking.
 | `test_warning_tier_gate.gd` | An Anonymous pursuer warns nobody at **any** of five ranges; a Noticed pursuer at 14 m warns the prey and not the pursuer; the bearing is inside the wobble; the distance is a bucket | **Built**, US-0059. **Its ring is four players**, because a three-player cycle has no strangers — the first version read one warning where it expected none, which is `test_detection_system.gd`'s US-0055 finding in a second place |
 | ~~`test_warning_payload_empty.gd`~~ | The payload is empty | **Superseded by ADR-0013.** The payload is a bearing and a bucket now; what needed asserting was that neither *names* anybody, so it was written as `test/arch/test_warning_names_nobody.gd` instead — across the RPC signature, the field count, the catalogue row and `rpc_id` versus `rpc` |
 | `test_warning_cooldown.gd` | Five seconds of a held chase produce the tuned number of stings rather than 150; a **new pursuer** defeats the cooldown; a refused warning arms nothing; a departed peer leaves nothing behind | **Built**, US-0059 |
-| `test_warning_thresholds_match.gd` | `TUN-COMPASS-WARN-MIN-TIER == TUN-STUN-MIN-TIER` (invariant §17.8) | **Never written under this name.** It is `test_prey_warning_signal_arity.gd`'s `test_the_tier_gate_is_still_what_makes_a_good_hunter_invisible`, which asserts the two thresholds and that the warn floor is above Anonymous |
+| `test_warning_thresholds_match.gd` | `TUN-STUN-MIN-TIER <= TUN-COMPASS-WARN-MIN-TIER` (invariant §17.7; was `==` until ADR-0022 A, 2026-10-01) | **Never written under this name.** It is `test_prey_warning_signal_arity.gd`'s `test_the_tier_gate_is_still_what_makes_a_good_hunter_invisible`, which asserts the two thresholds and that the warn floor is above Anonymous |
 | `test_compass_curve.gd` | Every row of TUNABLES §4.2 within 1 ms - measured worst case 0.40 ms | **Built**, US-0057 |
 | `test_compass_cone.gd` | The wobble is deterministic, bounded by its amplitude, and out of step between contracts | **Built**, US-0057 |
 | `test_compass_readings.gd` | One reading per hunter with an *announced* contract, bucketed, no raycast | **Built**, US-0057 |

@@ -4,7 +4,7 @@ title: StunSystem, lockout and anti-spam
 version: 1.0.0
 status: done
 owner: Technical Director
-last_updated: 2026-08-26
+last_updated: 2026-10-01
 depends_on: [GDD-03-SOCIAL-STEALTH, TDD-10-SCORING]
 ---
 
@@ -28,6 +28,7 @@ The prey's counterplay: freeze the pursuer, exile them, and force them Exposed.
       **announced** contracts, so nobody may be stunned during the reassign breath for a hunt
       they have not been told about.
 - [x] The pursuer must be at least Noticed — an ANONYMOUS pursuer is unstunnable at any range.
+      *Superseded 2026-10-01 by ADR-0022 A: any pursuer can be stunned (`TUN-STUN-MIN-TIER` 0).* The gate is kept and inert; restoring 30 restores it, and a test holds that.
       Swept over five ranges from 0.5 m to 2.9 m, because one sample cannot tell a tier gate
       from a range gate that is tighter than the sample.
 - [x] Range 3.0 m, which EXCEEDS kill range, asserted as an invariant — **and swept as a rule**,
@@ -86,6 +87,7 @@ play at the last instant is the shape of weakening stun that never-do #13 forbid
 state change silently while the exile still armed.
 
 **THE `stun_ready` HINT NEEDED THE TIER GATE TOO, AND LEAVING IT OUT WAS AN ANONYMITY LEAK.**
+*Since ADR-0022 A, 2026-10-01 the hint lights for any figure in reach instead, by owner decision.*
 The first version gated the hint on relationship, range and cone alone — so it would have lit
 up for an **Anonymous** pursuer standing in a crowd, saying *that one is hunting you*, for free,
 with no lock and no warning. Found by a test rather than by review. The bit has existed in

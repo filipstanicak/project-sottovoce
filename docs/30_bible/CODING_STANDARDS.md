@@ -159,7 +159,7 @@ Guard clauses first, happy path unindented.
 ```gdscript
 # Correct
 func try_stun(ctx: MatchContext, stunner: int, target: int) -> bool:
-    if ctx.suspicion.tier_of(target) < Tier.NOTICED:
+    if ctx.suspicion.tier_of(target) < floor_tier(Tuning.combat.stun_min_tier):
         return false
     if ctx.cycle.contract_of(target) != stunner:
         return false

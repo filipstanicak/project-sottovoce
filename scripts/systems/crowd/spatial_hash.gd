@@ -121,6 +121,25 @@ func query(centre: Vector3, radius: float) -> PackedInt32Array:
 	return found
 
 
+## **IS ANYBODY WITHIN `radius` THAT `accept` TAKES?** Stops at the first, and
+## allocates nothing as long as `accept` is a `Callable` its owner built once. The
+## stun hint asks it every tick for every player, and wants a yes, not a list —
+## `query` would hand back a fresh array each time (review of #248).
+func any_within(centre: Vector3, radius: float, accept: Callable) -> bool:
+	if _count == 0:
+		return false
+	var reach := radius * radius
+	var box := _cell_range(centre, radius)
+	for row: int in range(box.y, box.w + 1):
+		for col: int in range(box.x, box.z + 1):
+			var cell := row * _cols + col
+			for slot: int in range(_starts[cell], _starts[cell + 1]):
+				var at: Vector3 = _positions[_entries[slot]]
+				if _flat_distance_squared(at, centre) <= reach and accept.call(at):
+					return true
+	return false
+
+
 ## **THE BLEND-POCKET QUERY.** `TUN-BLEND-POCKET-MIN-NPC` within
 ## `TUN-BLEND-POCKET-RADIUS`, for six pawns, every tick.
 func count_within(centre: Vector3, radius: float) -> int:

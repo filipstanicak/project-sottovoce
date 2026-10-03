@@ -263,8 +263,8 @@ pulse matches the sampled table at every distance, and the warning payload has e
 
 Kill, stun, spawn. **Finishing this closes the loop and makes the game playable end-to-end.**
 
-**Done when:** a kill validates against the lag-compensated world, an Anonymous pursuer is
-unstunnable at any range, stunning a non-pursuer is strictly worse than doing nothing, and the
+**Done when:** a kill validates against the lag-compensated world, an Anonymous pursuer was
+unstunnable at any range (any pursuer is stunnable since ADR-0022 A, 2026-10-01), stunning a non-pursuer is strictly worse than doing nothing, and the
 spawn system cannot fail.
 
 ---

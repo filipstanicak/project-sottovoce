@@ -233,7 +233,9 @@ Target branch lifetime ≤ 2 days, hard ceiling 5. Squash merge. **Never push di
 13. **Never weaken stun** to make hunting feel better. If hunters are frustrated, make the
     *Anonymous approach* more reliable instead. **One exception, decided 2026-08-26 for
     reference fidelity (ADR-0013): a committed kill is not interruptible.** Range advantage,
-    tier gate, freeze and lockout are all untouched, and none of them may be traded away.
+    freeze and lockout are all untouched, and none of them may be traded away. **The tier gate
+    went the other way on 2026-10-01 (ADR-0022 A, owner decision): any pursuer can be stunned,
+    which strengthens the prey.**
 14. **Never reduce crowd density to fix performance** before exhausting the LOD ladder in
     `docs/20_tdd/08_crowd_system.md` §11.3. Density is the game's substrate.
 15. **Never add an autoload.** There are eight. Adding a ninth requires an ADR.
@@ -274,6 +276,11 @@ owner calls the beta — is [ROADMAP §8.3](docs/40_backlog/ROADMAP.md)**, measu
 
 ### Recent, newest first
 
+- **2026-10-01 — any pursuer can be stunned (ADR-0022 A).** Reported from the controls: *only
+  the smoke grenade could stun my pursuer.* `TUN-STUN-MIN-TIER` is neutralised at 0, so an
+  Anonymous pursuer is stunnable by a press and by a Lunge, and restoring 30 restores the gate.
+  Invariant 7 is now *stun floor ≤ warn floor*. **The `stun_ready` hint lights for any figure
+  in reach, player or civilian** (owner decision), so it never points the pursuer out.
 - **2026-09-30 — a killed prey escaped ten seconds after dying (#246).** Reported from the
   controls. `PursuitBoard.close`'s docstring named its callers and **nothing called it**, so
   the killer's chase on the prey they had just killed drained and scored as an escape: the
@@ -361,7 +368,7 @@ settled row stays, one line, so nobody re-opens it. The full reasoning is in the
 | 8 | The Lunge auto-kill judged over the dash | **Settled 2026-09-03: over the corridor** (`KillRules.resolve_swept`) | — |
 | 9 | A Lunge into your pursuer stuns them | **Settled 2026-09-03**, ADR-0018; `TUN-SCORE-STUN` 200 | — |
 | 10 | The final warning: phase or announcement | **Settled 2026-09-13: an announcement** | — |
-| 11 | Suspicion per relationship, gated on sight | **ADR-0022 proposed 2026-09-25.** Answered: any pursuer can be stunned, no ability use is high-profile — **neither built** | build the answered part first: lift `TUN-STUN-MIN-TIER` |
+| 11 | Suspicion per relationship, gated on sight | **ADR-0022 proposed 2026-09-25.** Answered: any pursuer can be stunned (**built 2026-10-01**), no ability use is high-profile (not built) | the per-(hunter, contract) meter after the first human playtest |
 | 12 | The Final Contract's `×2` has no counterpart in the reference | **Open.** The reference's only ×2 is a loss streak (US-0099) | keep it: the one lever against a leader parking out the clock |
 | 13 | Deal the persona at M5 | **Settled 2026-09-24**, US-0100 | — |
 | 14 | Identifying the target as the player's act | **Open.** A kill on the chosen figure, a wrong kill that costs, a lock that confirms nothing | an ADR draft first, costed, building nothing |
@@ -380,8 +387,8 @@ settled row stays, one line, so nobody re-opens it. The full reasoning is in the
 | | |
 |---|---|
 | CI | 9 jobs, of which 7 are required check contexts on `main`: the two suite partitions, `test / architecture + unit` and `test / integration`, run as well and are summarised by the required aggregator `test`. A job that starts and ends in the same second with zero steps is a **billing refusal, not a crash** — trap 6. `.ci/run_gut.sh` refuses a suite that ran fewer scripts than exist on disk |
-| Tests | **63 arch + 227 unit + 33 integration scripts**, holding 259 + 1 921 + 245 tests and 1 682 + 32 931 + 687 assertions (measured 2026-10-01 on this rewrite stacked on #246's review; integration 192.7 s). **Nine are `pending` by design**, eight unit and one integration, each reporting a finding code cannot fix — among them upstream at 145 % and downstream at 112 % of budget, the crowd's wire cost, two spawn rules GDD-05 §2.7 is short of, the missing clip library, and an NPC aimed into the void. The script counts are guarded by `test_claude_md_counts_are_current.gd`; the rest is a snapshot. The 180 s integration budget is owner decision 2 |
-| Tuning | **299** tunables in 14 resource classes; **37** cross-field invariants, all asserting. Eight IDs deprecated and never reused (TUNABLES §19); two neutralised at 0 with their IDs live, `TUN-SCORE-RECKLESS` (ADR-0013) and `TUN-SUSPICION-GAIN-OPEN` (ADR-0020). `TUN-STUN-MIN-TIER` is decided to go (ADR-0022) and still live. `test_tunables_match_the_document.gd` holds the shipped profile to TUNABLES |
+| Tests | **63 arch + 228 unit + 33 integration scripts**, holding 260 + 1 925 + 245 tests and 1 687 + 32 937 + 687 assertions (measured 2026-10-01 for ADR-0022 A and its review; integration 192.1 s). **Nine are `pending` by design**, eight unit and one integration, each reporting a finding code cannot fix — among them upstream at 145 % and downstream at 112 % of budget, the crowd's wire cost, two spawn rules GDD-05 §2.7 is short of, the missing clip library, and an NPC aimed into the void. The script counts are guarded by `test_claude_md_counts_are_current.gd`; the rest is a snapshot. The 180 s integration budget is owner decision 2 |
+| Tuning | **299** tunables in 14 resource classes; **37** cross-field invariants, all asserting. Eight IDs deprecated and never reused (TUNABLES §19); three neutralised at 0 with their IDs live: `TUN-SCORE-RECKLESS` (ADR-0013), `TUN-SUSPICION-GAIN-OPEN` (ADR-0020) and `TUN-STUN-MIN-TIER` (ADR-0022 A). `test_tunables_match_the_document.gd` holds the shipped profile to TUNABLES |
 | Autoloads | Eight. `Tuning` precomputes durations into two tick tables, 30 Hz and 60 Hz — trap 9 |
 | Strings | `data/strings/en.csv`, 109 keys |
 | Boot | Branches on `--server`; 8 CLI flags parsed in pure Core; 5 export presets. The server boots into `LOBBY` and **simulates nothing** below `TUN-LOBBY-MIN-PLAYERS` 4 — `--min-players` lowers it, and `sandbox.bat` passes 1 |
@@ -397,13 +404,13 @@ settled row stays, one line, so nobody re-opens it. The full reasoning is in the
 | Match | `SYS-MATCH` rides `net_ticked` (it cannot be a `GameSystem`: the stage loop runs only while simulating). Lobby floor, countdown, eight-minute clock, the Final Contract's `×2`, results with a unanimous skip. `MatchClock` is the arithmetic both it and `ScoreEvent` use. Personas and contracts are dealt at the countdown from `MatchContext.rng`; the seed goes out on `NET-S2C-MATCH-START`. `RESULTS` is described to clients, `LOBBY` is silent. **Nothing follows `RESULTS` yet** — the lobby is US-0078 |
 | Contracts | A Hamiltonian cycle, repaired in the tick a death resolves, reassigned after 3 s. **A chase lives only while its prey is the announced contract**; only an emptied bar is an escape (`SCORE-ESCAPE`, `SCORE-CLOSECALL`, US-0097) |
 | Kill | `SYS-KILL` at `combat`, before `contract`; `KillRules`, `KillContest` and `RewindClamp` are pure. Range is 3D, the cone horizontal; it reads the **announced** contract. A committed kill is not interruptible (ADR-0013) except by a FATAL third party. A rejection answers with victim slot 0 |
-| Stun | Owned and ticked by `KillSystem`, the kill judged first. The target is your own pursuer by reverse lookup on the announced contracts; every refusal costs the same and looks the same. **The pursuer must be at least Noticed** (`TUN-STUN-MIN-TIER` 30) **except in your own Cinderfall cloud** — ADR-0022 removes the floor, decided and not built. A Lunge into your pursuer stuns them (ADR-0018) |
+| Stun | Owned and ticked by `KillSystem`, the kill judged first. The target is your own pursuer by reverse lookup on the announced contracts; every refusal costs the same and looks the same. **Any pursuer can be stunned**, Anonymous included (ADR-0022 A, `TUN-STUN-MIN-TIER` 0); what protects a patient hunter is that the prey must pick them out and a wrong press is penalised. **`stun_ready` lights for any figure in reach and cone, player or civilian**, so it names nobody. A Lunge into your pursuer stuns them (ADR-0018) |
 | Spawn | Owned by `ContractSystem` and ticked first: 40 m from the killer, 12 m from every living player, the point chosen when the timer expires. `TUN-RESPAWN-INVULN` shields the target |
 | Suspicion | One value per player, `SYS-SUSPICION` after `crowd`; impulses drain first; tiers with hysteresis; sent to its owner alone. Being alone costs nothing (ADR-0020); ADR-0022 proposes a meter per (hunter, contract) |
 | Detection | `SYS-DETECTION` after `suspicion`: the render matrix (zero raycasts), the Compass reading, the lock, the prey warning, and the project's only line-of-sight query, `has_los`, `WORLD`-masked |
 | Compass | A server-side world bearing with deterministic wobble and 0.5 m distance buckets. On screen, a flat ring round the legs whose cone widens to a whole ring at 20 m, the lock range (invariant 33); it says up or down and glows in sight. A lock outlines the true body for 1.5 s; the portrait shows the persona from assignment (ADR-0021) |
 | Abilities | `SYS-ABILITY`: five validations, integer cooldown deadlines from activation, the tell broadcast before the effect, a wind-up per cast. **Built: Cinderfall and the Lunge. Not built: Second Face (US-0069). Whisperbolt deferred post-MVP.** One fixed kit — no loadout, no passives (US-0071) |
-| Cinderfall | Everyone inside but the caster is `Choking`; the caster's pursuer is stunned; the caster may kill inside; NPCs are held. **Nothing draws the cloud** — there is no VFX |
+| Cinderfall | Everyone inside but the caster is `Choking`; the caster's pursuer is stunned; the caster may kill inside; NPCs are held. `CinderfallView` draws the cloud at exactly the gameplay radius and duration. *This row said nothing drew it until 2026-10-01; that had been false since US-0104.* |
 | Score | Thirteen bonuses, judged at initiation and paid at the contact frame; Silent, Halfseen and Reckless partition the ladder. `ScoreEvent` is immutable and freezes the multiplier from its own tick; `ScoreFold` is pure. Each feed row goes to its actor alone and `SCORE-DEATH` is withheld; the results carry the whole log and are folded on the client. **Masked and Poisoned are dormant**: Second Face is not built and no MVP ability poisons, so eleven of the thirteen can be earned today |
 | HUD | Compass, portrait with hue and persona name, tier, crosshair, vignette, score feed, pursuit bars, match timer, one-line notices, results screen. **Missing: ability slots, kill feed, player names, the death card, own placement** (US-0073, US-0105) |
 | Audio | **`Audio.play()` is an empty stub and the repository holds no sound file** (US-0075, US-0076) |

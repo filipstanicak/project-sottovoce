@@ -28,6 +28,7 @@ const HOT_PATH: Array[String] = [
 	"func count_within(",
 	"func count_persona(",
 	"func nearest_distance(",
+	"func any_within(",
 	"func _cell_range(",
 	"func _cell_of_point(",
 ]
@@ -35,6 +36,17 @@ const HOT_PATH: Array[String] = [
 ## Constructions that allocate. `[` and `{` alone would match indexing and
 ## dictionary *lookups*, which are free — these are the forms that build.
 const ALLOCATING: Array[String] = ["[]", "{}", ".new(", ".duplicate(", "Array(", "Dictionary("]
+
+## **AND THE STUN HINT, WHICH ASKS EVERY TICK FOR EVERY PLAYER.** Review of #248:
+## its first version took a fresh array from `_stunnable_others` and another from
+## `query` — twelve a tick at six players. The caller is scanned too, because the
+## hash's own guard deliberately lets `query` allocate.
+const STUN := "res://scripts/systems/combat/stun_system.gd"
+const STUN_HINT: Array[String] = [
+	"func ready_for(",
+	"func _civilian_in_swing(",
+	"static func _swing_reaches(",
+]
 
 
 ## The body of `name`, from its declaration to the next top-level `func`.
@@ -82,6 +94,18 @@ func test_the_buffers_are_sized_in_setup_rather_than_in_rebuild() -> void:
 	# not look like one.
 	var body := _body_of(SourceScanner.read(HASH), "func rebuild(")
 	assert_false(body.contains(".resize("), "rebuild() resizes a buffer — size it in setup()")
+
+
+func test_the_stun_hint_asks_without_building_a_list() -> void:
+	var source := SourceScanner.read(STUN)
+	var offenders: PackedStringArray = []
+	for name: String in STUN_HINT:
+		var body := _body_of(source, name)
+		assert_ne(body, "", "%s is gone — the scan covers nothing" % name)
+		for needle: String in ALLOCATING + [".query(", "_stunnable_others(", ".keys()"]:
+			if body.contains(needle):
+				offenders.append("%s uses %s" % [name, needle])
+	assert_eq(offenders.size(), 0, "the stun hint allocates every tick:\n" + "\n".join(offenders))
 
 
 func test_the_check_can_actually_fail() -> void:

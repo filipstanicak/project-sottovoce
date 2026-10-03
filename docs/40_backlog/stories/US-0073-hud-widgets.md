@@ -4,7 +4,7 @@ title: HUD — tier, portrait, crosshair, abilities, timer
 version: 0.3.0
 status: in-progress
 owner: Lead Game Designer
-last_updated: 2026-09-25
+last_updated: 2026-10-02
 depends_on: [BIBLE-UI-UX, TDD-11-UI]
 ---
 
@@ -62,6 +62,11 @@ The remaining widgets, each a pure renderer fed by a view model.
       judged by. **The widget cannot lie because it cannot compute**: it is guarded
       against naming a distance, a range, a position or `KillRules`.
 - [x] A distinct crosshair treatment for a valid stun target.
+      *Superseded 2026-10-01 by ADR-0022 A and the owner's decision of that day: the
+      treatment now means **a stun swing would reach some figure** — any player or
+      civilian in reach and cone, never a concealed one — including figures a press
+      would be refused against. Since any pursuer can be stunned, a treatment lit for
+      the valid target alone would point the pursuer out of the crowd.*
       Four corner brackets against a ring — **a shape, not a colour** (§6), so the
       two verbs stay distinguishable on the monochrome palette.
 - [ ] Ability slots show radial cooldown sweeps, LINEAR so remaining time is readable by angle.

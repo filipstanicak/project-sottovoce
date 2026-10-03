@@ -146,9 +146,11 @@ route, and so does this game:
 generalised from the stun to the set, because a law that protects one mechanic is a law that
 can be satisfied while the prey is disarmed of the other two.
 
-**What every route still obeys is the tier gate.** `TUN-STUN-MIN-TIER` means an Anonymous
-hunter cannot be stunned by *any* of them, so patience is genuinely safe — and that is the
-clause that stops "more teeth" becoming "the hunter cannot approach at all".
+**What stops "more teeth" becoming "the hunter cannot approach at all" is the read.** Since
+ADR-0022 A, 2026-10-01, any pursuer can be stunned by every route, as in the reference — but an
+Anonymous hunter triggers no warning, so the prey has to pick them out of a crowd of identical
+figures first, and a press at the wrong one is penalised. *This said until then that the tier
+gate (`TUN-STUN-MIN-TIER`) made an Anonymous hunter unstunnable by any route.*
 
 **The teeth are in the approach, not in the last instant.** A hunter who has been careless is
 stunnable for the whole of their approach, from further away than they can strike. What the

@@ -432,6 +432,10 @@ rate.
 > pursuer to be at least Noticed (`TUN-STUN-MIN-TIER`). Against a lobby of purely patient
 > players — who are Anonymous throughout their approach — a Defender can never stun anyone and
 > scores only their 1 113 kill points.
+>
+> *Since ADR-0022 A, 2026-10-01 this no longer holds as written: an Anonymous pursuer is stunnable,
+> so a Defender's stuns depend on reading the pursuer out of the crowd rather than on the
+> pursuer's mistakes. **The model's figures have not been re-run for it.**
 
 So the Defender is a **counter-strategy, not a standalone strategy**: strong in a lobby with
 aggression, weak in a disciplined one. That is healthy, and it is the closest the design gets
@@ -737,7 +741,7 @@ append-only discipline.
 | 4 | **The final phase decides everything.** | Players report the first 7:30 "didn't matter". | `TUN-MATCH-FINALPHASE-MULT` too high, or scores too compressed beforehand. At 2.0× one maximal final kill is 1 800 — enough to overturn a moderate deficit, not a large one. Check the actual score spread at 7:30. |
 | 5 | **The final phase is ignored.** | No behaviour change at 7:30. | Multiplier too low or the warning not landing. |
 | 6 | **`SCORE-VARIETY` is meaningless.** | `TEL-VARIETY-N` correlates almost perfectly with total bonuses on the kill. | §3.1, working as measured. Apply the contract-reset fix. |
-| 7 | **Defenders cannot score.** | Stun-focused players finish last consistently. | Expected in a disciplined lobby (§4.9) and *not* a bug. Becomes a bug only if it also happens in lobbies with measurable aggression — check `TEL-STUN-LANDED` against `TEL-TIME-BY-TIER` for the lobby as a whole. |
+| 7 | **Defenders cannot score.** | Stun-focused players finish last consistently. | *Written when an Anonymous pursuer was unstunnable; since ADR-0022 A, 2026-10-01 a Defender can stun a careful hunter they read, so this is less expected than it was, and §4.9's figures are not re-run.* Expected in a disciplined lobby (§4.9) and *not* a bug. Becomes a bug only if it also happens in lobbies with measurable aggression — check `TEL-STUN-LANDED` against `TEL-TIME-BY-TIER` for the lobby as a whole. |
 | 8 | **Scores are unreadable.** | Players cannot tell why they placed where they did. | The results breakdown is not landing. This is a UI failure with a balance cost, because an invisible balance model cannot teach. |
 | 9 | **Telemetry cannot classify archetypes.** | `TEL-MEAN-SPEED` terciles do not separate meaningfully. | Either everyone is playing the same way (see failure 3) or the metric needs to be time-weighted per life rather than per match. |
 | 10 | **The model is unfalsifiable in practice.** | Playtests produce data but no prediction is cleanly confirmed or refuted. | The bands in §4.7 are too wide, or the sample is too small. Three external playtests (M6 exit criterion) at 6 players is ~18 player-matches — enough for predictions 1–3, marginal for 4. Plan more.
