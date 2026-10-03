@@ -215,7 +215,7 @@ checked without a running match.
 | `ScoreFeedWidget` | `ScoreFeedVm` | Up to `TUN-UI-SCOREFEED-MAX-LINES` 4 lines. **Built US-0074** |
 | `AbilitySlots` | `AbilitySlotVM` | Two icons, radial sweeps, key labels |
 | `MatchTimer` | `MatchVM` | `M:SS`, final-phase bar, ×2 marker |
-| `Crosshair` | `AbilitySlotVM` + snapshot | Dot; ring when a kill or stun would succeed |
+| `Crosshair` | `AbilitySlotVM` + snapshot | Dot; ring when a kill would succeed; brackets when a stun swing would reach any figure, which names nobody (ADR-0022 A). *Was: "ring when a kill or stun would succeed".* |
 
 ### 3.2 The crosshair must not lie
 
@@ -232,8 +232,8 @@ var kill_ready: bool      ## from snapshot.own_gameplay
 var stun_ready: bool          ## a swing would reach some figure, player or civilian (ADR-0022 A)
 ```
 
-`test_crosshair_truth.gd` asserts agreement with server-side validity across 500 randomised
-poses.
+`test_crosshair_truth.gd` asserts agreement with server-side **kill** validity across 500
+randomised poses. The stun brackets are deliberately not a validity flag since ADR-0022 A.
 
 ---
 
