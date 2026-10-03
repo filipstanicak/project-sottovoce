@@ -32,8 +32,11 @@ that depends on it is built.
 
 ## Acceptance criteria
 
-- [ ] ADR-0025's nine source questions (A–I) are answered from the reference, each recorded
-      here with what it decides.
+- [ ] ADR-0025's source questions A–H are answered from the reference, each recorded here with
+      what it decides.
+- [ ] Item I — the lock symbol over a running player — is sourced **and then accepted or rejected
+      by the owner**, because it is a marker over a body that never-do #12 governs. Nothing of it
+      is built before that ruling.
 - [ ] The kill goes to the selected figure — the locked one, otherwise the reference's own
       targeting — player or civilian. `KillRules` no longer chooses the nearest player.
 - [ ] A civilian can be killed. Killing one costs the hunter the contract and reveals their
