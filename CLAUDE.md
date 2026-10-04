@@ -270,12 +270,18 @@ which also holds this manual's long form as it stood before the rewrite.*
 ONE MATCH.** `play.bat` starts a server, walking bots and a client: a countdown, dealt personas
 and contracts, an eight-minute match with the Final Contract, kill, stun, escape, Cinderfall
 and the Lunge, every bonus rule (two of them dormant), the HUD and a results screen. **What it does not have**: animation
-clips (figures glide), any sound, a lobby screen, player names, a loadout, NPCs that sit or
-gather, and a playtest with human hunters (US-0098). **The road from here to M6 — what the
+clips (figures glide), any sound, a lobby screen, player names, a loadout, a bench anybody
+could sit on, and a playtest with human hunters (US-0098). **The road from here to M6 — what the
 owner calls the beta — is [ROADMAP §8.3](docs/40_backlog/ROADMAP.md)**, measured 2026-09-30.
 
 ### Recent, newest first
 
+- **2026-10-04 — the crowd gathers and leans (US-0103, first half).** NPCs lean at the stall
+  counters through the occupancy players use (`LeanSpots`: one figure per counter, a player
+  refused where a civilian leans) and stand in conversation circles started near where they
+  are (`CrowdPlaces`); a full circle is a blend pocket (invariant 38). Measured: idle NPCs with
+  a neighbour 27 % → 48–54 %, counters leaned at 7 % → 21–31 %. **No bench exists in the
+  district**, so nobody sits. Walking apart is measured and parked on its branch.
 - **2026-10-01 — any pursuer can be stunned (ADR-0022 A).** Reported from the controls: *only
   the smoke grenade could stun my pursuer.* `TUN-STUN-MIN-TIER` is neutralised at 0, so an
   Anonymous pursuer is stunnable by a press and by a Lunge, and restoring 30 restores the gate.
@@ -313,10 +319,9 @@ owner calls the beta — is [ROADMAP §8.3](docs/40_backlog/ROADMAP.md)**, measu
   and **no ability use is high-profile** are *decided and not built*; the per-(hunter,
   contract) meter is proposed. ADR-0024 narrowed never-do #12.
 - **2026-09-24/25 — the district wears its personas (US-0100, US-0101), the bots walk like
-  civilians (US-0102), the crowd walks in rows (US-0103, draft).** Personas are dealt at the
+  civilians (US-0102), the crowd walks in rows (US-0103).** Personas are dealt at the
   countdown; every figure is a `PersonaBody` in its hue; `Wardrobe` dresses nobody until it
-  holds both the seed and the roster. 39 % of strollers walk beside another; **no NPC ever sits
-  or leans**, a release blocker (GDD-03 §6.3 rule 7).
+  holds both the seed and the roster.
 - **2026-09-15/22 — walking alone costs nothing (ADR-0020); the hunter knows the face from the
   start (ADR-0021).** `TUN-SUSPICION-GAIN-OPEN` neutralised at 0; ASM-0030 is void.
 
@@ -387,8 +392,8 @@ settled row stays, one line, so nobody re-opens it. The full reasoning is in the
 | | |
 |---|---|
 | CI | 9 jobs, of which 7 are required check contexts on `main`: the two suite partitions, `test / architecture + unit` and `test / integration`, run as well and are summarised by the required aggregator `test`. A job that starts and ends in the same second with zero steps is a **billing refusal, not a crash** — trap 6. `.ci/run_gut.sh` refuses a suite that ran fewer scripts than exist on disk |
-| Tests | **63 arch + 228 unit + 33 integration scripts**, holding 260 + 1 925 + 245 tests and 1 687 + 32 937 + 687 assertions (measured 2026-10-01 for ADR-0022 A and its review; integration 192.1 s). **Nine are `pending` by design**, eight unit and one integration, each reporting a finding code cannot fix — among them upstream at 145 % and downstream at 112 % of budget, the crowd's wire cost, two spawn rules GDD-05 §2.7 is short of, the missing clip library, and an NPC aimed into the void. The script counts are guarded by `test_claude_md_counts_are_current.gd`; the rest is a snapshot. The 180 s integration budget is owner decision 2 |
-| Tuning | **299** tunables in 14 resource classes; **37** cross-field invariants, all asserting. Eight IDs deprecated and never reused (TUNABLES §19); three neutralised at 0 with their IDs live: `TUN-SCORE-RECKLESS` (ADR-0013), `TUN-SUSPICION-GAIN-OPEN` (ADR-0020) and `TUN-STUN-MIN-TIER` (ADR-0022 A). `test_tunables_match_the_document.gd` holds the shipped profile to TUNABLES |
+| Tests | **63 arch + 230 unit + 33 integration scripts**, holding 260 + 1 946 + 245 tests and 1 691 + 33 037 + 687 assertions (measured 2026-10-04 for US-0103's circles and counters and the review of #250; integration 192.0 s). **Nine are `pending` by design**, eight unit and one integration, each reporting a finding code cannot fix — among them upstream at 145 % and downstream at 112 % of budget, the crowd's wire cost, two spawn rules GDD-05 §2.7 is short of, the missing clip library, and an NPC aimed into the void. The script counts are guarded by `test_claude_md_counts_are_current.gd`; the rest is a snapshot. The 180 s integration budget is owner decision 2 |
+| Tuning | **303** tunables in 14 resource classes; **38** cross-field invariants, all asserting. Eight IDs deprecated and never reused (TUNABLES §19); three neutralised at 0 with their IDs live: `TUN-SCORE-RECKLESS` (ADR-0013), `TUN-SUSPICION-GAIN-OPEN` (ADR-0020) and `TUN-STUN-MIN-TIER` (ADR-0022 A). `test_tunables_match_the_document.gd` holds the shipped profile to TUNABLES |
 | Autoloads | Eight. `Tuning` precomputes durations into two tick tables, 30 Hz and 60 Hz — trap 9 |
 | Strings | `data/strings/en.csv`, 109 keys |
 | Boot | Branches on `--server`; 8 CLI flags parsed in pure Core; 5 export presets. The server boots into `LOBBY` and **simulates nothing** below `TUN-LOBBY-MIN-PLAYERS` 4 — `--min-players` lowers it, and `sandbox.bat` passes 1 |
@@ -399,7 +404,7 @@ settled row stays, one line, so nobody re-opens it. The full reasoning is in the
 | Camera | Spring arm 2.6 m, resting 13° down, pawn centred, occlusion pulls in and never sideways, `WORLD`-masked. The FOV ladder follows the **state**, never the velocity. Positive pitch lowers the arm |
 | Input | 20 actions from 14 live `INPUT-` IDs, KBM and pad. Sampled once per physics frame by `LocalPawnDriver` alone — trap 12. Only a mapped gamepad holds joypad bindings |
 | Net | Server-authoritative ENet: 30 Hz tick, 60 Hz input, local-pawn prediction only, 100 ms interpolation, lag compensation for kill and stun. **`PROTOCOL_VERSION` 7**, every bump's reason in `messages.gd`. **Upstream 145 % and downstream 112 % of budget** — fine on a LAN, a risk over the internet. `Messages.CHANNEL_FOR` is held to every `@rpc` |
-| Crowd | 90 pre-allocated, 78 active, one `SpatialHash` per tick; four processions of four; distance-banded LOD; startle, gawk and corpses; culled per observer and delta-encoded against the ack. `CloneBalance` keeps the clone floor for the dealt personas. **No NPC sits, leans or gathers** (US-0103, a release blocker), and strollers walk in rows |
+| Crowd | 90 pre-allocated, 78 active, one `SpatialHash` per tick; four processions of four; distance-banded LOD; startle, gawk and corpses; culled per observer and delta-encoded against the ack. `CloneBalance` keeps the clone floor for the dealt personas. **NPCs lean at the twelve stall counters and stand in conversation circles** (US-0103, `LeanSpots`, `CrowdPlaces`); there is **no bench** in the district, so nobody sits, and strollers still walk in rows (lanes measured and parked) |
 | Blend | All four kinds — pocket, group, lean spot, hiding spot — as a condition re-validated every tick, never a kept state. `NET-S2C-BLEND-DENIED` is the one refusal that says why. **No client renders a blend** |
 | Match | `SYS-MATCH` rides `net_ticked` (it cannot be a `GameSystem`: the stage loop runs only while simulating). Lobby floor, countdown, eight-minute clock, the Final Contract's `×2`, results with a unanimous skip. `MatchClock` is the arithmetic both it and `ScoreEvent` use. Personas and contracts are dealt at the countdown from `MatchContext.rng`; the seed goes out on `NET-S2C-MATCH-START`. `RESULTS` is described to clients, `LOBBY` is silent. **Nothing follows `RESULTS` yet** — the lobby is US-0078 |
 | Contracts | A Hamiltonian cycle, repaired in the tick a death resolves, reassigned after 3 s. **A chase lives only while its prey is the announced contract**; only an emptied bar is an escape (`SCORE-ESCAPE`, `SCORE-CLOSECALL`, US-0097) |

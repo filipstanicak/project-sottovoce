@@ -22,6 +22,7 @@ static func check(p: TuningProfile) -> Array[String]:
 	e.append_array(_speed_ladder(p))
 	e.append_array(_fov_ladder(p))
 	e.append_array(_crowd_relations(p))
+	e.append_array(_circles(p))
 	e.append_array(_suspicion_and_tiers(p))
 	e.append_array(_combat(p))
 	e.append_array(_compass(p))
@@ -140,6 +141,37 @@ static func _crowd_relations(p: TuningProfile) -> Array[String]:
 					+ "forming a blend pocket"
 				)
 				% [p.crowd.anchor_arrive_radius, p.suspicion.blend_pocket_radius]
+			)
+		)
+	return e
+
+
+## 38. A FULL CONVERSATION CIRCLE IS A BLEND POCKET (US-0103). A player standing in
+## its middle must have every member within the pocket radius, however far from its
+## seat each one stopped, and the largest circle must hold a pocket's worth.
+static func _circles(p: TuningProfile) -> Array[String]:
+	var e: Array[String] = []
+	var reach := p.crowd.circle_radius + p.crowd.anchor_arrive_radius
+	if (
+		reach > p.suspicion.blend_pocket_radius
+		or (p.crowd.idle_group_size_max < p.suspicion.blend_pocket_min_npc)
+	):
+		(
+			e
+			. append(
+				(
+					(
+						"38. a full circle must be a blend pocket: circle_radius + anchor_arrive_radius "
+						+ "(%.2f) <= blend_pocket_radius (%.2f), idle_group_size_max (%d) >= "
+						+ "blend_pocket_min_npc (%d)"
+					)
+					% [
+						reach,
+						p.suspicion.blend_pocket_radius,
+						p.crowd.idle_group_size_max,
+						p.suspicion.blend_pocket_min_npc,
+					]
+				)
 			)
 		)
 	return e

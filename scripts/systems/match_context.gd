@@ -117,6 +117,11 @@ var pursuit := PursuitBoard.new()
 ## added a write to one, which is `announced_contracts`' lesson.
 var lockouts := CombatLockouts.new()
 
+## **WHO STANDS AT WHICH STALL COUNTER**, players and NPCs alike (US-0103). `SYS-BLEND`
+## takes a spot for a leaning player and `CrowdDirector` for a leaning NPC; one record,
+## or each would believe a counter free that the other held.
+var lean_spots := LeanSpots.new()
+
 ## **THE ONLY WAY POINTS ENTER THE GAME.** ADR-0004, US-0064. Append-only, and
 ## adopted by reference like `lockouts` and `impulses` rather than mirrored — a
 ## second copy of a score log is a scoreboard that disagrees with a results
