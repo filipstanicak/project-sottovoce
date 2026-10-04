@@ -47,3 +47,23 @@ func test_a_vacant_spot_is_drawn_only_from_the_vacant_ones() -> void:
 		assert_eq(_spots.a_vacant_spot(rng, 4), 2, "a held counter was offered")
 	_spots.take_for_npc(99, 2)
 	assert_eq(_spots.a_vacant_spot(rng, 4), LeanSpots.VACANT, "a full market offered a counter")
+
+
+## **A RESERVATION IS A WALK, NOT A HOLD** (review of #250).
+func test_a_reservation_blocks_another_civilian_and_no_player() -> void:
+	assert_true(_spots.reserve_for_npc(5, 0))
+	assert_false(_spots.reserve_for_npc(6, 0), "two civilians walk to one counter")
+	var rng := RandomNumberGenerator.new()
+	assert_eq(_spots.a_vacant_spot(rng, 1), LeanSpots.VACANT, "a reserved counter was offered")
+	assert_true(_spots.is_vacant(0), "a counter somebody is walking to reads as held")
+	assert_true(_spots.take_for_player(21, 0), "a player was refused an empty counter")
+	assert_eq(_spots.reserved_by(5), LeanSpots.VACANT, "the player did not cancel the walk")
+	assert_false(_spots.arrive(5), "a civilian arriving late took the player's counter")
+	assert_eq(_spots.player_at(0), 21)
+
+
+func test_an_arrival_turns_the_reservation_into_a_hold() -> void:
+	_spots.reserve_for_npc(5, 0)
+	assert_true(_spots.arrive(5))
+	assert_eq(_spots.npc_at(0), 5)
+	assert_false(_spots.take_for_player(21, 0), "a player leaned into a civilian who arrived")

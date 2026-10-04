@@ -127,6 +127,10 @@ func _toward_the_body(index: int) -> Vector3:
 ## about the NPC changes — not its speed, not its state, not how it walks — which
 ## is why re-routing cannot read as clones following anybody.
 func _an_anchor(index: int) -> Vector3:
+	# **EVERY NEW STROLL GOAL GIVES UP THE OLD PLACE FIRST** (review of #250): a clone
+	# `CloneBalance` reroutes takes its goal below without ever reaching `CrowdPlaces`,
+	# and kept its counter or circle seat while it walked elsewhere.
+	_places.release(index)
 	if _clones != null:
 		var directed := _clones.take(index)
 		if directed != CrowdDirector.NO_GOAL:
@@ -144,10 +148,12 @@ func _an_anchor(index: int) -> Vector3:
 	return _map.idle_anchors[pick]
 
 
-## NPC `index` changed state to `state`. Anything but standing where it went frees its
-## circle seat and its counter; arriving and standing keeps them.
-func left_for(index: int, state: int) -> void:
-	if state != NpcBrain.State.IDLE:
+## NPC `index` changed state to `state`. Standing where it went makes a reserved
+## counter its own; anything else frees its circle seat and its counter.
+func changed_state(index: int, state: int) -> void:
+	if state == NpcBrain.State.IDLE:
+		_places.arrived(index)
+	else:
 		_places.release(index)
 
 

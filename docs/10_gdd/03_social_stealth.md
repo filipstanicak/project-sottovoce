@@ -387,7 +387,9 @@ deliberately, and they would not find out until a hunter looked at them.
 (§6.3 rule 7), so a lean spot is now held by whoever stands there (`LeanSpots`). A player who finds
 it taken is refused with the reason, as at a hiding spot, and the holder stands there in plain
 view, so the refusal says nothing the street did not. An NPC never takes a held spot and never
-steps aside for a player, which would mark them. *Until then any number of players could lean at
+steps aside for a player, which would mark them. **A civilian walking to a counter only
+reserves it**: the counter is empty to the eye, so a player standing there first takes it, and
+the civilian holds it only if it is still free when it arrives (review of #250). *Until then any number of players could lean at
 one spot.*
 
 **THE PROP REACH IS `TUN-BLEND-GROUP-JOIN-RADIUS`, ADOPTED RATHER THAN INVENTED.** §4.1.3 and

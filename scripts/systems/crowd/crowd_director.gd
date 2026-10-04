@@ -260,7 +260,7 @@ func _advance(index: int, dt: float) -> void:
 	# walking to the bench it had picked.
 	if brain.state != before:
 		_goals[index] = NO_GOAL
-		_intent.left_for(index, brain.state)
+		_intent.changed_state(index, brain.state)
 	if _goals[index] == NO_GOAL and _intent.travels(brain.state):
 		_repath.request(index)
 

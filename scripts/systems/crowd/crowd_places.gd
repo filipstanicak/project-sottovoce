@@ -56,9 +56,16 @@ func _a_counter(index: int) -> Vector3:
 	if _spots == null:
 		return CrowdDirector.NO_GOAL
 	var spot := _spots.a_vacant_spot(_rng, _map.static_props.size())
-	if spot == LeanSpots.VACANT or not _spots.take_for_npc(index, spot):
+	if spot == LeanSpots.VACANT or not _spots.reserve_for_npc(index, spot):
 		return CrowdDirector.NO_GOAL
 	return _map.static_props[spot]
+
+
+## NPC `index` arrived where it was going: a reserved counter becomes its own, if a
+## player did not take it first.
+func arrived(index: int) -> void:
+	if _spots != null:
+		_spots.arrive(index)
 
 
 ## NPC `index` left wherever it was: its counter and its circle are free again.

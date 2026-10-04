@@ -112,8 +112,9 @@ extends Resource
 @export_range(4, 6, 1) var idle_group_size_max: int = 4
 
 ## Added 2026-10-04 (US-0103). The share of strolls that end in a conversation circle — joining
-## one that is still short of its size, or starting one at a random anchor — rather than alone at
-## an anchor. Before it, idle figures stood alone: 0 % of idle NPCs had an idle neighbour. Ours.
+## one with a free seat within TUN-CROWD-CIRCLE-JOIN-RADIUS, or starting one at the nearest
+## anchor — rather than alone at an anchor. Before it, idle figures stood alone: 0 % of idle NPCs
+## had an idle neighbour. Ours.
 ## TUN-CROWD-CIRCLE-CHANCE
 @export_range(0.0, 1.0, 0.1) var circle_chance: float = 0.4
 

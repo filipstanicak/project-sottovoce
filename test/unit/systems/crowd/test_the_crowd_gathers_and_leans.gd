@@ -83,7 +83,10 @@ func test_a_stroller_leans_at_a_free_counter_and_never_at_a_held_one() -> void:
 	_spots.take_for_player(21, 0)
 	var goal := _places.goal_for(4, Vector3.ZERO)
 	assert_eq(goal, _map.static_props[1], "a civilian walked to a counter a player holds")
-	assert_eq(_spots.npc_at(1), 4)
+	assert_eq(_spots.reserved_by(4), 1, "the civilian did not reserve the counter it walks to")
+	assert_eq(_spots.npc_at(1), LeanSpots.VACANT, "a civilian held a counter it has not reached")
+	_places.arrived(4)
+	assert_eq(_spots.npc_at(1), 4, "a civilian who arrived does not hold the counter")
 	_places.release(4)
 	assert_true(_spots.is_vacant(1), "a civilian who walked on kept the counter")
 
@@ -176,3 +179,105 @@ func test_a_startled_civilian_leaves_its_counter_free() -> void:
 		director.tick(ctx, MatchContext.net_dt())
 	assert_eq(pool.brain_of(0).state, NpcBrain.State.STARTLE, "the premise: nobody was startled")
 	assert_true(ctx.lean_spots.is_vacant(0), "a civilian who fled kept the counter")
+
+
+## **REVIEW OF #250: A WALK TO A COUNTER BLOCKS NO PLAYER.** Driven through the real
+## director: the civilian has chosen the counter and is still strolling, and a player
+## at the empty counter must be let in; only an arrival holds it.
+func test_an_empty_counter_a_civilian_walks_to_is_still_a_players() -> void:
+	_always(1.0, 0.0)
+	var scene := _a_director_with_one_civilian(Vector3(0, 0, 0))
+	var ctx: MatchContext = scene[0]
+	var pool: NpcPool = scene[1]
+	var spot := ctx.lean_spots.reserved_by(0)
+	assert_ne(spot, LeanSpots.VACANT, "the premise: the civilian chose no counter")
+	assert_eq(pool.brain_of(0).state, NpcBrain.State.STROLL, "the premise: it is not walking")
+	var blend := BlendSystem.new()
+	var pawn := PawnContext.new()
+	pawn.peer_id = 21
+	pawn.reset_for_spawn(_map.static_props[spot] + Vector3(0, 0, 0.5), 0.0)
+	ctx.pawn_contexts[21] = pawn
+	assert_eq(
+		blend.request(21, ctx),
+		BlendKind.Kind.PROP_STATIC,
+		"a player was refused an empty counter because a civilian was on the way"
+	)
+	assert_eq(ctx.lean_spots.reserved_by(0), LeanSpots.VACANT, "the reservation outlived it")
+
+
+func test_a_civilian_holds_the_counter_only_once_it_has_arrived() -> void:
+	_always(1.0, 0.0)
+	var scene := _a_director_with_one_civilian(Vector3(0, 0, 0))
+	var ctx: MatchContext = scene[0]
+	var director: CrowdDirector = scene[2]
+	var spot := ctx.lean_spots.reserved_by(0)
+	assert_eq(ctx.lean_spots.npc_at(spot), LeanSpots.VACANT)
+	director._intent.changed_state(0, NpcBrain.State.IDLE)
+	assert_eq(ctx.lean_spots.npc_at(spot), 0, "a civilian who arrived does not hold it")
+
+
+## **REVIEW OF #250: A CLONE REROUTE GIVES THE OLD PLACE UP.** `CloneBalance` hands its
+## goal over before `CrowdPlaces` is asked, so the release has to come first.
+func test_a_clone_rerouted_on_the_way_to_a_counter_gives_it_up() -> void:
+	_always(1.0, 0.0)
+	var scene := _an_intent_with_clones()
+	var intent: CrowdIntent = scene[0]
+	var balance: CloneBalance = scene[1]
+	intent.goal_for(0, NpcBrain.State.STROLL)
+	var spot := _spots.reserved_by(0)
+	assert_ne(spot, LeanSpots.VACANT, "the premise: the clone chose no counter")
+	balance.pending[0] = Vector3(60, 0, 0)
+	assert_eq(intent.goal_for(0, NpcBrain.State.STROLL), Vector3(60, 0, 0))
+	assert_eq(_spots.reserved_by(0), LeanSpots.VACANT, "the rerouted clone kept the counter")
+
+
+func test_a_clone_rerouted_out_of_a_circle_gives_its_seat_up() -> void:
+	_always(0.0, 1.0)
+	var scene := _an_intent_with_clones()
+	var intent: CrowdIntent = scene[0]
+	var balance: CloneBalance = scene[1]
+	intent.goal_for(0, NpcBrain.State.STROLL)
+	intent.changed_state(0, NpcBrain.State.IDLE)
+	assert_eq(intent.places().in_circles(), 1, "the premise: the clone stands in no circle")
+	balance.pending[0] = Vector3(60, 0, 0)
+	intent.goal_for(0, NpcBrain.State.STROLL)
+	assert_eq(intent.places().in_circles(), 0, "the rerouted clone kept its seat")
+
+
+func _a_director_with_one_civilian(at: Vector3) -> Array:
+	var pool := NpcPool.new()
+	add_child_autofree(pool)
+	pool.preallocate(1)
+	pool.activate(1, SEED, CrowdRoster.PLAYABLE, 6)
+	var director := CrowdDirector.new()
+	add_child_autofree(director)
+	var ctx := MatchContext.new()
+	ctx.crowd = pool
+	ctx.map = _map
+	ctx.match_seed = SEED
+	ctx.rng = _rng
+	ctx.lean_spots = _spots
+	director.setup(ctx)
+	var observer := CharacterBody3D.new()
+	add_child_autofree(observer)
+	observer.global_position = at + Vector3(0, 0, 2)
+	ctx.pawns[1] = observer
+	pool.set_position(0, at)
+	pool.brain_of(0).state = NpcBrain.State.STROLL
+	ctx.tick += 1
+	director.tick(ctx, MatchContext.net_dt())
+	return [ctx, pool, director]
+
+
+func _an_intent_with_clones() -> Array:
+	var pool := NpcPool.new()
+	add_child_autofree(pool)
+	pool.preallocate(2)
+	pool.activate(2, SEED, CrowdRoster.PLAYABLE, 6)
+	pool.set_position(0, Vector3(9, 0, 1))
+	var balance := CloneBalance.new()
+	balance.setup(_map, _rng)
+	var intent := CrowdIntent.new()
+	intent.setup(pool, _map, _rng, CrowdFormations.new(), CorpseRegister.new(), balance)
+	intent.use_lean_spots(_spots)
+	return [intent, balance]
