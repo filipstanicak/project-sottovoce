@@ -141,7 +141,7 @@ func _add_geometry(geometry: Node3D, root: Node3D) -> void:
 	_add_furniture(geometry, root)
 
 
-## The market stalls and the blend props: everything at `H_VAULT` that a player can
+## The market stalls, the benches and the blend props: everything low that a player can
 ## get over rather than round. Split from `_add_geometry` when moving the box
 ## builder into `MapBuild` reflowed that function past the 40-line cap — and the
 ## seam is honest rather than mechanical, because these two are the only solids on
@@ -155,6 +155,15 @@ func _add_furniture(geometry: Node3D, root: Node3D) -> void:
 			Vector3(s[1], 0.0, s[2]),
 			Vector3(s[3], VetraioLayout.H_VAULT, s[4]),
 			"MAT-VAULT"
+		)
+	for b: Array in VetraioLayout.BENCHES:
+		_build.add_box(
+			geometry,
+			root,
+			b[0],
+			Vector3(b[1], 0.0, b[2]),
+			Vector3(b[3], VetraioLayout.H_BENCH, b[4]),
+			"MAT-BLEND"
 		)
 	for p: Array in VetraioLayout.BLEND_PROPS:
 		_build.add_box(

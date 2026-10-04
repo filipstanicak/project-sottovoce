@@ -47,6 +47,14 @@ static func block_at(at: Vector2) -> String:
 	return ""
 
 
+static func bench_at(at: Vector2) -> String:
+	for bench: Array in VetraioLayout.BENCHES:
+		var r := Rect2(float(bench[1]), float(bench[2]), float(bench[3]), float(bench[4]))
+		if r.has_point(at):
+			return str(bench[0])
+	return ""
+
+
 static func stall_at(at: Vector2) -> String:
 	for stall: Array in VetraioLayout.STALLS:
 		var r := Rect2(float(stall[1]), float(stall[2]), float(stall[3]), float(stall[4]))
@@ -141,6 +149,27 @@ static func stall_lean_points() -> Array:
 			var at := Vector2(x, float(sides[suffix]))
 			if on_a_floor(at) and block_at(at) == "" and stall_at(at) == "":
 				out.append(["%s%s" % [str(s[0]), suffix], at.x, at.y])
+	return out
+
+
+## **THE BENCH SEATS, DERIVED FROM THE BENCH TABLE** (US-0103), the lean spots' rule:
+## `BENCH_SEATS` evenly along each bench, on the side its sitters face, standing
+## `NAV_AGENT_RADIUS` clear of it — where a seated figure's centre is until sitting has
+## a clip, and where a standing one reads as sitting on both sides of the clone rule.
+## Returns `[name, x, z]` rows, kept only where a figure can stand.
+static func bench_seat_points() -> Array:
+	var out: Array = []
+	for b: Array in VetraioLayout.BENCHES:
+		var front := (
+			float(b[2]) + float(b[4]) + PawnNavigation.NAV_AGENT_RADIUS
+			if int(b[5]) > 0
+			else float(b[2]) - PawnNavigation.NAV_AGENT_RADIUS
+		)
+		for seat: int in VetraioLayout.BENCH_SEATS:
+			var along := (float(seat) + 0.5) / float(VetraioLayout.BENCH_SEATS)
+			var at := Vector2(float(b[1]) + float(b[3]) * along, front)
+			if on_a_floor(at) and block_at(at) == "" and bench_at(at) == "":
+				out.append(["%sSeat%d" % [str(b[0]), seat], at.x, at.y])
 	return out
 
 
@@ -255,6 +284,9 @@ static func _is_usable(at: Vector2) -> bool:
 		if _grown(row, clearance).has_point(at):
 			return false
 	for row: Array in VetraioLayout.STALLS:
+		if _grown(row, clearance).has_point(at):
+			return false
+	for row: Array in VetraioLayout.BENCHES:
 		if _grown(row, clearance).has_point(at):
 			return false
 	return true

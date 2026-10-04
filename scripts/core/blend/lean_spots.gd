@@ -1,9 +1,10 @@
-## **WHO STANDS AT WHICH STALL COUNTER.** GDD-03 §4.1.3 and §6.3 rule 7, US-0103. PURE.
+## **WHO STANDS AT WHICH COUNTER OR SITS ON WHICH SEAT.** GDD-03 §4.1.3 and §6.3 rule 7,
+## US-0103. PURE.
 ##
 ## *"Clones must be able to occupy every blend action a player can"* — and until this
 ## existed no NPC ever leaned at a counter, so a player leaning at one was the only
-## figure ever seen there. The twelve lean spots (`MapData.static_props`, two per
-## market stall) are now held by players **and** NPCs through this one record.
+## figure ever seen there. The twelve lean spots and the fifteen bench seats
+## (`MapData.static_props`) are held by players **and** NPCs through this one record.
 ##
 ## **ONE FIGURE PER SPOT, WHOEVER IT IS.** A spot is where one person stands to lean
 ## on a 0.9 m counter. A player who finds it taken is refused with

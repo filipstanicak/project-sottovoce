@@ -130,10 +130,10 @@ extends Resource
 ## TUN-CROWD-CIRCLE-RADIUS
 @export_range(0.6, 1.5, 0.1) var circle_radius: float = 0.9
 
-## Added 2026-10-04 (US-0103). The share of strolls that end at a free stall counter, leaning,
-## rather than at an anchor. GDD-03 §6.3 rule 7: clones must occupy every blend action a player
-## can, and before it no NPC ever leaned, so a player leaning was the only figure ever seen at a
-## counter. Ours.
+## Added 2026-10-04 (US-0103). The share of strolls that end at a free stall counter, leaning, or
+## a free bench seat, rather than at an anchor. GDD-03 §6.3 rule 7: clones must occupy every
+## blend action a player can, and before it no NPC ever leaned, so a player leaning was the only
+## figure ever seen at a counter. Ours.
 ## TUN-CROWD-LEAN-CHANCE
 @export_range(0.0, 1.0, 0.01) var lean_chance: float = 0.25
 
