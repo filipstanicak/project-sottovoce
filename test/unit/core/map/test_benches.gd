@@ -30,7 +30,10 @@ func test_every_seat_is_in_front_of_its_bench_and_clear_of_it() -> void:
 			assert_true(ahead, "%s is behind its bench, facing the wrong way" % row[0])
 
 
-func test_a_bench_is_cut_from_the_navmesh_rather_than_climbed() -> void:
+## The authored height only. **Whether the bake cuts a bench out is not this file's
+## claim** — the first version said so here and was wrong (review of #251): the live mesh
+## is asked in `test_benches_are_cut_from_the_navmesh.gd`.
+func test_a_bench_is_taller_than_a_step_and_in_no_band() -> void:
 	assert_gt(VetraioLayout.H_BENCH, PawnNavigation.NAV_MAX_CLIMB, "agents would walk over it")
 	assert_false(VetraioLayout.in_boundary_band(VetraioLayout.H_BENCH))
 

@@ -205,7 +205,9 @@ keeps the five spots strategically distinct without needing five different mecha
 
 *Added 2026-10-04 (US-0103).* GDD-03 §4.1.3 names the bench as a static prop blend and §6.3
 rule 7 asks clones to sit where players can, and the district had none. Five, each 2.4 m long,
-0.45 m high — cut from the navmesh, above `PawnNavigation.NAV_MAX_CLIMB` 0.4 m — with three seats
+0.45 m high — a seat's height, which the navmesh's 0.2 m cells round onto `NAV_MAX_CLIMB` and
+would bake as a step, so each bench is **carved** from the mesh by an obstacle grown by the agent
+radius and a cell (review of #251) — with three seats
 derived in front of it (`VetraioGround.bench_seat_points`), each a static prop on the same record
 as the lean spots:
 

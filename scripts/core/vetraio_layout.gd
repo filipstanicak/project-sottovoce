@@ -190,8 +190,9 @@ const BENCHES: Array = [
 	["BenchMercato", 106.0, 67.0, 2.4, 0.5, 1],
 	["BenchSecca", 44.0, 61.0, 2.4, 0.5, 1],
 ]
-## A seat's height: above `PawnNavigation.NAV_MAX_CLIMB` 0.4, so the navmesh is cut
-## round a bench rather than over it, and inside no boundary band.
+## A seat's height, inside no boundary band. **Being above `NAV_MAX_CLIMB` does not cut a
+## bench from the navmesh**: the bake's 0.2 m cells round 0.45 onto the climb, so the
+## generator carves each bench out with an obstacle (review of #251).
 const H_BENCH := 0.45
 ## Seats per bench.
 const BENCH_SEATS := 3
