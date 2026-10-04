@@ -139,9 +139,10 @@ func _add_geometry(geometry: Node3D, root: Node3D) -> void:
 		)
 	_add_parapets(geometry, root)
 	_add_furniture(geometry, root)
+	_add_benches(geometry, root)
 
 
-## The market stalls and the blend props: everything at `H_VAULT` that a player can
+## The market stalls, the benches and the blend props: everything low that a player can
 ## get over rather than round. Split from `_add_geometry` when moving the box
 ## builder into `MapBuild` reflowed that function past the 40-line cap — and the
 ## seam is honest rather than mechanical, because these two are the only solids on
@@ -165,6 +166,59 @@ func _add_furniture(geometry: Node3D, root: Node3D) -> void:
 			Vector3(1.6, VetraioLayout.H_VAULT, 1.6),
 			"MAT-BLEND"
 		)
+
+
+## The five benches (US-0103): a seat-high box each, and the obstacle that cuts it from
+## the navmesh, which its height alone does not.
+func _add_benches(geometry: Node3D, root: Node3D) -> void:
+	for b: Array in VetraioLayout.BENCHES:
+		_build.add_box(
+			geometry,
+			root,
+			b[0],
+			Vector3(b[1], 0.0, b[2]),
+			Vector3(b[3], VetraioLayout.H_BENCH, b[4]),
+			"MAT-BLEND"
+		)
+		_carve(geometry, root, b)
+
+
+## **A BENCH IS CARVED FROM THE NAVMESH BY AN OBSTACLE, NOT BY ITS HEIGHT** (review of
+## #251). The navmesh rasterises heights in `NAV_CELL_HEIGHT` 0.2 m steps, so a 0.45 m
+## seat landed on the same two cells as `NAV_MAX_CLIMB` 0.4 and baked as a step: NPC
+## paths ran straight through every bench. The seat keeps its height; an obstacle cuts
+## its footprint, grown by `NAV_AGENT_RADIUS` and one cell on every side, out of the mesh.
+##
+## **`carve_navigation_mesh`, NOT `affect_navigation_mesh`.** The second discards only
+## source triangles wholly inside the shape: the bench went and the street slab under it
+## stayed, which baked the footprint as open floor. Carving cuts the finished mesh, but
+## without the agent-radius offset the bake gives every other solid, so the shape is
+## grown here by hand.
+func _carve(geometry: Node3D, root: Node3D, b: Array) -> void:
+	# One cell over the radius: the bake simplifies a carved edge afterwards, and measured
+	# it slanted one bench's edge 0.26 m inward without the margin.
+	var r := PawnNavigation.NAV_AGENT_RADIUS + PawnNavigation.NAV_CELL_SIZE
+	var obstacle := NavigationObstacle3D.new()
+	obstacle.name = "%sObstacle" % b[0]
+	obstacle.position = Vector3(float(b[1]), -MapBuild.FLOOR_THICKNESS, float(b[2]))
+	# Up to the bake's ceiling, not the seat's: a shape ending at the seat left its top
+	# face outside, and the bake kept the seat as a raised walkable patch.
+	obstacle.height = PawnNavigation.NAV_BAKE_CEILING + MapBuild.FLOOR_THICKNESS
+	var w := float(b[3])
+	var d := float(b[4])
+	obstacle.vertices = PackedVector3Array(
+		[
+			Vector3(-r, 0.0, -r),
+			Vector3(-r, 0.0, d + r),
+			Vector3(w + r, 0.0, d + r),
+			Vector3(w + r, 0.0, -r),
+		]
+	)
+	obstacle.affect_navigation_mesh = true
+	obstacle.carve_navigation_mesh = true
+	obstacle.avoidance_enabled = false
+	geometry.add_child(obstacle)
+	obstacle.owner = root
 
 
 ## Every floor edge bordering a drop, derived rather than listed. See VetraioGround.

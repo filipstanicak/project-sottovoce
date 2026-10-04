@@ -34,7 +34,8 @@ extends Resource
 ## The five concealment props. TUN-BLEND-PROP-CAPACITY = 1 each.
 @export var blend_props: Array[Vector3] = []
 
-## Bench and stall-lean positions — the static prop blend, GDD-03 §4.1.3.
+## Bench seats and stall-lean positions — the static prop blend, GDD-03 §4.1.3. The
+## twelve lean spots first, then three seats per bench (US-0103), all derived.
 ##
 ## **DERIVED FROM THE STALL TABLE, NEVER HAND-LISTED** (US-0054). Two lean spots
 ## per market stall, one on each long side, which is where a person actually

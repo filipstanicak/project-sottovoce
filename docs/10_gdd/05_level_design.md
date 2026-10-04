@@ -201,6 +201,26 @@ can flee across the roofs cheaply, but you cannot rejoin the crowd cheaply.
 positional rather than mechanical. The prop is always perfect; the walk to it never is. This
 keeps the five spots strategically distinct without needing five different mechanics.
 
+### 2.4.1 The five benches
+
+*Added 2026-10-04 (US-0103).* GDD-03 §4.1.3 names the bench as a static prop blend and §6.3
+rule 7 asks clones to sit where players can, and the district had none. Five, each 2.4 m long,
+0.45 m high — a seat's height, which the navmesh's 0.2 m cells round onto `NAV_MAX_CLIMB` and
+would bake as a step, so each bench is **carved** from the mesh by an obstacle grown by the agent
+radius and a cell (review of #251) — with three seats
+derived in front of it (`VetraioGround.bench_seat_points`), each a static prop on the same record
+as the lean spots:
+
+| Bench | Where | Faces | Why |
+|---|---|---|---|
+| BenchVetroWest, BenchVetroEast | Piazza del Vetro, north edge (x 38 and 80, z 2) | the market | the densest square; a civilian rests where it shops |
+| BenchLoggia | the Loggia's south side (x 56, z 52.5) | the arcade | covered, on the main east–west way |
+| BenchMercato | Mercato Piccolo, north wall (x 106, z 67) | the stalls | the second pole of the map |
+| BenchSecca | Piazza Secca (x 44, z 61) | the piazza | **the exposed one**: §4.1.3's own counterplay, *a bench in an empty street is visually conspicuous* |
+
+All clear of every circuit leg, stall, spawn point and idle anchor; `test_benches.gd` holds the
+seats to the table.
+
 ### 2.5 The four blend-group circuits
 
 `TUN-CROWD-GROUP-COUNT` = 4, each `TUN-CROWD-GROUP-SIZE` = 4 NPCs, period 55–75 s

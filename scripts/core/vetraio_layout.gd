@@ -170,6 +170,33 @@ const STALLS: Array = [
 	["StallF", 96.0, 84.0, 6.0, 2.0],
 ]
 
+## **THE DISTRICT'S BENCHES, AND THERE WERE NONE UNTIL 2026-10-04** (US-0103). GDD-03
+## §4.1.3 names the bench as a static prop blend and §6.3 rule 7 asks clones to sit on
+## them, and `MAP-VETRAIO` had not one: nobody could sit, player or civilian. Each row
+## is `[name, x, z, length along x, depth along z, faces]` — `faces` is +1 for a bench
+## whose sitters look toward +z, -1 toward -z. Three seats each, the reference's rule of
+## sitting down *between* two others needing three (sources in the chat log of
+## 2026-10-04, never here).
+##
+## **WHERE A CITY PUTS THEM, CLEAR OF EVERY CIRCUIT LEG AND STALL.** Two along the
+## piazza's north edge facing the market, one at the Loggia's south side facing the
+## arcade, one at the Mercato's north wall facing the stalls, and one in Piazza Secca —
+## the exposed one, which GDD-03 §4.1.3 makes the bench's own counterplay: *a bench in
+## an empty street is visually conspicuous even while mechanically anonymous.*
+const BENCHES: Array = [
+	["BenchVetroWest", 38.0, 2.0, 2.4, 0.5, 1],
+	["BenchVetroEast", 80.0, 2.0, 2.4, 0.5, 1],
+	["BenchLoggia", 56.0, 52.5, 2.4, 0.5, -1],
+	["BenchMercato", 106.0, 67.0, 2.4, 0.5, 1],
+	["BenchSecca", 44.0, 61.0, 2.4, 0.5, 1],
+]
+## A seat's height, inside no boundary band. **Being above `NAV_MAX_CLIMB` does not cut a
+## bench from the navmesh**: the bake's 0.2 m cells round 0.45 onto the climb, so the
+## generator carves each bench out with an obstacle (review of #251).
+const H_BENCH := 0.45
+## Seats per bench.
+const BENCH_SEATS := 3
+
 ## The canal. Impassable water, 4 m wide, excluded from the navmesh.
 const CANAL := Rect2(0.0, 92.0, 120.0, 4.0)
 
@@ -327,6 +354,8 @@ static func traversable_heights() -> Array:
 		out.append([b[0], float(b[5])])
 	for s: Array in STALLS:
 		out.append([s[0], H_VAULT])
+	for b: Array in BENCHES:
+		out.append([b[0], H_BENCH])
 	out.append(["BalconyRail", H_BALCONY_RAIL])
 	out.append(["FacadeStreetToBalcony", H_FACADE_STREET_TO_BALCONY])
 	out.append(["FacadeBalconyToRoof", H_FACADE_BALCONY_TO_ROOF])

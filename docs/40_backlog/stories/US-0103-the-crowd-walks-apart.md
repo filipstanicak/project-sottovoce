@@ -71,13 +71,15 @@ becomes a tell. Benches and circles are smart objects both can use — the refer
       the nearest anchor. Invariant 38 holds a full circle to a blend pocket — four NPCs, the
       reference's own rule for a crowd — so a circle of two or three is company and not cover.
       Measured: idle NPCs with an idle neighbour 27 % → 48–54 %.
-- [ ] **Sit and lean.** NPCs occupy benches and lean spots through the same occupancy the
+- [x] **Sit and lean.** NPCs occupy benches and lean spots through the same occupancy the
       player's prop blend uses (GDD-03 §6.3 rule 7), with a rule for a seat an NPC holds when a
       player wants it. Seated reads as standing at the seat until clips exist — on both sides.
       **Leaning built 2026-10-04**: `LeanSpots`, one figure per counter, a player refused with
       `PROP_OCCUPIED` where an NPC leans and an NPC never taking a held one. Counters with an
-      idle figure at them 7 % → 21–31 %. **Unticked for the sitting: `MAP-VETRAIO` has no
-      bench**, so benches must be added to the layout first.
+      idle figure at them 7 % → 21–31 %. **Sitting ticked 2026-10-04**: `MAP-VETRAIO` had
+      no bench, so five were added to the layout (`VetraioLayout.BENCHES`, three seats each,
+      derived like the lean spots), and the fifteen seats join the same `LeanSpots` record —
+      a player sits where no civilian sits and the reverse.
 - [x] Processions stay at `TUN-CROWD-GROUP-COUNT` 4 × `TUN-CROWD-GROUP-SIZE` 4.
 
       **Ticked 2026-10-04**: no tunable of theirs changed, and the census reads them at 16–19 %

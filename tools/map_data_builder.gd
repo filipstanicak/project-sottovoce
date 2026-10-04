@@ -51,6 +51,9 @@ static func _fill_places(data: MapData) -> void:
 	# **DERIVED, NOT LISTED** (US-0054): two lean spots per market stall.
 	for p: Array in VetraioGround.stall_lean_points():
 		data.static_props.append(Vector3(p[1], VetraioLayout.STREET_Y, p[2]))
+	# And three seats per bench (US-0103), after the lean spots so their indices hold.
+	for p: Array in VetraioGround.bench_seat_points():
+		data.static_props.append(Vector3(p[1], VetraioLayout.STREET_Y, p[2]))
 	for t: Array in VetraioLayout.THEATRES:
 		data.theatre_spaces.append(AABB(Vector3(t[1], 0.0, t[2]), Vector3(t[3], 6.0, t[4])))
 
