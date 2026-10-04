@@ -116,6 +116,7 @@ func setup(ctx: MatchContext) -> void:
 	ctx.formations = _formations  # SYS-BLEND claims the fifth slot US-0043 reserved.
 	_clones.setup(ctx.map, _rng)
 	_intent.setup(_pool, ctx.map, _rng, _formations, _corpses, _clones)
+	_intent.use_lean_spots(ctx.lean_spots)
 	_goals.resize(_pool.body_count())
 	_here.resize(_pool.body_count())
 	ctx.crowd_hash.setup(ctx.map.bounds if ctx.map != null else AABB(), _pool.body_count())
@@ -259,6 +260,7 @@ func _advance(index: int, dt: float) -> void:
 	# walking to the bench it had picked.
 	if brain.state != before:
 		_goals[index] = NO_GOAL
+		_intent.changed_state(index, brain.state)
 	if _goals[index] == NO_GOAL and _intent.travels(brain.state):
 		_repath.request(index)
 

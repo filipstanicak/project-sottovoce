@@ -19,6 +19,8 @@ var _rng: RandomNumberGenerator = null
 var _formations: CrowdFormations = null
 var _corpses: CorpseRegister = null
 var _clones: CloneBalance = null
+## Where a stroll ends besides an anchor: a circle or a counter (US-0103).
+var _places := CrowdPlaces.new()
 var _stroll: float = 1.4
 var _flee: float = 5.0
 
@@ -37,7 +39,13 @@ func setup(
 	_formations = formations
 	_corpses = corpses
 	_clones = clones
+	_places.setup(map, rng, null)
 	refresh()
+
+
+## The counters NPCs lean at, shared with `SYS-BLEND` through `MatchContext`.
+func use_lean_spots(spots: LeanSpots) -> void:
+	_places.setup(_map, _rng, spots)
 
 
 ## Cached speeds, refreshed with `Steering`'s for the same reason: ninety agents
@@ -119,10 +127,17 @@ func _toward_the_body(index: int) -> Vector3:
 ## about the NPC changes — not its speed, not its state, not how it walks — which
 ## is why re-routing cannot read as clones following anybody.
 func _an_anchor(index: int) -> Vector3:
+	# **EVERY NEW STROLL GOAL GIVES UP THE OLD PLACE FIRST** (review of #250): a clone
+	# `CloneBalance` reroutes takes its goal below without ever reaching `CrowdPlaces`,
+	# and kept its counter or circle seat while it walked elsewhere.
+	_places.release(index)
 	if _clones != null:
 		var directed := _clones.take(index)
 		if directed != CrowdDirector.NO_GOAL:
 			return directed
+	var place := _places.goal_for(index, _pool.body_of(index).global_position)
+	if place != CrowdDirector.NO_GOAL:
+		return place
 	if _map == null or _map.idle_anchors.is_empty():
 		return CrowdDirector.NO_GOAL
 	var pick: int = (
@@ -131,6 +146,24 @@ func _an_anchor(index: int) -> Vector3:
 		else _map.idle_anchors.size() / 2
 	)
 	return _map.idle_anchors[pick]
+
+
+## NPC `index` changed state to `state`. Standing where it went makes a reserved
+## counter its own; anything else frees its circle seat and its counter.
+##
+## **AN NPC THAT ARRIVES AT A COUNTER A PLAYER TOOK ON THE WAY WALKS ON** (review of
+## #250). It is woken straight back to a stroll, which the director paths anew; left
+## standing it would be a second figure at a one-figure counter.
+func changed_state(index: int, state: int) -> void:
+	if state != NpcBrain.State.IDLE:
+		_places.release(index)
+	elif not _places.arrived(index):
+		_pool.brain_of(index).handle(NpcBrain.Event.TIMER_EXPIRED, _pool.context_of(index))
+
+
+## The places, for the census and the tests.
+func places() -> CrowdPlaces:
+	return _places
 
 
 ## Directly away from whatever caused the scare, as far as the flee lasts.
