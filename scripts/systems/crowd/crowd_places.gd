@@ -25,6 +25,10 @@ var _spots: LeanSpots = null
 var _circles: Dictionary = {}
 ## NPC index -> anchor index of the circle it belongs to.
 var _circle_of: Dictionary = {}
+## NPC index -> the counter it set off for. Kept apart from `LeanSpots`' reservation,
+## which a player cancels, so an arrival can tell *walked to a counter and lost it*
+## from *walked to an anchor*.
+var _to_counter: Dictionary = {}
 
 
 func setup(map: MapData, rng: RandomNumberGenerator, spots: LeanSpots) -> void:
@@ -33,6 +37,7 @@ func setup(map: MapData, rng: RandomNumberGenerator, spots: LeanSpots) -> void:
 	_spots = spots
 	_circles.clear()
 	_circle_of.clear()
+	_to_counter.clear()
 
 
 ## Where NPC `index`, standing at `here`, should end its stroll, or
@@ -58,18 +63,23 @@ func _a_counter(index: int) -> Vector3:
 	var spot := _spots.a_vacant_spot(_rng, _map.static_props.size())
 	if spot == LeanSpots.VACANT or not _spots.reserve_for_npc(index, spot):
 		return CrowdDirector.NO_GOAL
+	_to_counter[index] = spot
 	return _map.static_props[spot]
 
 
-## NPC `index` arrived where it was going: a reserved counter becomes its own, if a
-## player did not take it first.
-func arrived(index: int) -> void:
-	if _spots != null:
-		_spots.arrive(index)
+## NPC `index` arrived where it was going. A reserved counter becomes its own; **false
+## if a player took it on the way** — the caller must send the NPC on, or two figures
+## stand at one counter (review of #250).
+func arrived(index: int) -> bool:
+	if not _to_counter.has(index):
+		return true
+	_to_counter.erase(index)
+	return _spots != null and _spots.arrive(index)
 
 
 ## NPC `index` left wherever it was: its counter and its circle are free again.
 func release(index: int) -> void:
+	_to_counter.erase(index)
 	if _spots != null:
 		_spots.release_npc(index)
 	if not _circle_of.has(index):

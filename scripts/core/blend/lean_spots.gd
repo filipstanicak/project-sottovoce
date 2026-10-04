@@ -86,7 +86,8 @@ func reserved_by(index: int) -> int:
 
 
 ## NPC `index` has arrived: its reservation becomes a hold if the spot is still free.
-## False if a player took it on the way — the NPC then stands there holding nothing.
+## False if a player took it on the way — the crowd then sends the NPC on rather than
+## let it stand beside the player (`CrowdIntent.changed_state`).
 func arrive(index: int) -> bool:
 	var spot := reserved_by(index)
 	if spot == VACANT:

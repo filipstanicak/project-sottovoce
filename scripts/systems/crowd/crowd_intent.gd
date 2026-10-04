@@ -150,11 +150,15 @@ func _an_anchor(index: int) -> Vector3:
 
 ## NPC `index` changed state to `state`. Standing where it went makes a reserved
 ## counter its own; anything else frees its circle seat and its counter.
+##
+## **AN NPC THAT ARRIVES AT A COUNTER A PLAYER TOOK ON THE WAY WALKS ON** (review of
+## #250). It is woken straight back to a stroll, which the director paths anew; left
+## standing it would be a second figure at a one-figure counter.
 func changed_state(index: int, state: int) -> void:
-	if state == NpcBrain.State.IDLE:
-		_places.arrived(index)
-	else:
+	if state != NpcBrain.State.IDLE:
 		_places.release(index)
+	elif not _places.arrived(index):
+		_pool.brain_of(index).handle(NpcBrain.Event.TIMER_EXPIRED, _pool.context_of(index))
 
 
 ## The places, for the census and the tests.

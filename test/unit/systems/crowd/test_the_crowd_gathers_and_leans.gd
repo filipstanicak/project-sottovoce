@@ -281,3 +281,30 @@ func _an_intent_with_clones() -> Array:
 	intent.setup(pool, _map, _rng, CrowdFormations.new(), CorpseRegister.new(), balance)
 	intent.use_lean_spots(_spots)
 	return [intent, balance]
+
+
+## **REVIEW OF #250: A CIVILIAN WHOSE COUNTER A PLAYER TOOK DOES NOT STAND BESIDE THEM.**
+## Driven through the real director to the civilian's arrival, because a test of the
+## record alone holds the book and not the world: two figures at one counter.
+func test_a_civilian_whose_counter_was_taken_walks_on_when_it_arrives() -> void:
+	_always(1.0, 0.0)
+	var scene := _a_director_with_one_civilian(Vector3(0, 0, 0))
+	var ctx: MatchContext = scene[0]
+	var pool: NpcPool = scene[1]
+	var director: CrowdDirector = scene[2]
+	var spot := ctx.lean_spots.reserved_by(0)
+	assert_true(ctx.lean_spots.take_for_player(21, spot), "the premise: the player was refused")
+	_always(0.0, 0.0)
+	# **THE ARRIVAL IS THE DIRECTOR'S OWN EVENT, RAISED BY HAND.** With no navmesh in a unit
+	# test the agent never reports itself finished, so the flag the director would set on
+	# arrival is set here and everything after it runs through the real director.
+	pool.set_position(0, _map.static_props[spot])
+	pool.context_of(0).reached_anchor = true
+	# Three ticks: the observer stayed by the start, so the civilian at the counter is in
+	# the middle band and thinks every third tick (US-0045).
+	for _i: int in 3:
+		ctx.tick += 1
+		director.tick(ctx, MatchContext.net_dt())
+	assert_eq(ctx.lean_spots.player_at(spot), 21, "the civilian took the player's counter")
+	assert_ne(pool.brain_of(0).state, NpcBrain.State.IDLE, "the civilian stands at a taken counter")
+	assert_ne(director._goals[0], _map.static_props[spot], "the civilian is still bound for it")
