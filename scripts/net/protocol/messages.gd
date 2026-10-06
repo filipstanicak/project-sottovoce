@@ -68,7 +68,13 @@ const CHANNEL_COUNT := 3
 ## **7 (2026-09-30, US-0105): `NET-S2C-NOTICE` has a handler.** The one-line
 ## notices — a new pursuer on you, you have taken the lead. A version-6 client
 ## would drop the RPC as unknown and never be told, which is version 4's case.
-const PROTOCOL_VERSION := 7
+##
+## **8 (2026-10-06, US-0107): `NET-S2C-CROWD-GROUPS` has a handler.** Which
+## civilians form a group a player can blend with, for the net drawn under it. A
+## version-7 client would drop the RPC as unknown and draw no net — the blend would
+## work and nothing would say where, which is what the owner reported from the
+## controls.
+const PROTOCOL_VERSION := 8
 
 ## How often a client sends `NET-C2S-PING`. The catalogue's rate column, and
 ## **not a tunable**: it changes nothing a player can perceive. The server does
@@ -127,6 +133,7 @@ const CHANNEL_FOR: Dictionary = {
 	Ids.NET_S2C_BLEND_DENIED: Channel.EVENT,
 	Ids.NET_S2C_PREY_WARNING: Channel.EVENT,
 	Ids.NET_S2C_NOTICE: Channel.EVENT,
+	Ids.NET_S2C_CROWD_GROUPS: Channel.EVENT,
 	Ids.NET_S2C_SCORE_EVENT: Channel.EVENT,
 	Ids.NET_S2C_PHASE_CHANGED: Channel.EVENT,
 	Ids.NET_S2C_MATCH_END: Channel.EVENT,

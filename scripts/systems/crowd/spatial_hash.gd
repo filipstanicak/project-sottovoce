@@ -103,6 +103,13 @@ func count() -> int:
 	return _count
 
 
+## Where entry `index` stood when the hash was built, or `Vector3.INF` past the
+## count. `CrowdGroups` asks it, so a group is judged from the same positions every
+## other query this tick was.
+func position_of(index: int) -> Vector3:
+	return _positions[index] if index >= 0 and index < _count else Vector3.INF
+
+
 ## Every index within `radius` of `centre`. Startle propagation and gawk token
 ## issuance want the list; the three counting queries below do not.
 func query(centre: Vector3, radius: float) -> PackedInt32Array:

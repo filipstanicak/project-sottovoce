@@ -94,6 +94,12 @@ static var _authored: Dictionary = {}
 @export var cinderfall: Color = Color(0.26, 0.25, 0.24, 0.72)
 @export var cinderfall_edge: Color = Color(0.13, 0.12, 0.12, 1.0)
 
+## **THE NET UNDER EVERY GROUP AND BENCH** (US-0107): faint white lines, as the
+## reference draws them, and a fainter dark seam beside each — on the greybox's
+## sunlit floor a white line alone vanished (`tools/blend_cue_probe.tscn`).
+@export var blend_net: Color = Color(1.0, 1.0, 1.0, 0.45)
+@export var blend_net_seam: Color = Color(0.0, 0.0, 0.0, 0.18)
+
 ## The Exposed vignette. §4.2: the only full-screen effect in the game, and
 ## **deliberately ugly** — it is the visual language of failure.
 ##

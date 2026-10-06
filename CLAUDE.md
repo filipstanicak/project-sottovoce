@@ -275,6 +275,12 @@ owner calls the beta — is [ROADMAP §8.3](docs/40_backlog/ROADMAP.md)**, measu
 
 ### Recent, newest first
 
+- **2026-10-06 — a net under every group and bench, and the grey over one's own (US-0107).**
+  Reported from the controls: nothing said where a player could blend or whether they were. The
+  owner's reading of the reference: a faint white honeycomb under every group and bench, always,
+  and a blended player sees themselves and their group slightly greyed, on their screen alone.
+  Groups come from `NET-S2C-CROWD-GROUPS` (`PROTOCOL_VERSION` 8), computed from civilians alone so
+  no net marks a player.
 - **2026-10-04 — the crowd gathers, leans and sits (US-0103).** NPCs lean at the stall
   counters through the occupancy players use (`LeanSpots`: one figure per counter, a player
   refused where a civilian leans) and stand in conversation circles started near where they
@@ -391,7 +397,7 @@ settled row stays, one line, so nobody re-opens it. The full reasoning is in the
 | | |
 |---|---|
 | CI | 9 jobs, of which 7 are required check contexts on `main`: the two suite partitions, `test / architecture + unit` and `test / integration`, run as well and are summarised by the required aggregator `test`. A job that starts and ends in the same second with zero steps is a **billing refusal, not a crash** — trap 6. `.ci/run_gut.sh` refuses a suite that ran fewer scripts than exist on disk |
-| Tests | **63 arch + 232 unit + 33 integration scripts**, holding 260 + 1 956 + 245 tests and 1 691 + 33 600 + 687 assertions (measured 2026-10-04 for US-0103's benches and the review of #251; integration 192.0 s). **Nine are `pending` by design**, eight unit and one integration, each reporting a finding code cannot fix — among them upstream at 145 % and downstream at 112 % of budget, the crowd's wire cost, two spawn rules GDD-05 §2.7 is short of, the missing clip library, and an NPC aimed into the void. The script counts are guarded by `test_claude_md_counts_are_current.gd`; the rest is a snapshot. The 180 s integration budget is owner decision 2 |
+| Tests | **63 arch + 236 unit + 33 integration scripts**, holding 260 + 1 980 + 245 tests and 1 716 + 33 659 + 687 assertions (measured 2026-10-06 for US-0107's net and grey; integration 192.6 s). **Nine are `pending` by design**, eight unit and one integration, each reporting a finding code cannot fix — among them upstream at 145 % and downstream at 112 % of budget, the crowd's wire cost, two spawn rules GDD-05 §2.7 is short of, the missing clip library, and an NPC aimed into the void. The script counts are guarded by `test_claude_md_counts_are_current.gd`; the rest is a snapshot. The 180 s integration budget is owner decision 2 |
 | Tuning | **303** tunables in 14 resource classes; **38** cross-field invariants, all asserting. Eight IDs deprecated and never reused (TUNABLES §19); three neutralised at 0 with their IDs live: `TUN-SCORE-RECKLESS` (ADR-0013), `TUN-SUSPICION-GAIN-OPEN` (ADR-0020) and `TUN-STUN-MIN-TIER` (ADR-0022 A). `test_tunables_match_the_document.gd` holds the shipped profile to TUNABLES |
 | Autoloads | Eight. `Tuning` precomputes durations into two tick tables, 30 Hz and 60 Hz — trap 9 |
 | Strings | `data/strings/en.csv`, 109 keys |
@@ -402,9 +408,9 @@ settled row stays, one line, so nobody re-opens it. The full reasoning is in the
 | Pawn body | `PersonaBody` for every figure, procedural, in its persona's hue once `Wardrobe` holds both the seed and the roster. **No animation clips on either rig** |
 | Camera | Spring arm 2.6 m, resting 13° down, pawn centred, occlusion pulls in and never sideways, `WORLD`-masked. The FOV ladder follows the **state**, never the velocity. Positive pitch lowers the arm |
 | Input | 20 actions from 14 live `INPUT-` IDs, KBM and pad. Sampled once per physics frame by `LocalPawnDriver` alone — trap 12. Only a mapped gamepad holds joypad bindings |
-| Net | Server-authoritative ENet: 30 Hz tick, 60 Hz input, local-pawn prediction only, 100 ms interpolation, lag compensation for kill and stun. **`PROTOCOL_VERSION` 7**, every bump's reason in `messages.gd`. **Upstream 145 % and downstream 112 % of budget** — fine on a LAN, a risk over the internet. `Messages.CHANNEL_FOR` is held to every `@rpc` |
+| Net | Server-authoritative ENet: 30 Hz tick, 60 Hz input, local-pawn prediction only, 100 ms interpolation, lag compensation for kill and stun. **`PROTOCOL_VERSION` 8**, every bump's reason in `messages.gd`. **Upstream 145 % and downstream 112 % of budget** — fine on a LAN, a risk over the internet. `Messages.CHANNEL_FOR` is held to every `@rpc` |
 | Crowd | 90 pre-allocated, 78 active, one `SpatialHash` per tick; four processions of four; distance-banded LOD; startle, gawk and corpses; culled per observer and delta-encoded against the ack. `CloneBalance` keeps the clone floor for the dealt personas. **NPCs lean at the twelve stall counters and stand in conversation circles** (US-0103, `LeanSpots`, `CrowdPlaces`); NPCs sit at the fifteen seats of the five benches added on 2026-10-04; strollers still walk in rows (lanes measured and parked) |
-| Blend | All four kinds — pocket, group, lean spot, hiding spot — as a condition re-validated every tick, never a kept state. `NET-S2C-BLEND-DENIED` is the one refusal that says why. **No client renders a blend** |
+| Blend | All four kinds — pocket, group, lean spot, hiding spot — as a condition re-validated every tick, never a kept state. `NET-S2C-BLEND-DENIED` is the one refusal that says why. **Drawn since US-0107**: a faint net under every group and bench (`BlendCues`, groups from `NET-S2C-CROWD-GROUPS`), and the blender's own group greyed on their screen alone; nothing yet blacks out a hiding spot |
 | Match | `SYS-MATCH` rides `net_ticked` (it cannot be a `GameSystem`: the stage loop runs only while simulating). Lobby floor, countdown, eight-minute clock, the Final Contract's `×2`, results with a unanimous skip. `MatchClock` is the arithmetic both it and `ScoreEvent` use. Personas and contracts are dealt at the countdown from `MatchContext.rng`; the seed goes out on `NET-S2C-MATCH-START`. `RESULTS` is described to clients, `LOBBY` is silent. **Nothing follows `RESULTS` yet** — the lobby is US-0078 |
 | Contracts | A Hamiltonian cycle, repaired in the tick a death resolves, reassigned after 3 s. **A chase lives only while its prey is the announced contract**; only an emptied bar is an escape (`SCORE-ESCAPE`, `SCORE-CLOSECALL`, US-0097) |
 | Kill | `SYS-KILL` at `combat`, before `contract`; `KillRules`, `KillContest` and `RewindClamp` are pure. Range is 3D, the cone horizontal; it reads the **announced** contract. A committed kill is not interruptible (ADR-0013) except by a FATAL third party. A rejection answers with victim slot 0 |
@@ -458,7 +464,7 @@ and US-0057's arc (the widget draws one now, but the half-width is no longer a f
 | US-0031 | 1 | downstream at 112 % |
 | US-0036 | 1 | "every netcode test at all four profiles" is true only of the harness |
 | US-0044 | 1 | a human observer reading the startle waves |
-| US-0054 | 1 | no client renders a blend |
+| US-0054 | 1 | nothing draws the hiding spot's blindness |
 | US-0056 | 1 | the rewound `at_tick` query is refused: nothing would consume it |
 | US-0057 | 1 | the drawn arc — probably true, see above |
 | US-0060 | 1 | NPCs rewound: nothing would read them |

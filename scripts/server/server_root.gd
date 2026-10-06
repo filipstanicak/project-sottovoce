@@ -351,9 +351,9 @@ func _wire_end_of_tick() -> void:
 	director.tick_completed.connect(snapshots.send_all)
 	router.snapshot_acked.connect(snapshots.note_ack)
 
-	# Recording only. Nothing reads the history until kill and stun exist in M4.
 	lag_comp.setup(director.ctx, pawns)
 	director.tick_completed.connect(lag_comp.record)
+	director.tick_completed.connect(announcer.crowd_groups.report)
 
 	# **THE SCORE LOG IS DRAINED LAST, LIKE THE SNAPSHOT AND FOR THE SAME REASON.**
 	# Every bonus a tick pays is appended by the `combat` stage; a courier on

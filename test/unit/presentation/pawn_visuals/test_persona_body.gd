@@ -77,3 +77,27 @@ func test_a_clone_and_a_player_of_one_persona_are_identical() -> void:
 			_albedo(clone, clone.get_child(i).name),
 			"part %s differs between two bodies of one persona" % player.get_child(i).name
 		)
+
+
+## **GREYED FOR THE BLENDER, AND EVERY PART GIVEN BACK ITS OWN COLOUR** (US-0107).
+func test_a_greyed_body_is_grey_and_returns_to_its_colours() -> void:
+	var body := _body(Ids.PERSONA_LUCERNA)
+	var before: Dictionary = {}
+	for child: Node in body.get_children():
+		before[child.name] = _albedo(body, child.name)
+	body.set_greyed(true)
+	var hue: Color = before["Body"]
+	var greyed := _albedo(body, "Body")
+	assert_ne(greyed, hue, "nothing was greyed")
+	assert_lt(greyed.s, hue.s, "greyed means less colour, not another colour")
+	body.set_greyed(false)
+	for part: String in before:
+		assert_eq(_albedo(body, part), before[part], "%s did not get its colour back" % part)
+
+
+func test_a_body_redressed_while_greyed_stays_greyed() -> void:
+	var body := _body(&"")
+	body.set_greyed(true)
+	body.dress(Ids.PERSONA_VETRAIO)
+	assert_true(body.is_greyed())
+	assert_ne(_albedo(body, "Body"), body.cloth(), "the new clothes came out in full colour")
