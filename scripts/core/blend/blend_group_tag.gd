@@ -22,14 +22,12 @@ extends RefCounted
 
 ## Walking, startled, gawking: in no group, and supporting no blend a client draws.
 const NONE := 0
-## Standing in a knot a pocket can be taken in: within `TUN-BLEND-POCKET-RADIUS` of
-## a standing civilian who has `TUN-BLEND-POCKET-MIN-NPC` standing civilians round
-## it. The net lies under these.
+## Standing still, in no walking group and on no seat. Where enough of them stand
+## together the client draws a pocket's net (`BlendCueRules.group_nets`), and a
+## blended player's pocket greys them.
 const STANDING := 1
-## Standing, in no such knot. No net; still one of the people a pocket rests on.
-const STILL := 2
 ## Walking group `g` is `FORMATION_BASE + g`.
-const FORMATION_BASE := 3
+const FORMATION_BASE := 2
 ## Holding static prop `p` — a bench seat or a stall counter — is `PROP_BASE + p`.
 const PROP_BASE := 64
 
@@ -55,6 +53,6 @@ static func prop_of(tag: int) -> int:
 	return tag - PROP_BASE if is_prop(tag) else -1
 
 
-## Standing still in the world: in a knot, alone, or holding a seat or counter.
+## Standing still in the world: on its own feet, or holding a seat or counter.
 static func is_standing(tag: int) -> bool:
-	return tag == STANDING or tag == STILL or is_prop(tag)
+	return tag == STANDING or is_prop(tag)

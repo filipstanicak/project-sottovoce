@@ -36,14 +36,18 @@ grey was not checkable from it, because that player never blends.
 
 - [x] **A net lies under every bench seat and every stall counter**, from the first frame, on
       every screen — drawn from `MapData.static_props`, so the sandbox's props get one too.
-- [x] **A net lies under every walking group and every knot of standing civilians a pocket
-      can be taken in**, and moves with them. The server names them on `NET-S2C-CROWD-GROUPS`
-      (`PROTOCOL_VERSION` 8) **from civilians alone**, so no net ever appears, moves or vanishes
-      because a player joined: a walking group's tag is its NPC occupants and the player's slot
-      is never an NPC's; a standing knot counts standing civilians, at least
-      `TUN-BLEND-POCKET-MIN-NPC` within `TUN-BLEND-POCKET-RADIUS`. **Stricter than the pocket on
-      purpose**: a pocket the server grants from passers-by gets no net, because a net under
-      people walking away promises a blend that leaves.
+- [x] **A net lies under every walking group, and wherever standing civilians guarantee a
+      pocket**, and moves with them. The server says on `NET-S2C-CROWD-GROUPS`
+      (`PROTOCOL_VERSION` 8) what each civilian is, **from civilians alone**, so no net ever
+      appears, moves or vanishes because a player joined: a walking group's tag is its NPC
+      occupants and the player's slot is never an NPC's. **A standing net is a promise kept at
+      every point of it**: the client draws, per knot, the widest disc in which
+      `TUN-BLEND-POCKET-MIN-NPC` standing civilians are within `TUN-BLEND-POCKET-RADIUS` of every
+      point (`BlendCueRules._pocket_net`). The second version drew a net per knot and three of
+      four nets round one granted pocket lay where the server refused it (review of #252);
+      `test_the_net_keeps_its_promise.gd` now asks the real `BlendSystem.request` at the centre
+      and rim of every net drawn. **Stricter than the pocket on purpose**: walkers are never
+      counted, because a net under people walking away promises a blend that leaves.
 - [x] **A blended player sees themselves and their group slightly greyed, and nobody else
       does.** A walking group greys its members; a pocket the standing civilians within the
       pocket radius; a bench the others sitting on it; a counter only the player; a hiding spot
@@ -51,8 +55,9 @@ grey was not checkable from it, because that player never blends.
       **By membership, never by distance** (review of #252): the first version tagged only the
       civilians that could each anchor a pocket and found sitters by a 0.5 m radius, so a pocket
       the server granted greyed one of its four, and a passer-by at a counter was greyed as a
-      sitter. The server now says what each civilian is — in a knot, standing alone, holding
-      which seat — and `test_crowd_groups.gd` checks the grey against the server's own tags.
+      sitter. The server now says what each civilian is — standing, in which walking group,
+      holding which seat — and `test_crowd_groups.gd` checks the grey against the server's own
+      tags.
 - [x] **The grey keeps the persona readable** — half way to grey, not all the way: judged in
       `tools/blend_cue_probe.tscn`, where 70 % had washed the Lucerna's yellow out.
 - [ ] **The net reads on the finished district's ground.** Judged on the greybox only, whose
@@ -80,4 +85,5 @@ grey was not checkable from it, because that player never blends.
 | `scripts/net/crowd_group_wire.gd` | `NET-S2C-CROWD-GROUPS` |
 | `scripts/presentation/vfx/blend_cues.gd` | The net and the grey |
 | `tools/blend_cue_probe.tscn` | Look at both, windowed |
+| `test/unit/systems/blend/test_the_net_keeps_its_promise.gd` | Every standing net drawn from the server's tags, asked at its centre and rim through `BlendSystem.request` |
 | `test/unit/systems/crowd/test_crowd_groups.gd`, `test/unit/server/test_crowd_group_announcer.gd`, `test/unit/core/blend/test_blend_cue_rules.gd`, `test/unit/presentation/vfx/test_blend_cues.gd` | The rule, the wire's recipients, the selection, the drawing |

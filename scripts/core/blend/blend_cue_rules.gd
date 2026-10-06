@@ -23,6 +23,9 @@ const PROP_NET_RADIUS := 0.9
 ## 0.8 m apart; the two lean spots of a stall stand its depth plus two agent radii,
 ## 2.8 m, apart — so one bench is one group and the two sides of a stall are two.
 const PROP_LINK := 1.2
+## A pocket net narrower than this is not drawn: a disc a player cannot stand in
+## invites them somewhere they cannot be.
+const MIN_POCKET_NET := 0.3
 
 
 ## The NPC indices to grey for a player blended as `kind` at `me`. `tags` is
@@ -57,7 +60,7 @@ static func _walking_group(
 
 
 ## The standing civilians the player's pocket rests on: every one within
-## `TUN-BLEND-POCKET-RADIUS` the server says is standing — in a knot, alone, or
+## `TUN-BLEND-POCKET-RADIUS` the server says is standing — on its own feet or
 ## holding a seat — and no walker, though the server's count includes walkers. A
 ## walker is about to leave; greying them would teach the player to rely on them.
 static func _standing_group(
@@ -114,9 +117,14 @@ static func furniture_of(start: int, props: Array) -> PackedInt32Array:
 	return found
 
 
-## **ONE NET PER GROUP**, as `[centre, radius]`: each walking group, and each knot
-## of standing civilians linked by steps no longer than half a pocket radius — so
-## two circles across a square are two nets, not one net over the square.
+## **ONE NET PER GROUP**, as `[centre, radius]`: each walking group, and the best
+## guaranteed pocket in each knot of standing civilians.
+##
+## **A STANDING NET IS A PROMISE, AND IT IS KEPT EVERYWHERE IT IS DRAWN** (review of
+## #252). The first version drew a net over every knot of standing civilians, and
+## three of the four nets it drew round one granted pocket lay where the server
+## refused one. Now a net is drawn only where the pocket rule holds at every point
+## of it: see `_pocket_net`.
 static func group_nets(tags: PackedByteArray, drawn: Dictionary) -> Array:
 	var nets: Array = []
 	var by_tag: Dictionary = {}
@@ -127,13 +135,48 @@ static func group_nets(tags: PackedByteArray, drawn: Dictionary) -> Array:
 			if not by_tag.has(tag):
 				by_tag[tag] = []
 			(by_tag[tag] as Array).append(drawn[index])
-		elif tag == BlendGroupTag.STANDING:
+		elif BlendGroupTag.is_standing(tag):
 			standing.append(drawn[index])
 	for tag: int in by_tag:
 		nets.append(_net_over(by_tag[tag]))
 	for knot: Array in _knots(standing, Tuning.suspicion.blend_pocket_radius * 0.5):
-		nets.append(_net_over(knot))
+		var net := _pocket_net(knot, standing)
+		if not net.is_empty():
+			nets.append(net)
 	return nets
+
+
+## **THE LARGEST DISC ROUND THIS KNOT INSIDE WHICH A POCKET IS GUARANTEED**, or
+## nothing. For a point `c`, let `d` be the distance to its
+## `TUN-BLEND-POCKET-MIN-NPC`-th nearest standing civilian. Every point within
+## `TUN-BLEND-POCKET-RADIUS - d` of `c` then has at least that many standing
+## civilians within the pocket radius — the triangle inequality — and the server,
+## which counts walkers too, can only find more. The knot's centroid and each of its
+## members are tried as `c`; the best disc is drawn if it is wide enough to stand in.
+static func _pocket_net(knot: Array, standing: Array) -> Array:
+	var centre := Vector3.ZERO
+	for p: Vector3 in knot:
+		centre += p
+	var candidates: Array = [centre / float(knot.size())] + knot
+	var best: Array = []
+	for c: Vector3 in candidates:
+		var reach := Tuning.suspicion.blend_pocket_radius - _kth_nearest(c, standing)
+		if reach >= MIN_POCKET_NET and (best.is_empty() or reach > float(best[1])):
+			best = [c, reach]
+	return best
+
+
+## The distance from `at` to its `TUN-BLEND-POCKET-MIN-NPC`-th nearest point, or
+## `INF` if there are not that many.
+static func _kth_nearest(at: Vector3, points: Array) -> float:
+	var k := int(Tuning.suspicion.blend_pocket_min_npc)
+	if points.size() < k:
+		return INF
+	var away: Array = []
+	for p: Vector3 in points:
+		away.append(_flat(p, at))
+	away.sort()
+	return float(away[k - 1])
 
 
 static func _knots(points: Array, link: float) -> Array:

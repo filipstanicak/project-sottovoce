@@ -417,15 +417,18 @@ honeycomb lies on the ground under every group a player can blend with and under
 greyed, on their own screen alone**, so they know whom the blend rests on.
 
 **THE NET IS THE SAME ON EVERY SCREEN AND NAMES NO PLAYER.** Under every seat and counter from the
-map's own props; under every walking group and every knot of standing civilians a pocket can be
-taken in, from tags the server computes **from civilians alone** (`NET-S2C-CROWD-GROUPS`). A net
-that appeared or moved because a player joined would be a marker over that player — never-do #12 —
-so the player's slot in a walking group is never an NPC's, and a standing knot counts standing
-civilians only. **That is stricter than the pocket on purpose**: a pocket granted from passers-by
-gets no net, because a net under people walking away promises a blend that leaves.
+map's own props; under every walking group; and wherever standing civilians guarantee a pocket,
+from tags the server computes **from civilians alone** (`NET-S2C-CROWD-GROUPS`). A net that appeared
+or moved because a player joined would be a marker over that player — never-do #12 — so the
+player's slot in a walking group is never an NPC's, and a standing civilian is an idle NPC.
+**A standing net is a promise kept at every point of it**: the widest disc in which
+`TUN-BLEND-POCKET-MIN-NPC` standing civilians are within `TUN-BLEND-POCKET-RADIUS` of every point
+(review of #252, after a net was drawn where the server refused the pocket). **That is stricter
+than the pocket on purpose**: walkers are never counted, because a net under people walking away
+promises a blend that leaves.
 
 **THE GREY IS ON ONE SCREEN, AND IT NAMES MEMBERS.** A walking group greys its members, a pocket
-every civilian standing within `TUN-BLEND-POCKET-RADIUS` — in a knot, alone or on a seat, never a
+every civilian standing within `TUN-BLEND-POCKET-RADIUS` — on its own feet or on a seat, never a
 walker — a bench whoever holds its other seats, a counter only the player, a hiding spot nothing.
 Each is read from what the server says the civilian *is*, never from where it is drawn: the first
 version guessed sitters by distance and greyed a passer-by (review of #252). It is the one per-instance difference a body carries, and §6.3 rule 6 holds: no

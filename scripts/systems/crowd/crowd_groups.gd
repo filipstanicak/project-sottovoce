@@ -7,7 +7,7 @@
 ## same nets, so a net that appeared, moved or vanished because a player joined
 ## would be a marker over that player — never-do #12. A walking group's tag is its
 ## NPC occupants, and the slot a player takes is never an NPC's
-## (`WalkingGroup.joinable_slot`). A standing group counts standing NPCs, and a
+## (`WalkingGroup.joinable_slot`). A standing civilian is an idle NPC, and a
 ## player is not an NPC. A seat's tag is the NPC `LeanSpots` says holds it, and a
 ## player can neither take a held seat nor turn an NPC's hold into anything else.
 ## Nothing here reads a pawn.
@@ -17,7 +17,8 @@
 ## `TUN-BLEND-POCKET-RADIUS`, walkers included. The net is drawn only where that
 ## many *stand*, because a net under a knot of passers-by would promise a blend
 ## that walks away while the player is still reaching for it. Where the net lies,
-## the blend holds; it may also hold in a few places with no net.
+## the blend holds; it may also hold in a few places with no net. The client draws
+## it from these tags (`BlendCueRules.group_nets`).
 class_name CrowdGroups
 extends RefCounted
 
@@ -27,9 +28,7 @@ var tags := PackedByteArray()
 
 ## Re-tag the crowd and return what changed since the last call, as flat
 ## `[npc, tag, npc, tag, ...]`.
-func refresh(
-	pool: NpcPool, formations: CrowdFormations, spots: LeanSpots, hash: SpatialHash
-) -> PackedByteArray:
+func refresh(pool: NpcPool, formations: CrowdFormations, spots: LeanSpots) -> PackedByteArray:
 	if pool == null:
 		return PackedByteArray()
 	var states := PackedInt32Array()
@@ -44,7 +43,7 @@ func refresh(
 	if formations != null:
 		for group: WalkingGroup in formations.groups:
 			occupants.append(group.occupants)
-	return apply(tag_all(states, occupants, holds, hash, pool.capacity()))
+	return apply(tag_all(states, occupants, holds, pool.capacity()))
 
 
 ## Take `fresh` as the current tags and return the pairs that differ from before.
@@ -70,21 +69,16 @@ func full_table() -> PackedByteArray:
 
 
 ## **THE RULE, OVER PLAIN DATA.** `states` holds each active NPC's
-## `NpcBrain.State`, `occupants` each walking group's slot table, `holds` the static
-## prop each NPC holds or `LeanSpots.VACANT`, and `hash` the crowd as
-## `CrowdDirector` indexed it this tick. Returns `capacity` tags.
+## `NpcBrain.State`, `occupants` each walking group's slot table, and `holds` the
+## static prop each NPC holds or `LeanSpots.VACANT`. Returns `capacity` tags.
 ##
-## **A KNOT IS EVERY STANDING CIVILIAN NEAR A CENTRE, NOT ONLY THE CENTRES** (review
-## of #252). A centre is a standing civilian with `TUN-BLEND-POCKET-MIN-NPC` standing
-## civilians — itself included — within `TUN-BLEND-POCKET-RADIUS`. Tagging only the
-## centres left a pocket the server granted, four civilians 3.4 m round the player,
-## with one of its four marked.
+## **WHAT EACH CIVILIAN IS, AND NOTHING ABOUT WHERE A POCKET IS.** The second version
+## tagged the knots a pocket could be taken in, and a member at the edge of one was
+## drawn a net of its own where the server refused the pocket (review of #252). The
+## client now works out from standing positions where the pocket rule is guaranteed,
+## so this only has to say who is standing.
 static func tag_all(
-	states: PackedInt32Array,
-	occupants: Array,
-	holds: PackedInt32Array,
-	hash: SpatialHash,
-	capacity: int
+	states: PackedInt32Array, occupants: Array, holds: PackedInt32Array, capacity: int
 ) -> PackedByteArray:
 	var out := PackedByteArray()
 	out.resize(maxi(capacity, states.size()))
@@ -93,35 +87,11 @@ static func tag_all(
 		for npc: int in occupants[group] as PackedInt32Array:
 			if npc >= 0 and npc < states.size():
 				out[npc] = BlendGroupTag.formation(group)
-	for index: int in mini(states.size(), holds.size()):
-		if out[index] == BlendGroupTag.NONE and holds[index] != LeanSpots.VACANT:
+	for index: int in states.size():
+		if out[index] != BlendGroupTag.NONE:
+			continue
+		if index < holds.size() and holds[index] != LeanSpots.VACANT:
 			out[index] = BlendGroupTag.prop(holds[index])
-	if hash == null:
-		return out
-	var centres := _centres(states, hash)
-	var reach := Tuning.suspicion.blend_pocket_radius
-	for index: int in states.size():
-		if out[index] != BlendGroupTag.NONE or states[index] != NpcBrain.State.IDLE:
-			continue
-		out[index] = BlendGroupTag.STILL
-		for other: int in hash.query(hash.position_of(index), reach):
-			if other < centres.size() and centres[other] == 1:
-				out[index] = BlendGroupTag.STANDING
-				break
+		elif states[index] == NpcBrain.State.IDLE:
+			out[index] = BlendGroupTag.STANDING
 	return out
-
-
-## 1 for every standing civilian that has enough standing civilians round it.
-static func _centres(states: PackedInt32Array, hash: SpatialHash) -> PackedByteArray:
-	var centres := PackedByteArray()
-	centres.resize(states.size())
-	var reach := Tuning.suspicion.blend_pocket_radius
-	for index: int in states.size():
-		if states[index] != NpcBrain.State.IDLE:
-			continue
-		var standing := 0
-		for other: int in hash.query(hash.position_of(index), reach):
-			if other < states.size() and states[other] == NpcBrain.State.IDLE:
-				standing += 1
-		centres[index] = 1 if standing >= Tuning.suspicion.blend_pocket_min_npc else 0
-	return centres
