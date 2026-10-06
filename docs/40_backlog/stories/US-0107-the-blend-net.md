@@ -48,6 +48,11 @@ grey was not checkable from it, because that player never blends.
       does.** A walking group greys its members; a pocket the standing civilians within the
       pocket radius; a bench the others sitting on it; a counter only the player; a hiding spot
       nothing, because the player is not drawn there. `BlendCueRules`, `PersonaBody.set_greyed`.
+      **By membership, never by distance** (review of #252): the first version tagged only the
+      civilians that could each anchor a pocket and found sitters by a 0.5 m radius, so a pocket
+      the server granted greyed one of its four, and a passer-by at a counter was greyed as a
+      sitter. The server now says what each civilian is — in a knot, standing alone, holding
+      which seat — and `test_crowd_groups.gd` checks the grey against the server's own tags.
 - [x] **The grey keeps the persona readable** — half way to grey, not all the way: judged in
       `tools/blend_cue_probe.tscn`, where 70 % had washed the Lucerna's yellow out.
 - [ ] **The net reads on the finished district's ground.** Judged on the greybox only, whose

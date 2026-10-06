@@ -424,9 +424,11 @@ so the player's slot in a walking group is never an NPC's, and a standing knot c
 civilians only. **That is stricter than the pocket on purpose**: a pocket granted from passers-by
 gets no net, because a net under people walking away promises a blend that leaves.
 
-**THE GREY IS ON ONE SCREEN.** A walking group greys its members, a pocket the standing civilians
-within `TUN-BLEND-POCKET-RADIUS`, a bench the others on it, a counter only the player, a hiding
-spot nothing. It is the one per-instance difference a body carries, and §6.3 rule 6 holds: no
+**THE GREY IS ON ONE SCREEN, AND IT NAMES MEMBERS.** A walking group greys its members, a pocket
+every civilian standing within `TUN-BLEND-POCKET-RADIUS` — in a knot, alone or on a seat, never a
+walker — a bench whoever holds its other seats, a counter only the player, a hiding spot nothing.
+Each is read from what the server says the civilian *is*, never from where it is drawn: the first
+version guessed sitters by distance and greyed a passer-by (review of #252). It is the one per-instance difference a body carries, and §6.3 rule 6 holds: no
 other screen sees it.
 
 ### 4.2 The blend comparison table

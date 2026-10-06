@@ -27,7 +27,9 @@ var _told: Dictionary = {}
 func report(ctx: MatchContext, _dt: float) -> void:
 	if ctx == null or ctx.crowd == null:
 		return
-	announce(ctx.slots.peers(), groups.refresh(ctx.crowd, ctx.formations, ctx.crowd_hash))
+	announce(
+		ctx.slots.peers(), groups.refresh(ctx.crowd, ctx.formations, ctx.lean_spots, ctx.crowd_hash)
+	)
 
 
 ## Tell each of `peers` what it is owed: the whole table if it has not had one,

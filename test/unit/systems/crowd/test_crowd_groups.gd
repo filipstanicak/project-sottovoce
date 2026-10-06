@@ -1,13 +1,16 @@
-## **THE SERVER TAGS WHICH CIVILIANS FORM A GROUP, FROM CIVILIANS ALONE.** US-0107.
+## **THE SERVER TAGS WHAT EACH CIVILIAN IS, FROM CIVILIANS ALONE.** US-0107.
 ##
-## The net every client draws comes from these tags, so a tag that depended on a
-## player would be a marker over that player on every screen.
+## The net every client draws and the grey a blender sees both come from these
+## tags, so a tag that depended on a player would be a marker over that player, and
+## a tag that said less than membership would make the client guess from distance —
+## which is what the review of #252 found it doing.
 extends GutTest
 
 const BOUNDS := AABB(Vector3.ZERO, Vector3(120.0, 12.0, 120.0))
 const IDLE := NpcBrain.State.IDLE
 const STROLL := NpcBrain.State.STROLL
 const WALKING := NpcBrain.State.WALKING_GROUP
+const FREE := LeanSpots.VACANT
 
 
 func _hash(points: Array) -> SpatialHash:
@@ -17,6 +20,13 @@ func _hash(points: Array) -> SpatialHash:
 	return hash
 
 
+func _nobody_holds(count: int) -> PackedInt32Array:
+	var holds := PackedInt32Array()
+	holds.resize(count)
+	holds.fill(FREE)
+	return holds
+
+
 ## Four positions in a 1 m ring round `at`.
 func _ring(at: Vector3) -> Array:
 	return [
@@ -24,30 +34,31 @@ func _ring(at: Vector3) -> Array:
 	]
 
 
-func test_enough_standing_civilians_together_are_a_group() -> void:
-	var states := PackedInt32Array([IDLE, IDLE, IDLE, IDLE])
-	var tags := CrowdGroups.tag_all(states, [], _hash(_ring(Vector3(50, 0, 50))), 4)
+func _tag(states: Array, points: Array, holds := PackedInt32Array()) -> PackedByteArray:
+	var held := holds if not holds.is_empty() else _nobody_holds(points.size())
+	return CrowdGroups.tag_all(PackedInt32Array(states), [], held, _hash(points), points.size())
+
+
+func test_enough_standing_civilians_together_are_a_knot() -> void:
+	var tags := _tag([IDLE, IDLE, IDLE, IDLE], _ring(Vector3(50, 0, 50)))
 	for index: int in 4:
 		assert_eq(tags[index], BlendGroupTag.STANDING, "civilian %d" % index)
 
 
-func test_one_too_few_standing_is_no_group() -> void:
-	var points := _ring(Vector3(50, 0, 50))
-	var states := PackedInt32Array([IDLE, IDLE, IDLE, STROLL])
-	var tags := CrowdGroups.tag_all(states, [], _hash(points), 4)
+func test_one_too_few_standing_is_no_knot_and_the_walker_is_nothing() -> void:
 	assert_eq(Tuning.suspicion.blend_pocket_min_npc, 4, "PREMISE: four standing make a pocket")
-	for index: int in 4:
-		assert_eq(tags[index], BlendGroupTag.NONE, "a passer-by made civilian %d a group" % index)
+	var tags := _tag([IDLE, IDLE, IDLE, STROLL], _ring(Vector3(50, 0, 50)))
+	assert_eq(Array(tags), [BlendGroupTag.STILL, BlendGroupTag.STILL, BlendGroupTag.STILL, 0])
 
 
-func test_standing_civilians_far_apart_are_no_group() -> void:
-	var points: Array = []
-	for i: int in 4:
-		points.append(Vector3(10.0 + i * 10.0, 0.0, 50.0))
-	var tags := CrowdGroups.tag_all(
-		PackedInt32Array([IDLE, IDLE, IDLE, IDLE]), [], _hash(points), 4
-	)
-	assert_eq(tags.count(BlendGroupTag.STANDING), 0)
+func test_every_standing_civilian_near_a_centre_is_in_the_knot() -> void:
+	# The review of #252's case: one civilian sees all four, the outer three see
+	# only two each. All four hold the pocket, so all four are the knot.
+	var points := [
+		Vector3(50, 0, 50), Vector3(53.4, 0, 50), Vector3(46.6, 0, 50), Vector3(50, 0, 53.4)
+	]
+	var tags := _tag([IDLE, IDLE, IDLE, IDLE], points)
+	assert_eq(tags.count(BlendGroupTag.STANDING), 4)
 
 
 func test_a_walking_group_is_its_npc_occupants() -> void:
@@ -55,17 +66,59 @@ func test_a_walking_group_is_its_npc_occupants() -> void:
 	var states := PackedInt32Array([WALKING, WALKING, STROLL, WALKING])
 	# Two groups; the last slot of each is the player's and holds no NPC.
 	var occupants := [PackedInt32Array([-1, -1, -1]), PackedInt32Array([0, 1, 3, -1])]
-	var tags := CrowdGroups.tag_all(states, occupants, _hash(points), 4)
+	var tags := CrowdGroups.tag_all(states, occupants, _nobody_holds(4), _hash(points), 4)
+	assert_eq(Array(tags), [4, 4, 0, 4], "group 1 is FORMATION_BASE + 1")
 	assert_eq(tags[0], BlendGroupTag.formation(1))
-	assert_eq(tags[1], BlendGroupTag.formation(1))
-	assert_eq(tags[3], BlendGroupTag.formation(1))
-	assert_eq(tags[2], BlendGroupTag.NONE)
+
+
+func test_a_civilian_holding_a_seat_is_tagged_with_that_seat() -> void:
+	var holds := PackedInt32Array([13, FREE])
+	var tags := _tag([IDLE, IDLE], [Vector3(40, 0, 3), Vector3(70, 0, 70)], holds)
+	assert_eq(tags[0], BlendGroupTag.prop(13))
+	assert_eq(BlendGroupTag.prop_of(tags[0]), 13)
+	assert_eq(tags[1], BlendGroupTag.STILL)
 
 
 func test_tags_cover_the_whole_pool_and_inactive_npcs_are_none() -> void:
-	var tags := CrowdGroups.tag_all(PackedInt32Array([IDLE]), [], _hash([Vector3(5, 0, 5)]), 90)
+	var tags := CrowdGroups.tag_all(
+		PackedInt32Array([STROLL]), [], _nobody_holds(1), _hash([Vector3(5, 0, 5)]), 90
+	)
 	assert_eq(tags.size(), 90)
 	assert_eq(tags.count(BlendGroupTag.NONE), 90)
+
+
+func test_every_static_prop_and_circuit_fits_its_range_of_tags() -> void:
+	var data: MapData = load(MapCatalogue.data_path(&"vetraio"))
+	assert_ne(BlendGroupTag.prop(data.static_props.size() - 1), BlendGroupTag.NONE)
+	assert_true(BlendGroupTag.is_formation(BlendGroupTag.formation(data.circuits.size() - 1)))
+
+
+## **THE POCKET THE SERVER GRANTS GREYS EVERY STANDING CIVILIAN IT RESTS ON**, with
+## the server's own tags rather than tags written by hand (review of #252).
+func test_a_granted_pocket_greys_all_its_standing_civilians_and_no_walker() -> void:
+	var me := Vector3(50, 0, 50)
+	var points := [
+		Vector3(50, 0, 50),
+		Vector3(53.4, 0, 50),
+		Vector3(46.6, 0, 50),
+		Vector3(50, 0, 53.4),
+		Vector3(50, 0, 47),
+	]
+	var hash := _hash(points)
+	assert_gte(
+		hash.count_within(me, Tuning.suspicion.blend_pocket_radius),
+		Tuning.suspicion.blend_pocket_min_npc,
+		"PREMISE: the server grants this pocket"
+	)
+	var tags := CrowdGroups.tag_all(
+		PackedInt32Array([IDLE, IDLE, IDLE, IDLE, STROLL]), [], _nobody_holds(5), hash, 5
+	)
+	var drawn: Dictionary = {}
+	for index: int in points.size():
+		drawn[index] = points[index]
+	var greyed := BlendCueRules.greyed(BlendKind.Kind.POCKET, me, tags, drawn, [])
+	greyed.sort()
+	assert_eq(Array(greyed), [0, 1, 2, 3])
 
 
 func test_only_what_changed_is_reported_and_the_table_lists_every_group() -> void:

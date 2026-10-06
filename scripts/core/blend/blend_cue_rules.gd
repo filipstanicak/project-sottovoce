@@ -23,8 +23,6 @@ const PROP_NET_RADIUS := 0.9
 ## 0.8 m apart; the two lean spots of a stall stand its depth plus two agent radii,
 ## 2.8 m, apart — so one bench is one group and the two sides of a stall are two.
 const PROP_LINK := 1.2
-## How close to a seat a civilian must stand to be sitting on it.
-const AT_A_SEAT := PawnNavigation.NAV_AGENT_RADIUS + 0.1
 
 
 ## The NPC indices to grey for a player blended as `kind` at `me`. `tags` is
@@ -39,7 +37,7 @@ static func greyed(
 		BlendKind.Kind.POCKET:
 			return _standing_group(me, tags, drawn)
 		BlendKind.Kind.PROP_STATIC:
-			return _on_my_bench(me, drawn, props)
+			return _on_my_bench(me, tags, drawn, props)
 	return PackedInt32Array()
 
 
@@ -58,30 +56,34 @@ static func _walking_group(
 	return _tagged(tags, drawn, mine)
 
 
-## The standing civilians around the player. **Only standing ones**, as the
-## server counted them; a pocket the server granted from walkers alone has no
-## group to name, and nobody is greyed rather than the wrong somebody.
+## The standing civilians the player's pocket rests on: every one within
+## `TUN-BLEND-POCKET-RADIUS` the server says is standing — in a knot, alone, or
+## holding a seat — and no walker, though the server's count includes walkers. A
+## walker is about to leave; greying them would teach the player to rely on them.
 static func _standing_group(
 	me: Vector3, tags: PackedByteArray, drawn: Dictionary
 ) -> PackedInt32Array:
 	var out := PackedInt32Array()
 	var reach := Tuning.suspicion.blend_pocket_radius
 	for index: int in drawn:
-		if _tag(tags, index) == BlendGroupTag.STANDING and _flat(drawn[index], me) <= reach:
+		if BlendGroupTag.is_standing(_tag(tags, index)) and _flat(drawn[index], me) <= reach:
 			out.append(index)
 	return out
 
 
-## Whoever sits at another seat of the player's bench. A stall counter holds one
-## figure, so a player leaning there greys nobody but themselves.
-static func _on_my_bench(me: Vector3, drawn: Dictionary, props: Array) -> PackedInt32Array:
+## **WHOEVER HOLDS ANOTHER SEAT OF THE PLAYER'S BENCH, BY THE RECORD, NOT BY
+## DISTANCE** (review of #252). Distance greyed a passer-by brushing the player's
+## counter and missed a sitter standing 0.7 m from a seat it holds — arrival is
+## `TUN-CROWD-ANCHOR-ARRIVE-RADIUS`, 1.2 m. A stall counter holds one figure, so a
+## player leaning there greys nobody but themselves.
+static func _on_my_bench(
+	me: Vector3, tags: PackedByteArray, drawn: Dictionary, props: Array
+) -> PackedInt32Array:
 	var out := PackedInt32Array()
 	var seats := furniture_of(nearest_prop(me, props), props)
 	for index: int in drawn:
-		for seat: int in seats:
-			if _flat(drawn[index], props[seat]) <= AT_A_SEAT:
-				out.append(index)
-				break
+		if seats.has(BlendGroupTag.prop_of(_tag(tags, index))):
+			out.append(index)
 	return out
 
 
