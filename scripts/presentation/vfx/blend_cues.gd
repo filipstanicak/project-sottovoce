@@ -55,6 +55,9 @@ void fragment() {
 
 ## Lifted off the ground so the net does not flicker into it.
 const LIFT := 0.03
+## How often the standing nets are recomputed when no tag changed. Standing
+## civilians do not move; the pass costs about a millisecond for forty of them.
+const STANDING_REFRESH := 0.25
 
 ## Each NPC's `BlendGroupTag`, by index. A `u8` index, so 256.
 var tags := PackedByteArray()
@@ -71,6 +74,8 @@ var _kind: int = BlendKind.Kind.NONE
 var _material := ShaderMaterial.new()
 var _group_nets: Array[MeshInstance3D] = []
 var _greyed: Dictionary = {}
+var _standing_nets: Array = []
+var _standing_age := INF
 
 
 func _ready() -> void:
@@ -100,14 +105,19 @@ func apply_groups(full: bool, pairs: PackedByteArray) -> void:
 		tags.fill(BlendGroupTag.NONE)
 	for i: int in range(0, pairs.size() - 1, 2):
 		tags[pairs[i]] = pairs[i + 1]
+	_standing_age = INF
 
 
 func _on_blend_state(kind: int) -> void:
 	_kind = kind
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	var drawn := _drawn()
+	_standing_age += delta
+	if _standing_age >= STANDING_REFRESH:
+		_standing_age = 0.0
+		_standing_nets = BlendCueRules.standing_nets(tags, drawn)
 	_draw_groups(drawn)
 	_grey(drawn)
 
@@ -125,7 +135,7 @@ func _drawn() -> Dictionary:
 
 
 func _draw_groups(drawn: Dictionary) -> void:
-	var nets := BlendCueRules.group_nets(tags, drawn)
+	var nets := BlendCueRules.walking_nets(tags, drawn) + _standing_nets
 	while _group_nets.size() < nets.size():
 		_group_nets.append(_net(Vector3.ZERO, 1.0))
 	for i: int in _group_nets.size():

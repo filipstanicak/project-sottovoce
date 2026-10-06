@@ -41,10 +41,12 @@ grey was not checkable from it, because that player never blends.
       (`PROTOCOL_VERSION` 8) what each civilian is, **from civilians alone**, so no net ever
       appears, moves or vanishes because a player joined: a walking group's tag is its NPC
       occupants and the player's slot is never an NPC's. **A standing net is a promise kept at
-      every point of it**: the client draws, per knot, the widest disc in which
+      every point of it**: the client draws the widest discs in which
       `TUN-BLEND-POCKET-MIN-NPC` standing civilians are within `TUN-BLEND-POCKET-RADIUS` of every
-      point (`BlendCueRules._pocket_net`). The second version drew a net per knot and three of
-      four nets round one granted pocket lay where the server refused it (review of #252);
+      point, centred on a standing civilian or on the centre of its four nearest
+      (`BlendCueRules._pocket_nets`). The second version drew a net per knot and three of four
+      nets round one granted pocket lay where the server refused it; the third split the standing
+      at 1.75 m first and lost a full circle standing 2.8 m apart (reviews of #252);
       `test_the_net_keeps_its_promise.gd` now asks the real `BlendSystem.request` at the centre
       and rim of every net drawn. **Stricter than the pocket on purpose**: walkers are never
       counted, because a net under people walking away promises a blend that leaves.

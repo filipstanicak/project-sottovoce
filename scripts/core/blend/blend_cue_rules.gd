@@ -117,53 +117,107 @@ static func furniture_of(start: int, props: Array) -> PackedInt32Array:
 	return found
 
 
-## **ONE NET PER GROUP**, as `[centre, radius]`: each walking group, and the best
-## guaranteed pocket in each knot of standing civilians.
+## **ONE NET PER GROUP**, as `[centre, radius]`: each walking group, and each
+## guaranteed pocket among the standing civilians.
 ##
-## **A STANDING NET IS A PROMISE, AND IT IS KEPT EVERYWHERE IT IS DRAWN** (review of
-## #252). The first version drew a net over every knot of standing civilians, and
-## three of the four nets it drew round one granted pocket lay where the server
+## **A STANDING NET IS A PROMISE, AND IT IS KEPT EVERYWHERE IT IS DRAWN** (reviews
+## of #252). The first version drew a net over every knot of standing civilians,
+## and three of the four nets it drew round one granted pocket lay where the server
 ## refused one. Now a net is drawn only where the pocket rule holds at every point
-## of it: see `_pocket_net`.
+## of it: see `_pocket_nets`.
 static func group_nets(tags: PackedByteArray, drawn: Dictionary) -> Array:
-	var nets: Array = []
+	return walking_nets(tags, drawn) + standing_nets(tags, drawn)
+
+
+## One net round each walking group's members. Cheap, and they move: every frame.
+static func walking_nets(tags: PackedByteArray, drawn: Dictionary) -> Array:
 	var by_tag: Dictionary = {}
-	var standing: Array = []
 	for index: int in drawn:
 		var tag := _tag(tags, index)
 		if BlendGroupTag.is_formation(tag):
 			if not by_tag.has(tag):
 				by_tag[tag] = []
 			(by_tag[tag] as Array).append(drawn[index])
-		elif BlendGroupTag.is_standing(tag):
-			standing.append(drawn[index])
+	var nets: Array = []
 	for tag: int in by_tag:
 		nets.append(_net_over(by_tag[tag]))
-	for knot: Array in _knots(standing, Tuning.suspicion.blend_pocket_radius * 0.5):
-		var net := _pocket_net(knot, standing)
-		if not net.is_empty():
+	return nets
+
+
+## Every guaranteed pocket among the standing civilians. Standing civilians do not
+## move, so `BlendCues` asks this only when the tags change or a few times a second.
+static func standing_nets(tags: PackedByteArray, drawn: Dictionary) -> Array:
+	var standing: Array = []
+	for index: int in drawn:
+		if BlendGroupTag.is_standing(_tag(tags, index)):
+			standing.append(drawn[index])
+	return _pocket_nets(standing)
+
+
+## **EVERY DISC INSIDE WHICH A POCKET IS GUARANTEED**, widest first, none centred
+## inside another. For a point `c`, let `d` be the distance to its
+## `TUN-BLEND-POCKET-MIN-NPC`-th nearest standing civilian. Every point within
+## `TUN-BLEND-POCKET-RADIUS - d` of `c` then has at least that many standing
+## civilians within the pocket radius — the triangle inequality — and the server,
+## which counts walkers too, can only find more.
+##
+## **THE CANDIDATES ARE EVERY STANDING CIVILIAN AND THE CENTRE OF ITS NEAREST FEW.**
+## A circle's shared centre is the second for every one of its members. The third
+## version first split the standing into knots at half a pocket radius, and a full
+## circle whose members stood 2.8 m apart — within the arrival tolerance of real
+## circle seats — fell into four singletons whose centre was never tried: no net
+## over a 1.5 m guaranteed pocket (review of #252).
+static func _pocket_nets(standing: Array) -> Array:
+	var k := int(Tuning.suspicion.blend_pocket_min_npc)
+	if standing.size() < k:
+		return []
+	var scored: Array = []
+	for p: Vector3 in standing:
+		for c: Vector3 in [p, _centre_of(_nearest(p, standing, k))]:
+			var reach := Tuning.suspicion.blend_pocket_radius - _kth_nearest(c, standing)
+			if reach >= MIN_POCKET_NET:
+				scored.append([c, reach])
+	scored.sort_custom(func(a: Array, b: Array) -> bool: return float(a[1]) > float(b[1]))
+	var nets: Array = []
+	for net: Array in scored:
+		if _clear_of(net, nets):
 			nets.append(net)
 	return nets
 
 
-## **THE LARGEST DISC ROUND THIS KNOT INSIDE WHICH A POCKET IS GUARANTEED**, or
-## nothing. For a point `c`, let `d` be the distance to its
-## `TUN-BLEND-POCKET-MIN-NPC`-th nearest standing civilian. Every point within
-## `TUN-BLEND-POCKET-RADIUS - d` of `c` then has at least that many standing
-## civilians within the pocket radius — the triangle inequality — and the server,
-## which counts walkers too, can only find more. The knot's centroid and each of its
-## members are tried as `c`; the best disc is drawn if it is wide enough to stand in.
-static func _pocket_net(knot: Array, standing: Array) -> Array:
+## True if `net`'s centre lies inside no drawn net, and no drawn net's inside it.
+static func _clear_of(net: Array, nets: Array) -> bool:
+	for other: Array in nets:
+		if _flat(net[0], other[0]) < maxf(float(net[1]), float(other[1])):
+			return false
+	return true
+
+
+## The `k` points nearest `at`, by insertion into a buffer of `k` — no full sort,
+## because this runs for every standing civilian (measured 4 ms a call with sorts).
+static func _nearest(at: Vector3, points: Array, k: int) -> Array:
+	var near: Array = []
+	var away: Array = []
+	for p: Vector3 in points:
+		var d := _flat(p, at)
+		if near.size() == k and d >= float(away[k - 1]):
+			continue
+		var slot := near.size()
+		while slot > 0 and float(away[slot - 1]) > d:
+			slot -= 1
+		near.insert(slot, p)
+		away.insert(slot, d)
+		if near.size() > k:
+			near.pop_back()
+			away.pop_back()
+	return near
+
+
+static func _centre_of(points: Array) -> Vector3:
 	var centre := Vector3.ZERO
-	for p: Vector3 in knot:
+	for p: Vector3 in points:
 		centre += p
-	var candidates: Array = [centre / float(knot.size())] + knot
-	var best: Array = []
-	for c: Vector3 in candidates:
-		var reach := Tuning.suspicion.blend_pocket_radius - _kth_nearest(c, standing)
-		if reach >= MIN_POCKET_NET and (best.is_empty() or reach > float(best[1])):
-			best = [c, reach]
-	return best
+	return centre / float(points.size())
 
 
 ## The distance from `at` to its `TUN-BLEND-POCKET-MIN-NPC`-th nearest point, or
@@ -172,27 +226,7 @@ static func _kth_nearest(at: Vector3, points: Array) -> float:
 	var k := int(Tuning.suspicion.blend_pocket_min_npc)
 	if points.size() < k:
 		return INF
-	var away: Array = []
-	for p: Vector3 in points:
-		away.append(_flat(p, at))
-	away.sort()
-	return float(away[k - 1])
-
-
-static func _knots(points: Array, link: float) -> Array:
-	var knots: Array = []
-	var left := points.duplicate()
-	while not left.is_empty():
-		var knot: Array = [left.pop_back()]
-		var next := 0
-		while next < knot.size():
-			for i: int in range(left.size() - 1, -1, -1):
-				if _flat(left[i], knot[next]) <= link:
-					knot.append(left[i])
-					left.remove_at(i)
-			next += 1
-		knots.append(knot)
-	return knots
+	return _flat(_nearest(at, points, k)[k - 1], at)
 
 
 static func _net_over(points: Array) -> Array:

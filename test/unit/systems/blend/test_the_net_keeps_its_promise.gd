@@ -93,3 +93,19 @@ func test_a_loose_knot_draws_no_net_nobody_could_stand_in() -> void:
 	# Four standing in a 3 m line: the pocket holds only near the middle, if at all.
 	var points := [Vector3(70, 0, 20), Vector3(71, 0, 20), Vector3(72, 0, 20), Vector3(73.2, 0, 20)]
 	_assert_every_net_is_kept(points, _nets(points))
+
+
+## **A FULL CIRCLE STANDING LOOSE IS STILL ONE NET** (review of #252). Members 2 m
+## from the centre, 2.8 m from each other — each 1.1 m from a real circle seat, inside
+## the 1.2 m arrival — split into four singletons when the standing were partitioned
+## at half a pocket radius, and the centre that guarantees 1.5 m was never tried.
+func test_a_loosely_standing_full_circle_has_exactly_one_net_at_its_centre() -> void:
+	var points := [Vector3(62, 0, 60), Vector3(60, 0, 62), Vector3(58, 0, 60), Vector3(60, 0, 58)]
+	var nets := _nets(points)
+	assert_eq(nets.size(), 1, "the circle's guaranteed pocket was not drawn, or drawn twice")
+	if nets.size() == 1:
+		var net: Array = nets[0]
+		var centre: Vector3 = net[0]
+		assert_almost_eq(Vector2(centre.x - 60, centre.z - 60).length(), 0.0, 0.001)
+		assert_almost_eq(float(net[1]), Tuning.suspicion.blend_pocket_radius - 2.0, 0.001)
+	_assert_every_net_is_kept(points, nets)

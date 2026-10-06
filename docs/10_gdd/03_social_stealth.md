@@ -421,9 +421,11 @@ map's own props; under every walking group; and wherever standing civilians guar
 from tags the server computes **from civilians alone** (`NET-S2C-CROWD-GROUPS`). A net that appeared
 or moved because a player joined would be a marker over that player — never-do #12 — so the
 player's slot in a walking group is never an NPC's, and a standing civilian is an idle NPC.
-**A standing net is a promise kept at every point of it**: the widest disc in which
-`TUN-BLEND-POCKET-MIN-NPC` standing civilians are within `TUN-BLEND-POCKET-RADIUS` of every point
-(review of #252, after a net was drawn where the server refused the pocket). **That is stricter
+**A standing net is a promise kept at every point of it**: a disc in which
+`TUN-BLEND-POCKET-MIN-NPC` standing civilians are within `TUN-BLEND-POCKET-RADIUS` of every point,
+centred on a standing civilian or on the centre of its four nearest — a circle's own centre
+(reviews of #252, after a net was drawn where the server refused the pocket and a loose full circle
+got none). **That is stricter
 than the pocket on purpose**: walkers are never counted, because a net under people walking away
 promises a blend that leaves.
 
