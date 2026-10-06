@@ -73,6 +73,16 @@ signal score_reported(report: ScoreReport)
 ## withholds nothing where every other one withholds by design.
 signal match_ended(report: MatchEndReport)
 
+## `NET-S2C-CROWD-GROUPS`, on a node of its own under this one (US-0107): this file
+## already holds twenty public methods, the linter's ceiling, and a child of a child
+## of an autoload is still at the same path on every peer.
+var crowd := CrowdGroupWire.new()
+
+
+func _ready() -> void:
+	crowd.name = "CrowdGroupWire"
+	add_child(crowd)
+
 
 ## `NET-S2C-CONTRACT-ASSIGNED`. SERVER SIDE, **to the holder only**.
 ##

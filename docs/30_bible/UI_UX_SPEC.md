@@ -308,6 +308,14 @@ edge*, so a colourblind variant has to be able to move that edge. A second home 
 the duplicated-rule shape this project keeps finding. The guard scans
 `scripts/presentation/hud/` **and** `scripts/presentation/vfx/`.
 
+**The second is the blend net (US-0107), `BlendCues`**: a faint white honeycomb on the ground under
+every group a player can blend with and under every bench seat and counter, always, as the
+reference draws it — `Palette.blend_net`, with a fainter dark seam beside each line
+(`blend_net_seam`), because on the greybox's sunlit floor a white line alone vanished. Its colours
+reach the shader as uniforms from the palette, so a shader string cannot become the literal the
+guard is blind to. **The blender's own group is greyed** on their screen alone (GDD-03 §4.1.6);
+that grey is a body's, half way to `PersonaBody.GREY`, and keeps the persona readable.
+
 ### 7.1 The four palettes
 
 | Palette | For |

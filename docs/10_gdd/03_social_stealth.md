@@ -354,7 +354,7 @@ All four crush suspicion to 0 over `TUN-BLEND-CRUSH-TIME` 1.2 s, cost
 
 | Field | Specification |
 |---|---|
-| **Activation** | `INPUT-BLEND` at a marked bench, stall counter or well edge. No NPC requirement. |
+| **Activation** | `INPUT-BLEND` at a marked bench, stall counter or well edge. No NPC requirement. *Marked since 2026-10-06 (US-0107): a faint net lies on the ground under every seat and counter — §4.1.6.* |
 | **What it looks like** | Seated or leaning, persona-appropriate, matching the clone idle used at that prop type. |
 | **What breaks it** | Any movement input, damage. |
 | **Counterplay** | Static props are fixed level geometry: a hunter learns all of them. And a lone figure sitting on a bench with no NPCs nearby still accrues `TUN-SUSPICION-GAIN-OPEN`… **no** — the blend crush overrides accumulation entirely (see the formula in §3.3). Instead the counterplay is positional: a bench in an empty street is *visually* conspicuous even while mechanically anonymous, because a hunter scanning an empty street has only one thing to look at. |
@@ -407,6 +407,34 @@ shift on a bench.
 hay cart is what the design wants; going back into the same well is the door-flicker the window
 exists to stop. It is armed by **any** exit including a break, because a break is the faster of
 the two doors out.
+
+#### 4.1.6 The net and the grey, 2026-10-06 (US-0107)
+
+**Reported from the controls**: the crowd felt right, and nothing said where a player could blend
+or whether they were. The owner's reading of the reference, from playing it: a faint white
+honeycomb lies on the ground under every group a player can blend with and under every bench,
+**always**; and a blended player sees themselves and the civilians of their group **slightly
+greyed, on their own screen alone**, so they know whom the blend rests on.
+
+**THE NET IS THE SAME ON EVERY SCREEN AND NAMES NO PLAYER.** Under every seat and counter from the
+map's own props; under every walking group; and wherever standing civilians guarantee a pocket,
+from tags the server computes **from civilians alone** (`NET-S2C-CROWD-GROUPS`). A net that appeared
+or moved because a player joined would be a marker over that player — never-do #12 — so the
+player's slot in a walking group is never an NPC's, and a standing civilian is an idle NPC.
+**A standing net is a promise kept at every point of it**: a disc in which
+`TUN-BLEND-POCKET-MIN-NPC` standing civilians are within `TUN-BLEND-POCKET-RADIUS` of every point,
+centred on a standing civilian or on the centre of its four nearest — a circle's own centre
+(reviews of #252, after a net was drawn where the server refused the pocket and a loose full circle
+got none). **That is stricter
+than the pocket on purpose**: walkers are never counted, because a net under people walking away
+promises a blend that leaves.
+
+**THE GREY IS ON ONE SCREEN, AND IT NAMES MEMBERS.** A walking group greys its members, a pocket
+every civilian standing within `TUN-BLEND-POCKET-RADIUS` — on its own feet or on a seat, never a
+walker — a bench whoever holds its other seats, a counter only the player, a hiding spot nothing.
+Each is read from what the server says the civilian *is*, never from where it is drawn: the first
+version guessed sitters by distance and greyed a passer-by (review of #252). It is the one per-instance difference a body carries, and §6.3 rule 6 holds: no
+other screen sees it.
 
 ### 4.2 The blend comparison table
 
@@ -589,7 +617,7 @@ These are the rules that make anonymity real. Each is a release blocker if viola
 | 3 | Clone count per persona stays within `TUN-CROWD-CLONES-PER-PERSONA-MIN/MAX` (8–12) **globally**, and `TUN-CROWD-CLONE-LOCAL-MIN` (2) **within `TUN-CROWD-CLONE-LOCAL-RADIUS` (25 m) of every player who has been in the world longer than `CloneParity.grace_seconds()`** — see below. The opening arrangement is [`05_level_design.md`](05_level_design.md) §2.7 rule 8's. | Global sufficiency with local depletion is the silent failure: the last Lucerna in the south market is unique and does not know it. |
 | 4 | Clone personas are assigned from `match_seed` (ASM-0025), identically on every peer. | "I saw a Lucerna by the furnace" becomes a lie; the social layer breaks. |
 | 5 | **Every persona in use by a player must have clones.** If nobody plays Cantatrice, Cantatrice clones may still spawn (harmless). If someone plays Cantatrice, clones are mandatory. | A player with zero clones is a marked man. |
-| 6 | Per-instance variation (colour, accessory) is **forbidden** on clones. | Any variation the player cannot also have is a discriminator. Any variation the player *can* have is a cosmetic system, which is out of scope (`SCOPE_FENCE` OUT #3) for exactly this reason. |
+| 6 | Per-instance variation (colour, accessory) is **forbidden** on clones. | Any variation the player cannot also have is a discriminator. Any variation the player *can* have is a cosmetic system, which is out of scope (`SCOPE_FENCE` OUT #3) for exactly this reason. *The blend's grey (§4.1.6) is not one: it is drawn on the blender's screen alone, over figures they already know they stand with.* |
 | 7 | Clones must be able to occupy every blend action a player can. **Built 2026-10-04 (US-0103):** NPCs lean at the twelve stall counters and sit at the fifteen bench seats through the same occupancy as players (`LeanSpots`, one figure per place), and idle NPCs stand in conversation circles, a full one being a blend pocket. `MAP-VETRAIO` had no bench until then; five were added (GDD-05 §2.4.1). Seated reads as standing at the seat until there are clips, for players and NPCs alike. Hiding spots stay the players' alone. *Was: "NOT BUILT — found 2026-09-25: no crowd code uses a blend prop, lean spot or hiding spot, and the conversation-cluster tunables have no reader."* | A player sitting on a bench that no NPC ever sits on is a player sitting alone on a bench. |
 
 #### Rule 3 does not bind at the instant a player is placed

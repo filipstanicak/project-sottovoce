@@ -37,6 +37,10 @@ var lobby_states_sent: int = 0
 ## the tests read: the sends are the hop a decision-only test cannot see.
 var notices_sent: Array = []
 
+## Which civilians form a group, told to every player (US-0107). A class of its
+## own because it runs every tick, where everything else here answers an event.
+var crowd_groups := CrowdGroupAnnouncer.new()
+
 var _ctx: MatchContext
 
 ## How far into `ScoreLog` this has already sent. **An index, not an event id**,

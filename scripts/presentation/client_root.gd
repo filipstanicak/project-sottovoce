@@ -36,6 +36,7 @@ func _ready() -> void:
 	add_child(results)
 	($Hud/HudBridge as HudBridge).results_time_changed.connect(results.results_time_changed)
 	_open_the_wardrobe()
+	_lay_the_blend_cues(chosen)
 
 
 ## **ONE NODE DECIDES WHAT EVERY FIGURE WEARS** — crowd, other players and this one
@@ -49,6 +50,23 @@ func _open_the_wardrobe() -> void:
 		get_node_or_null("ClientNet/NpcView") as NpcView,
 		get_node_or_null("ClientNet/RemotePawns") as RemotePawns,
 		get_node_or_null("World/PawnLocal/PersonaVisuals") as PersonaBody
+	)
+
+
+## **THE NET UNDER EVERY GROUP AND BENCH, AND THE GREY OVER ONE'S OWN** (US-0107).
+## In the world rather than the HUD: the net lies on the ground and the grey is on
+## bodies, and both are drawn over the same figures `Wardrobe` dresses.
+func _lay_the_blend_cues(chosen: String) -> void:
+	var cues := BlendCues.new()
+	cues.name = "BlendCues"
+	cues.palette = ($Hud as HudRoot).palette
+	$World.add_child(cues)
+	var map := load(MapCatalogue.data_path(chosen)) as MapData
+	cues.bind(
+		get_node_or_null("ClientNet/NpcView") as NpcView,
+		get_node_or_null("World/PawnLocal") as Node3D,
+		get_node_or_null("World/PawnLocal/PersonaVisuals") as PersonaBody,
+		map.static_props if map != null else []
 	)
 
 

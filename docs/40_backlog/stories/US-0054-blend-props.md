@@ -37,7 +37,9 @@ Bench and stall-lean blends, plus the five capacity-one concealment props.
       `NET-S2C-BLEND-DENIED` is a new message — `NET-C2S-BLEND-REQUEST` had **no answer of any
       kind**, so a press at an occupied hay cart and a press at an empty street produced
       exactly the same nothing.
-- [ ] The occupant can see nothing while inside. **Blocked: no client renders a blend.** The
+- [ ] The occupant can see nothing while inside. **Blocked: no client draws the hiding spot's
+      blindness.** *Until 2026-10-06 no client drew a blend at all; US-0107 draws the net and the
+      grey, and greys nothing inside a hiding spot.* The
       server half is done — `blend_state` reaches the occupant's own snapshot block, which is
       what a widget will black the screen out from — and the widget is US-0084 in M5. A guard
       over zero call sites would be vacuously green.

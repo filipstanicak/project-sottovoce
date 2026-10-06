@@ -48,6 +48,10 @@ const FALLBACK_RADIUS := 0.35
 const FALLBACK_HEIGHT := 1.8
 
 const HEAD_FRACTION := 0.62
+## How far a greyed part moves from its colour toward `GREY`: "slightly greyed",
+## the hue still there to read the persona by.
+const GREY_MIX := 0.5
+const GREY := Color(0.72, 0.72, 0.72)
 const MARKER_SIZE := Vector3(0.30, 0.16, 0.12)
 
 ## Which persona to build, or `&""` for the undressed figure. Set before the node
@@ -63,6 +67,7 @@ var palette: Palette = null
 var _cloth: Color = BODY_COLOUR
 var _radius: float = FALLBACK_RADIUS
 var _collider_height: float = FALLBACK_HEIGHT
+var _greyed := false
 
 
 func _ready() -> void:
@@ -103,6 +108,36 @@ func dress(to: StringName) -> bool:
 	return true
 
 
+## **GREYED ON ONE SCREEN ONLY: THE BLENDED PLAYER'S, FOR THEIR OWN GROUP** (US-0107).
+## The reference greys the player and the civilians they are hiding with, so the
+## player knows whom the blend rests on. **This is the one per-instance difference a
+## body may carry, and rule 6 still holds**: it is drawn for the blender alone, over
+## figures they already know they stand with, and no other screen ever sees it.
+## `BlendCues` is its only caller.
+func set_greyed(on: bool) -> void:
+	if on == _greyed:
+		return
+	_greyed = on
+	_paint()
+
+
+func is_greyed() -> bool:
+	return _greyed
+
+
+## Each part in its own colour, or that colour greyed.
+func _paint() -> void:
+	for child: Node in get_children():
+		var part := child as MeshInstance3D
+		if part == null or part.mesh == null:
+			continue
+		var material := part.mesh.material as StandardMaterial3D
+		if material == null:
+			continue
+		var base: Color = part.get_meta(&"base", material.albedo_color)
+		material.albedo_color = base.lerp(GREY, GREY_MIX) if _greyed else base
+
+
 ## Whether this body is drawn as a persona rather than the undressed figure.
 func is_dressed() -> bool:
 	return CrowdRoster.PLAYABLE.has(persona)
@@ -115,11 +150,9 @@ func cloth() -> Color:
 
 func _build() -> void:
 	_cloth = cloth() if is_dressed() else BODY_COLOUR
-	if not is_dressed():
-		_undressed()
-		_facing_marker()
-		return
-	match persona:
+	match persona if is_dressed() else &"":
+		&"":
+			_undressed()
 		Ids.PERSONA_CANTATRICE:
 			_cantatrice()
 		Ids.PERSONA_LUCERNA:
@@ -129,6 +162,9 @@ func _build() -> void:
 		_:
 			_vetraio()
 	_facing_marker()
+	# A body re-dressed while its player is blended stays greyed.
+	if _greyed:
+		_paint()
 
 
 ## **Vetraio** — capsule, 1.68 m, ×1.4 shoulder scale, box on chest. The short
@@ -256,4 +292,5 @@ func _attach(node_name: String, mesh: Mesh, offset: Vector3, colour: Color) -> v
 	instance.name = node_name
 	instance.mesh = mesh
 	instance.position = offset
+	instance.set_meta(&"base", colour)
 	add_child(instance)

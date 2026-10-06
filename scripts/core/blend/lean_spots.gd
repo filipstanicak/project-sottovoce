@@ -50,6 +50,13 @@ func npc_at(spot: int) -> int:
 	return int(_npcs.get(spot, VACANT))
 
 
+## The spot NPC `index` holds — arrived at, not merely walking to — or `VACANT`.
+## `CrowdGroups` reads it, so the civilians a seated player is greyed with are the
+## ones the record says sit there, not whoever stands near (review of #252).
+func spot_held_by(index: int) -> int:
+	return int(_by_npc.get(index, VACANT))
+
+
 ## Take `spot` for `peer`. False if anybody else holds it. A peer moving to another
 ## spot gives up the first; an NPC only walking to it loses its reservation.
 func take_for_player(peer: int, spot: int) -> bool:
