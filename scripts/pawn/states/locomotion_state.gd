@@ -110,6 +110,8 @@ func _world_direction(input: InputCommand) -> Vector3:
 ## is simply S, at any heading. `TUN-SPEED-BACKPEDAL-MULT` existing at all is
 ## what says this controller strafes rather than turning to face its own travel.
 func _is_backpedalling(input: InputCommand) -> bool:
-	if not input.wants_movement():
+	# A pawn walked along by its group faces its travel (`PawnMotion.apply`), so it
+	# is never walking backwards, whatever the camera is looking at.
+	if not input.wants_movement() or input.follow:
 		return false
 	return input.move.normalized().y < -0.5

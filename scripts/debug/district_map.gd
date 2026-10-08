@@ -53,6 +53,8 @@ var _hues: Dictionary = {}
 
 ## Every mesh this overlay repainted, so F3 can put them back.
 var _painted: Array[MeshInstance3D] = []
+## Each painted mesh's own override, to put back when the map is hidden.
+var _was: Dictionary = {}
 
 
 static func attach(to: Node, driver: LocalPawnDriver) -> Node:
@@ -107,6 +109,7 @@ func _tint_the_world() -> void:
 			continue
 		var paint := StandardMaterial3D.new()
 		paint.albedo_color = Color.from_hsv(float(_hues[str(row[0])]), TINT_SATURATION, 0.82)
+		_was[mesh] = mesh.material_override
 		mesh.material_override = paint
 		_painted.append(mesh)
 
@@ -116,9 +119,12 @@ func _tint_the_world() -> void:
 ## district still repainted in flat hues — a half-off debug view that looks like a
 ## rendering fault rather than like a debug tool somebody switched off.
 ##
-## The overrides are dropped rather than remembered: the meshes carry no material
-## of their own (the generator emits untextured greybox), so `null` restores
-## exactly what was there.
+## **THE FLOOR'S OWN MATERIAL IS PUT BACK, NOT DROPPED.** This said until
+## 2026-10-09 that the meshes carry no material of their own, so `null` restored
+## exactly what was there. **They do**: the generator gives every floor
+## `MAT-GREY-FLOOR` as its override, and the overlay starts hidden — so every debug
+## build, `play.bat`'s included, drew every street in Godot's default white. Found
+## when the blend net (US-0107) could not be seen on it, and a red floor drew white.
 func set_overlay_shown(shown: bool) -> void:
 	visible = shown
 	if shown and _painted.is_empty():
@@ -128,8 +134,9 @@ func set_overlay_shown(shown: bool) -> void:
 		return
 	for mesh: MeshInstance3D in _painted:
 		if is_instance_valid(mesh):
-			mesh.material_override = null
+			mesh.material_override = _was.get(mesh) as Material
 	_painted.clear()
+	_was.clear()
 
 
 func _find_geometry(node: Node) -> Node:

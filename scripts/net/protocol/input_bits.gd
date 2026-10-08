@@ -45,6 +45,15 @@ const SCAN: int = 1 << 9
 ## reaches no wire and no state.
 const RUN_FULL: int = 1 << 10
 
+## **THE CLIENT IS WALKING THE PLAYER ALONG WITH THEIR WALKING GROUP** (US-0107). Not
+## a key: the reference walks a player who joins a group with it until they walk
+## out, and the client sets this on every command it steers for them
+## (`GroupFollow`). The pawn then faces its travel, as the group's civilians do,
+## rather than the camera, and walks at full pace in any direction of the camera.
+## Never set on a tick with movement input or an action, so a kill or a stun is
+## aimed where the player looks.
+const FOLLOW: int = 1 << 11
+
 ## The highest bit the wire format can carry. `buttons` is a `u16`.
 const MAX_BIT: int = 15
 
@@ -57,7 +66,9 @@ const MAX_BIT: int = 15
 ## `INPUT-MOVE` and `INPUT-LOOK` are axes and travel in their own fields. An
 ## action reaches the wire only if it changes `step()`, because every bit here is
 ## bandwidth spent 60 times a second per client, forever.
-const ALL: Array[int] = [SLOW, RUN, SPRINT, TRAVERSE, KILL, STUN, BLEND, ABILITY_1, ABILITY_2, SCAN]
+const ALL: Array[int] = [
+	SLOW, RUN, SPRINT, TRAVERSE, KILL, STUN, BLEND, ABILITY_1, ABILITY_2, SCAN, FOLLOW
+]
 
 
 ## Bits set in `buttons` that are not held in `previous` — the presses that began

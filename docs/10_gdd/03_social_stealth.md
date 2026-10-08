@@ -345,7 +345,7 @@ All four crush suspicion to 0 over `TUN-BLEND-CRUSH-TIME` 1.2 s, cost
 | Field | Specification |
 |---|---|
 | **Activation** | `INPUT-BLEND` within `TUN-BLEND-GROUP-JOIN-RADIUS` (2.5 m) of a group of `TUN-CROWD-GROUP-SIZE` (4) NPCs walking a circuit. You occupy a formation slot. |
-| **What it looks like** | You walk in loose formation at `TUN-CROWD-NPC-SPEED-STROLL` (1.4 m/s, exactly `TUN-SPEED-BLENDWALK`), matching pace and slot. |
+| **What it looks like** | You walk in loose formation at `TUN-CROWD-NPC-SPEED-STROLL` (1.4 m/s, exactly `TUN-SPEED-BLENDWALK`), matching pace and slot. **The group walks you, since 2026-10-09 (US-0107, owner decision for reference fidelity)**: while you keep your hands off, the client walks you in your slot, facing your travel as the civilians do, and the camera stays yours. Touching the stick hands control back; walking out of `TUN-BLEND-GROUP-SLOT-TOLERANCE` leaves the group. *Until then you matched the slot by hand, and looking round broke the blend.* |
 | **What breaks it** | Drifting more than `TUN-BLEND-GROUP-SLOT-TOLERANCE` (0.8 m) from your slot, exceeding stroll, damage, or the group Startling. |
 | **Counterplay** | Groups follow *known circuits* (`TUN-CROWD-GROUP-COUNT` = 4 on `MAP-VETRAIO`). A hunter who has learned the circuits knows where a blending player can be. |
 | **Why it exists** | **The only way to travel while gaining anonymity rather than spending it.** Every other form of movement costs. This one pays — at 1.4 m/s, on a route you did not choose. That trade (mobility for agency) is what makes it interesting rather than dominant. |

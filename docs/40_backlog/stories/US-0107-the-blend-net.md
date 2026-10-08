@@ -62,6 +62,20 @@ grey was not checkable from it, because that player never blends.
       tags.
 - [x] **The grey keeps the persona readable** — half way to grey, not all the way: judged in
       `tools/blend_cue_probe.tscn`, where 70 % had washed the Lucerna's yellow out.
+- [x] **A walking group walks the player** (the owner, 2026-10-09: *I do not walk myself, I walk
+      along automatically until I walk out of the group*; a player guide says the persona is
+      *"taken over by the AI"*). While blended in a group and hands off, the client writes the
+      commands toward the slot (`GroupFollow`, `GroupFollowSteer`), marked `InputBits.FOLLOW`, so
+      the pawn faces its travel and never backpedals; the camera stays the player's. Touching the
+      stick hands control back, and an action is aimed where the player looks. `blend_slot` rides
+      the own block, `PROTOCOL_VERSION` 9. Measured through the real state machine, camera looking
+      back, a corner turned: at most 0.08 m from the slot (tolerance 0.8), at most 1.52 m/s (break
+      2.2), facing exact; without `FOLLOW` the same steering falls 1.67 m behind.
+- [x] **The street is grey in a debug build.** It was drawn white, and the net on it could not be
+      seen: the debug district map set every street floor's material to `null` when hidden, on a
+      docstring's word that the floors had none, and it starts hidden — so every `play.bat` session
+      since US-0041 drew the streets in Godot's default white. It now puts the floor's own
+      `MAT-GREY-FLOOR` back. A red floor drawing white is how it was found.
 - [ ] **The net reads on the finished district's ground.** Judged on the greybox only, whose
       sunlit floor is near-white: a white line alone vanished there, so each line carries a faint
       dark seam. Blocked: no art.

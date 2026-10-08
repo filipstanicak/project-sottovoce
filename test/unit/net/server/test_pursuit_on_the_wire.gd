@@ -105,4 +105,6 @@ func test_the_bytes_survive_the_wire_the_right_way_round() -> void:
 ## trusted**: `test_snapshot_size.gd` measures an empty snapshot against the
 ## constants, so the two would disagree — this says which way and why.
 func test_the_own_block_grew_by_exactly_two_bytes() -> void:
-	assert_eq(Snapshot.OWN_BYTES, 45, "the pursuit bars are two bytes and no more")
+	# 45 with the pursuit bars; 49 since US-0107 added the walking-group slot's x and z,
+	# four bytes that are not the pursuit's.
+	assert_eq(Snapshot.OWN_BYTES, 45 + 4, "the pursuit bars are two bytes and no more")

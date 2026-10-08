@@ -54,6 +54,9 @@ var probes: TraversalProbes
 
 var _body: CharacterBody3D
 var _sampler: InputSampler
+## Walks the player along with their walking group while they keep their hands off
+## (US-0107). Between sampling and announcing, so everything downstream sees it.
+var _follow := GroupFollow.new()
 
 
 func _ready() -> void:
@@ -141,9 +144,14 @@ func _attach_the_toggle() -> void:
 	(load(TOGGLE_PATH) as GDScript).attach(self)
 
 
+func _enter_tree() -> void:
+	Net.snapshot_received.connect(_follow.observe)
+
+
 func _physics_process(delta: float) -> void:
 	# THE ONLY CALL TO sample() IN THE PROJECT. See the signal below it.
 	var command := _sampler.sample(delta)
+	_follow.steer(command, ctx.position, Net.rtt_ms(MultiplayerPeer.TARGET_PEER_SERVER) / 1000.0)
 	# Announced before step(), which is where the sampler used to announce it from
 	# its own loop — so the camera still reads the look on the same side of the
 	# state machine it always did.

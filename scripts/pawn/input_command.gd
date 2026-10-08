@@ -138,6 +138,13 @@ var scan: bool:
 	set(value):
 		buttons = InputBits.with(buttons, InputBits.SCAN, value)
 
+## `InputBits.FOLLOW`: the client is walking the player along with their group.
+var follow: bool:
+	get:
+		return InputBits.is_set(buttons, InputBits.FOLLOW)
+	set(value):
+		buttons = InputBits.with(buttons, InputBits.FOLLOW, value)
+
 
 func wants_movement() -> bool:
 	return move.length_squared() > 0.0

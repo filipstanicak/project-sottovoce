@@ -6,24 +6,29 @@
 ## numbers to tenths (protocol version 2). Every other byte is still 81f38d4's, and
 ## the edit was made to the hex rather than by re-encoding, so the fixtures keep
 ## proving the layout rather than the current codec's opinion of it.
+##
+## **AND FOUR ZERO BYTES WERE INSERTED BY HAND ON 2026-10-09** at the end of the own
+## block, after the two pursuit bytes: `blend_slot`'s `x` and `z` (US-0107,
+## `PROTOCOL_VERSION` 9). The frozen snapshots predate the field and carry no slot,
+## so zero is what they hold.
 extends GutTest
 
 const FIXTURE = preload("res://test/unit/net/protocol/snapshot_wire_fixture.gd")
 
 const EMPTY := (
 	"00000000000000000000000000000000000000000000000000000000000000000100000000000000"
-	+ "0000000000000000000000000a00000000"
+	+ "000000000000000000000000000000000a00000000"
 )
 
 const FULL := (
 	"785634124523a50900004441000060c00080c542000010c00000003e00009040058403015715b004"
-	+ "ffffa616c7c82c800103201c1412020270175e0150fb4003860557feaf005203e00f4502001170fe"
-	+ "461e4680b4596504fef70fc047"
+	+ "ffffa616c700000000c82c800103201c1412020270175e0150fb4003860557feaf005203e00f4502"
+	+ "001170fe461e4680b4596504fef70fc047"
 )
 
 const LIMITS := (
 	"785634124523a5ff00004441000060c00080c542000010c00000003e00009040ff8403005715b004"
-	+ "ffffa500ffc82c800003201c141201010080ff7f000000ffff0100ffff7f0080ff00ff"
+	+ "ffffa500ff00000000c82c800003201c141201010080ff7f000000ffff0100ffff7f0080ff00ff"
 )
 
 

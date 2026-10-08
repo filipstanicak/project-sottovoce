@@ -99,6 +99,8 @@ static func _write_own(snap: Snapshot, buffer: StreamPeerBuffer) -> void:
 	# whichever way round they were written.
 	buffer.put_u8(clampi(snap.hunt_fraction, 0, 255))
 	buffer.put_u8(clampi(snap.hunted_fraction, 0, 255))
+	buffer.put_16(Quantise.pos_to_i16(snap.blend_slot.x))
+	buffer.put_16(Quantise.pos_to_i16(snap.blend_slot.z))
 
 
 static func _write_compass_and_match(snap: Snapshot, buffer: StreamPeerBuffer) -> void:
@@ -223,6 +225,8 @@ static func _read_own(snap: Snapshot, buffer: StreamPeerBuffer) -> void:
 	snap.blend_state = Quantise.unpack_low(packed, 4)
 	snap.hunt_fraction = buffer.get_u8()
 	snap.hunted_fraction = buffer.get_u8()
+	var slot_x := Quantise.i16_to_pos(buffer.get_16())
+	snap.blend_slot = Vector3(slot_x, 0.0, Quantise.i16_to_pos(buffer.get_16()))
 
 
 static func _read_compass_and_match(snap: Snapshot, buffer: StreamPeerBuffer) -> void:

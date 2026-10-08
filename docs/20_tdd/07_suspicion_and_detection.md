@@ -310,10 +310,14 @@ five kinds and nothing else.
 contrast, is no longer re-validated: the crowd walking off during those 0.30 s must not convert a
 clean exit into a break.
 
-**THE SLOT WALKS AND THE PLAYER KEEPS UP — NOTHING MOVES THE PAWN.** The group blend *judges*
-rather than steers. Driving a blended player toward their formation slot would put the server in
-charge of a position the client predicts, and every tick of the blend would be a reconciliation;
-it would also take the agency GDD-03 §4.1.2 trades for mobility without charging for it.
+**THE SLOT WALKS AND THE SERVER NEVER MOVES THE PAWN.** The group blend *judges* rather than
+steers. Driving a blended player toward their formation slot from the server would put it in charge
+of a position the client predicts, and every tick of the blend would be a reconciliation. **Since
+2026-10-09 the client walks the player instead** (US-0107, as the reference does): it writes the
+commands a perfect stick would, toward `blend_slot` in the own block, marked `InputBits.FOLLOW` —
+commands are what the server simulates and a replay re-feeds, so nothing drifts. *This paragraph
+said until then that a slot that dragged you along would take the agency §4.1.2 trades for
+mobility; the owner chose the reference's carrying, and touching the stick still hands it back.*
 
 ### 3.2 The blend-score grace window
 

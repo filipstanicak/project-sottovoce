@@ -20,6 +20,11 @@
 class_name PawnMotion
 extends RefCounted
 
+## Below this the group-walked pawn keeps the camera's yaw rather than turn to a
+## heading that is mostly noise. A deadband, not a speed anybody plays at: it
+## never reaches a kill or a stun, which are aimed on ticks with no follow.
+const FOLLOW_FACING_SPEED := 0.2
+
 
 ## Advance one substep. `delta` is the INPUT rate on both peers — see
 ## `MatchDirector._substep_pawns` for why a single step of twice the length is
@@ -56,7 +61,7 @@ static func apply(
 	command: InputCommand,
 	delta: float
 ) -> void:
-	ctx.yaw = command.look_yaw
+	ctx.yaw = facing(ctx, command)
 	body.rotation.y = ctx.yaw
 	if machine.drives_position(ctx):
 		# A traversal owns its own position: a fixed displacement against static
@@ -74,3 +79,14 @@ static func apply(
 	ctx.velocity = body.velocity
 	ctx.position = body.global_position
 	ctx.grounded = body.is_on_floor()
+
+
+## **THE CAMERA'S YAW, EXCEPT WHILE THE GROUP WALKS THE PLAYER** (US-0107). Then the
+## pawn faces where it is going, as every civilian in the group does — a figure in a
+## procession looking sideways at its own travel is the one a hunter picks out.
+## From the velocity the state machine just chose, so the server and a replay agree.
+static func facing(ctx: PawnContext, command: InputCommand) -> float:
+	var flat := Vector2(ctx.velocity.x, ctx.velocity.z)
+	if not command.follow or flat.length() < FOLLOW_FACING_SPEED:
+		return command.look_yaw
+	return atan2(flat.x, flat.y)

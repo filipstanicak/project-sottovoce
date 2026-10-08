@@ -280,6 +280,7 @@ func _fill_own(snapshot: Snapshot, peer: int) -> void:
 	snapshot.tier = own.tier
 	snapshot.active_sources = own.active_sources
 	snapshot.blend_state = own.blend_state
+	snapshot.blend_slot = _ctx.group_slot_of(peer)
 	snapshot.kill_ready = own.kill_ready
 	snapshot.stun_ready = own.stun_ready
 	_fill_cooldowns(snapshot, peer)
