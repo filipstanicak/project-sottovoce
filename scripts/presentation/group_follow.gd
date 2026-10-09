@@ -13,28 +13,22 @@
 class_name GroupFollow
 extends RefCounted
 
-## Actions that hand control back for the tick they are pressed: a kill or a stun
-## is aimed where the player looks, and pressing blend is leaving the group.
-const HANDS_ON := (
-	InputBits.KILL
-	| InputBits.STUN
-	| InputBits.BLEND
-	| InputBits.TRAVERSE
-	| InputBits.ABILITY_1
-	| InputBits.ABILITY_2
-	| InputBits.SPRINT
-	| InputBits.RUN
-)
-
 var _kind: int = BlendKind.Kind.NONE
 var _slot := Vector3.ZERO
 var _slot_velocity := Vector3.ZERO
 var _slot_tick := -1
+## The newest snapshot read, kept apart from `_slot_tick`, which a non-group snapshot
+## clears. **Snapshots ride an unordered channel**: a group snapshot arriving after
+## the one that ended the blend switched the walking back on (review of #253).
+var _seen_tick := -1
 
 
 ## Read the owner's blend and slot off each snapshot. The slot's velocity is taken
 ## from consecutive snapshots, because the group's pace varies (`CrowdFormations`).
 func observe(snapshot: Snapshot) -> void:
+	if snapshot.server_tick <= _seen_tick:
+		return
+	_seen_tick = snapshot.server_tick
 	_kind = snapshot.blend_state
 	if _kind != BlendKind.Kind.GROUP:
 		_slot_tick = -1
@@ -53,7 +47,7 @@ func observe(snapshot: Snapshot) -> void:
 func steer(command: InputCommand, here: Vector3, lead: float) -> void:
 	if _kind != BlendKind.Kind.GROUP or _slot_tick < 0:
 		return
-	if command.wants_movement() or (command.buttons & HANDS_ON) != 0:
+	if command.wants_movement() or (command.buttons & InputBits.HANDS_ON) != 0:
 		return
 	var steered := GroupFollowSteer.steer(here, _slot, _slot_velocity, lead, command.look_yaw)
 	# Quantised here as the sampler quantises, so the pawn predicts with exactly
@@ -61,6 +55,14 @@ func steer(command: InputCommand, here: Vector3, lead: float) -> void:
 	command.move = InputCodec.quantise_move(steered[0])
 	command.slow = steered[1]
 	command.follow = true
+
+
+## A new connection is a new server whose ticks start again: forget everything.
+func reset() -> void:
+	_kind = BlendKind.Kind.NONE
+	_slot_tick = -1
+	_seen_tick = -1
+	_slot_velocity = Vector3.ZERO
 
 
 func is_following() -> bool:

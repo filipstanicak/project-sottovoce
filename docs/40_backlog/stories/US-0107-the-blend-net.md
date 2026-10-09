@@ -68,7 +68,10 @@ grey was not checkable from it, because that player never blends.
       commands toward the slot (`GroupFollow`, `GroupFollowSteer`), marked `InputBits.FOLLOW`, so
       the pawn faces its travel and never backpedals; the camera stays the player's. Touching the
       stick hands control back, and an action is aimed where the player looks. `blend_slot` rides
-      the own block, `PROTOCOL_VERSION` 9. Measured through the real state machine, camera looking
+      the own block, `PROTOCOL_VERSION` 9. **The server honours `FOLLOW` only for a player it has in
+      a walking group with no action pressed** (`PawnHost.screen_follow`), and the client ignores
+      snapshots older than its newest (review of #253). The steering's gain, deadband and headroom
+      are `TUN-BLEND-FOLLOW-*`. Measured through the real state machine, camera looking
       back, a corner turned: at most 0.08 m from the slot (tolerance 0.8), at most 1.52 m/s (break
       2.2), facing exact; without `FOLLOW` the same steering falls 1.67 m behind.
 - [x] **The street is grey in a debug build.** It was drawn white, and the net on it could not be

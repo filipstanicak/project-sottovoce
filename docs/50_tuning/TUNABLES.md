@@ -188,6 +188,9 @@ Applied per tick while the condition holds. Additive (ASM-0018).
 | `TUN-BLEND-EXIT-TIME` | 0.30 | s | 0.2–0.5 | Time to leave. Slightly shorter than entry: escaping a blend under threat must not feel like a trap. |
 | `TUN-BLEND-GROUP-JOIN-RADIUS` | 2.5 | m | 2.0–3.5 | How close you must be to a walking group to join it. Matches `TUN-KILL-RANGE` deliberately — the distance at which you can join a group is the distance at which you can be killed in it. |
 | `TUN-BLEND-GROUP-SLOT-TOLERANCE` | 0.8 | m | 0.5–1.2 | How far you may drift from your formation slot before the blend breaks. |
+| `TUN-BLEND-FOLLOW-GAIN` | 2.0 | /s | 1.0–4.0 | **Added 2026-10-09 (US-0107).** How hard a walking group walks a hands-off player back to their slot: a slot 0.4 m away asks for 0.8 m/s on top of the group's pace. Too low and a corner drags the player toward the edge of `TUN-BLEND-GROUP-SLOT-TOLERANCE`; too high and the figure jerks in the procession. Measured at 2.0: at most 0.08 m from the slot round a corner. **Ours.** |
+| `TUN-BLEND-FOLLOW-DEADBAND` | 0.05 | m/s | 0.02–0.2 | **Added 2026-10-09 (US-0107).** Below this wanted speed a carried player stands rather than shuffles on a slot that has stopped. **Ours.** |
+| `TUN-BLEND-FOLLOW-HEADROOM` | 0.9 | × | 0.7–0.95 | **Added 2026-10-09 (US-0107).** The share of `TUN-SPEED-STROLL` a carried player may use to catch up. **Below 1 by its range, because `TUN-BLEND-BREAK-ON-SPEED` equals stroll** and the catching up must never break the blend it serves. **Ours.** |
 | `TUN-BLEND-POCKET-MIN-NPC` | 4 | count | 3–6 | Minimum NPCs within `TUN-BLEND-POCKET-RADIUS` for a standing blend to be valid. Four is the smallest number that reads as "a group" rather than "some people". |
 | `TUN-BLEND-POCKET-RADIUS` | 3.5 | m | 2.5–5.0 | The radius in which those NPCs must stand. |
 | `TUN-BLEND-BREAK-ON-DAMAGE` | true | bool | — | Being hit or stunned always breaks a blend. |

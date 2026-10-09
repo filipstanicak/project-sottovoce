@@ -83,7 +83,11 @@ no `NET-C2S-SCORE`.
 it on every command it writes to walk a player along with their walking group, as the reference
 does: the pawn then faces its travel rather than the camera and never backpedals. It carries no
 claim — the server still judges the slot tolerance — and it is never set on a tick with movement
-input or an action, so a kill or a stun is aimed where the player looks.
+input or an action, so a kill or a stun is aimed where the player looks. **The server strips it
+from any command whose sender it does not have in a walking group, or that carries an action**
+(`PawnHost.screen_follow`, review of #253): trusted as sent, one bit let a player walk backwards
+at full stroll anywhere. The client ignores a snapshot older than the newest it has read, because
+this channel is unordered and a late group snapshot would switch the walking back on.
 
 **Kill and stun are buttons in the input bitfield**, evaluated server-side against the
 lag-compensated world. **A client cannot express the concept "I killed someone" in this

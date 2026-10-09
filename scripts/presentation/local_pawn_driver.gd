@@ -146,6 +146,7 @@ func _attach_the_toggle() -> void:
 
 func _enter_tree() -> void:
 	Net.snapshot_received.connect(_follow.observe)
+	Net.handshake_completed.connect(_follow.reset)
 
 
 func _physics_process(delta: float) -> void:

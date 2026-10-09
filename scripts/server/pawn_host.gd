@@ -109,6 +109,7 @@ func apply_input(peer: int, command: InputCommand, dt: float) -> void:
 	if not _pawns.has(peer):
 		return
 	var record: Dictionary = _pawns[peer]
+	screen_follow(command, record["ctx"] as PawnContext)
 	PawnMotion.advance(
 		record["ctx"] as PawnContext,
 		record["machine"] as PawnStateMachine,
@@ -117,6 +118,21 @@ func apply_input(peer: int, command: InputCommand, dt: float) -> void:
 		command,
 		dt
 	)
+
+
+## **`FOLLOW` IS HONOURED ONLY FOR A PLAYER THE SERVER HAS IN A WALKING GROUP, WITH
+## NO ACTION PRESSED** (review of #253). The bit lifts the backpedal penalty and turns
+## the pawn to its travel; trusted from any command it let a player walk backwards
+## at full stroll — 2.2 m/s against 1.21 — anywhere, by setting one bit. Stripped
+## here, before the step, so the server simulates what a fair client would have
+## sent; a client that set it in good faith a tick after the group ended is
+## reconciled like any other mismatch.
+static func screen_follow(command: InputCommand, ctx: PawnContext) -> void:
+	if not command.follow:
+		return
+	var grouped := ctx != null and ctx.blend_state == BlendKind.Kind.GROUP
+	if not grouped or (command.buttons & InputBits.HANDS_ON) != 0:
+		command.follow = false
 
 
 ## The authoritative context for `peer`, or null. Read-only to everything else:

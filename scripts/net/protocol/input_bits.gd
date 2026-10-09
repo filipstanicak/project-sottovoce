@@ -54,6 +54,12 @@ const RUN_FULL: int = 1 << 10
 ## aimed where the player looks.
 const FOLLOW: int = 1 << 11
 
+## Actions that hand control back for the tick they are pressed, so `FOLLOW` is
+## never set beside one: a kill or a stun is aimed where the player looks, and
+## pressing blend is leaving the group. The client leaves these commands alone and
+## the server strips `FOLLOW` from any that carries one (review of #253).
+const HANDS_ON: int = KILL | STUN | BLEND | TRAVERSE | ABILITY_1 | ABILITY_2 | SPRINT | RUN
+
 ## The highest bit the wire format can carry. `buttons` is a `u16`.
 const MAX_BIT: int = 15
 

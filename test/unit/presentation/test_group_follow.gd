@@ -62,3 +62,38 @@ func test_the_slot_velocity_is_read_from_consecutive_snapshots() -> void:
 	var command := InputCommand.empty(1)
 	_follow.steer(command, Vector3(10.14, 0, 10), 0.0)
 	assert_true(command.wants_movement(), "a player on a moving slot was left standing")
+
+
+## **A LATE GROUP SNAPSHOT DOES NOT PUT THE PLAYER BACK IN THE GROUP** (review of
+## #253). The state channel is unordered: GROUP at 103 arriving after NONE at 104
+## switched the walking back on after the server had ended the blend.
+func test_a_stale_group_snapshot_after_the_exit_is_ignored() -> void:
+	_in_a_group()
+	_follow.observe(_snapshot(BlendKind.Kind.NONE, Vector3.ZERO, 104))
+	_follow.observe(_snapshot(BlendKind.Kind.GROUP, Vector3(10.14, 0, 10), 103))
+	var command := InputCommand.empty(1)
+	_follow.steer(command, Vector3(9.5, 0, 10), 0.1)
+	assert_false(command.follow, "the exit was undone by a packet older than it")
+	assert_false(command.wants_movement())
+
+
+func test_an_older_slot_cannot_rewind_the_velocity() -> void:
+	_follow.observe(_snapshot(BlendKind.Kind.GROUP, Vector3(10, 0, 10), 100))
+	_follow.observe(_snapshot(BlendKind.Kind.GROUP, Vector3(10.28, 0, 10), 106))
+	_follow.observe(_snapshot(BlendKind.Kind.GROUP, Vector3(30, 0, 10), 103))
+	# Standing on the slot: only the slot's own pace moves the player, east at 1.4.
+	var command := InputCommand.empty(1)
+	command.look_yaw = PI / 2.0
+	_follow.steer(command, Vector3(10.28, 0, 10), 0.0)
+	assert_gt(command.move.y, 0.0, "the stale slot 20 m away turned the walk round")
+	assert_lt(command.move.length(), 1.01)
+
+
+func test_a_new_connection_starts_the_tick_count_again() -> void:
+	_in_a_group()
+	_follow.reset()
+	_follow.observe(_snapshot(BlendKind.Kind.GROUP, Vector3(10, 0, 10), 5))
+	_follow.observe(_snapshot(BlendKind.Kind.GROUP, Vector3(10.14, 0, 10), 8))
+	var command := InputCommand.empty(1)
+	_follow.steer(command, Vector3(9.5, 0, 10), 0.1)
+	assert_true(command.follow, "a new server's low ticks were taken for stale ones")
