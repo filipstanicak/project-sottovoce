@@ -77,16 +77,35 @@ func test_a_stale_group_snapshot_after_the_exit_is_ignored() -> void:
 	assert_false(command.wants_movement())
 
 
-func test_an_older_slot_cannot_rewind_the_velocity() -> void:
-	_follow.observe(_snapshot(BlendKind.Kind.GROUP, Vector3(10, 0, 10), 100))
-	_follow.observe(_snapshot(BlendKind.Kind.GROUP, Vector3(10.28, 0, 10), 106))
-	_follow.observe(_snapshot(BlendKind.Kind.GROUP, Vector3(30, 0, 10), 103))
-	# Standing on the slot: only the slot's own pace moves the player, east at 1.4.
+## Standing on the newest slot, facing east: the command `follow` produces.
+func _standing_on(follow: GroupFollow, here: Vector3) -> InputCommand:
 	var command := InputCommand.empty(1)
 	command.look_yaw = PI / 2.0
-	_follow.steer(command, Vector3(10.28, 0, 10), 0.0)
-	assert_gt(command.move.y, 0.0, "the stale slot 20 m away turned the walk round")
-	assert_lt(command.move.length(), 1.01)
+	follow.steer(command, here, 0.0)
+	return command
+
+
+## **A STALE SLOT OF THE SAME GROUP IS IGNORED TOO** (second review of #253): an
+## older slot ahead of the real one still points east, so only a comparison with a
+## clean sequence tells the two apart. 0.28 m in six ticks is 1.4 m/s, blend-walk.
+func test_an_older_slot_cannot_rewind_the_velocity() -> void:
+	var clean := GroupFollow.new()
+	for follow: GroupFollow in [_follow, clean]:
+		follow.observe(_snapshot(BlendKind.Kind.GROUP, Vector3(10, 0, 10), 100))
+		follow.observe(_snapshot(BlendKind.Kind.GROUP, Vector3(10.28, 0, 10), 106))
+	_follow.observe(_snapshot(BlendKind.Kind.GROUP, Vector3(10.5, 0, 10), 103))
+	var command := _standing_on(_follow, Vector3(10.28, 0, 10))
+	var control := _standing_on(clean, Vector3(10.28, 0, 10))
+	assert_eq(command.move, control.move, "an older slot changed the walk")
+	assert_eq(command.slow, control.slow, "an older slot changed the walking pace")
+	assert_true(command.slow, "the group's 1.4 m/s was not walked at blend-walk")
+	assert_almost_eq(command.move.length() * Tuning.movement.blend_walk, 1.4, 0.02)
+	# And the next real slot is measured from 106, not from the stale one.
+	for follow: GroupFollow in [_follow, clean]:
+		follow.observe(_snapshot(BlendKind.Kind.GROUP, Vector3(10.42, 0, 10), 109))
+	command = _standing_on(_follow, Vector3(10.42, 0, 10))
+	control = _standing_on(clean, Vector3(10.42, 0, 10))
+	assert_eq(command.move, control.move, "the velocity was measured from the stale slot")
 
 
 func test_a_new_connection_starts_the_tick_count_again() -> void:
