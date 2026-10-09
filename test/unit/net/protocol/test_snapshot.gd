@@ -72,6 +72,18 @@ func test_the_packed_gameplay_byte_survives() -> void:
 	assert_false(out.stun_ready, "stun_ready")
 
 
+## **THE WALKING-GROUP SLOT TRAVELS TO A CENTIMETRE** (US-0107): the client steers
+## the player to it, and a slot read a metre off would walk them out of the blend.
+func test_the_group_slot_round_trips_within_a_centimetre() -> void:
+	var snap := Snapshot.new()
+	snap.blend_state = BlendKind.Kind.GROUP
+	snap.blend_slot = Vector3(87.346, 0.0, 41.219)
+	var back := Snapshot.deserialise(snap.serialise())
+	assert_eq(back.blend_state, BlendKind.Kind.GROUP)
+	assert_almost_eq(back.blend_slot.x, 87.346, Tuning.net.quant_pos)
+	assert_almost_eq(back.blend_slot.z, 41.219, Tuning.net.quant_pos)
+
+
 func test_a_remote_pawn_round_trips_within_quantisation() -> void:
 	var out := Snapshot.deserialise(_full().serialise())
 	var record: Array = out.remote_pawns[0]

@@ -74,7 +74,13 @@ const CHANNEL_COUNT := 3
 ## version-7 client would drop the RPC as unknown and draw no net — the blend would
 ## work and nothing would say where, which is what the owner reported from the
 ## controls.
-const PROTOCOL_VERSION := 8
+##
+## **9 (2026-10-09, US-0107): a walking group walks the player along.** The own block
+## carries `blend_slot` — four bytes more, so a version-8 client reads every field
+## after it four bytes out of step — and `InputBits.FOLLOW` is bit 11, which a
+## version-8 server would ignore, leaving the pawn facing its camera while the client
+## predicted it facing its travel.
+const PROTOCOL_VERSION := 9
 
 ## How often a client sends `NET-C2S-PING`. The catalogue's rate column, and
 ## **not a tunable**: it changes nothing a player can perceive. The server does

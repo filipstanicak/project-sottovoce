@@ -173,6 +173,9 @@ block says what it used to get wrong.*
 | `blend_exit_time` | float | 0.2–0.5 | 0.3 |
 | `blend_group_join_radius` | float | 2–3.5 | 2.5 |
 | `blend_group_slot_tolerance` | float | 0.5–1.2 | 0.8 |
+| `follow_gain` | float | 1.0–4.0 | 2.0 |
+| `follow_deadband` | float | 0.02–0.2 | 0.05 |
+| `follow_headroom` | float | 0.7–0.95 | 0.9 |
 | `blend_pocket_min_npc` | int | 3–6 | 4 |
 | `blend_pocket_radius` | float | 2.5–5 | 3.5 |
 | `break_on_damage` | bool | — | true |

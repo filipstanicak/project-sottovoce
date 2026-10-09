@@ -37,7 +37,12 @@ const HEADER_BYTES := 8
 ## sent once per snapshot rather than once per entity, so two bytes here is
 ## 0.48 kbit/s against a downstream budget of 96: half a point on a miss already
 ## twelve points wide.
-const OWN_BYTES := 45
+##
+## **FORTY-NINE SINCE US-0107's GROUP FOLLOW**: where the owner's walking-group slot
+## is, `x` and `z` at a centimetre — 0.96 kbit/s, written whether or not the owner
+## is in a group, because a format whose shape follows a flag is read wrong on the
+## branch nobody tested.
+const OWN_BYTES := 49
 const REMOTE_BYTES := 10
 ## **EIGHT, NOT TEN.** An NPC's `y` is a byte at 5 cm rather than an `i16` at
 ## 1 cm, and its animation is `u3 + u5` rather than `u4 + u6`. Both were changed
@@ -98,6 +103,11 @@ var active_sources: int = 0
 var cooldown_a_tick: int = 0
 var cooldown_b_tick: int = 0
 var blend_state: int = 0
+## **WHERE THE OWNER'S WALKING-GROUP SLOT IS** (US-0107), meaningful only while
+## `blend_state` is `GROUP`. The reference walks a player who joins a group along
+## with it until they walk out; the client steers toward this, and the server goes
+## on judging the slot tolerance as before. Only `x` and `z` travel.
+var blend_slot: Vector3 = Vector3.ZERO
 var kill_ready: bool = false
 var stun_ready: bool = false
 

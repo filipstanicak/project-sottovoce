@@ -61,15 +61,29 @@ func _sequence() -> void:
 	_place(spot)
 	_blend = BlendKind.Kind.POCKET
 	await _shot("knot_blended", "me and the four slightly greyed, the hue still readable", 1.0)
+	await _bench_shots()
+
+
+## Two people on the district's west bench, then the player on its first seat.
+func _bench_shots() -> void:
 	var seats := _seats()
 	_civilians = {5: seats[1], 6: seats[2]}
+	# They hold the bench's second and third seats, as `LeanSpots` would say: the
+	# seats follow the twelve lean spots in `MapData.static_props`.
+	var first_seat := VetraioGround.stall_lean_points().size()
+	Net.events.crowd.crowd_groups_received.emit(
+		false,
+		PackedByteArray(
+			[5, BlendGroupTag.prop(first_seat + 1), 6, BlendGroupTag.prop(first_seat + 2)]
+		)
+	)
 	_blend = BlendKind.Kind.NONE
 	# The bench stands at the district's north edge facing the market: turn round to
 	# look at it from the square, or the camera stands outside the map.
 	var sampler := _root.get_node("InputSampler")
 	sampler.set("_look_yaw", wrapf(float(sampler.get("_look_yaw")) + PI, -PI, PI))
 	await get_tree().create_timer(0.3).timeout
-	ahead = _ahead()
+	var ahead := _ahead()
 	_place(seats[1] - ahead * 4.5)
 	await _shot("bench", "a net under the bench seats, nobody greyed", 1.0)
 	_place(seats[0])

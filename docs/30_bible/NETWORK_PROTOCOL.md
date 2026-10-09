@@ -79,6 +79,16 @@ otherwise.
 There is no `NET-C2S-KILL`, no `NET-C2S-STUN`, no `NET-C2S-POSITION`, no `NET-C2S-SUSPICION`,
 no `NET-C2S-SCORE`.
 
+**`buttons` bit 11 is `FOLLOW`, and it is not a key** (US-0107, `PROTOCOL_VERSION` 9). The client sets
+it on every command it writes to walk a player along with their walking group, as the reference
+does: the pawn then faces its travel rather than the camera and never backpedals. It carries no
+claim — the server still judges the slot tolerance — and it is never set on a tick with movement
+input or an action, so a kill or a stun is aimed where the player looks. **The server strips it
+from any command whose sender it does not have in a walking group, or that carries an action**
+(`PawnHost.screen_follow`, review of #253): trusted as sent, one bit let a player walk backwards
+at full stroll anywhere. The client ignores a snapshot older than the newest it has read, because
+this channel is unordered and a late group snapshot would switch the walking back on.
+
 **Kill and stun are buttons in the input bitfield**, evaluated server-side against the
 lag-compensated world. **A client cannot express the concept "I killed someone" in this
 protocol.** That is what allows [`../00_meta/SCOPE_FENCE.md`](../00_meta/SCOPE_FENCE.md) OUT #9
@@ -193,7 +203,8 @@ NET-S2C-SNAPSHOT — per client, per tick
 │   ├── kill_ready         bool     drives the crosshair — must not lie (built US-0060)
 │   ├── stun_ready         bool     a swing would reach SOME figure; names nobody (ADR-0022 A)
 │   ├── hunt_fraction      u8       the chase YOU are running; 0 = about to lose the contract
-│   └── hunted_fraction    u8       the chase run AGAINST you; 0 = you have escaped
+│   ├── hunted_fraction    u8       the chase run AGAINST you; 0 = you have escaped
+│   └── blend_slot         2×i16    x, z of your walking-group slot, cm; meaningful only while blend_state is GROUP (US-0107, PROTOCOL_VERSION 9)
 ├── compass
 │   ├── bearing            u8       wobble ALREADY APPLIED server-side
 │   ├── distance_bucket    u8       0.5 m buckets to 60 m — never an exact distance

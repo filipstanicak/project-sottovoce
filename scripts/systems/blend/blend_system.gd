@@ -302,12 +302,12 @@ func _pocket_holds(at: Vector3, ctx: MatchContext) -> bool:
 
 ## The slot still exists and the player is still standing in it.
 ##
-## **THE SLOT WALKS AND THE PLAYER KEEPS UP — NOTHING MOVES THE PAWN.** Driving a
-## blended player toward their slot would put the server in charge of a position
-## the client predicts, and every tick of the blend would be a reconciliation. So
-## the group blend *judges* rather than steers, which is also the design: GDD-03
-## §4.1.2 trades mobility for agency, and a slot that dragged you along would have
-## taken the agency without charging for it.
+## **THE SLOT WALKS AND THE SERVER NEVER MOVES THE PAWN.** Driving a blended player
+## toward their slot from here would put the server in charge of a position the
+## client predicts, and every tick of the blend would be a reconciliation. So the
+## group blend *judges* rather than steers. **The client walks the player** since
+## US-0107 (`GroupFollow`), writing commands toward the snapshot's `blend_slot`,
+## and this goes on judging them exactly as it judged a hand on the stick.
 ## **THE PEER IS PASSED, NEVER READ OFF THE PAWN.** `PawnContext.peer_id` was
 ## declared in M1 and had **no writer anywhere in the shipped server** — it is
 ## fixed in `PawnHost` by this story, and relying on it here would still be wrong:

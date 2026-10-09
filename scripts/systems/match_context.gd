@@ -278,3 +278,10 @@ func match_tick() -> int:
 	if active_started_at == NO_MATCH:
 		return 0
 	return maxi(tick - active_started_at, 0)
+
+
+## Where `peer`'s walking-group slot is, or the origin if they hold none — the
+## snapshot's `blend_slot`, which the client reads only while blended in a group.
+func group_slot_of(peer: int) -> Vector3:
+	var slot := formations.slot_position_of(peer) if formations != null else Vector3.INF
+	return Vector3.ZERO if slot == Vector3.INF else slot

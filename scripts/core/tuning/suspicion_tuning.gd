@@ -147,6 +147,24 @@ extends Resource
 ## TUN-BLEND-GROUP-SLOT-TOLERANCE
 @export_range(0.5, 1.2, 0.1) var blend_group_slot_tolerance: float = 0.8
 
+## Added 2026-10-09 (US-0107). How hard a walking group walks a hands-off player back to their
+## slot: a slot 0.4 m away asks for 0.8 m/s on top of the group's pace. Too low and a corner
+## drags the player toward the edge of TUN-BLEND-GROUP-SLOT-TOLERANCE; too high and the figure
+## jerks in the procession. Measured at 2.0: at most 0.08 m from the slot round a corner. Ours.
+## TUN-BLEND-FOLLOW-GAIN
+@export_range(1.0, 4.0, 0.1) var follow_gain: float = 2.0
+
+## Added 2026-10-09 (US-0107). Below this wanted speed a carried player stands rather than
+## shuffles on a slot that has stopped. Ours.
+## TUN-BLEND-FOLLOW-DEADBAND
+@export_range(0.02, 0.2, 0.01) var follow_deadband: float = 0.05
+
+## Added 2026-10-09 (US-0107). The share of TUN-SPEED-STROLL a carried player may use to catch
+## up. Below 1 by its range, because TUN-BLEND-BREAK-ON-SPEED equals stroll and the catching up
+## must never break the blend it serves. Ours.
+## TUN-BLEND-FOLLOW-HEADROOM
+@export_range(0.7, 0.95, 0.01) var follow_headroom: float = 0.9
+
 ## Minimum NPCs within TUN-BLEND-POCKET-RADIUS for a standing blend to be valid. Four is the
 ## smallest number that reads as "a group" rather than "some people".
 ## TUN-BLEND-POCKET-MIN-NPC
