@@ -1,10 +1,10 @@
 ---
 id: BIBLE-ART
 title: Art Bible
-version: 0.1.0
+version: 0.2.0
 status: draft
 owner: Lead Game Designer
-last_updated: 2026-08-03
+last_updated: 2026-11-16
 depends_on: [GDD-03-SOCIAL-STEALTH, GDD-05-LEVEL, DOC-IP-GUARDRAILS, BIBLE-ANIMATION-SPEC]
 ---
 
@@ -125,8 +125,12 @@ visible *only against its own crowd*. If a market awning uses the Vetraio identi
 saturation, the tint becomes unreadable in that market — a gameplay dead zone created by set
 dressing, invisible to whoever placed the awning.
 
-`test_no_reserved_hues_in_environment.gd` samples environment albedo textures and fails on any
-pixel cluster within a tolerance of a reserved hue above a saturation threshold.
+**Held since 2026-11-16 by `test_the_dressing_keeps_the_rules_of_the_place.gd`** (ADR-0026): every
+colour the district is painted in lives in `WorldPalette`, and none may come within 18° of a
+persona's hue unless it is clearly greyer than that persona. *This paragraph named
+`test_no_reserved_hues_in_environment.gd` from M0, sampling albedo textures; neither the test nor
+a texture ever existed (trap 14). The first run of the real one found the canal in the Vetraio's
+own teal.*
 
 ### 3.2 The reserved palette
 
@@ -206,6 +210,11 @@ Per [`../00_meta/IP_GUARDRAILS.md`](../00_meta/IP_GUARDRAILS.md) §4 and ASM-002
 and procedural only**. No downloaded models, ever — not for reference, not in a scratch folder,
 not on a branch.
 
+> **SINCE 2026-11-16 THE PROCEDURAL HALF OF THAT SENTENCE IS THE ART PASS** (ADR-0026, owner
+> decision 18). §6.2's materials are still what the *generated map* is painted in, and they are
+> now a vocabulary rather than a picture: `DistrictDressing` reads them and builds the district
+> a player sees. §6.3 is the mapping.
+
 ### 6.1 Greybox personas
 
 Silhouette differentiation achieved with **scale and attached primitives**, which is sufficient
@@ -249,12 +258,38 @@ fails it, no amount of art will fix it, and if it passes, art is polish rather t
 Greybox uses **desaturated** hues deliberately, avoiding the saturated identity hues reserved by
 §3.
 
+### 6.3 What the dressing makes of the greybox
+
+`scripts/presentation/world/`, US-0108. Built when a client loads a map, from the scene the
+generator wrote; the server never loads it.
+
+| Greybox | Becomes | Why it still says what it said |
+|---|---|---|
+| `MAT-GREY-FLOOR` | Paving on a square, setts in a street, boards on the balcony — a light grey throughout | The blend net is a white line on it (US-0107) |
+| `MAT-GREY-WALL` | Plaster, in one of seven warm colours kept by each building | A wall you cannot climb is smooth |
+| `MAT-CLIMB` | **Coursed stone**, cool grey | The climbing language: stone can be climbed, plaster cannot |
+| `MAT-VAULT` | A timber counter under an awning, or a stone parapet over a canal | Still counter-high; what was added is above 2.4 m |
+| `MAT-BLEND` | A stone bench; a hay cart, crates or a well | The prop is its own mark |
+| The drops between floors | **Canals, and a lagoon round the district**: quays, three arched bridges, moorings, boats, islands across the water | A drop is still a drop: the water is a picture of it, not a floor in it |
+
+**Every colour is in `WorldPalette`** and is held to §3. **Nothing is solid**: decoration stands
+where a pawn cannot reach or hangs above head height, and §7.1 is held by adding no collider and
+moving no box. **Nothing rises above a roof a pawn can stand on** (§4, *silhouette-clean*): the
+roof line a street sees is a tiled eave *under* the top of the wall, and the one roof with a
+shape is the bell tower's, 22 m up.
+
 ---
 
 ## 7. The art pass
 
 Gated by [`../10_gdd/05_level_design.md`](../10_gdd/05_level_design.md) §7.2: **no art work
-begins until the greybox map has been playtested and the loop is fun on it.** Art is the most
+begins until the greybox map has been playtested and the loop is fun on it.**
+
+> **CROSSED ON 2026-11-16 BY OWNER DECISION 18, AND NOT MET** (ADR-0026). The map has still never
+> been played by several humans. What made crossing it affordable is that the art is *derived*:
+> a wall the playtest moves takes its windows with it. §7.1 below binds exactly as before.
+
+*The gate's reasoning, as written:* Art is the most
 expensive and least reversible work in the project, and a map's quality here is a function of
 density, sightlines and metrics — none of which art changes.
 
@@ -311,14 +346,17 @@ If the answer is *yes*, *maybe*, or *I'd have to think about it* — rework it a
 - [ ] The four `PersonaData.silhouette` values are mutually distinct.
 - [ ] Clone and player meshes, materials and animation sets are byte-identical references.
 - [ ] No per-instance variation exists on any clone.
-- [ ] No environment texture uses a reserved hue above the saturation threshold.
+- [x] No environment colour uses a reserved hue unless clearly greyer than the persona
+      (`test_the_dressing_keeps_the_rules_of_the_place.gd`, 2026-11-16; there are no textures).
 - [ ] No material or widget names a colour literal; all come from `Palette`.
-- [ ] Environment art in the 1.4–1.9 m band meets the §4.1 quiet rule.
+- [ ] Environment art in the 1.4–1.9 m band meets the §4.1 quiet rule. *Held by test for glass,
+      cloth, iron and roof tile since US-0108; a door every third bay still stands in the band.*
 - [ ] Persona meshes ≤ 8 000 tris with three LOD levels.
 - [ ] LOD silhouettes match across band boundaries inside 60 m.
 - [ ] `MAT-VOID` appears nowhere in a playtest build.
 - [ ] Every third-party asset has an `ASSET_LICENSES.md` row.
-- [ ] Art-pass invariants (§7.1) all re-verified on art geometry.
+- [x] Art-pass invariants (§7.1) all re-verified on art geometry — *by construction: the art
+      adds no collider and moves no box (`test_the_dressing_changes_no_geometry.gd`).*
 
 ---
 

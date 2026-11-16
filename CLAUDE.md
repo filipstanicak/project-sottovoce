@@ -174,6 +174,11 @@ godot --headless --path . -- --server --port 27015 --map sandbox --crowd 12
 
 # Look at a map from above, with its spawn points marked. Windowed only.
 godot --path . res://tools/map_probe.tscn -- --map sandbox
+
+# Photograph the dressed district from ten places a player sees it from (ADR-0026).
+# --bench prices each part of the look instead. Windowed only.
+godot --path . res://tools/look_probe.tscn
+godot --path . res://tools/look_probe.tscn -- --bench
 ```
 
 ---
@@ -259,7 +264,7 @@ Full protocol: `docs/30_bible/AGENT_PLAYBOOK.md`.
 
 ## Where the work is right now
 
-*Updated 2026-09-30. **Kept short by rule**: a checkpoint adds at most a few lines here and
+*Updated 2026-11-16. **Kept short by rule**: a checkpoint adds at most a few lines here and
 moves anything older than about two weeks to `docs/00_meta/history/` (CHECKPOINT.md §3.1).
 This file is loaded into every agent request, so every line here is paid for on every turn.
 How each thing below was found is in
@@ -269,12 +274,18 @@ which also holds this manual's long form as it stood before the rewrite.*
 **THE GAME IS PLAYABLE END TO END BY THE OWNER AND BOTS, AND HAS NEVER HAD SEVERAL HUMANS IN
 ONE MATCH.** `play.bat` starts a server, walking bots and a client: a countdown, dealt personas
 and contracts, an eight-minute match with the Final Contract, kill, stun, escape, Cinderfall
-and the Lunge, every bonus rule (two of them dormant), the HUD and a results screen. **What it does not have**: animation
-clips (figures glide), any sound, a lobby screen, player names, a loadout, and a playtest with human hunters (US-0098). **The road from here to M6 — what the
+and the Lunge, every bonus rule (two of them dormant), the HUD and a results screen. **It looks like a place since 2026-11-16** (US-0108): an island quarter in a lagoon, dressed procedurally over the greybox. **What it does not have**: animation
+clips (figures are capsules that glide), any sound, a lobby screen, player names, a loadout, and a playtest with human hunters (US-0098). **The road from here to M6 — what the
 owner calls the beta — is [ROADMAP §8.3](docs/40_backlog/ROADMAP.md)**, measured 2026-09-30.
 
 ### Recent, newest first
 
+- **2026-11-16 — the art pass begins, and the district is dressed (ADR-0026, US-0108).** Owner
+  decision 18: *make it look finished, every aspect polished*. GDD-05 §7.2's gate is crossed,
+  not met. All of it is code: `DistrictDressing` reads the generated scene on the client and
+  builds light, water, plaster, stone, facades, a market and a skyline on it, adding no
+  collider. Three art-bible rules got their first test; the first run found the canal in a
+  persona's hue. **And the reviewing agent is gone**: one agent builds, reviews and merges.
 - **2026-10-09 — a walking group walks you; the streets are grey again (US-0107).** As the
   reference: hands off, the client walks you in your slot facing your travel (`InputBits.FOLLOW`,
   `blend_slot` in the own block, `PROTOCOL_VERSION` 9); the stick hands it back. And every debug
@@ -336,10 +347,12 @@ owner calls the beta — is [ROADMAP §8.3](docs/40_backlog/ROADMAP.md)**, measu
 
 ### How the work runs
 
-- **Two agents.** Claude implements in `D:/Claude Code/sv-claude`, opens PRs and never merges;
-  Codex reviews in `sv-codex` and releases merges. The owner's `project-sottovoce` checkout
-  stays on `main` and is fast-forwarded (`--ff-only`, clean `main` only) after each merge. One
-  worktree per agent, because a shared `.godot/` is trap 16 as a standing condition.
+- **One agent since 2026-11-16.** Claude implements in `D:/Claude Code/sv-claude`, opens the
+  PR, and — the reviewer having gone — reviews it too: all three suites on the head, faults
+  planted one at a time, the repository swept, then a squash merge once the required checks
+  are green. The owner's `project-sottovoce` checkout stays on `main` and is fast-forwarded
+  (`--ff-only`, clean `main` only) after each merge. Its own worktree, because a shared
+  `.godot/` is trap 16 as a standing condition.
 - **`main` is protected**: seven required checks and a strict up-to-date rule, so two green
   branches from the same `main` cannot both land untested against each other. Squash merge.
   A stacked branch is moved with `git rebase --onto origin/main <old-base-head>` once its base
@@ -389,6 +402,7 @@ settled row stays, one line, so nobody re-opens it. The full reasoning is in the
 | 15 | How many pursuers a player may have (0–4, catch-up) | **Open.** A recorded match shows 0–3 on one HUD | after the first playtest with human hunters |
 | 16 | Cinderfall as a pure escape or the reference's | **Settled 2026-09-25: the reference's**, ADR-0023 | — |
 | 17 | Kill feed, names in the HUD, own placement | **Settled 2026-09-25: as the reference**, ADR-0024 | — |
+| 18 | Art before the playtest, and by what means | **Settled 2026-11-16: now, and procedurally** (ADR-0026). No downloaded or generated asset file; licensed clips and sound stay an open option | — |
 
 **Also open, unnumbered:** ADR-0023 C, the cloud's 6.0 s against the reference's ~4 s.
 
@@ -401,12 +415,12 @@ settled row stays, one line, so nobody re-opens it. The full reasoning is in the
 | | |
 |---|---|
 | CI | 9 jobs, of which 7 are required check contexts on `main`: the two suite partitions, `test / architecture + unit` and `test / integration`, run as well and are summarised by the required aggregator `test`. A job that starts and ends in the same second with zero steps is a **billing refusal, not a crash** — trap 6. `.ci/run_gut.sh` refuses a suite that ran fewer scripts than exist on disk |
-| Tests | **63 arch + 241 unit + 33 integration scripts**, holding 260 + 2 007 + 245 tests and 1 723 + 33 773 + 687 assertions (measured 2026-10-09 for US-0107's group follow, the grey streets and the reviews of #253; integration 192.6 s). **Nine are `pending` by design**, eight unit and one integration, each reporting a finding code cannot fix — among them upstream at 145 % and downstream at 112 % of budget, the crowd's wire cost, two spawn rules GDD-05 §2.7 is short of, the missing clip library, and an NPC aimed into the void. The script counts are guarded by `test_claude_md_counts_are_current.gd`; the rest is a snapshot. The 180 s integration budget is owner decision 2 |
+| Tests | **63 arch + 248 unit + 34 integration scripts**, holding 260 + 2 050 + 248 tests and 1 807 + 36 153 + 698 assertions (measured 2026-11-16 for US-0108's dressed district; integration 192.9 s). **Nine are `pending` by design**, eight unit and one integration, each reporting a finding code cannot fix — among them upstream at 145 % and downstream at 112 % of budget, the crowd's wire cost, two spawn rules GDD-05 §2.7 is short of, the missing clip library, and an NPC aimed into the void. The script counts are guarded by `test_claude_md_counts_are_current.gd`; the rest is a snapshot. The 180 s integration budget is owner decision 2 |
 | Tuning | **306** tunables in 14 resource classes; **38** cross-field invariants, all asserting. Eight IDs deprecated and never reused (TUNABLES §19); three neutralised at 0 with their IDs live: `TUN-SCORE-RECKLESS` (ADR-0013), `TUN-SUSPICION-GAIN-OPEN` (ADR-0020) and `TUN-STUN-MIN-TIER` (ADR-0022 A). `test_tunables_match_the_document.gd` holds the shipped profile to TUNABLES |
 | Autoloads | Eight. `Tuning` precomputes durations into two tick tables, 30 Hz and 60 Hz — trap 9 |
 | Strings | `data/strings/en.csv`, 109 keys |
 | Boot | Branches on `--server`; 8 CLI flags parsed in pure Core; 5 export presets. The server boots into `LOBBY` and **simulates nothing** below `TUN-LOBBY-MIN-PLAYERS` 4 — `--min-players` lowers it, and `sandbox.bat` passes 1 |
-| Map | `MAP-VETRAIO`, a lit greybox, 120 × 120 m; the navmesh is baked at build time and committed (281 polygons since the five benches, each carved out by an obstacle, 0.400 m above the street). `MAP-SANDBOX` is the 40 m debug bench. Both generated — trap 1 |
+| Map | `MAP-VETRAIO`, a greybox of 120 × 120 m **dressed on the client since US-0108** (`DistrictDressing`: 58 550 triangles, ten materials, no texture and no collider; `WorldLook` is the sun and sky); the generated scene is unchanged; the navmesh is baked at build time and committed (281 polygons since the five benches, each carved out by an obstacle, 0.400 m above the street). `MAP-SANDBOX` is the 40 m debug bench. Both generated — trap 1 |
 | Pawn | **17 states.** `PawnStateId.ALL`'s order is the wire and append-only (`Staggered` 14, `Lunging` 15, `Choking` 16), paired with `PROTOCOL_VERSION` by a test. `Blended` is declared and **unreachable** — its entry condition is server-only, so `SYS-BLEND` writes `blend_state` instead. Every living state can reach `Dead`. `Staggered` is interruptible and keeps the camera; `Choking` has no exit of its own and the server releases it |
 | Traversal | Complete: vault, mantle, climb, drop, gap jump and the case-7 hop. The action buffer arms on the press, not the hold |
 | Pawn body | `PersonaBody` for every figure, procedural, in its persona's hue once `Wardrobe` holds both the seed and the roster. **No animation clips on either rig** |

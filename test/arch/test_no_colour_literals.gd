@@ -20,6 +20,12 @@ const HUD := "res://scripts/presentation/hud"
 ## only knows about the old home is one a new home quietly escapes.
 const VFX := "res://scripts/presentation/vfx"
 
+## **AND A THIRD, FOR THE DISTRICT ITSELF** (ADR-0026). The art pass has its own
+## palette, `WorldPalette`, held to ART_BIBLE §3's reserved hues by a test that can
+## only check colours it can find: a plaster named beside the wall it paints is one
+## it never sees.
+const WORLD := "res://scripts/presentation/world"
+
 ## `Color(` is the constructor and `Color.` reaches a named constant like
 ## `Color.RED`. Both bypass the palette; both are the thing §7 forbids.
 const FORBIDDEN: Array[String] = ["Color(", "Color."]
@@ -29,7 +35,7 @@ const FORBIDDEN: Array[String] = ["Color(", "Color."]
 ## widget rebuilding a palette colour at a different alpha: that names no channel
 ## of its own, but a reader cannot tell it from a real literal at a glance and
 ## neither can this guard, so it lives on `Palette` as `with_alpha()` instead.
-const ALLOWED: Array[String] = ["palette.gd"]
+const ALLOWED: Array[String] = ["palette.gd", "world_palette.gd"]
 
 
 func test_the_scan_reaches_the_hud_at_all() -> void:
@@ -98,6 +104,7 @@ func test_every_widget_actually_holds_a_palette() -> void:
 func _scanned() -> PackedStringArray:
 	var out := SourceScanner.gd_files(HUD)
 	out.append_array(SourceScanner.gd_files(VFX))
+	out.append_array(SourceScanner.gd_files(WORLD))
 	return out
 
 

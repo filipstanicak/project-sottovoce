@@ -28,6 +28,7 @@ func _ready() -> void:
 	)
 	var geometry := (load(MapCatalogue.client_scene(chosen)) as PackedScene).instantiate()
 	map_host.add_child(geometry)
+	_dress_the_district(geometry)
 	results = ResultsRoot.new()
 	results.name = "Results"
 	results.palette = ($Hud as HudRoot).palette
@@ -37,6 +38,19 @@ func _ready() -> void:
 	($Hud/HudBridge as HudBridge).results_time_changed.connect(results.results_time_changed)
 	_open_the_wardrobe()
 	_lay_the_blend_cues(chosen)
+
+
+## **THE ART PASS** (ADR-0026): the greybox repainted and the district built on it.
+## Here and not in the map scene, because the server loads that scene's collision
+## twin and must never learn what a window is. Not on a headless client either: a
+## bot has no screen.
+func _dress_the_district(geometry: Node3D) -> void:
+	if not DistrictDressing.is_wanted():
+		return
+	var dressing := DistrictDressing.new()
+	dressing.name = "Dressing"
+	map_host.add_child(dressing)
+	dressing.dress(geometry)
 
 
 ## **ONE NODE DECIDES WHAT EVERY FIGURE WEARS** — crowd, other players and this one
