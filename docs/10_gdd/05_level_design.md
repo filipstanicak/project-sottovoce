@@ -810,7 +810,13 @@ flowchart LR
 ### 7.2 The gate at stage 6
 
 **No art work begins until the greybox map has been playtested and the loop is fun on it.**
-This is the single most important rule in the pipeline. Art is the most expensive and least
+This is the single most important rule in the pipeline.
+
+> **CROSSED ON 2026-11-16 BY OWNER DECISION 18, AND NOT MET** (ADR-0026). The owner asked for
+> the game to look finished before five people could be found for US-0098. The art pass that
+> followed is *derived* from the generated map rather than modelled on it, so a wall the
+> playtest moves is re-dressed for free — which is the cost this rule exists to avoid. §7.3's
+> rules bind as before. **The loop has still never been judged by several humans.** Art is the most expensive and least
 reversible work in the project, and a map's quality in this game is entirely a function of
 density, sightlines and metrics — none of which art changes.
 
