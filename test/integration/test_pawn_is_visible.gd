@@ -37,25 +37,14 @@ func _visuals() -> Node3D:
 	return _pawn.get_node("PersonaVisuals") as Node3D
 
 
+## Every drawn part, wherever on the skeleton it hangs: the body has been a rig
+## of joints since US-0109, not a row of meshes.
 func _meshes() -> Array[MeshInstance3D]:
-	var out: Array[MeshInstance3D] = []
-	for child: Node in _visuals().get_children():
-		if child is MeshInstance3D:
-			out.append(child as MeshInstance3D)
-	return out
+	return (_visuals() as PersonaBody).parts()
 
 
-## The visuals' extent in the PAWN's own space, which is where "the origin is the
-## feet" is a claim that can be checked.
 func _bounds() -> AABB:
-	var box := AABB()
-	var first := true
-	for mesh: MeshInstance3D in _meshes():
-		var local := mesh.mesh.get_aabb()
-		local.position += mesh.position
-		box = local if first else box.merge(local)
-		first = false
-	return box
+	return (_visuals() as PersonaBody).bounds()
 
 
 func _collider() -> CapsuleShape3D:
@@ -74,7 +63,7 @@ func test_every_mesh_carries_a_material() -> void:
 	# An unlit default-white capsule would be visible and would also be the one
 	# thing ART_BIBLE §3 forbids: a value that is not in the desaturated range.
 	for mesh: MeshInstance3D in _meshes():
-		assert_not_null(mesh.mesh.material, "%s has no material" % mesh.name)
+		assert_not_null(mesh.material_override, "%s has no material" % mesh.name)
 
 
 # ------------------------------------------- it is the size of what collides --
@@ -106,20 +95,24 @@ func test_something_marks_the_front() -> void:
 	# A capsule is rotationally symmetric. Without a marker the player cannot read
 	# their own facing — and facing is what the camera, the kill cone and every
 	# traversal probe are measured against.
+	var body := _visuals() as PersonaBody
 	var front := 0
 	for mesh: MeshInstance3D in _meshes():
-		if mesh.position.z > 0.0:
+		if body.box_of(mesh).get_center().z > 0.02:
 			front += 1
 	assert_gt(front, 0, "nothing on the body distinguishes front from back")
 
 
 func test_the_front_is_the_direction_the_probes_call_forward() -> void:
-	# +Z, agreeing with `ProbeLayout.forward(0)`. A marker on the back would make
+	# +Z, agreeing with `ProbeLayout.forward(0)`. A face on the back would make
 	# the pawn read as facing away from where it is about to vault.
 	var forward := ProbeLayout.forward(0.0)
-	for mesh: MeshInstance3D in _meshes():
-		if mesh.position.z != 0.0:
-			assert_gt(mesh.position.z * forward.z, 0.0, "%s marks the wrong side" % mesh.name)
+	var body := _visuals() as PersonaBody
+	for marker: String in ["Nose", "Foot"]:
+		var piece := body.part(marker)
+		assert_not_null(piece, "the body has no %s to face with" % marker)
+		var ahead := body.box_of(piece).get_center().z * forward.z
+		assert_gt(ahead, 0.0, "%s is on the wrong side" % marker)
 
 
 # ------------------------------------------------------------ what it is not --
@@ -129,9 +122,8 @@ func test_the_visuals_do_not_collide() -> void:
 	# Presentation may never change the world. A collider here would push the
 	# pawn, block the traversal probes, and give the camera something new to pull
 	# in from.
-	for child: Node in _visuals().get_children():
-		assert_false(child is CollisionObject3D, "%s collides" % child.name)
-		assert_false(child is CollisionShape3D, "%s collides" % child.name)
+	assert_eq(_visuals().find_children("*", "CollisionObject3D", true, false).size(), 0)
+	assert_eq(_visuals().find_children("*", "CollisionShape3D", true, false).size(), 0)
 
 
 func test_the_remote_pawn_wears_the_same_body() -> void:

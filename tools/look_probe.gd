@@ -161,6 +161,15 @@ func _physics_process(_delta: float) -> void:
 	_dress()
 
 
+## The four personas and the five fillers, in turn.
+func _cast() -> Array[StringName]:
+	var out: Array[StringName] = []
+	out.append_array(CrowdRoster.PLAYABLE)
+	out.append_array(CrowdRoster.PLAYABLE)
+	out.append_array(CrowdRoster.ARCHETYPES)
+	return out
+
+
 ## Figures in the four personas' hues, so the district is judged with its crowd.
 func _dress() -> void:
 	var crowd := _root.get_node_or_null("ClientNet/NpcView") as NpcView
@@ -169,4 +178,4 @@ func _dress() -> void:
 	for index: int in _civilians:
 		var body := crowd.body_of(index)
 		if body != null:
-			body.dress(CrowdRoster.PLAYABLE[index % CrowdRoster.PLAYABLE.size()])
+			body.dress(_cast()[index % _cast().size()])

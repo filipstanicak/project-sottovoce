@@ -227,6 +227,13 @@ to playtest the entire anonymity system:
 | Lucerna | Capsule, 1.89 m, ×0.8 width, **cylinder pole 0.9 m above head** |
 | Pesatore | Capsule, 1.75 m, uniform, box under arm |
 
+> **SINCE US-0109 THEY ARE JOINTED FIGURES, NOT CAPSULES** (ADR-0026): one skeleton in each
+> persona's proportions, dressed in what makes its silhouette — the table's capsule-and-box
+> rows became a yoke and apron, a bell skirt and coiled hair, a hood and pole, a round middle
+> with a cap and ledger. **The claims are the same and are held to the same test.** The five
+> filler archetypes of §1.3 have shapes too: a child, a fishwife, a mendicant, a porter and a
+> water-carrier, in homespun.
+>
 > **ALL FOUR ARE BUILT (`PersonaBody`, US-0046) AND WORN IN A MATCH AS OF US-0101**, in their
 > identity hues on the clothing and neutral on the props — every Lucerna the same yellow, so a
 > colour is a persona property and never an instance one (GDD-03 §6.3 rule 6). `GreyboxBody` is
@@ -351,7 +358,8 @@ If the answer is *yes*, *maybe*, or *I'd have to think about it* — rework it a
 - [ ] No material or widget names a colour literal; all come from `Palette`.
 - [ ] Environment art in the 1.4–1.9 m band meets the §4.1 quiet rule. *Held by test for glass,
       cloth, iron and roof tile since US-0108; a door every third bay still stands in the band.*
-- [ ] Persona meshes ≤ 8 000 tris with three LOD levels.
+- [ ] Persona meshes ≤ 8 000 tris with three LOD levels. *3 444 to 4 188 a figure since
+      US-0109 (`test_figure_shape.gd`); no LOD levels.*
 - [ ] LOD silhouettes match across band boundaries inside 60 m.
 - [ ] `MAT-VOID` appears nowhere in a playtest build.
 - [ ] Every third-party asset has an `ASSET_LICENSES.md` row.

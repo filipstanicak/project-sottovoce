@@ -77,7 +77,7 @@ Figures, animation, sound and the interface are not in this story.
       strengthened for it. Judged in `tools/blend_cue_probe.tscn`.
 - [x] **A client with no screen dresses nothing.** A bot is a headless client; so is every test
       that boots one. Dressing them cost the integration suite 37 s (192 s to 229 s), so
-      `DistrictDressing.is_wanted()` asks for a display, and
+      `DisplayGate.draws()` asks for a display, and
       `test_the_client_dresses_its_district.gd` forces the real boot path through it.
 - [ ] **The owner looks at it** and says whether this is the direction.
 - [ ] **The doors.** A door every third bay stands in the 1.4–1.9 m band. They are dark and

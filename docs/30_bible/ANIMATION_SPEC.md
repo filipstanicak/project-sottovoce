@@ -1,10 +1,10 @@
 ---
 id: BIBLE-ANIMATION-SPEC
 title: Animation Specification
-version: 0.1.0
+version: 0.2.0
 status: draft
 owner: Technical Director
-last_updated: 2026-08-03
+last_updated: 2026-11-16
 depends_on: [GDD-02-PLAYER, GDD-03-SOCIAL-STEALTH, TDD-06-PAWN, TDD-08-CROWD]
 ---
 
@@ -20,6 +20,13 @@ depends_on: [GDD-02-PLAYER, GDD-03-SOCIAL-STEALTH, TDD-06-PAWN, TDD-08-CROWD]
 >
 > > **Any animation a player can perform while Anonymous that their clones cannot is an
 > > anonymity leak, and is a release blocker.**
+
+> **HOW THIS DOCUMENT IS BUILT, SINCE 2026-11-16 (ADR-0026, US-0109).** It was written for two
+> rigs and about 195 clips. **There is one rig and no clip.** Every figure — the local player,
+> every other player, every civilian — is the same procedural skeleton, posed each frame by
+> arithmetic from three things: how its body is moving, where it is standing, and what it is
+> doing. §12 says what each part of this document became. **§1's boundary is unchanged and is
+> still the law**; what changed is that §7's four layers have nothing left to compare.
 
 ---
 
@@ -369,12 +376,57 @@ not be rough** — it is the one animation property with no acceptable MVP-quali
 - [ ] `test_clone_animation_parity.gd` passes for all four personas.
 - [ ] `test_anim_durations_match_tunables.gd` passes for every bold duration in §3.
 - [ ] `ANIM-KILL`'s contact frame is at `TUN-KILL-CORPSE-SPAWN-DELAY`, verified in the clip metadata.
-- [ ] `ANIM-BLENDWALK-LOOP` stride cycle is identical on player and clone rigs.
-- [ ] The idle-variation cycler graph and weights are identical on both rigs.
+- [x] `ANIM-BLENDWALK-LOOP` stride cycle is identical on player and clone rigs — *one rig and one
+      function of speed (§12); 1.15 s at blend-walk, `test_figure_motion.gd`.*
+- [x] The idle-variation cycler graph and weights are identical on both rigs — *one cycler; each
+      figure's offset into it comes from one sequence, player or civilian (§12).*
 - [ ] Root motion appears only on traversal clips (`test_root_motion_policy.gd`).
 - [ ] `ANIM-KILL-WHIFF` exists — a rejected kill is never silence.
 - [ ] The `AnimationTree` reads `state_id` and never writes it.
 - [ ] Debug builds assert that Anonymous-state clips are in the parity set.
+
+---
+
+## 12. The procedural rig (ADR-0026, US-0109)
+
+*Numbered 12 and placed here so §10 and §11 keep their numbers.*
+
+`scripts/presentation/pawn_visuals/`. A figure is a `FigureRig` — pelvis, trunk, head, two arms
+and two legs of two bones each — in a `FigureShape`'s proportions, and `FigureAnimator` poses it
+sixty times a second.
+
+### 12.1 What the pose is read from
+
+| Read from | Gives | The same for a player and a clone because |
+|---|---|---|
+| **How the body moved** since the last frame | Standing or stepping; the stride's reach and speed; a run's lean | It is measured off the body's own position, not told |
+| **Where it is standing** (`FigurePlaces`) | Seated on a bench; leaning on a counter | The place decides, never the occupant: a client is not told another player's blend, so nothing else could |
+| **What it is doing** (`FigureDirector`) | Climbing, striking, shoving, reeling, choking, dead, lunging; a civilian's flinch and stare | Every one is past §1's boundary |
+
+**No state reachable while Anonymous is told to a figure.** Idle, blend-walk, stroll, and all four
+blend-action idles are read from movement and place. `test_figure_director.gd` holds the line:
+every pawn state is either walked or acted, and none that a civilian could be mistaken for is an
+act.
+
+### 12.2 What each part of this document became
+
+| Section | Was | Is |
+|---|---|---|
+| §2, the parity set | 14 clips on each of two rigs | Poses of one rig. The stride cycles are §2's and §3.1's numbers: 1.15 s at `TUN-SPEED-BLENDWALK`, 0.78 s at stroll, 0.54 s at run, 0.44 s at sprint, interpolated between (`FigureMotion.cycle_seconds`) |
+| §2.2, the stride constraint | A duration in a clip | The same number, in `FigureMotion`. **The stride follows the ground**: it advances by distance covered, so feet do not slide |
+| §2.1, the per-persona gesture | `ANIM-IDLE-VAR-C` | **Not built.** What a persona carries is held instead — the Lucerna's pole arm and the Pesatore's ledger arm do not swing, on player and clone alike |
+| §5.1, the idle cycler | A graph on each rig | One function; each figure's offset into it is the next step of one sequence, so no two stand in step and the offset says nothing of who it is |
+| §4, root motion | On traversal clips | **None.** The pawn moves the figure; a traversal is a held pose |
+| §6, blend times | Per transition | One easing toward the wanted pose, for everything |
+| §7, enforcement | Four layers comparing two libraries | `test_the_clone_moves_as_the_player_does.gd`: one figure built as another player's pawn is and one as `NpcView` builds a civilian, walked down the same line and sat on the same bench, joint for joint. And nothing that poses a figure names a player, a slot or a persona |
+
+### 12.3 What it is not
+
+A pose rather than a performance. No turn-in-place, no start and stop steps, no whiff, no contact
+frame authored into a strike, no animation LOD (US-0045) — and nothing that a captured clip gives
+that arithmetic does not: weight, anticipation, a hand that actually closes on a ledge. **§1 has
+no MVP-quality degradation and has not been given one**; everything else here is what §8 calls
+rough.
 
 ---
 

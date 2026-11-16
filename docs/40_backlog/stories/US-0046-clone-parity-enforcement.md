@@ -33,21 +33,26 @@ Four layers because a single check gets deleted eventually by someone who does n
       Four `.tres` in `data/personas/`, and the set is a `const` on `PersonaData` rather than four
       copies — §7.1's table has a tick in every cell, and four copies of one list is four places
       for it to drift invisibly.
-- [ ] **Layer 2: `test_clone_animation_parity.gd` passes for all four personas.** The
+- [x] **Layer 2: `test_clone_animation_parity.gd` passes for all four personas.** The
       **declaration** half is asserted: the set is the documented fourteen, every clip is a
       harvested `ANIM-` id, every persona declares all of them and nothing else, the four
-      silhouettes and hues are mutually distinct. The **library** half cannot pass — there are no
-      animation clips in this project on either rig — so it reports and turns real by itself the
-      day the first `AnimationLibrary` lands.
+      silhouettes and hues are mutually distinct. **The library half was made moot, not met**
+      (ADR-0026, US-0109): there is one procedural rig and no clip, so no second library exists to
+      drift. The test keeps the old rule armed for the day a persona gains a library, and until
+      then requires `test_the_clone_moves_as_the_player_does.gd` to exist.
 - [ ] **Layer 3: debug builds assert the clip played in an Anonymous-reachable state is in the
       parity set.** `PersonaData.is_anonymous_clip()` is the check; there is no call site,
       because a call site needs an `AnimationTree` playing a clip and neither exists. Unticked
-      rather than ticked on a function nobody calls.
+      rather than ticked on a function nobody calls. *Since US-0109 the same line is held at
+      test time instead: `test_figure_director.gd` refuses an act for any state reachable while
+      Anonymous. That is not a runtime assert, so this stays unticked.*
 - [ ] **Layer 4: covered by US-0047.** Not this story's.
 - [ ] **Player and NPC footsteps use identical clips, radii and stride timing.** Blocked:
       `Audio.play()` is an empty stub until **US-0075**.
-- [ ] **The idle-variation cycler graph and weights are identical on both rigs.** Blocked: there
-      is no `AnimationTree` and no rig.
+- [x] **The idle-variation cycler graph and weights are identical on both rigs.** One rig and
+      one cycler since US-0109 (`FigureMotion.idle`); each figure's offset into it is the next
+      step of one sequence, player or civilian. *It was blocked on an `AnimationTree` that
+      ADR-0026 decided not to build.*
 - [x] **No per-instance variation on any clone: no tint, no accessory shuffle, no scale jitter.**
       `test_no_clone_variation.gd` scans everything that draws a clone for `randf`, `randi`,
       `RandomNumberGenerator`, `pick_random` and `shuffle`, falsified against a planted tint

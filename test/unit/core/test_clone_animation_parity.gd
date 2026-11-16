@@ -132,26 +132,31 @@ func test_no_two_personas_share_an_identity_hue() -> void:
 		seen[key] = true
 
 
-func test_the_library_half_is_reported_until_an_animator_exists() -> void:
-	# **THE HALF THAT CANNOT PASS YET.** It goes green by itself the day the first
-	# `AnimationLibrary` lands, and red the day one lands incomplete.
-	var without: PackedStringArray = []
-	var missing := 0
+## **THE LIBRARY HALF, WHICH ADR-0026 MADE MOOT RATHER THAN MET.** This reported
+## *pending* from US-0046 until 2026-11-16: 56 parity clips could not be checked
+## because no `AnimationLibrary` existed on either rig. There is now one rig and no
+## clip at all — a figure is posed by arithmetic (`FigureMotion`), from how it moves
+## and where it stands — so there is no second library for the first to drift from.
+##
+## What this holds instead is that the claim stays true in both directions: a
+## persona that ever gains a library must gain all fourteen clips (the old rule,
+## still armed), and while none has one, the test that proves a clone and a player
+## are posed alike must exist to be run (trap 14).
+func test_the_library_half_is_complete_or_there_is_no_library_to_drift() -> void:
+	var with_a_rig := 0
 	for data: PersonaData in _personas:
-		if not data.has_rig():
-			without.append(String(data.id))
-		missing += data.missing_from_library().size()
-	if without.size() == 0:
-		assert_eq(missing, 0, "a clone rig is missing parity clips: %d absent" % missing)
+		if data.has_rig():
+			with_a_rig += 1
+			var missing := data.missing_from_library().size()
+			assert_eq(missing, 0, "%s has a rig missing %d parity clips" % [data.id, missing])
+	if with_a_rig > 0:
+		assert_eq(with_a_rig, _personas.size(), "some personas have a rig and some do not")
 		return
-	assert_eq(missing, 4 * 14, "a persona has a rig but the count says otherwise")
-	pending(
-		(
-			(
-				"%d of 4 personas have no AnimationLibrary, so 56 parity clips cannot be checked. "
-				+ "There are no animation clips in this project on either rig; ANIMATION_SPEC §8 "
-				+ "costs the parity set at 14 x 4 x 2 rigs. This assertion turns real by itself."
-			)
-			% without.size()
+	var procedural := "res://test/unit/presentation/pawn_visuals/"
+	for held_by: String in [
+		"test_the_clone_moves_as_the_player_does.gd", "test_figure_director.gd"
+	]:
+		assert_true(
+			FileAccess.file_exists(procedural + held_by),
+			"no persona has a clip library, and %s does not exist to hold parity instead" % held_by
 		)
-	)

@@ -27,6 +27,15 @@ const CLONE_VISUALS: Array[String] = [
 	# Replaced `greybox_body.gd` at US-0101, which retired that class: the wardrobe
 	# is what now decides what every clone wears, so it is where a shuffle would go.
 	"res://scripts/presentation/pawn_visuals/wardrobe.gd",
+	# The body became a rig, a tailor and an animator at US-0109. A jitter in a
+	# proportion, a garment or a gait is the same leak as one in a tint.
+	"res://scripts/presentation/pawn_visuals/figure_shape.gd",
+	"res://scripts/presentation/pawn_visuals/figure_rig.gd",
+	"res://scripts/presentation/pawn_visuals/figure_tailor.gd",
+	"res://scripts/presentation/pawn_visuals/figure_garments.gd",
+	"res://scripts/presentation/pawn_visuals/figure_parts.gd",
+	"res://scripts/presentation/pawn_visuals/figure_motion.gd",
+	"res://scripts/presentation/pawn_visuals/figure_animator.gd",
 ]
 
 ## Randomness of any kind, and the properties it would be applied to.

@@ -14,8 +14,15 @@ func _body(persona: StringName) -> PersonaBody:
 
 
 func _albedo(body: PersonaBody, part: String) -> Color:
-	var mesh := body.get_node(part) as MeshInstance3D
-	return (mesh.mesh.material as StandardMaterial3D).albedo_color
+	return body.colour_of(part)
+
+
+## `[name, colour]` of every part, in the order the body was built.
+func _paint(body: PersonaBody) -> Array:
+	var out: Array = []
+	for piece: MeshInstance3D in body.parts():
+		out.append([String(piece.name), body.colour_of(String(piece.name))])
+	return out
 
 
 func test_the_clothing_wears_the_identity_hue_from_the_resource() -> void:
@@ -40,20 +47,21 @@ func test_the_four_hues_are_four() -> void:
 func test_an_undressed_body_is_neutral_all_over() -> void:
 	var body := _body(&"")
 	assert_false(body.is_dressed(), "an empty persona reads as dressed")
-	for child: Node in body.get_children():
-		var colour := ((child as MeshInstance3D).mesh.material as StandardMaterial3D).albedo_color
+	assert_gt(body.parts().size(), 10, "the undressed figure is not a figure")
+	for piece: MeshInstance3D in body.parts():
+		var colour := (piece.material_override as StandardMaterial3D).albedo_color
 		assert_true(
 			colour == PersonaBody.BODY_COLOUR or colour == PersonaBody.MARKER_COLOUR,
-			"undressed part %s carries a colour" % child.name
+			"undressed part %s carries a colour" % piece.name
 		)
 
 
 func test_dressing_rebuilds_in_place() -> void:
 	var body := _body(&"")
-	assert_null(body.get_node_or_null("Pole"), "an undressed figure carries the pole")
+	assert_null(body.part("Pole"), "an undressed figure carries the pole")
 	assert_true(body.dress(Ids.PERSONA_LUCERNA), "dressing reported nothing changed")
 	await wait_physics_frames(1)
-	assert_not_null(body.get_node_or_null("Pole"), "the Lucerna has no pole after dressing")
+	assert_not_null(body.part("Pole"), "the Lucerna has no pole after dressing")
 	assert_eq(_albedo(body, "Body"), Palette.authored_hue(Ids.PERSONA_LUCERNA), "wrong colour")
 
 
@@ -70,12 +78,13 @@ func test_dressing_as_the_same_persona_changes_nothing() -> void:
 func test_a_clone_and_a_player_of_one_persona_are_identical() -> void:
 	var player := _body(Ids.PERSONA_VETRAIO)
 	var clone := _body(Ids.PERSONA_VETRAIO)
-	assert_eq(player.get_child_count(), clone.get_child_count(), "different part counts")
-	for i: int in player.get_child_count():
-		assert_eq(
-			_albedo(player, player.get_child(i).name),
-			_albedo(clone, clone.get_child(i).name),
-			"part %s differs between two bodies of one persona" % player.get_child(i).name
+	assert_gt(_paint(player).size(), 12, "a Vetraio of a dozen parts or fewer is not one")
+	assert_eq(_paint(player), _paint(clone), "two bodies of one persona differ in a part")
+	for i: int in player.parts().size():
+		assert_same(
+			player.parts()[i].mesh,
+			clone.parts()[i].mesh,
+			"two bodies of one persona differ in shape"
 		)
 
 
@@ -83,8 +92,8 @@ func test_a_clone_and_a_player_of_one_persona_are_identical() -> void:
 func test_a_greyed_body_is_grey_and_returns_to_its_colours() -> void:
 	var body := _body(Ids.PERSONA_LUCERNA)
 	var before: Dictionary = {}
-	for child: Node in body.get_children():
-		before[child.name] = _albedo(body, child.name)
+	for piece: MeshInstance3D in body.parts():
+		before[String(piece.name)] = _albedo(body, String(piece.name))
 	body.set_greyed(true)
 	var hue: Color = before["Body"]
 	var greyed := _albedo(body, "Body")

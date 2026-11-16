@@ -45,12 +45,32 @@ func _ready() -> void:
 ## twin and must never learn what a window is. Not on a headless client either: a
 ## bot has no screen.
 func _dress_the_district(geometry: Node3D) -> void:
-	if not DistrictDressing.is_wanted():
+	if not DisplayGate.draws():
 		return
 	var dressing := DistrictDressing.new()
 	dressing.name = "Dressing"
 	map_host.add_child(dressing)
 	dressing.dress(geometry)
+	_direct_the_figures(geometry)
+
+
+## **WHERE FIGURES SIT AND LEAN, AND WHAT THE PLAYERS AMONG THEM ARE DOING**
+## (US-0109). Under the same gate as the district: a client with no screen
+## animates nobody.
+func _direct_the_figures(geometry: Node3D) -> void:
+	var chosen := (
+		LaunchConfig.active.map_name if LaunchConfig.active != null else MapCatalogue.DEFAULT
+	)
+	var map := load(MapCatalogue.data_path(chosen)) as MapData
+	FigurePlaces.set_from(DressingSurvey.new(geometry), map.static_props if map != null else [])
+	var director := FigureDirector.new()
+	director.name = "FigureDirector"
+	add_child(director)
+	director.bind(
+		get_node_or_null("LocalPawnDriver") as LocalPawnDriver,
+		get_node_or_null("World/PawnLocal/PersonaVisuals") as PersonaBody,
+		get_node_or_null("ClientNet/RemotePawns") as RemotePawns
+	)
 
 
 ## **ONE NODE DECIDES WHAT EVERY FIGURE WEARS** — crowd, other players and this one
