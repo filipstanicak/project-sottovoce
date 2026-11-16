@@ -30,6 +30,9 @@ var _scene: PackedScene
 var _own_slot: int = SlotTable.NO_SLOT
 var _interpolator := SnapshotInterpolator.new()
 var _clock := RenderClock.new()
+## The pawn state each slot was last described in. It has been on the wire since
+## US-0029 and nothing read it until a figure could show one (US-0109).
+var _states: Dictionary = {}
 
 
 func _ready() -> void:
@@ -61,6 +64,7 @@ func apply_snapshot(snapshot: Snapshot) -> void:
 		if not _pawns.has(slot):
 			_spawn(slot)
 		_interpolator.push(slot, server_time, record[1] as Vector3, record[2] as float)
+		_states[slot] = record[3]
 	_free_unseen(seen)
 
 
@@ -99,6 +103,7 @@ func _free_unseen(seen: Dictionary) -> void:
 			continue
 		(_pawns[slot] as Node).queue_free()
 		_pawns.erase(slot)
+		_states.erase(slot)
 		_interpolator.forget(slot)
 		Log.info("remote pawn vanished from slot %d" % slot, &"net")
 		remote_vanished.emit(slot)
@@ -117,6 +122,11 @@ func pawn_of(slot: int) -> Node3D:
 ## Every slot this client is drawing right now.
 func slots() -> Array:
 	return _pawns.keys()
+
+
+## The pawn state `slot` was last described in, or `Idle` for a slot never seen.
+func state_of(slot: int) -> StringName:
+	return _states.get(slot, PawnStateId.IDLE)
 
 
 func has_slot(slot: int) -> bool:

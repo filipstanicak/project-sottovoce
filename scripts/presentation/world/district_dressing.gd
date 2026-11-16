@@ -18,22 +18,10 @@
 class_name DistrictDressing
 extends Node3D
 
-## **A CLIENT THAT DRAWS NOTHING IS GIVEN NOTHING TO DRAW.** A bot is a headless
-## client, `play.bat` starts three to five of them, and each would assemble the
-## whole district for a screen it does not have; so would every test that boots a
-## client, which measured as 37 s on the integration suite. A test that wants the
-## real boot path dressed sets this, and puts it back.
-static var forced := false
-
 var palette: WorldPalette = null
 
 ## What the last `dress` built, for a test or a probe to measure.
 var triangles := 0
-
-
-## Whether this process has a screen to dress a district for.
-static func is_wanted() -> bool:
-	return forced or DisplayServer.get_name() != "headless"
 
 
 ## Repaint `map_root`'s greybox and build the district's detail under this node.

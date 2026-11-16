@@ -87,6 +87,7 @@ func apply_snapshot(snapshot: Snapshot) -> void:
 		var yaw := record[2] as float
 		if not _bodies.has(index):
 			_spawn(index, at)
+		(_bodies[index] as PersonaBody).act(FigureDirector.act_of_npc(int(record[3])))
 		_last_seen[index] = at
 		if _is_news(index, at, yaw):
 			_interpolator.push(index, server_time, at, yaw)

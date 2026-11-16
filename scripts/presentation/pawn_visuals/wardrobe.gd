@@ -58,14 +58,14 @@ static func can_dress() -> bool:
 	return GameState.has_match() and not GameState.personas.is_empty()
 
 
-## The crowd a seed produces: a persona for each clone and `&""` for each filler
-## archetype, which nobody can be and which therefore stays undressed.
+## The crowd a seed produces: a persona for each clone and an archetype for each
+## filler. **A filler was drawn undressed until US-0109**, when it had no shape of
+## its own; it is one of five trades nobody can be (ART_BIBLE §1.3), which is what
+## stops ninety figures reading as a line-up of four.
 static func crowd_personas(match_seed: int, count: int) -> Array:
 	var seats: int = Tuning.match_rules.max_players
 	var roster := CrowdRoster.derive(count, match_seed, CrowdRoster.PLAYABLE, seats)
-	return roster.map(
-		func(id: StringName) -> StringName: return id if CrowdRoster.PLAYABLE.has(id) else &""
-	)
+	return roster
 
 
 func is_dressing() -> bool:

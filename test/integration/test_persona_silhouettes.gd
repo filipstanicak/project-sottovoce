@@ -46,27 +46,14 @@ func before_each() -> void:
 ## The world-space box every mesh of a persona occupies, which is the closest a
 ## headless test gets to a silhouette.
 func _extent(persona: StringName) -> AABB:
-	var box := AABB()
-	var first := true
-	for child: Node in (_built[persona] as PersonaBody).get_children():
-		var mesh := child as MeshInstance3D
-		if mesh == null:
-			continue
-		var local := mesh.mesh.get_aabb()
-		local.position += mesh.position
-		if first:
-			box = local
-			first = false
-		else:
-			box = box.merge(local)
-	return box
+	return (_built[persona] as PersonaBody).bounds()
 
 
 func test_every_persona_builds_something() -> void:
 	# **THE VACUOUS-SUCCESS GUARD.** Four empty nodes have four identical AABBs of
 	# zero size, and "no two are the same" would be the only assertion that noticed.
 	for persona: StringName in PERSONAS:
-		var parts := (_built[persona] as PersonaBody).get_child_count()
+		var parts := (_built[persona] as PersonaBody).parts().size()
 		assert_gt(parts, 2, "%s built %d meshes — it is not a figure" % [persona, parts])
 		assert_gt(_extent(persona).size.y, 1.0, "%s is not person-shaped" % persona)
 
@@ -81,10 +68,15 @@ func test_the_four_heights_are_art_bibles_own() -> void:
 		Ids.PERSONA_PESATORE: 1.75,
 	}
 	for persona: StringName in PERSONAS:
-		var top := _extent(persona).position.y + _extent(persona).size.y
-		# Lucerna's pole and Cantatrice's crown sit above the head on purpose, so
-		# the body's own height is measured against the capsule, not the extent.
-		assert_gt(top, float(expected[persona]) - 0.15, "%s is shorter than §6.1 says" % persona)
+		# **THE CROWN OF THE HEAD, NOT THE TOP OF THE FIGURE.** Lucerna's pole and
+		# Cantatrice's coil stand above the head on purpose. *Until US-0109 this
+		# asked only that the whole extent be no more than 15 cm short, which four
+		# figures all 1.8 m tall passed: found by planting exactly that.*
+		var body := _built[persona] as PersonaBody
+		var crown := body.box_of(body.part("Head")).end.y
+		assert_almost_eq(
+			crown, float(expected[persona]), 0.02, "%s is not the height §6.1 says" % persona
+		)
 
 
 func test_no_two_personas_have_the_same_proportions() -> void:
@@ -110,13 +102,15 @@ func test_no_two_personas_have_the_same_proportions() -> void:
 
 ## The widest mesh whose centre sits between `low` and `high`. Width **at a
 ## height**, because that is the claim ART_BIBLE §6.1 actually makes.
+## The widest single part whose middle lies between `low` and `high`.
 func _width_between(persona: StringName, low: float, high: float) -> float:
+	var body := _built[persona] as PersonaBody
 	var widest := 0.0
-	for child: Node in (_built[persona] as PersonaBody).get_children():
-		var mesh := child as MeshInstance3D
-		if mesh == null or mesh.position.y < low or mesh.position.y > high:
+	for piece: MeshInstance3D in body.parts():
+		var box := body.box_of(piece)
+		if box.get_center().y < low or box.get_center().y > high:
 			continue
-		widest = maxf(widest, mesh.mesh.get_aabb().size.x)
+		widest = maxf(widest, box.size.x)
 	return widest
 
 

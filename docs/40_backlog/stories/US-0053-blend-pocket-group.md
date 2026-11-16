@@ -35,10 +35,12 @@ a walking-group formation slot.
 - [x] A pocket dropping below four NPCs breaks the blend THAT TICK.
 - [x] Blend grace of 1.0 s after exit arms the Blended bonus.
       Nothing reads it yet: `SCORE-BLENDED` is `SYS-SCORE`'s.
-- [ ] The player adopts the persona-appropriate clone idle — a parity-set clip.
-      **There are no animation clips in this project, on either rig.** The same blocker as M3's
-      exit. `PawnStateId.BLENDED` is also still unreachable — see the notes, because the reason
-      is not the missing clip.
+- [x] The player adopts the persona-appropriate clone idle — a parity-set clip.
+      **By construction since US-0109, and with no clip**: a figure's pose is read from how it
+      moves and where it stands, so a player standing in a pocket or walking in a group is posed
+      by the same arithmetic as the civilians round them
+      (`test_the_clone_moves_as_the_player_does.gd`). `PawnStateId.BLENDED` is still unreachable —
+      see the notes; nothing here needed it.
 
 ## Test notes
 

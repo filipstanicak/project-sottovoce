@@ -274,12 +274,17 @@ which also holds this manual's long form as it stood before the rewrite.*
 **THE GAME IS PLAYABLE END TO END BY THE OWNER AND BOTS, AND HAS NEVER HAD SEVERAL HUMANS IN
 ONE MATCH.** `play.bat` starts a server, walking bots and a client: a countdown, dealt personas
 and contracts, an eight-minute match with the Final Contract, kill, stun, escape, Cinderfall
-and the Lunge, every bonus rule (two of them dormant), the HUD and a results screen. **It looks like a place since 2026-11-16** (US-0108): an island quarter in a lagoon, dressed procedurally over the greybox. **What it does not have**: animation
-clips (figures are capsules that glide), any sound, a lobby screen, player names, a loadout, and a playtest with human hunters (US-0098). **The road from here to M6 — what the
+and the Lunge, every bonus rule (two of them dormant), the HUD and a results screen. **It looks like a place since 2026-11-16** (US-0108, US-0109): an island quarter in a lagoon, dressed procedurally over the greybox, with jointed figures that walk, sit and lean. **What it does not have**: any sound, a lobby screen, player names, a loadout, and a playtest with human hunters (US-0098). **The road from here to M6 — what the
 owner calls the beta — is [ROADMAP §8.3](docs/40_backlog/ROADMAP.md)**, measured 2026-09-30.
 
 ### Recent, newest first
 
+- **2026-11-16 — the figures have bodies, and move (US-0109).** One procedural skeleton for
+  the local player, every other player and every civilian, in each persona's proportions;
+  the five fillers have shapes too. A pose is read from how the body moves, where it stands
+  (`FigurePlaces`: stopped on a seat it sits) and what it does (`FigureDirector`) — never
+  from who it is, so there is no second rig for parity to drift across. Another player's
+  pawn state had been on the wire since US-0029, read by nothing.
 - **2026-11-16 — the art pass begins, and the district is dressed (ADR-0026, US-0108).** Owner
   decision 18: *make it look finished, every aspect polished*. GDD-05 §7.2's gate is crossed,
   not met. All of it is code: `DistrictDressing` reads the generated scene on the client and
@@ -415,7 +420,7 @@ settled row stays, one line, so nobody re-opens it. The full reasoning is in the
 | | |
 |---|---|
 | CI | 9 jobs, of which 7 are required check contexts on `main`: the two suite partitions, `test / architecture + unit` and `test / integration`, run as well and are summarised by the required aggregator `test`. A job that starts and ends in the same second with zero steps is a **billing refusal, not a crash** — trap 6. `.ci/run_gut.sh` refuses a suite that ran fewer scripts than exist on disk |
-| Tests | **63 arch + 248 unit + 34 integration scripts**, holding 260 + 2 050 + 248 tests and 1 807 + 36 153 + 698 assertions (measured 2026-11-16 for US-0108's dressed district; integration 192.9 s). **Nine are `pending` by design**, eight unit and one integration, each reporting a finding code cannot fix — among them upstream at 145 % and downstream at 112 % of budget, the crowd's wire cost, two spawn rules GDD-05 §2.7 is short of, the missing clip library, and an NPC aimed into the void. The script counts are guarded by `test_claude_md_counts_are_current.gd`; the rest is a snapshot. The 180 s integration budget is owner decision 2 |
+| Tests | **63 arch + 256 unit + 34 integration scripts**, holding 260 + 2 129 + 248 tests and 1 905 + 38 105 + 717 assertions (measured 2026-11-16 for US-0109's figures; integration 192.3 s). **Eight are `pending` by design**, seven unit and one integration, each reporting a finding code cannot fix — among them upstream at 145 % and downstream at 112 % of budget, the crowd's wire cost, two spawn rules GDD-05 §2.7 is short of, and an NPC aimed into the void. The script counts are guarded by `test_claude_md_counts_are_current.gd`; the rest is a snapshot. The 180 s integration budget is owner decision 2 |
 | Tuning | **306** tunables in 14 resource classes; **38** cross-field invariants, all asserting. Eight IDs deprecated and never reused (TUNABLES §19); three neutralised at 0 with their IDs live: `TUN-SCORE-RECKLESS` (ADR-0013), `TUN-SUSPICION-GAIN-OPEN` (ADR-0020) and `TUN-STUN-MIN-TIER` (ADR-0022 A). `test_tunables_match_the_document.gd` holds the shipped profile to TUNABLES |
 | Autoloads | Eight. `Tuning` precomputes durations into two tick tables, 30 Hz and 60 Hz — trap 9 |
 | Strings | `data/strings/en.csv`, 109 keys |
@@ -423,7 +428,7 @@ settled row stays, one line, so nobody re-opens it. The full reasoning is in the
 | Map | `MAP-VETRAIO`, a greybox of 120 × 120 m **dressed on the client since US-0108** (`DistrictDressing`: 58 550 triangles, ten materials, no texture and no collider; `WorldLook` is the sun and sky); the generated scene is unchanged; the navmesh is baked at build time and committed (281 polygons since the five benches, each carved out by an obstacle, 0.400 m above the street). `MAP-SANDBOX` is the 40 m debug bench. Both generated — trap 1 |
 | Pawn | **17 states.** `PawnStateId.ALL`'s order is the wire and append-only (`Staggered` 14, `Lunging` 15, `Choking` 16), paired with `PROTOCOL_VERSION` by a test. `Blended` is declared and **unreachable** — its entry condition is server-only, so `SYS-BLEND` writes `blend_state` instead. Every living state can reach `Dead`. `Staggered` is interruptible and keeps the camera; `Choking` has no exit of its own and the server releases it |
 | Traversal | Complete: vault, mantle, climb, drop, gap jump and the case-7 hop. The action buffer arms on the press, not the hold |
-| Pawn body | `PersonaBody` for every figure, procedural, in its persona's hue once `Wardrobe` holds both the seed and the roster. **No animation clips on either rig** |
+| Pawn body | `PersonaBody` for every figure: one procedural skeleton (`FigureRig`, 14 joints) in a `FigureShape`'s proportions, 3 400–4 200 triangles, in its persona's hue once `Wardrobe` holds both the seed and the roster; fillers wear one of five trades. **Posed by `FigureAnimator` from movement, place and act, with no clip and no second rig** (ANIMATION_SPEC §12). Meshes and paints are shared by every figure. `DisplayGate`: a client with no screen animates nobody |
 | Camera | Spring arm 2.6 m, resting 13° down, pawn centred, occlusion pulls in and never sideways, `WORLD`-masked. The FOV ladder follows the **state**, never the velocity. Positive pitch lowers the arm |
 | Input | 20 actions from 14 live `INPUT-` IDs, KBM and pad. Sampled once per physics frame by `LocalPawnDriver` alone — trap 12. Only a mapped gamepad holds joypad bindings |
 | Net | Server-authoritative ENet: 30 Hz tick, 60 Hz input, local-pawn prediction only, 100 ms interpolation, lag compensation for kill and stun. **`PROTOCOL_VERSION` 9**, every bump's reason in `messages.gd`. **Upstream 145 % and downstream 112 % of budget** — fine on a LAN, a risk over the internet. `Messages.CHANNEL_FOR` is held to every `@rpc` |
@@ -445,8 +450,8 @@ settled row stays, one line, so nobody re-opens it. The full reasoning is in the
 
 ## What is deliberately unticked
 
-**Fifty-three criteria**, regenerated 2026-09-30 after US-0050's countdown line and US-0037's
-below-the-floor line were found true and ticked. The story files are the source of truth;
+**Fifty-nine criteria**, regenerated 2026-11-16 after US-0108 and US-0109 added seven of their own and
+ticked four older ones that the art pass made true. The story files are the source of truth;
 regenerate rather than edit:
 
 ```bash
@@ -464,16 +469,20 @@ and US-0057's arc (the widget draws one now, but the half-width is no longer a f
 |---|---|---|
 | US-0105 | 6 | own placement and pursuer icons; the contract's placement (a field and a protocol bump); kill feed, names and the death card (player names, US-0078); the civilian-kill line (US-0106, ADR-0025) |
 | US-0048 | 6 | the M3 gate: client frame time, crowd bandwidth 112 %, animation and footstep parity, two human reads, the tag |
-| US-0046 | 5 | no animation clips, no rig, no audio |
-| US-0045 | 3 | no crowd mesh or `AnimationTree` to band |
+| US-0109 | 4 | the owner's eye on the figures; five naive viewers at 40 m; a figure on a seat sits whether it blended or not; animation LOD |
+| US-0108 | 3 | the owner's eye on the district; doors in the eye-height band; frame time on the reference machine |
+| US-0046 | 3 | a runtime assert for a clip nothing plays; layer 4 is US-0047's; footsteps need audio |
+| US-0045 | 3 | no animation or mesh LOD: every figure is posed every tick at every distance |
 | US-0038 | 3 | frame-rate independence cannot run headless; downstream bandwidth; the 180 ms feel check is the owner's |
 | US-0073 | 2 | the portrait's silhouette (no 2D counterpart of `PersonaBody`); ability slots (a loadout, US-0071) |
 | US-0077 | 2 | each player's persona, loadout and passive; killers by name — no persona in `MatchEndReport`, no player names |
 | US-0047 | 2 | "always two clones within 25 m" is unachievable by a walk (0.41 % short); the readable half needs rendered clones |
 | US-0035 | 2 | NPC transforms unrecorded because nothing would read them; memory 28.1 KB against 23 |
-| US-0024 | 2 | no animation frame to measure input against |
+| US-0024 | 2 | the harness does not yet read a pose change, and presenting one needs a display |
 | US-0059 | 2 | the client's rotation of the warning bearing; the mono sting (no audio) |
-| US-0019, US-0053 | 1 each | no animation clips |
+| US-0019 | 1 | no root motion: a traversal is a held pose |
+| US-0103 | 1 | walking apart: measured and parked |
+| US-0107 | 1 | the owner finds a blend by the net |
 | US-0023, US-0050 | 1 each | no audio: the duck, and the audible reassignment |
 | US-0022 | 1 | motion reduction's compensating indicator (US-0084) |
 | US-0025 | 1 | RTT proven over a real wire |

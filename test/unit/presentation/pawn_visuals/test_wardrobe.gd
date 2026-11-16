@@ -91,11 +91,19 @@ func test_both_halves_dress_everybody_at_once() -> void:
 	assert_eq(_local.persona, Ids.PERSONA_LUCERNA, "this player is not wearing their own deal")
 
 
-## Filler archetypes are nobody a player can be, so they stay undressed — and the
-## crowd has some, or a district of nothing but clones would be its own tell.
-func test_filler_stays_undressed() -> void:
+## Filler archetypes are nobody a player can be: each wears its own trade, never a
+## persona — and the crowd has some, or a district of nothing but clones would be
+## its own tell. *They were drawn undressed until US-0109 gave them shapes.*
+func test_filler_wears_a_trade_and_never_a_persona() -> void:
 	var crowd := Wardrobe.crowd_personas(SEED, CROWD)
-	assert_true(crowd.has(&""), "the derived crowd has no filler at all")
+	var fillers := 0
+	for id: StringName in crowd:
+		assert_true(
+			CrowdRoster.PLAYABLE.has(id) or CrowdRoster.ARCHETYPES.has(id),
+			"%s is neither a persona nor a trade" % id
+		)
+		fillers += 1 if CrowdRoster.ARCHETYPES.has(id) else 0
+	assert_gt(fillers, 0, "the derived crowd has no filler at all")
 	for persona: StringName in CrowdRoster.PLAYABLE:
 		assert_true(crowd.has(persona), "%s has no clones in the derived crowd" % persona)
 
@@ -165,8 +173,7 @@ func test_the_portrait_and_the_figures_follow_one_palette() -> void:
 	EventBus.contract_assigned.emit(0, Ids.PERSONA_CANTATRICE)
 	var body := _remote_body()
 	assert_eq(body.persona, Ids.PERSONA_CANTATRICE, "the fixture did not dress a Cantatrice")
-	var worn := (body.get_node("Body") as MeshInstance3D).mesh.material as StandardMaterial3D
-	assert_eq(worn.albedo_color, Color(0.1, 0.9, 0.2), "the figure ignored the palette")
+	assert_eq(body.colour_of("Body"), Color(0.1, 0.9, 0.2), "the figure ignored the palette")
 	assert_eq(portrait.bust_colour(), Color(0.1, 0.9, 0.2), "the portrait ignored the palette")
 
 
@@ -179,8 +186,7 @@ func test_the_crowd_is_the_one_the_server_stood_up() -> void:
 	var server := CrowdRoster.derive(CROWD, SEED, CrowdRoster.PLAYABLE, seats)
 	var client := Wardrobe.crowd_personas(SEED, CROWD)
 	for index: int in CROWD:
-		var expected: StringName = server[index] if CrowdRoster.PLAYABLE.has(server[index]) else &""
-		assert_eq(client[index], expected, "index %d is dressed differently" % index)
+		assert_eq(client[index], server[index], "index %d is dressed differently" % index)
 	var root := FileAccess.get_file_as_string("res://scripts/server/server_root.gd")
 	assert_true(
 		root.contains("var players: int = Tuning.match_rules.max_players"),

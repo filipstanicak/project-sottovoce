@@ -79,9 +79,11 @@ grey was not checkable from it, because that player never blends.
       docstring's word that the floors had none, and it starts hidden — so every `play.bat` session
       since US-0041 drew the streets in Godot's default white. It now puts the floor's own
       `MAT-GREY-FLOOR` back. A red floor drawing white is how it was found.
-- [ ] **The net reads on the finished district's ground.** Judged on the greybox only, whose
+- [x] **The net reads on the finished district's ground.** Judged on the greybox only, whose
       sunlit floor is near-white: a white line alone vanished there, so each line carries a faint
-      dark seam. Blocked: no art.
+      dark seam. **Judged again on the dressed district (US-0108)**: the ground is a light grey
+      and no lighter, and the line and its seam were strengthened for it
+      (`tools/blend_cue_probe.tscn`).
 - [ ] **Felt from the controls**: the owner finds a bench, a counter, a walking group and a
       circle by the net, and reads their own group by the grey.
 
